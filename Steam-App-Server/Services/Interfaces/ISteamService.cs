@@ -1,4 +1,4 @@
-﻿using SteamAppServer.Common.Proxies;
+﻿using SteamAppServer.Models.Proxies;
 
 namespace SteamAppServer.Services.Interfaces
 {

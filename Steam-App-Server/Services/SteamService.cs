@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using SteamAppServer.Common;
-using SteamAppServer.Common.Proxies;
 using SteamAppServer.Models;
+using SteamAppServer.Models.Proxies;
 using SteamAppServer.Services.Interfaces;
 using System.Web;
 
@@ -28,7 +28,7 @@ namespace SteamAppServer.Services
             {
                 return Enumerable.Empty<ListingProxy>();
             }
-            
+
             return filteredResult.Select(x => new ListingProxy { Name = x.Name, Price = x.SellPrice, Quantity = x.SellListings });
         }
 
@@ -100,7 +100,7 @@ namespace SteamAppServer.Services
                 Console.WriteLine($"JSON Serialization error: {e.Message}");
                 return Enumerable.Empty<Result>();
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 Console.WriteLine($"An error occurred: {e.Message}");
                 return Enumerable.Empty<Result>();

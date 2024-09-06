@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SteamAppServer.Common.Proxies;
+using SteamAppServer.Models.Proxies;
 using SteamAppServer.Services.Interfaces;
 
 namespace SteamAppServer.Controllers
