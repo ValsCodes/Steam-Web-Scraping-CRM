@@ -1,7 +1,9 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using SteamAppServer.Common;
 using SteamAppServer.Models;
 using SteamAppServer.Models.Proxies;
+using SteamAppServer.Repositories.Interfaces;
 using SteamAppServer.Services.Interfaces;
 using System.Web;
 
@@ -18,7 +20,14 @@ namespace SteamAppServer.Services
               "Paint Color: Team Spirit",                         // Team Color
         };
 
-        private HttpClient _httpClient = new();
+        private HttpClient _httpClient;
+        private ISteamRepository _steamRepository;
+
+        public SteamService(ISteamRepository steamRepository, HttpClient httpClient)
+        {
+            _steamRepository = steamRepository;
+            _httpClient = httpClient;
+        }
 
         public async Task<IEnumerable<ListingProxy>> GetFilterredListingsAsync(short page)
         {
@@ -30,6 +39,12 @@ namespace SteamAppServer.Services
             }
 
             return filteredResult.Select(x => new ListingProxy { Name = x.Name, Price = x.SellPrice, Quantity = x.SellListings });
+        }
+
+        public async Task<IEnumerable<SellListing>> GetSellListingsAsync()
+        {
+            var result = await _steamRepository.GetSellListingsAsync();
+            return result;
         }
 
         public async Task<IEnumerable<ListingProxy>> GetPaintedListingsOnlyAsync(short page)

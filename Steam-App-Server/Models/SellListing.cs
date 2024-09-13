@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SteamAppServer.Models
 {
-    [Table("sell_listing", Schema = "public")]
+    [Table("sell_listing")]
     public class SellListing
     {
         [Key]
@@ -21,7 +21,7 @@ namespace SteamAppServer.Models
         public DateTime DateBought { get; set; }
 
         [Column("date_sold")]
-        public DateTime DateSold { get; set; }
+        public DateTime? DateSold { get; set; }
 
         [Column("cost_price")]
         public decimal CostPrice { get; set; }
@@ -38,7 +38,7 @@ namespace SteamAppServer.Models
         [Column("t_sell_price_4")]
         public decimal? TargetSellPrice4 { get; set; }
 
-        [Column("seld_price")]
+        [Column("sold_price")]
         public decimal? SoldPrice { get; set; }
 
         [Column("is_hat")]

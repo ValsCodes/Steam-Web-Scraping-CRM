@@ -1,9 +1,11 @@
-﻿using SteamAppServer.Context;
+﻿using Microsoft.EntityFrameworkCore;
+using SteamAppServer.Context;
 using SteamAppServer.Models;
+using SteamAppServer.Repositories.Interfaces;
 
 namespace SteamAppServer.Repositories
 {
-    public class SteamRepository
+    public class SteamRepository : ISteamRepository
     {
         private readonly ApplicationDbContext _context;
 
@@ -12,9 +14,10 @@ namespace SteamAppServer.Repositories
             _context = context;
         }
 
-        public void GetSellListings()
+        public async Task<IEnumerable<SellListing>> GetSellListingsAsync()
         {
-
+            var result = await _context.SellListings.ToListAsync();
+            return result;
         }
 
         public void AddListing()

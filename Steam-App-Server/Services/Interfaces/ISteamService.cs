@@ -1,13 +1,17 @@
-﻿using SteamAppServer.Models.Proxies;
+﻿using SteamAppServer.Models;
+using SteamAppServer.Models.Proxies;
 
 namespace SteamAppServer.Services.Interfaces
 {
     public interface ISteamService
     {
-        public Task<IEnumerable<ListingProxy>> GetFilterredListingsAsync(short page);
+        Task<IEnumerable<ListingProxy>> GetFilterredListingsAsync(short page);
 
-        public Task<IEnumerable<ListingProxy>> GetPaintedListingsOnlyAsync(short page);
+        Task<IEnumerable<ListingProxy>> GetPaintedListingsOnlyAsync(short page);
 
-        public Task<(bool,string)> IsListingPaintedAsync(string name);
+        Task<(bool,string)> IsListingPaintedAsync(string name);
+
+        Task<IEnumerable<SellListing>> GetSellListingsAsync();
     }
+
 }

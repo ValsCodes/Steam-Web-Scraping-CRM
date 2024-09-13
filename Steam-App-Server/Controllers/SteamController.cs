@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using SteamAppServer.Models;
 using SteamAppServer.Models.Proxies;
 using SteamAppServer.Services.Interfaces;
 
@@ -46,6 +47,13 @@ namespace SteamAppServer.Controllers
         {
             var result = _steamService.IsListingPaintedAsync(name).GetAwaiter().GetResult();
 
+            return result;
+        }
+
+        [HttpGet("sell-listings")]
+        public IEnumerable<SellListing> GetSellListings()
+        {
+            var result = _steamService.GetSellListingsAsync().GetAwaiter().GetResult();
             return result;
         }
     }
