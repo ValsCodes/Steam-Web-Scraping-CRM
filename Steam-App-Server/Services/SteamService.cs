@@ -11,15 +11,6 @@ namespace SteamAppServer.Services
 {
     public class SteamService : ISteamService
     {
-        private string[] _goodPaintsStringValues = new[]
-{
-              "Paint Color: The Bitter Taste of Defeat and Lime", // Lime Green                                                          
-              "Paint Color: An Extraordinary Abundance of Tinge", // White
-              "Paint Color: A Distinctive Lack of Hue",           // Black
-              "Paint Color: Pink as Hell",                        // Pink
-              "Paint Color: Team Spirit",                         // Team Color
-        };
-
         private HttpClient _httpClient;
         private ISteamRepository _steamRepository;
 
@@ -74,7 +65,7 @@ namespace SteamAppServer.Services
                 .FirstOrDefault().Value?.Descriptions?
                 .Where(x => x.Value != null);
 
-            if (resultAssets != null && resultAssets.Any(x => _goodPaintsStringValues.Contains(x.Value)))
+            if (resultAssets != null && resultAssets.Any(x => StaticCollections.GoodPaintsStringValues.Contains(x.Value)))
             {
                 var paint = resultAssets.FirstOrDefault(x => x.Value.StartsWith("Paint Color:"))?.Value;
                 if (paint != null)
@@ -151,7 +142,7 @@ namespace SteamAppServer.Services
 
                 var resultAssets = firstAssetDetail?.Descriptions?.Where(x => x.Value != null);
 
-                var isContained = resultAssets?.Any(x => _goodPaintsStringValues.Contains(x.Value)) ?? false;
+                var isContained = resultAssets?.Any(x => StaticCollections.GoodPaintsStringValues.Contains(x.Value)) ?? false;
 
                 if (isContained)
                 {
