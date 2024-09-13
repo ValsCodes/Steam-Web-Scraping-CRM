@@ -2,7 +2,7 @@
 
 namespace SteamAppServer.Models
 {
-    public class MarketListings_Json
+    public class ListingDetails_Json
     {
         [JsonProperty("success")]
         public bool Success { get; set; }

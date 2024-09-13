@@ -83,7 +83,7 @@ namespace SteamAppServer.Services
                 }
 
                 var jsonString = FormatJsonStringForDeserialization(jsonResponse);
-                var result = DeserializeFormattedJsonString<MarketListings_Json>(jsonString);
+                var result = DeserializeFormattedJsonString<ListingDetails_Json>(jsonString);
                 if (result == null)
                 {
                     Console.WriteLine("Failed to deserialize JSON.");
@@ -98,12 +98,10 @@ namespace SteamAppServer.Services
             catch (JsonSerializationException e)
             {
                 Console.WriteLine($"JSON Serialization error: {e.Message}");
-                return Enumerable.Empty<Result>();
             }
             catch (Exception e)
             {
                 Console.WriteLine($"An error occurred: {e.Message}");
-                return Enumerable.Empty<Result>();
             }
 
             return Enumerable.Empty<Result>();
