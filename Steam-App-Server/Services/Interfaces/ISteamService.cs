@@ -12,6 +12,8 @@ namespace SteamAppServer.Services.Interfaces
         Task<(bool,string)> IsListingPaintedAsync(string name);
 
         Task<IEnumerable<SellListing>> GetSellListingsAsync();
+
+        Task GetPagesManuallyAsync(long page, long bactchSize);
     }
 
 }

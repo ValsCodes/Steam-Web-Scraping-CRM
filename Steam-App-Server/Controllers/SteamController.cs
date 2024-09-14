@@ -56,5 +56,11 @@ namespace SteamAppServer.Controllers
             var result = _steamService.GetSellListingsAsync().GetAwaiter().GetResult();
             return result;
         }
+
+        [HttpGet("get-batch-manually")]
+        public void GetPagesManually(long page, long batchSize)
+        {
+            _steamService.GetPagesManuallyAsync(page, batchSize).GetAwaiter().GetResult();
+        }
     }
 }

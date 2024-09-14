@@ -5,6 +5,7 @@ using SteamAppServer.Models;
 using SteamAppServer.Models.Proxies;
 using SteamAppServer.Repositories.Interfaces;
 using SteamAppServer.Services.Interfaces;
+using System.Diagnostics;
 using System.Web;
 
 namespace SteamAppServer.Services
@@ -20,6 +21,34 @@ namespace SteamAppServer.Services
             _httpClient = httpClient;
         }
 
+        #region Repository Requests
+
+        public async Task<IEnumerable<SellListing>> GetSellListingsAsync()
+        {
+            var result = await _steamRepository.GetSellListingsAsync();
+            return result;
+        }
+
+        public async Task<SellListing?> AddListingAsync(SellListing sellListing)
+        {
+            var result = await _steamRepository.AddListingAsync(sellListing);
+            return result;
+        }
+
+        public async Task<SellListing?> DeleteListingAsync(long id)
+        {
+            var result = await _steamRepository.DeleteListingAsync(id);
+            return result;
+        }
+
+        public async Task<SellListing?> UpdateListingAsync(long id, SellListing sellListing)
+        {
+            var result = await _steamRepository.UpdateListingAsync(id, sellListing);
+            return result;
+        }
+
+        #endregion
+
         public async Task<IEnumerable<ListingProxy>> GetFilterredListingsAsync(short page)
         {
             var url = $"{Constants.JSON_100_LISTINGS_URL}{page}";
@@ -32,38 +61,18 @@ namespace SteamAppServer.Services
             return filteredResult.Select(x => new ListingProxy { Name = x.Name, Price = x.SellPrice, Quantity = x.SellListings });
         }
 
-        public async Task<IEnumerable<SellListing>> GetSellListingsAsync()
-        {
-            var result = await _steamRepository.GetSellListingsAsync();
-            return result;
-        }
-
-        public async Task<IEnumerable<ListingProxy>> GetPaintedListingsOnlyAsync(short page)
-        {
-            await Task.Delay(1000);
-            return new ListingProxy[] { new ListingProxy { } };
-        }
-
-
         public async Task<(bool, string)> IsListingPaintedAsync(string name)
         {
             var formattedName = FormatListingNameForUrl(name);
-
             var url = $"{Constants.FIRST_PAGE_URL_PART_1}{formattedName}{Constants.FIRST_PAGE_URL_PART_2}";
-
             var jsonResponse = await GetHttpResposeAsync(url);
-
             var jsonString = FormatJsonStringForDeserialization(jsonResponse);
-
             var result = DeserializeFormattedJsonString<Listing_Json>(jsonString);
 
             //When Deserializing assets:440:2 doesn't deserialize the data correctly and leaves everything as null
             //Model binding problem probably
 
-            var resultAssets = result?.Assets?.FirstOrDefault().Value?
-                .FirstOrDefault().Value?
-                .FirstOrDefault().Value?.Descriptions?
-                .Where(x => x.Value != null);
+            var resultAssets = result?.Assets?.FirstOrDefault().Value?.FirstOrDefault().Value?.FirstOrDefault().Value?.Descriptions?.Where(x => x.Value != null);
 
             if (resultAssets != null && resultAssets.Any(x => StaticCollections.GoodPaintsStringValues.Contains(x.Value)))
             {
@@ -77,37 +86,46 @@ namespace SteamAppServer.Services
             return (false, string.Empty);
         }
 
+        public async Task<IEnumerable<ListingProxy>> GetPaintedListingsOnlyAsync(short page)
+        {
+            await Task.Delay(1000);
+            return new ListingProxy[] { new ListingProxy { } };
+        }
+
+        public async Task GetPagesManuallyAsync(long page, long bactchSize)
+        {
+            var pageTo = page + bactchSize;
+
+            for (; page < pageTo; page++)
+            {
+                string url = $"{Constants.MANUAL_URL}p{page}_price_asc";
+
+                Thread.Sleep(200);
+                await Task.Run(() => Process.Start(new ProcessStartInfo("cmd", $"/c start \"\" \"{url}\"") { CreateNoWindow = true }));
+            }
+        }
+
+        #region Private Methods
         private async Task<IEnumerable<Result>> GetFilterredResults(string url)
         {
-            try
+            var jsonResponse = await GetHttpResposeAsync(url);
+            if (string.IsNullOrEmpty(jsonResponse))
             {
-                var jsonResponse = await GetHttpResposeAsync(url);
-                if (string.IsNullOrEmpty(jsonResponse))
-                {
-                    Console.WriteLine("No JSON received or request failed.");
-                    return null!;
-                }
-
-                var jsonString = FormatJsonStringForDeserialization(jsonResponse);
-                var result = DeserializeFormattedJsonString<ListingDetails_Json>(jsonString);
-                if (result == null)
-                {
-                    Console.WriteLine("Failed to deserialize JSON.");
-                    return null!;
-                }
-
-                if (result.Results!.Any())
-                {
-                    return result.Results!.Where(x => x.SellPrice >= 150 && x.SellPrice <= 450).OrderBy(x => x.SellPrice).ToList();
-                }
+                Console.WriteLine("No JSON received or request failed.");
+                return null!;
             }
-            catch (JsonSerializationException e)
+
+            var jsonString = FormatJsonStringForDeserialization(jsonResponse);
+            var result = DeserializeFormattedJsonString<ListingDetails_Json>(jsonString);
+            if (result == null)
             {
-                Console.WriteLine($"JSON Serialization error: {e.Message}");
+                Console.WriteLine("Failed to deserialize JSON.");
+                return null!;
             }
-            catch (Exception e)
+
+            if (result.Results!.Any())
             {
-                Console.WriteLine($"An error occurred: {e.Message}");
+                return result.Results!.Where(x => x.SellPrice >= 150 && x.SellPrice <= 450).OrderBy(x => x.SellPrice).ToList();
             }
 
             return Enumerable.Empty<Result>();
@@ -162,7 +180,6 @@ namespace SteamAppServer.Services
                         itemCollection.Add(listing);
                     }
                 }
-
             }
 
             return itemCollection;
@@ -170,32 +187,15 @@ namespace SteamAppServer.Services
 
         private async Task<string?> GetHttpResponseAsync(string url)
         {
-            try
-            {
-                _httpClient.Timeout = TimeSpan.FromSeconds(30);
+            _httpClient.Timeout = TimeSpan.FromSeconds(30);
 
-                var response = await _httpClient.GetAsync(url).ConfigureAwait(false);
+            var response = await _httpClient.GetAsync(url).ConfigureAwait(false);
 
-                response.EnsureSuccessStatusCode();
+            response.EnsureSuccessStatusCode();
 
-                string responseContent = await response.Content.ReadAsStringAsync(); // json
+            string responseContent = await response.Content.ReadAsStringAsync();
 
-                return responseContent;
-            }
-            catch (HttpRequestException e)
-            {
-                Console.WriteLine($"Request error: {e.Message}");
-            }
-            catch (TaskCanceledException e)
-            {
-                Console.WriteLine($"Request timed out: {e.Message}");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Unexpected error: {e.Message}");
-            }
-
-            return null;
+            return responseContent;
         }
 
         private async Task<string> GetHttpResposeAsync(string url)
@@ -230,5 +230,6 @@ namespace SteamAppServer.Services
         {
             return HttpUtility.UrlEncode(name);
         }
+        #endregion
     }
 }
