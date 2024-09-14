@@ -1,9 +1,10 @@
 import { Component } from '@angular/core';
+import { SellListingComponent } from "../sell-listing/sell-listing.component";
 
 @Component({
   selector: 'steam-manual-mode',
   standalone: true,
-  imports: [],
+  imports: [SellListingComponent],
   templateUrl: './manual-mode.component.html',
   styleUrl: './manual-mode.component.scss',
 })

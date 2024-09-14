@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { ListingComponent } from '../listing/listing.component';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { SteamService } from '../../services/steam/steam.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+
 
 import { IListing } from '../../models/listing.model';
 
@@ -13,7 +14,9 @@ import { IListing } from '../../models/listing.model';
   imports: [ListingComponent, FormsModule, CommonModule],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
-  providers: [SteamService],
+  providers: [
+    SteamService,    
+  ],
 })
 export class HomeComponent {
   pageNumber: number = 0;
@@ -60,19 +63,14 @@ export class HomeComponent {
     linkUrl: "https://examplelink.com"
   }]
 
-  //injecting the service makes the page go white for some reason
-  //constructor(private steamSrv: SteamService) {}
+  constructor(private steamService: SteamService) {}
 
   getListingsButtonClicked(pageNum: number) {
-    //test binding
       this.pageNumber += 1;
-    // Get Listings Steam from Service
   }
 
   isPaintedButtonClicked(name: string) {
-    //test binding
       this.pageNumber += 1;
-    // Get Listings Steam from Service
   }
 
   onPageNumberChange(value: number) {
