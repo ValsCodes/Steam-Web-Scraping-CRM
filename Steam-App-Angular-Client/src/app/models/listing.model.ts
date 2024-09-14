@@ -4,4 +4,5 @@ export interface IListing {
   imageUrl: string;
   quantity: number;
   color: string;
+  linkUrl: string;
 }

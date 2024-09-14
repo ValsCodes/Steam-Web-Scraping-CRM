@@ -1,11 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { ListingComponent } from '../listing/listing.component';
 import { Observable, BehaviorSubject } from 'rxjs';
-import { SteamService } from './steam.service';
+import { SteamService } from '../../services/steam/steam.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
-import { IListing } from '../home/listing.model';
+import { IListing } from '../../models/listing.model';
 
 @Component({
   selector: 'steam-home',
@@ -24,35 +24,40 @@ export class HomeComponent {
     price: 59.99,
     imageUrl: 'https://example.com/images/red-jacket.png',
     quantity: 10,
-    color: 'Red'
+    color: 'Red',
+    linkUrl: "https://examplelink.com"
   },
   {
     name: 'Blue Shoes',
     price: 89.99,
     imageUrl: 'https://example.com/images/blue-shoes.png',
     quantity: 5,
-    color: 'Blue'
+    color: 'Blue',
+    linkUrl: "https://examplelink.com"
   },
   {
     name: 'Green Hat',
     price: 25.00,
     imageUrl: 'https://example.com/images/green-hat.png',
     quantity: 15,
-    color: 'Green'
+    color: 'Green',
+    linkUrl: "https://examplelink.com"
   },
   {
     name: 'Yellow Scarf',
     price: 19.99,
     imageUrl: 'https://example.com/images/yellow-scarf.png',
     quantity: 8,
-    color: 'Yellow'
+    color: 'Yellow',
+    linkUrl: "https://examplelink.com"
   },
   {
     name: 'Black Watch',
     price: 150.00,
     imageUrl: 'https://example.com/images/black-watch.png',
     quantity: 3,
-    color: 'Black'
+    color: 'Black',
+    linkUrl: "https://examplelink.com"
   }]
 
   //injecting the service makes the page go white for some reason

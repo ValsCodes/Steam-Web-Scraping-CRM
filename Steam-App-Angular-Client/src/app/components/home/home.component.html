@@ -4,7 +4,7 @@
     <div class="flex items-center px-1">
         <div class="flex py-4">
             <label for="page-number">Page Number : </label>
-            <input [(ngModel)]="pageNumber" (ngModelChange)="onPageNumberChange($event)" class="w-[5rem] ml-2 pl-2"
+            <input [(ngModel)]="pageNumber" (ngModelChange)="onPageNumberChange($event)" class="w-[5rem] ml-2 pl-2 rounded-md"
                 type="number" min="1" step="1" title="Enter a positive number">
         </div>
         <button (click)="getListingsButtonClicked(pageNumber)" class="bg-yellow-200 rounded-md px-2 py-1 ml-auto">Get

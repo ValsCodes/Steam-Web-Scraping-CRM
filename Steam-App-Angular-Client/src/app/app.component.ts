@@ -1,9 +1,9 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { HomeComponent } from "./home/home.component";
-import { ManualModeComponent } from "./manual-mode/manual-mode.component";
+import { HomeComponent } from "./components/home/home.component";
+import { ManualModeComponent } from "./components/manual-mode/manual-mode.component";
 import { FormsModule } from '@angular/forms';
-import { SiteHeaderComponent } from "./site-header/site-header.component";
+import { SiteHeaderComponent } from "./components/site-header/site-header.component";
 
 @Component({
   selector: 'app-root',

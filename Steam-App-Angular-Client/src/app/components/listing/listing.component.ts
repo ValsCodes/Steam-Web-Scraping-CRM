@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-import { IListing } from '../home/listing.model';
+import { IListing } from '../../models/listing.model';
 
 @Component({
   selector: 'steam-listing',
