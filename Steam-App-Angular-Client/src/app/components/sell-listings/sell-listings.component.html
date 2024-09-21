@@ -1,10 +1,41 @@
-<div
-    class="bg-red-500 flex-col w-1/3 min-w-[28rem] mx-auto items-center justify-center h-screen my-6 px-4 py-4 rounded-md">
-    <ol>
-        <ul>
-            <li *ngFor="let sellListing of sellListings">
-                <steam-sell-listing [sellListing]="sellListing"></steam-sell-listing>
-            </li>
-        </ul>
-    </ol>
+
+<div class="table-container">
+    <div class="flex justify-end">
+        <button class="refresh-button mr-4">Refresh</button>
+        <button class="clear-button">Clear</button>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th class="item">Item</th>
+                <th class="description">Description</th>
+                <th class="bought-price">Bought Price</th>
+                <th class="date-bought">Date Bought</th>
+                <th class="target1">Target 1</th>
+                <th class="target2">Target 2</th>
+                <th class="target3">Target 3</th>
+                <th class="target4">Target 4</th>
+                <th class="date-sold">Date Sold</th>
+                <th class="actions">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let sellListing of sellListings">
+                <td>{{ sellListing.name }}</td>
+                <td>{{ sellListing.description }}</td>
+                <td class="currency">{{ sellListing.costPrice | currency : "EUR" }}</td>
+                <td class="date">{{ sellListing.dateBought | date }}</td>
+                <td class="currency">{{ sellListing.targetSellPrice1 | currency : "EUR" }}</td>
+                <td class="currency">{{ sellListing.targetSellPrice2 | currency : "EUR" }}</td>
+                <td class="currency">{{ sellListing.targetSellPrice3 | currency : "EUR" }}</td>
+                <td class="currency">{{ sellListing.targetSellPrice4 | currency : "EUR" }}</td>
+                <td class="date">{{ sellListing.dateSold | date }}</td>
+                <td>
+                    <ng-container *ngIf="sellListing">
+                        <steam-sell-listing [sellListing]="sellListing"></steam-sell-listing>
+                    </ng-container>
+                </td>
+            </tr>
+        </tbody>
+    </table>
 </div>

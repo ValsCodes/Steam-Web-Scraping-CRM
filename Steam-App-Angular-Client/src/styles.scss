@@ -2,7 +2,13 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+$button-colors: (
+    success: #28a745,
+    primary: #007bff,
+    warning: #dc3545
+);
 
-p, h1, h2, h3, h4, h5, h6, label {
-    color: white;
+input {
+    border-width: 1px;
+    border-color: black;
 }

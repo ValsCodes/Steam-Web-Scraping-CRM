@@ -7,6 +7,6 @@ import { SellListingsComponent } from "./components/sell-listings/sell-listings.
 export const routes: Routes = [
     { path: 'home', component: HomeComponent, title: "Home" },
     { path: 'manual-mode', component: ManualModeComponent, title: "Manual Mode" },
-    { path: 'sell-listings', component: SellListingsComponent, title: "My Sell Listings" },
+    { path: 'sell-listings', component: SellListingsComponent, title: "Sell Listings" },
     { path: '', redirectTo: '/home', pathMatch: 'full' },
 ];
