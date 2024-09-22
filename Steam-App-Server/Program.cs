@@ -16,7 +16,7 @@ namespace SteamAppServer
             #region Service Scopes
 
             builder.Services.AddHttpClient<ISteamService, SteamService>();
-            builder.Services.AddScoped<ISteamRepository, SteamRepository>();
+            builder.Services.AddScoped<ISalesRepository, SalesRepository>();
             builder.Services.AddScoped<ISteamService, SteamService>();
 
             #endregion

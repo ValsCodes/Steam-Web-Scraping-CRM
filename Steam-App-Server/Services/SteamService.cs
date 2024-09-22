@@ -5,7 +5,6 @@ using SteamAppServer.Models;
 using SteamAppServer.Models.Proxies;
 using SteamAppServer.Repositories.Interfaces;
 using SteamAppServer.Services.Interfaces;
-using System.Diagnostics;
 using System.Web;
 
 namespace SteamAppServer.Services
@@ -13,9 +12,9 @@ namespace SteamAppServer.Services
     public class SteamService : ISteamService
     {
         private HttpClient _httpClient;
-        private ISteamRepository _steamRepository;
+        private ISalesRepository _steamRepository;
 
-        public SteamService(ISteamRepository steamRepository, HttpClient httpClient)
+        public SteamService(ISalesRepository steamRepository, HttpClient httpClient)
         {
             _steamRepository = steamRepository;
             _httpClient = httpClient;
@@ -23,27 +22,27 @@ namespace SteamAppServer.Services
 
         #region Repository Requests
 
-        public async Task<IEnumerable<SellListing>> GetSellListingsAsync()
+        public async Task<IEnumerable<SellListing>> GetListingsAsync()
         {
-            var result = await _steamRepository.GetSellListingsAsync();
+            var result = await _steamRepository.GetListingsAsync();
             return result;
         }
 
-        public async Task<SellListing?> AddListingAsync(SellListing sellListing)
+        public async Task<SellListing?> CreateListingAsync(SellListing sellListing)
         {
-            var result = await _steamRepository.AddListingAsync(sellListing);
-            return result;
-        }
-
-        public async Task<SellListing?> DeleteListingAsync(long id)
-        {
-            var result = await _steamRepository.DeleteListingAsync(id);
+            var result = await _steamRepository.CreateListingAsync(sellListing);
             return result;
         }
 
         public async Task<SellListing?> UpdateListingAsync(long id, SellListing sellListing)
         {
             var result = await _steamRepository.UpdateListingAsync(id, sellListing);
+            return result;
+        }
+
+        public async Task<SellListing?> DeleteListingAsync(long id)
+        {
+            var result = await _steamRepository.DeleteListingAsync(id);
             return result;
         }
 
@@ -85,24 +84,9 @@ namespace SteamAppServer.Services
 
             return (false, string.Empty);
         }
-
-        public async Task<IEnumerable<ListingProxy>> GetPaintedListingsOnlyAsync(short page)
+        public Task<IEnumerable<ListingProxy>> GetPaintedListingsOnlyAsync(short page)
         {
-            await Task.Delay(1000);
-            return new ListingProxy[] { new ListingProxy { } };
-        }
-
-        public async Task GetPagesManuallyAsync(long page, long bactchSize)
-        {
-            var pageTo = page + bactchSize;
-
-            for (; page < pageTo; page++)
-            {
-                string url = $"{Constants.MANUAL_URL}p{page}_price_asc";
-
-                Thread.Sleep(200);
-                await Task.Run(() => Process.Start(new ProcessStartInfo("cmd", $"/c start \"\" \"{url}\"") { CreateNoWindow = true }));
-            }
+            throw new NotImplementedException();
         }
 
         #region Private Methods

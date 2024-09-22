@@ -5,22 +5,22 @@ using SteamAppServer.Repositories.Interfaces;
 
 namespace SteamAppServer.Repositories
 {
-    public class SteamRepository : ISteamRepository
+    public class SalesRepository : ISalesRepository
     {
         private readonly ApplicationDbContext _context;
 
-        public SteamRepository(ApplicationDbContext context)
+        public SalesRepository(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        public async Task<IEnumerable<SellListing>> GetSellListingsAsync()
+        public async Task<IEnumerable<SellListing>> GetListingsAsync()
         {
             var result = await _context.SellListings.ToListAsync();
             return result;
         }
 
-        public async Task<SellListing?> AddListingAsync(SellListing sellListing)
+        public async Task<SellListing?> CreateListingAsync(SellListing sellListing)
         {
             await _context.AddAsync(sellListing);
             await _context.SaveChangesAsync();
