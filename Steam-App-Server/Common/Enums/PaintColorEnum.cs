@@ -2,15 +2,15 @@
 {
     public enum PaintColorEnum
     {
-        NoColor = 0,
-        BadColor = 1,
-        Lime = 2,
-        White = 3,
-        Black = 4,
-        Pink = 5,
-        TeamColor1 = 6,
-        TeamColor2 = 7,
-        Yellow = 8,
-        Mint = 9
+        NoColor = 1,
+        BadColor = 2,
+        Lime = 3,
+        White = 4,
+        Black = 5,
+        Pink = 6,
+        TeamColor1 = 7,
+        TeamColor2 = 8,
+        Yellow = 9,
+        Mint = 10
     }
 }

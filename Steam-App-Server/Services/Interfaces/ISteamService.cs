@@ -13,5 +13,4 @@ namespace SteamAppServer.Services.Interfaces
         Task<SellListing?> UpdateListingAsync(long id, SellListing sellListing);
         Task<SellListing?> DeleteListingAsync(long id);
     }
-
 }

@@ -22,6 +22,25 @@ namespace SteamAppServer.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("SteamAppServer.Models.Quality", b =>
+                {
+                    b.Property<short>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("quality");
+                });
+
             modelBuilder.Entity("SteamAppServer.Models.SellListing", b =>
                 {
                     b.Property<long>("Id")
@@ -63,6 +82,10 @@ namespace SteamAppServer.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("name");
 
+                    b.Property<short>("QualityId")
+                        .HasColumnType("smallint")
+                        .HasColumnName("quality_id");
+
                     b.Property<decimal?>("SoldPrice")
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("sold_price");
@@ -85,7 +108,20 @@ namespace SteamAppServer.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("QualityId");
+
                     b.ToTable("sell_listing");
+                });
+
+            modelBuilder.Entity("SteamAppServer.Models.SellListing", b =>
+                {
+                    b.HasOne("SteamAppServer.Models.Quality", "Quality")
+                        .WithMany()
+                        .HasForeignKey("QualityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Quality");
                 });
 #pragma warning restore 612, 618
         }
