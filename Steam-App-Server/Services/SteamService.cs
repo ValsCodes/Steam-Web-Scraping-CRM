@@ -2,14 +2,16 @@
 using Newtonsoft.Json;
 using SteamAppServer.Common;
 using SteamAppServer.Models;
+using SteamAppServer.Models.Partials;
 using SteamAppServer.Models.Proxies;
 using SteamAppServer.Repositories.Interfaces;
 using SteamAppServer.Services.Interfaces;
+using System.Net;
 using System.Web;
 
 namespace SteamAppServer.Services
 {
-    public class SteamService : ISteamService
+    public class SteamService : ISteamService, ISalesRepository
     {
         private HttpClient _httpClient;
         private ISalesRepository _steamRepository;
@@ -37,6 +39,12 @@ namespace SteamAppServer.Services
         public async Task<SellListing?> UpdateListingAsync(long id, SellListing sellListing)
         {
             var result = await _steamRepository.UpdateListingAsync(id, sellListing);
+            return result;
+        }
+
+        public async Task<SellListing?> UpdateListingPartialAsync(long id, SellListingPartial sellListing)
+        {
+            var result = await _steamRepository.UpdateListingPartialAsync(id, sellListing);
             return result;
         }
 
@@ -86,7 +94,7 @@ namespace SteamAppServer.Services
         }
         public Task<IEnumerable<ListingProxy>> GetPaintedListingsOnlyAsync(short page)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException("This endpoint is not implemented yet.");
         }
 
         #region Private Methods

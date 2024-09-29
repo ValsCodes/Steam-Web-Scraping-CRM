@@ -32,13 +32,20 @@ namespace SteamAppServer.Controllers
         [HttpGet("results/painted-only/page_{page}")]
         public IEnumerable<ListingProxy> GetPaintedListings(short page)
         {
-            var result = _steamService.GetPaintedListingsOnlyAsync(page).GetAwaiter().GetResult();
-            if (result.Any())
+            try
             {
+                var result = _steamService.GetPaintedListingsOnlyAsync(page).GetAwaiter().GetResult();
+                if (!result.Any())
+                {
+                    return Enumerable.Empty<ListingProxy>();
+                }
+
                 return result;
             }
-
-            return Enumerable.Empty<ListingProxy>();
+            catch (Exception ex)
+            {
+                return Enumerable.Empty<ListingProxy>();
+            }
         }
 
         [HttpGet("result/{name}/is_painted")]

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SteamAppServer.Models;
+using SteamAppServer.Models.Partials;
 using SteamAppServer.Services.Interfaces;
 
 namespace SteamAppServer.Controllers
@@ -32,10 +33,16 @@ namespace SteamAppServer.Controllers
         }
 
         [HttpPut("listings/{id}")]
-        //[HttpPatch("listings/{id}")]
         public SellListing UpdateListing(long id, SellListing sellListing)
         {
             var result = _steamService.UpdateListingAsync(id, sellListing).GetAwaiter().GetResult();
+            return result;
+        }
+
+        [HttpPatch("listings/{id}")]
+        public SellListing UpdatePartiallyListing(long id, SellListingPartial sellListing)
+        {
+            var result = _steamService.UpdateListingPartialAsync(id, sellListing).GetAwaiter().GetResult();
             return result;
         }
 
