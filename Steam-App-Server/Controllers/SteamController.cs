@@ -17,7 +17,7 @@ namespace SteamAppServer.Controllers
             _steamService = steamService;
         }
 
-        [HttpGet("results/filterred/page_{page}")]
+        [HttpGet("results/filtered/page_{page}")]
         public IEnumerable<ListingProxy> GetFilterredListings(short page)
         {
             var result = _steamService.GetFilterredListingsAsync(page).GetAwaiter().GetResult();

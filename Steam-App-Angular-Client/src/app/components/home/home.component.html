@@ -1,21 +1,56 @@
-<div class="flex-col items-center justify-center h-screen px-4 py-4">
-    <h1 class="text-4xl text-center">Steam App</h1>
-
+<div class="main-container">
+    <div>
+        <button (click)="getListingsButtonClicked(pageNumber)" class="button button-small-green">Get Results</button>
+        <button class="button button-small-blue">Get Painted Results</button>
+        <button class="button button-small-red">Clear</button>
+    </div>
     <div class="flex items-center px-1">
         <div class="flex py-4">
             <label for="page-number">Page Number : </label>
-            <input [(ngModel)]="pageNumber" (ngModelChange)="onPageNumberChange($event)" class="w-[5rem] ml-2 pl-2 rounded-md"
+            <input [(ngModel)]="pageNumber" (ngModelChange)="onPageNumberChange($event)" class="input-style"
                 type="number" min="1" step="1" title="Enter a positive number">
         </div>
-        <button (click)="getListingsButtonClicked(pageNumber)" class="bg-yellow-200 rounded-md px-2 py-1 ml-auto">Get
-            Results</button>
     </div>
 
-    <div class="bg-orange-400 py-4 px-4 rounded-md">
-        <ul>
-            <li *ngFor="let listing of listings">
-                <steam-listing [listing]="listing" (checkIsPainted)="isPaintedButtonClicked(listing.name)"></steam-listing>
-            </li>
-        </ul>
-    </div>
+
+    <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z8">
+
+        <!-- Item Column -->
+        <ng-container matColumnDef="item">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Item </th>
+            <td mat-cell *matCellDef="let listing"> {{ listing.name }} </td>
+        </ng-container>
+
+        <!-- Quantity Column -->
+        <ng-container matColumnDef="quantity">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Quantity</th>
+            <td mat-cell *matCellDef="let listing"> {{ listing.quantity }} </td>
+        </ng-container>
+
+        <!-- Color Column -->
+        <ng-container matColumnDef="color">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Color</th>
+            <td mat-cell *matCellDef="let listing"> {{ listing.color }} </td>
+        </ng-container>
+
+        <!-- Price Column -->
+        <ng-container matColumnDef="price">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Price</th>
+            <td mat-cell *matCellDef="let listing"> {{ listing.price | currency : "EUR"}} </td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef> Actions </th>
+            <td mat-cell *matCellDef="let listing">
+                <ng-container *ngIf="listing">
+                    <steam-listing [listing]="listing" (checkIsPainted)="isPaintedButtonClicked(listing.name)"></steam-listing>
+                </ng-container>
+            </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+    <mat-paginator [pageSizeOptions]="[5, 10 ,20]" showFirstLastButtons></mat-paginator>
 </div>

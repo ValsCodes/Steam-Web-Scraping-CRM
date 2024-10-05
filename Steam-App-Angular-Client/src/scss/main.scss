@@ -1,0 +1,84 @@
+@import '../scss/variables.scss';
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+.button {
+  margin: .625rem .3125rem;
+  border-radius: .375rem;
+  border-color: black;
+  border-width: .0625rem;
+  padding: .5rem;
+  color:white;
+  transition: background-color 0.3s ease;
+  margin-bottom: 1rem;
+
+  &-large-green {
+    padding: 0.5rem 1rem;
+    background-color: map-get($button-colors, success);
+
+    &:hover {
+      background-color: lighten(map-get($button-colors, success), 10%);
+  }
+  }
+
+  &-large-red {
+    padding: 0.5rem 1rem;
+    background-color: map-get($button-colors, warning);
+
+    &:hover {
+      background-color: lighten(map-get($button-colors, warning), 10%);
+  }
+  }
+
+  &-large-blue {
+    padding: 0.5rem 1rem;
+    background-color: map-get($button-colors, primary);
+
+    &:hover {
+      background-color: lighten(map-get($button-colors, primary), 10%);
+  }
+  }
+
+  &-small-green {
+    padding: .3125rem .625rem;
+    background-color: map-get($button-colors, success);
+
+    &:hover {
+      background-color: lighten(map-get($button-colors, success), 10%);
+  }
+  }
+
+  &-small-blue {
+    padding: .3125rem .625rem;
+    background-color: map-get($button-colors, primary);
+
+    &:hover {
+      background-color: lighten(map-get($button-colors, primary), 10%);
+  }
+  }
+
+  &-small-red {
+    padding: .3125rem .625rem;
+    background-color: map-get($button-colors, warning);
+
+    &:hover {
+      background-color: lighten(map-get($button-colors, warning), 10%);
+  }
+  }
+}
+
+input {
+  border-width: 1px;
+  border-color: black;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}

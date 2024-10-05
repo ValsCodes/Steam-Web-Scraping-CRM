@@ -1,41 +1,90 @@
-
 <div class="table-container">
     <div class="flex justify-end">
-        <button class="refresh-button mr-4">Refresh</button>
-        <button class="clear-button">Clear</button>
+        <button class="refresh-button mr-4" (click)="refreshButtonClicked()">Refresh</button>
+        <button class="clear-button" (click)="clearButtonClicked()">Clear</button>
     </div>
-    <table>
-        <thead>
-            <tr>
-                <th class="item">Item</th>
-                <th class="description">Description</th>
-                <th class="bought-price">Bought Price</th>
-                <th class="date-bought">Date Bought</th>
-                <th class="target1">Target 1</th>
-                <th class="target2">Target 2</th>
-                <th class="target3">Target 3</th>
-                <th class="target4">Target 4</th>
-                <th class="date-sold">Date Sold</th>
-                <th class="actions">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr *ngFor="let sellListing of sellListings">
-                <td>{{ sellListing.name }}</td>
-                <td>{{ sellListing.description }}</td>
-                <td class="currency">{{ sellListing.costPrice | currency : "EUR" }}</td>
-                <td class="date">{{ sellListing.dateBought | date }}</td>
-                <td class="currency">{{ sellListing.targetSellPrice1 | currency : "EUR" }}</td>
-                <td class="currency">{{ sellListing.targetSellPrice2 | currency : "EUR" }}</td>
-                <td class="currency">{{ sellListing.targetSellPrice3 | currency : "EUR" }}</td>
-                <td class="currency">{{ sellListing.targetSellPrice4 | currency : "EUR" }}</td>
-                <td class="date">{{ sellListing.dateSold | date }}</td>
-                <td>
-                    <ng-container *ngIf="sellListing">
-                        <steam-sell-listing [sellListing]="sellListing"></steam-sell-listing>
-                    </ng-container>
-                </td>
-            </tr>
-        </tbody>
+    <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z8">
+
+        <!-- Item Column -->
+        <ng-container matColumnDef="item">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Item </th>
+            <td mat-cell *matCellDef="let sellListing"> {{ sellListing.name }} </td>
+        </ng-container>
+
+        <!-- Description Column -->
+        <ng-container matColumnDef="description">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Description </th>
+            <td mat-cell *matCellDef="let sellListing"> {{ sellListing.description }} </td>
+        </ng-container>
+
+        <!-- Bought Price Column -->
+        <ng-container matColumnDef="bought-price">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Bought Price </th>
+            <td mat-cell *matCellDef="let sellListing" class="currency">
+                {{ sellListing.costPrice | currency : "EUR" }}
+            </td>
+        </ng-container>
+
+        <!-- Date Bought Column -->
+        <ng-container matColumnDef="date-bought">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Date Bought </th>
+            <td mat-cell *matCellDef="let sellListing" class="date">
+                {{ sellListing.dateBought | date }}
+            </td>
+        </ng-container>
+
+        <!-- Target 1 Column -->
+        <ng-container matColumnDef="target1">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Target 1 </th>
+            <td mat-cell *matCellDef="let sellListing" class="currency">
+                {{ sellListing.targetSellPrice1 | currency : "EUR" }}
+            </td>
+        </ng-container>
+
+        <!-- Target 2 Column -->
+        <ng-container matColumnDef="target2">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Target 2 </th>
+            <td mat-cell *matCellDef="let sellListing" class="currency">
+                {{ sellListing.targetSellPrice2 | currency : "EUR" }}
+            </td>
+        </ng-container>
+
+        <!-- Target 3 Column -->
+        <ng-container matColumnDef="target3">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Target 3 </th>
+            <td mat-cell *matCellDef="let sellListing" class="currency">
+                {{ sellListing.targetSellPrice3 | currency : "EUR" }}
+            </td>
+        </ng-container>
+
+        <!-- Target 4 Column -->
+        <ng-container matColumnDef="target4">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Target 4 </th>
+            <td mat-cell *matCellDef="let sellListing" class="currency">
+                {{ sellListing.targetSellPrice4 | currency : "EUR" }}
+            </td>
+        </ng-container>
+
+        <!-- Date Sold Column -->
+        <ng-container matColumnDef="date-sold">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Date Sold </th>
+            <td mat-cell *matCellDef="let sellListing" class="date">
+                {{ sellListing.dateSold | date }}
+            </td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef> Actions </th>
+            <td mat-cell *matCellDef="let sellListing">
+                <ng-container *ngIf="sellListing">
+                    <steam-sell-listing [sellListing]="sellListing"></steam-sell-listing>
+                </ng-container>
+            </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
     </table>
+    <mat-paginator [pageSizeOptions]="[5, 10 ,20]" showFirstLastButtons></mat-paginator>
 </div>

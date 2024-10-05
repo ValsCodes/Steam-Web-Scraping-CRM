@@ -1,9 +1,12 @@
-import { Component } from '@angular/core';
+import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
 import { ListingComponent } from '../listing/listing.component';
-import { Observable, BehaviorSubject } from 'rxjs';
 import { SteamService } from '../../services/steam/steam.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { MatTableDataSource } from '@angular/material/table';
+import { MatTableModule } from '@angular/material/table';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { MatSort, MatSortModule } from '@angular/material/sort';
 
 
 import { IListing } from '../../models/listing.model';
@@ -11,17 +14,44 @@ import { IListing } from '../../models/listing.model';
 @Component({
   selector: 'steam-home',
   standalone: true,
-  imports: [ListingComponent, FormsModule, CommonModule],
+  imports: [ListingComponent, FormsModule, CommonModule,     MatTableModule,
+    MatSort,
+    MatSortModule,
+    MatPaginatorModule,],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
   providers: [
     SteamService,    
   ],
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit, AfterViewInit{
   pageNumber: number = 0;
+  displayedColumns: string[] = [
+    'item',
+    'quantity',
+    'color',
+    'price',
+    'actions'
+  ];
 
-  //private listingsCollection: BehaviorSubject<IListing[]> = new BehaviorSubject<IListing[]>([]);
+  dataSource = new MatTableDataSource<IListing>([]);
+
+  ngOnInit(): void {}
+
+  ngAfterViewInit(): void {
+    if (!this.dataSource.paginator) {
+      this.dataSource.paginator = this.paginator;
+    }
+    if (!this.dataSource.sort) {
+      this.dataSource.sort = this.sort;
+    }
+
+    this.dataSource.data = this.listings; 
+  }
+
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+
   public listings: IListing[] = [{
     name: 'Red Jacket',
     price: 59.99,

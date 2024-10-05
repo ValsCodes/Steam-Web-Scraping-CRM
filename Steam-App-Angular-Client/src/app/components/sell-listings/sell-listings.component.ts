@@ -1,60 +1,83 @@
-import { Component } from '@angular/core';
+import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
 import { SellListingComponent } from '../sell-listing/sell-listing.component';
-import { Observable, BehaviorSubject } from 'rxjs';
 import { SteamService } from '../../services/steam/steam.service';
-import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { MatTableDataSource } from '@angular/material/table';
+import { MatTableModule } from '@angular/material/table';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { MatSort, MatSortModule } from '@angular/material/sort';
+import { Observable, throwError } from 'rxjs';
 
 import { ISellListing } from '../../models/sell.listing.model';
 
 @Component({
   selector: 'steam-sell-listings',
   standalone: true,
-  imports: [SellListingComponent, FormsModule, CommonModule],
+  imports: [
+    SellListingComponent,
+    CommonModule,
+    MatTableModule,
+    MatSort,
+    MatSortModule,
+    MatPaginatorModule,
+  ],
   templateUrl: './sell-listings.component.html',
-  styleUrl: './sell-listings.component.scss'
+  styleUrl: './sell-listings.component.scss',
+  providers: [SteamService],
 })
-export class SellListingsComponent {
+export class SellListingsComponent implements OnInit, AfterViewInit {
+  displayedColumns: string[] = [
+    'item',
+    'description',
+    'bought-price',
+    'date-bought',
+    'target1',
+    'target2',
+    'target3',
+    'target4',
+    'date-sold',
+    'actions',
+  ];
 
-  public sellListings: ISellListing[] = [{
-    id: 1,
-    name: 'Vintage Fedora Hat',
-    description: 'A classic fedora hat from the 1950s.',
-    dateBought: new Date('2022-01-15'),
-    costPrice: 50,
-    targetSellPrice1: 100,
-    targetSellPrice2: 120,
-    isHat: true,
-    isWeapon: false,
-    isSold: false,
-  },
-  {
-    id: 2,
-    name: 'Antique Sword',
-    description: 'A rare 17th-century sword.',
-    dateBought: new Date('2021-11-10'),
-    dateSold: new Date('2022-02-01'),
-    costPrice: 500,
-    targetSellPrice1: 800,
-    targetSellPrice2: 850,
-    targetSellPrice3: 900,
-    soldPrice: 850,
-    isHat: false,
-    isWeapon: true,
-    isSold: true,
-  },
-  {
-    id: 3,
-    name: 'Leather Cowboy Hat',
-    description: 'A rugged leather cowboy hat perfect for outdoors.',
-    dateBought: new Date('2022-03-25'),
-    costPrice: 70,
-    targetSellPrice1: 150,
-    targetSellPrice2: 175,
-    isHat: true,
-    isWeapon: false,
-    isSold: false,
-  }];
+  constructor(private steamService: SteamService) {
+    this.fetchSellListings();
+  }
 
+  dataSource = new MatTableDataSource<ISellListing>([]);
+  loading = true;
 
+  ngOnInit(): void {}
+
+  ngAfterViewInit(): void {
+    if (!this.dataSource.paginator) {
+      this.dataSource.paginator = this.paginator;
+    }
+    if (!this.dataSource.sort) {
+      this.dataSource.sort = this.sort;
+    }
+  }
+
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+
+  fetchSellListings(): void {
+    this.steamService.getSellListings().subscribe(
+      (listings: ISellListing[]) => {
+        this.dataSource.data = listings; // Assign data to MatTableDataSource
+        this.loading = false; // Set loading to false when data has been loaded
+      },
+      (error) => {
+        console.error('Error fetching sell listings:', error);
+        this.loading = false; // Set loading to false in case of error
+      }
+    );
+  }
+
+  clearButtonClicked(): void {
+    this.dataSource.data = [];
+  }
+
+  refreshButtonClicked(): void {
+    this.fetchSellListings();
+  }
 }

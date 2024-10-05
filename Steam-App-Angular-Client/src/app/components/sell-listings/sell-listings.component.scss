@@ -1,109 +1,42 @@
-@import '../../../styles.scss';
-
-table {
-  border-collapse: collapse;
-}
-
-th,
-td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: center;
-}
-
-th {
-  background-color: #4CAF50;
-  color: white;
-}
-
-th:hover {
-  background-color: lighten(#4CAF50, 10%);
-}
-
-tr:nth-child(even) {
-  background-color: #f2f2f2;
-}
-
-
+@import '../../../scss/main.scss';
+@import '../../../scss/variables.scss';
 
 button {
-  border-radius: 0.375rem;
-  color: white;
-  padding: 0.5rem 1rem;
-  transition: background-color 0.3s ease;
-  margin-bottom: 1rem;
+    border-radius: 0.375rem;
+    color: white;
+    padding: 0.5rem 1rem;
+    transition: background-color 0.3s ease;
+    margin-bottom: 1rem;
 
-  &.refresh-button {
-    background-color: map-get($button-colors, primary);
+    &.refresh-button {
+        background-color: map-get($button-colors, success);
 
-    &:hover {
-      background-color: lighten(map-get($button-colors, primary), 10%);
+        &:hover {
+            background-color: lighten(map-get($button-colors, success), 10%);
+        }
     }
-  }
 
-  &.clear-button {
-    background-color: map-get($button-colors, warning);
+    &.clear-button {
+        background-color: map-get($button-colors, warning);
 
-    &:hover {
-      background-color: lighten(map-get($button-colors, warning), 10%);
+        &:hover {
+            background-color: lighten(map-get($button-colors, warning), 10%);
+        }
     }
-  }
 }
 
 .table-container {
-  display: flex;
-  flex-direction: column;
-  margin: 1.5rem 1rem;
-  padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    margin: 1.5rem 1rem;
+    padding: 1rem;
 
-  table {
-    border-collapse: collapse;
+    th {
+        background-color: $light-green;
+        text-align: center;
 
-    thead {
-      th {
-        padding: 0.75rem;
-        text-align: left;
-        font-size: 0.75rem;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.05rem;
-        color: white;
-
-        &.item,
-        &.description,
-        &.bought-price,
-        &.date-bought,
-        &.target1,
-        &.target2,
-        &.target3,
-        &.target4,
-        &.date-sold,
-        &.actions {
-          text-align: center;
+        &:hover {
+            background-color: lighten($light-green, 10%);
         }
-      }
     }
-
-    tbody {
-      tr {
-        td {
-          padding: 0.75rem;
-          white-space: nowrap;
-
-          &.currency {
-            // Reuse for price-related columns
-            // any additional styles related to currency
-          }
-
-          &.date {
-            // Reuse for date-related columns
-          }
-        }
-
-        ng-container {
-          // For specific steam-sell-listing styling if necessary
-        }
-      }
-    }
-  }
 }

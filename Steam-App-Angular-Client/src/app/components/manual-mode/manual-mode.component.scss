@@ -1,9 +1,12 @@
-.button {
-    background: fixed yellow;
-    margin: .625rem .3125rem;
-    padding: .5rem;
-    border-radius: .375rem;
-}
-.button:hover{
-    background: greenyellow;
+@import '../../../scss/main.scss';
+@import '../../../scss/variables.scss';
+
+.my-container{
+    margin: 6.25rem auto auto auto;
+    max-width: 25rem;
+    padding: .625rem;
+    border-width: .0625rem;
+    border-color: black;
+    border-radius: .625rem;
+    background-color: antiquewhite;
 }
