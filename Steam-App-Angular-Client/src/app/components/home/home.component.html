@@ -4,14 +4,17 @@
         <button class="button button-small-blue">Get Painted Results</button>
         <button class="button button-small-red">Clear</button>
     </div>
-    <div class="flex items-center px-1">
-        <div class="flex py-4">
+    <div class="flex">
+        <div class="px-2 py-4">
             <label for="page-number">Page Number : </label>
             <input [(ngModel)]="pageNumber" (ngModelChange)="onPageNumberChange($event)" class="input-style"
                 type="number" min="1" step="1" title="Enter a positive number">
         </div>
+        <div class="ml-auto">
+            <button class="justify-end button button-small-blue py-0 mr-4">Export</button>
+            <button class="button button-small-green mr-4">Import</button>
+        </div>
     </div>
-
 
     <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z8">
 

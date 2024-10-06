@@ -24,10 +24,10 @@ button {
     }
 
     &.delete-button {
-        background-color: map-get($button-colors, warning);
+        background-color: map-get($button-colors, danger);
         
         &:hover {
-            background-color: lighten(map-get($button-colors, warning), 10%);
+            background-color: lighten(map-get($button-colors, danger), 10%);
         }
     }
 }

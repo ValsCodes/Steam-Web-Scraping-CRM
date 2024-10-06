@@ -16,11 +16,27 @@ button {
         }
     }
 
-    &.clear-button {
+    &.import-button {
+        background-color: map-get($button-colors, primary);
+
+        &:hover {
+            background-color: lighten(map-get($button-colors, primary), 10%);
+        }
+    }
+
+    &.export-button {
         background-color: map-get($button-colors, warning);
 
         &:hover {
             background-color: lighten(map-get($button-colors, warning), 10%);
+        }
+    }
+
+    &.clear-button {
+        background-color: map-get($button-colors, danger);
+
+        &:hover {
+            background-color: lighten(map-get($button-colors, danger), 10%);
         }
     }
 }

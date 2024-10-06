@@ -6,7 +6,6 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
-import { Observable, throwError } from 'rxjs';
 
 import { ISellListing } from '../../models/sell.listing.model';
 

@@ -24,10 +24,10 @@
 
   &-large-red {
     padding: 0.5rem 1rem;
-    background-color: map-get($button-colors, warning);
+    background-color: map-get($button-colors, danger);
 
     &:hover {
-      background-color: lighten(map-get($button-colors, warning), 10%);
+      background-color: lighten(map-get($button-colors, danger), 10%);
   }
   }
 
@@ -60,13 +60,21 @@
 
   &-small-red {
     padding: .3125rem .625rem;
+    background-color: map-get($button-colors, danger);
+
+    &:hover {
+      background-color: lighten(map-get($button-colors, danger), 10%);
+  }
+  }
+
+  &-small-yellow {
+    padding: .3125rem .625rem;
     background-color: map-get($button-colors, warning);
 
     &:hover {
       background-color: lighten(map-get($button-colors, warning), 10%);
   }
-  }
-}
+}}
 
 input {
   border-width: 1px;
