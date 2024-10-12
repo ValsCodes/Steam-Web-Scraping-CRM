@@ -1,5 +1,5 @@
 <div class="flex justify-center">
-    <button class="sell-button">Sold</button>
+    <button (click)="soldButtonClicked()" [disabled]="this.sellListing.dateSold != null" class="sell-button">Sold</button>
     <button class="edit-button ml-2">Edit</button>
     <button class="delete-button ml-2">Delete</button>
 </div>

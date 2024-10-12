@@ -11,7 +11,18 @@ import { ISellListing } from '../../models/sell.listing.model';
   styleUrl: './sell-listing.component.scss'
 })
 export class SellListingComponent {
-  @Input() sellListing!: ISellListing;
-  @Output() checkIsPainted = new EventEmitter();
 
+public isModified: boolean = false;
+
+  @Input() sellListing!: ISellListing;
+
+  soldButtonClicked() {
+      this.sellListing.dateSold = Date.now().toString();
+      this.isModified = true;
+    }
+
+    deleteButtonClicked() {
+
+      this.isModified = true;
+    }
 }
