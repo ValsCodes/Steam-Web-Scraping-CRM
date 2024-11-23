@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SteamAppServer.Context;
 using SteamAppServer.Models;
-using SteamAppServer.Models.Partials;
 using SteamAppServer.Repositories.Interfaces;
 
 namespace SteamAppServer.Repositories
@@ -15,23 +14,38 @@ namespace SteamAppServer.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<SellListing>> GetListingsAsync()
+        #region Get Product
+        public Task<Product?> GetProductAsync(long id)
         {
-            var result = await _context.SellListings.ToListAsync();
+            throw new NotImplementedException();
+        }
+
+        public async Task<IEnumerable<Product>> GetProductsAsync()
+        {
+            var result = await _context.Products.ToListAsync();
             return result;
         }
+        #endregion
 
-        public async Task<SellListing?> CreateListingAsync(SellListing sellListing)
+        #region Create Product
+        public async Task<Product?> CreateProductAsync(Product product)
         {
-            await _context.AddAsync(sellListing);
+            await _context.AddAsync(product);
             await _context.SaveChangesAsync();
 
-            return sellListing;
+            return product;
         }
 
-        public async Task<SellListing?> DeleteListingAsync(long id)
+        public async Task<IEnumerable<Product>> CreateProductsAsync(Product[] products)
         {
-            var existingListing = await _context.SellListings.FindAsync(id);
+            throw new NotImplementedException();
+        }
+        #endregion
+
+        #region Delete Product
+        public async Task<long?> DeleteProductAsync(long id)
+        {
+            var existingListing = await _context.Products.FindAsync(id);
 
             if (existingListing == null)
             {
@@ -41,65 +55,67 @@ namespace SteamAppServer.Repositories
             _context.Remove(existingListing);
             await _context.SaveChangesAsync();
 
-            return existingListing;
+            return existingListing.Id;
         }
 
-        public async Task<SellListing?> UpdateListingAsync(long id, SellListing sellListing)
+        public async Task<IEnumerable<long?>> DeleteProductsAsync(long[] id)
         {
-            var existingListing = await _context.SellListings.FindAsync(id);
+            throw new NotImplementedException();
+        }
+        #endregion
 
-            if (existingListing == null)
+
+        #region Update Product
+        public async Task<Product?> UpdateProductAsync(Product product)
+        {
+            var existingProduct = await _context.Products.FindAsync(product.Id);
+
+            if (existingProduct == null)
             {
                 return null;
             }
 
-            existingListing.Name = sellListing.Name;
-            existingListing.QualityId = sellListing.QualityId;
-            existingListing.Description = sellListing.Description;
-            existingListing.DateBought = sellListing.DateBought;
-            existingListing.DateSold = sellListing.DateSold;
-            existingListing.CostPrice = sellListing.CostPrice;
-            existingListing.TargetSellPrice1 = sellListing.TargetSellPrice1;
-            existingListing.TargetSellPrice2 = sellListing.TargetSellPrice2;
-            existingListing.TargetSellPrice3 = sellListing.TargetSellPrice3;
-            existingListing.TargetSellPrice4 = sellListing.TargetSellPrice4;
-            existingListing.SoldPrice = sellListing.SoldPrice;
-            existingListing.IsHat = sellListing.IsHat;
-            existingListing.IsWeapon = sellListing.IsWeapon;
-            existingListing.IsSold = sellListing.IsSold;
+            existingProduct.Name = product.Name;
+            existingProduct.QualityId = product.QualityId;
+            existingProduct.Description = product.Description;
+            existingProduct.DateBought = product.DateBought;
+            existingProduct.DateSold = product.DateSold;
+            existingProduct.CostPrice = product.CostPrice;
+            existingProduct.TargetSellPrice1 = product.TargetSellPrice1;
+            existingProduct.TargetSellPrice2 = product.TargetSellPrice2;
+            existingProduct.TargetSellPrice3 = product.TargetSellPrice3;
+            existingProduct.TargetSellPrice4 = product.TargetSellPrice4;
+            existingProduct.SoldPrice = product.SoldPrice;
+            existingProduct.IsHat = product.IsHat;
+            existingProduct.IsWeapon = product.IsWeapon;
+            existingProduct.IsSold = product.IsSold;
 
             await _context.SaveChangesAsync();
 
-            return existingListing;
+            return existingProduct;
         }
 
-        public async Task<SellListing?> UpdateListingPartialAsync(long id, SellListingPartial sellListing)
+        public async Task<IEnumerable<Product>> UpdateProductsAsync(Product[] products)
         {
-            var existingListing = await _context.SellListings.FindAsync(id);
+            var existingProducts = await _context.Products.ToListAsync();
+            var productsList = new List<Product>();
 
-            if (existingListing == null)
+            foreach (var product in products)
             {
-                return null;
+                _context.Update(product);
+                if (existingProducts.Any(x => x.Id == product.Id))
+                {
+
+                    productsList.Add(product);
+                }
+                else
+                {
+                    continue;
+                }
             }
 
-            if (sellListing.Name != null) existingListing.Name = sellListing.Name;
-            if (sellListing.QualityId != null) existingListing.QualityId = sellListing.QualityId;
-            if (sellListing.Description != null) existingListing.Description = sellListing.Description;
-            if (sellListing.DateBought != null) existingListing.DateBought = sellListing.DateBought.Value;
-            if (sellListing.DateSold != null) existingListing.DateSold = sellListing.DateSold;
-            if (sellListing.CostPrice.HasValue) existingListing.CostPrice = sellListing.CostPrice.Value;
-            if (sellListing.TargetSellPrice1.HasValue) existingListing.TargetSellPrice1 = sellListing.TargetSellPrice1.Value;
-            if (sellListing.TargetSellPrice2.HasValue) existingListing.TargetSellPrice2 = sellListing.TargetSellPrice2.Value;
-            if (sellListing.TargetSellPrice3.HasValue) existingListing.TargetSellPrice3 = sellListing.TargetSellPrice3.Value;
-            if (sellListing.TargetSellPrice4.HasValue) existingListing.TargetSellPrice4 = sellListing.TargetSellPrice4.Value;
-            if (sellListing.SoldPrice.HasValue) existingListing.SoldPrice = sellListing.SoldPrice.Value;
-            if (sellListing.IsHat.HasValue) existingListing.IsHat = sellListing.IsHat.Value;
-            if (sellListing.IsWeapon.HasValue) existingListing.IsWeapon = sellListing.IsWeapon.Value;
-            if (sellListing.IsSold.HasValue) existingListing.IsSold = sellListing.IsSold.Value;
-
-            await _context.SaveChangesAsync();
-
-            return existingListing; 
+            return null;
         }
+        #endregion
     }
 }

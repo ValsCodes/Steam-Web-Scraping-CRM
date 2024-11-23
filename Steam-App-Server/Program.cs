@@ -24,14 +24,8 @@ namespace SteamAppServer
             // Add CORS configuration
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("AllowAngularClient",
-                    builder =>
-                    {
-                        builder.WithOrigins("http://localhost:4200") // Angular development server
-                               .AllowAnyHeader() // Allow any headers (like Authorization)
-                               .AllowAnyMethod() // Allow GET, POST, PUT, DELETE
-                               .AllowCredentials(); // Allow credentials if needed
-                    });
+                options.AddPolicy("AllowAllOrigins",
+                    builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
             });
 
             builder.Services.AddControllers();
@@ -51,7 +45,7 @@ namespace SteamAppServer
             }
 
             // Use CORS in the application
-            app.UseCors("AllowAngularClient");
+            app.UseCors("AllowAllOrigins");
 
             app.UseHttpsRedirection();
 

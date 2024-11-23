@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SteamAppServer.Models.Proxies;
 using SteamAppServer.Services.Interfaces;
 
 namespace SteamAppServer.Controllers
@@ -8,52 +7,55 @@ namespace SteamAppServer.Controllers
     [Route("steam")]
     public class SteamController : ControllerBase
     {
-        private readonly ILogger<SteamController> _logger;
+        // private readonly ILogger<SteamController> _logger;
         private readonly ISteamService _steamService;
 
-        public SteamController(ILogger<SteamController> logger, ISteamService steamService)
+        public SteamController(ISteamService steamService)//, ILogger<SteamController> logger)
         {
-            _logger = logger;
+            //_logger = logger;
             _steamService = steamService;
         }
 
         [HttpGet("results/filtered/page_{page}")]
-        public IEnumerable<ListingProxy> GetFilterredListings(short page)
+        public IActionResult GetFilterredListings(short page)
         {
-            var result = _steamService.GetFilterredListingsAsync(page).GetAwaiter().GetResult();
-            if (result.Any())
+            try
             {
-                return result;
+                var result = _steamService.GetFilterredListingsAsync(page).GetAwaiter().GetResult();
+                return Ok(result);
             }
-
-            return Enumerable.Empty<ListingProxy>();
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.InnerException);
+            }
         }
 
         [HttpGet("results/painted-only/page_{page}")]
-        public IEnumerable<ListingProxy> GetPaintedListings(short page)
+        public IActionResult GetPaintedListings(short page)
         {
             try
             {
                 var result = _steamService.GetPaintedListingsOnlyAsync(page).GetAwaiter().GetResult();
-                if (!result.Any())
-                {
-                    return Enumerable.Empty<ListingProxy>();
-                }
-
-                return result;
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                return Enumerable.Empty<ListingProxy>();
+                return StatusCode(500, ex.InnerException);
             }
         }
 
         [HttpGet("result/{name}/is_painted")]
-        public (bool,string) IsListingPainted(string name)
+        public IActionResult IsListingPainted(string name)
         {
-            var result = _steamService.IsListingPaintedAsync(name).GetAwaiter().GetResult();
-
-            return result;
+            try
+            {
+                var result = _steamService.IsListingPaintedAsync(name).GetAwaiter().GetResult();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.InnerException);
+            }
         }
     }
 }

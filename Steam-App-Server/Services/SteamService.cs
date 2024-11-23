@@ -2,11 +2,9 @@
 using Newtonsoft.Json;
 using SteamAppServer.Common;
 using SteamAppServer.Models;
-using SteamAppServer.Models.Partials;
 using SteamAppServer.Models.Proxies;
 using SteamAppServer.Repositories.Interfaces;
 using SteamAppServer.Services.Interfaces;
-using System.Net;
 using System.Web;
 
 namespace SteamAppServer.Services
@@ -24,48 +22,57 @@ namespace SteamAppServer.Services
 
         #region Repository Requests
 
-        public async Task<IEnumerable<SellListing>> GetListingsAsync()
+        public async Task<Product?> CreateProductAsync(Product products)
         {
-            var result = await _steamRepository.GetListingsAsync();
-            return result;
+            return await _steamRepository.CreateProductAsync(products);
         }
 
-        public async Task<SellListing?> CreateListingAsync(SellListing sellListing)
+        public async Task<IEnumerable<Product>> CreateProductsAsync(Product[] products)
         {
-            var result = await _steamRepository.CreateListingAsync(sellListing);
-            return result;
+            return await _steamRepository.CreateProductsAsync(products);
         }
 
-        public async Task<SellListing?> UpdateListingAsync(long id, SellListing sellListing)
+        public async Task<Product?> GetProductAsync(long id)
         {
-            var result = await _steamRepository.UpdateListingAsync(id, sellListing);
-            return result;
+            return await _steamRepository.GetProductAsync(id);
         }
 
-        public async Task<SellListing?> UpdateListingPartialAsync(long id, SellListingPartial sellListing)
+        public async Task<IEnumerable<Product>> GetProductsAsync()
         {
-            var result = await _steamRepository.UpdateListingPartialAsync(id, sellListing);
-            return result;
+            return await _steamRepository.GetProductsAsync();
         }
 
-        public async Task<SellListing?> DeleteListingAsync(long id)
+        public async Task<Product?> UpdateProductAsync(Product products)
         {
-            var result = await _steamRepository.DeleteListingAsync(id);
-            return result;
+            return await _steamRepository.UpdateProductAsync(products);
         }
 
+        public async Task<IEnumerable<Product>> UpdateProductsAsync(Product[] products)
+        {
+            return await _steamRepository.UpdateProductsAsync(products);
+        }
+
+        public async Task<long?> DeleteProductAsync(long id)
+        {
+            return await _steamRepository.DeleteProductAsync(id);
+        }
+
+        public async Task<IEnumerable<long?>> DeleteProductsAsync(long[] ids)
+        {
+            return await _steamRepository.DeleteProductsAsync(ids);
+        }
         #endregion
 
-        public async Task<IEnumerable<ListingProxy>> GetFilterredListingsAsync(short page)
+        public async Task<IEnumerable<ProductProxy>> GetFilterredListingsAsync(short page)
         {
             var url = $"{Constants.JSON_100_LISTINGS_URL}{page}";
             var filteredResult = await GetFilterredResults(url);
             if (!filteredResult.Any())
             {
-                return Enumerable.Empty<ListingProxy>();
+                return Enumerable.Empty<ProductProxy>();
             }
 
-            return filteredResult.Select(x => new ListingProxy { Name = x.Name, Price = x.SellPrice, Quantity = x.SellListings });
+            return filteredResult.Select(x => new ProductProxy { Name = x.Name, Price = x.SellPrice, Quantity = x.SellListings });
         }
 
         public async Task<(bool, string)> IsListingPaintedAsync(string name)
@@ -92,7 +99,8 @@ namespace SteamAppServer.Services
 
             return (false, string.Empty);
         }
-        public Task<IEnumerable<ListingProxy>> GetPaintedListingsOnlyAsync(short page)
+
+        public Task<IEnumerable<ProductProxy>> GetPaintedListingsOnlyAsync(short page)
         {
             throw new NotImplementedException("This endpoint is not implemented yet.");
         }
@@ -123,9 +131,9 @@ namespace SteamAppServer.Services
             return Enumerable.Empty<Result>();
         }
 
-        private async Task<IEnumerable<ListingProxy>> GetOnlyPaintedListingsFromResults(Result[] results)
+        private async Task<IEnumerable<ProductProxy>> GetOnlyPaintedListingsFromResults(Result[] results)
         {
-            var itemCollection = new List<ListingProxy>();
+            var itemCollection = new List<ProductProxy>();
 
             foreach (var item in results)
             {
@@ -160,7 +168,7 @@ namespace SteamAppServer.Services
 
                     if (color != null)
                     {
-                        var listing = new ListingProxy
+                        var listing = new ProductProxy
                         {
                             Name = item.Name,
                             Price = item.SellPrice,
@@ -214,7 +222,6 @@ namespace SteamAppServer.Services
         private string FormatJsonStringForDeserialization(string jsonString)
         {
             string formattedJson = jsonString.Replace("\\r\\n", "\r\n");
-
             return formattedJson;
         }
 

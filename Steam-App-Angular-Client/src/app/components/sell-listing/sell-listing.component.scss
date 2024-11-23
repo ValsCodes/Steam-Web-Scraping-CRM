@@ -13,6 +13,10 @@ button {
         &:hover {
             background-color: lighten(map-get($button-colors, success), 10%);
         }
+
+        &[disabled] {
+            background-color: gray;
+        }
     }
 
     &.edit-button {

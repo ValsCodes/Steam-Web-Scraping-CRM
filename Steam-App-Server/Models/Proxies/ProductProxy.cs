@@ -2,7 +2,7 @@
 
 namespace SteamAppServer.Models.Proxies
 {
-    public class ListingProxy
+    public class ProductProxy
     {
         public string? Name { get; set; }
 

@@ -55,4 +55,9 @@ button {
             background-color: lighten($light-green, 10%);
         }
     }
+
+    td input {
+        padding: 0.25rem; border: 0;
+        width: 100%;
+    }
 }

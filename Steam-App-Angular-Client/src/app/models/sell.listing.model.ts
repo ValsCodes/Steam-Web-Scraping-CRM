@@ -4,8 +4,8 @@ export interface ISellListing {
     name: string;
     qualityId: number | null;
     description: string;
-    dateBought: string;
-    dateSold: string | null;
+    dateBought: Date | null;
+    dateSold: Date | null;
     costPrice: number;
     targetSellPrice1: number;
     targetSellPrice2: number;

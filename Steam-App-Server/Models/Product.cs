@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations;
 namespace SteamAppServer.Models
 {
     [Table("sell_listing")]
-    public class SellListing
+    public class Product
     {
         [Key]
         [Column("id")]

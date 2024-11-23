@@ -10,7 +10,7 @@ namespace SteamAppServer.Context
         {
         }
 
-        public DbSet<SellListing> SellListings { get; set; }
+        public DbSet<Product> Products { get; set; }
         public DbSet<Quality> Qualities { get; set; }
     }
 }
