@@ -4,6 +4,7 @@ using SteamAppServer.Repositories.Interfaces;
 using SteamAppServer.Repositories;
 using SteamAppServer.Services.Interfaces;
 using SteamAppServer.Services;
+using SteamAppServer.Mapper;
 
 namespace SteamAppServer
 {
@@ -19,6 +20,8 @@ namespace SteamAppServer
             builder.Services.AddScoped<ISalesRepository, SalesRepository>();
             builder.Services.AddScoped<ISteamService, SteamService>();
 
+            // Inject Auto Mapper 
+            builder.Services.AddAutoMapper(typeof(MappingProfile));
             #endregion
 
             // Add CORS configuration

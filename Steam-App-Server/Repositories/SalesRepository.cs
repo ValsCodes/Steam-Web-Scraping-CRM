@@ -1,23 +1,35 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using SteamAppServer.Context;
+using SteamAppServer.Exceptions;
 using SteamAppServer.Models;
+using SteamAppServer.Models.DTO;
 using SteamAppServer.Repositories.Interfaces;
 
 namespace SteamAppServer.Repositories
 {
     public class SalesRepository : ISalesRepository
     {
+        private readonly IMapper _mapper;
+        //Add logs if you want
         private readonly ApplicationDbContext _context;
 
-        public SalesRepository(ApplicationDbContext context)
+        public SalesRepository(ApplicationDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         #region Get Product
-        public Task<Product?> GetProductAsync(long id)
+        public async Task<Product> GetProductAsync(long id)
         {
-            throw new NotImplementedException();
+            var result = await _context.Products.FirstOrDefaultAsync(x => x.Id == id);
+            if (result == null)
+            {
+                throw new ItemNotFoundException($"Product with ID {id} not found.");
+            }
+
+            return result;
         }
 
         public async Task<IEnumerable<Product>> GetProductsAsync()
@@ -28,93 +40,133 @@ namespace SteamAppServer.Repositories
         #endregion
 
         #region Create Product
-        public async Task<Product?> CreateProductAsync(Product product)
+        public async Task<Product> CreateProductAsync(ProductDto productDto)
         {
+            var product = _mapper.Map<Product>(productDto);
+
             await _context.AddAsync(product);
             await _context.SaveChangesAsync();
 
             return product;
         }
 
-        public async Task<IEnumerable<Product>> CreateProductsAsync(Product[] products)
+        public async Task<IEnumerable<Product>> CreateProductsAsync(ProductDto[] productDtos)
         {
-            throw new NotImplementedException();
-        }
-        #endregion
-
-        #region Delete Product
-        public async Task<long?> DeleteProductAsync(long id)
-        {
-            var existingListing = await _context.Products.FindAsync(id);
-
-            if (existingListing == null)
+            if (productDtos == null || productDtos.Length == 0)
             {
-                return null;
+                throw new ArgumentNullException(nameof(productDtos), "ProductDtos cannot be null or empty.");
             }
 
-            _context.Remove(existingListing);
+            var products = new List<Product>();
+
+            foreach (var productDto in productDtos)
+            {
+                var product = _mapper.Map<Product>(productDto);
+                products.Add(product);
+            }
+
+            await _context.AddRangeAsync(products);
             await _context.SaveChangesAsync();
 
-            return existingListing.Id;
-        }
-
-        public async Task<IEnumerable<long?>> DeleteProductsAsync(long[] id)
-        {
-            throw new NotImplementedException();
+            return products;
         }
         #endregion
 
 
         #region Update Product
-        public async Task<Product?> UpdateProductAsync(Product product)
+        public async Task<bool> UpdateProductAsync(ProductDto product)
         {
             var existingProduct = await _context.Products.FindAsync(product.Id);
 
             if (existingProduct == null)
             {
-                return null;
+                throw new ItemNotFoundException($"Product with ID {product.Id} not found.");
             }
 
-            existingProduct.Name = product.Name;
-            existingProduct.QualityId = product.QualityId;
-            existingProduct.Description = product.Description;
-            existingProduct.DateBought = product.DateBought;
-            existingProduct.DateSold = product.DateSold;
-            existingProduct.CostPrice = product.CostPrice;
-            existingProduct.TargetSellPrice1 = product.TargetSellPrice1;
-            existingProduct.TargetSellPrice2 = product.TargetSellPrice2;
-            existingProduct.TargetSellPrice3 = product.TargetSellPrice3;
-            existingProduct.TargetSellPrice4 = product.TargetSellPrice4;
-            existingProduct.SoldPrice = product.SoldPrice;
-            existingProduct.IsHat = product.IsHat;
-            existingProduct.IsWeapon = product.IsWeapon;
-            existingProduct.IsSold = product.IsSold;
+            _mapper.Map(product, existingProduct);
+
 
             await _context.SaveChangesAsync();
+            return true;
 
-            return existingProduct;
         }
 
-        public async Task<IEnumerable<Product>> UpdateProductsAsync(Product[] products)
+        public async Task<bool[]> UpdateProductsAsync(ProductDto[] productDtos)
         {
-            var existingProducts = await _context.Products.ToListAsync();
-            var productsList = new List<Product>();
+            var updateStatuses = new bool[productDtos.Length];
+            var productsToUpdate = new List<Product>();
 
-            foreach (var product in products)
+            for (int i = 0; i < productDtos.Length; i++)
             {
-                _context.Update(product);
-                if (existingProducts.Any(x => x.Id == product.Id))
-                {
+                var productDto = productDtos[i];
+                var existingProduct = await _context.Products.FindAsync(productDtos[i].Id);
 
-                    productsList.Add(product);
+                if (existingProduct == null)
+                {
+                    updateStatuses[i] = false;
+                    continue;
+                }
+
+                _mapper.Map(productDto, existingProduct);
+                productsToUpdate.Add(existingProduct);
+                updateStatuses[i] = true;
+            }
+
+            if (productsToUpdate.Count > 0)
+            {
+                _context.UpdateRange(productsToUpdate);
+
+                await _context.SaveChangesAsync();
+            }
+
+            return updateStatuses;
+        }
+        #endregion
+
+        #region Delete Product
+
+        public async Task<bool> DeleteProductAsync(long id)
+        {
+            var existingListing = await _context.Products.FindAsync(id);
+
+            if (existingListing == null)
+            {
+                throw new ItemNotFoundException($"Product with ID {id} not found.");
+            }
+
+            _context.Remove(existingListing);
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool[]> DeleteProductsAsync(long[] ids)
+        {
+            var deleteStatuses = new bool[ids.Length];
+            var productsForDeletion = _context.Products.Where(x => ids.Contains(x.Id)).ToList();
+
+            for (int i = 0; i < ids.Length; i++)
+            {
+                var id = ids[i];
+                var product = productsForDeletion.FirstOrDefault(p => p.Id == id);
+
+                if (product == null)
+                {
+                    deleteStatuses[i] = false;
                 }
                 else
                 {
-                    continue;
+                    _context.Products.Remove(product);
+                    deleteStatuses[i] = true;
                 }
             }
 
-            return null;
+            if (productsForDeletion.Any())
+            {
+                await _context.SaveChangesAsync();
+            }
+
+            return deleteStatuses;
         }
         #endregion
     }
