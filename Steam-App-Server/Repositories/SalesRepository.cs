@@ -85,10 +85,8 @@ namespace SteamAppServer.Repositories
 
             _mapper.Map(product, existingProduct);
 
-
             await _context.SaveChangesAsync();
             return true;
-
         }
 
         public async Task<bool[]> UpdateProductsAsync(ProductDto[] productDtos)

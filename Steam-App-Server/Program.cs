@@ -41,11 +41,11 @@ namespace SteamAppServer
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
+            //if (app.Environment.IsDevelopment())
+            //{
                 app.UseSwagger();
                 app.UseSwaggerUI();
-            }
+            //}
 
             // Use CORS in the application
             app.UseCors("AllowAllOrigins");
