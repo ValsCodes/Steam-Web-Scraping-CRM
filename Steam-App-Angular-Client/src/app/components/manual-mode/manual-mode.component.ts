@@ -6,13 +6,14 @@ import { SellListingComponent } from '../sell-listing/sell-listing.component';
 @Component({
   selector: 'steam-manual-mode',
   standalone: true,
-  imports: [SellListingComponent, FormsModule],
+  imports: [FormsModule],
   templateUrl: './manual-mode.component.html',
   styleUrl: './manual-mode.component.scss',
 })
 export class ManualModeComponent {
   private readonly HATS_URL: string =
-    'https://steamcommunity.com/market/search?q=&category_440_Collection%5B%5D=any&category_440_Type%5B%5D=tag_misc&category_440_Quality%5B%5D=tag_Unique&category_440_Quality%5B%5D=tag_strange&appid=440#';
+    'https://steamcommunity.com/market/search?q=&category_440_Collection%5B%5D=any&category_440_Type%5B%5D=tag_misc&category_440_Quality%5B%5D=tag_Unique&category_440_Quality%5B%5D=tag_strange&category_440_Rarity%5B%5D=tag_Rarity_Rare&category_440_Rarity%5B%5D=tag_Rarity_Mythical&category_440_Rarity%5B%5D=tag_Rarity_Legendary&category_440_Rarity%5B%5D=tag_Rarity_Ancient&appid=440#';
+  // 'https://steamcommunity.com/market/search?q=&category_440_Collection%5B%5D=any&category_440_Type%5B%5D=tag_misc&category_440_Quality%5B%5D=tag_Unique&category_440_Quality%5B%5D=tag_strange&appid=440#';
   private readonly WEAPONS_URL: string =
     'https://steamcommunity.com/market/listings/440/Strange%20Specialized%20Killstreak%20';
 
@@ -23,7 +24,7 @@ export class ManualModeComponent {
     'Flame%20Thrower',
     'Scattergun',
     'Force-A-Nature',
-    'Guilotine',
+   // 'Guilotine',
     'Rocket%20Launcher',
     'Direct%20Hit',
     'Black%20Box',
@@ -93,7 +94,7 @@ export class ManualModeComponent {
         : null;
 
       if (url == null) {
-        this.statusLabel = 'No More Weapons!'
+        this.statusLabel = 'No More Weapons!';
         return;
       }
 
@@ -107,7 +108,6 @@ export class ManualModeComponent {
         blocked = true;
       }
     }
-
 
     this.statusLabel = blocked ? 'Bad Batch!' : 'Successful Batch!';
 

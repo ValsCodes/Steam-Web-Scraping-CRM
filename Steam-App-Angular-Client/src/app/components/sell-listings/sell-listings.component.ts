@@ -9,7 +9,7 @@ import { MatSort, MatSortModule } from '@angular/material/sort';
 import { FormsModule } from '@angular/forms';
 import { QueryList, ViewChildren } from '@angular/core';
 
-import { ISellListing } from '../../models/sell.listing.model';
+import { Product } from '../../models/sell.listing.model';
 
 @Component({
   selector: 'steam-sell-listings',
@@ -59,7 +59,7 @@ export class SellListingsComponent implements OnInit, AfterViewInit {
   //#endregion
 
   //#region Public Properties
-  dataSource = new MatTableDataSource<ISellListing>([]);
+  dataSource = new MatTableDataSource<Product>([]);
 
   loading = true;
 
@@ -81,14 +81,14 @@ modifiedStates: { [key: number]: boolean } = {};
   //#region Button Commands
   addButtonClicked() {
     //TODO set Child Component IsModified to true
-    const emptySellListing: ISellListing = {
+    const emptySellListing: Product = {
       id: 0,
       name: '',
       qualityId: null,
       description: '',
-      dateBought: null,
+      dateBought: new Date(),
       dateSold: null,
-      costPrice: 0,
+      boughtPrice: 0,
       targetSellPrice1: 0,
       targetSellPrice2: 0,
       targetSellPrice3: 0,
@@ -117,14 +117,17 @@ modifiedStates: { [key: number]: boolean } = {};
 
   saveButtonClicked(): void {
     if (this.deletedListings.length > 0) {
-      this.steamService.deleteBulkListings(this.deletedListings);
+     // this.steamService.deleteBulkListings(this.deletedListings);
     }
 
-    var updatedListings = this.sellListingComponents
-      .filter((x) => x.isModified)
+    var updatedProducts = this.sellListingComponents
+      .filter((x) => {
+        return x.isModified === true;
+      }
+    )
       .map((x) => x.sellListing);
 
-    this.steamService.updateBulkListings(updatedListings);
+    this.steamService.updateProducts(updatedProducts);
   }
 
   onDeleteSellListing(id: number) {
@@ -149,8 +152,8 @@ modifiedStates: { [key: number]: boolean } = {};
   //#region Private Methods
 
   private fetchSellListings(): void {
-    this.steamService.getSellListings().subscribe(
-      (listings: ISellListing[]) => {
+    this.steamService.getProducts().subscribe(
+      (listings: Product[]) => {
         this.dataSource.data = listings; // Assign data to MatTableDataSource
         this.loading = false; // Set loading to false when data has been loaded
       },
@@ -159,6 +162,12 @@ modifiedStates: { [key: number]: boolean } = {};
         this.loading = false; // Set loading to false in case of error
       }
     );
+  }
+
+  onDateSoldChange(sellListing: Product, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = input.value;
+    sellListing.dateSold = value ? new Date(value) : null;
   }
 
   //#endregion Private Methods

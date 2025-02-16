@@ -1,4 +1,4 @@
-export interface IListing {
+export interface Listing {
   name: string;
   price: number;
   imageUrl: string;

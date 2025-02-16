@@ -5,19 +5,19 @@ using SteamAppServer.Services.Interfaces;
 namespace SteamAppServer.Controllers
 {
     [ApiController]
-    [Route("listing")]
-    public class ListingController : ControllerBase
+    [Route("product")]
+    public class ProductController : ControllerBase
     {
         //private readonly ILogger<SteamController> _logger;
         private readonly ISteamService _steamService;
 
-        public ListingController(ISteamService steamService)//, ILogger<SteamController> logger )
+        public ProductController(ISteamService steamService)//, ILogger<SteamController> logger )
         {
             //_logger = logger;
             _steamService = steamService;
         }
 
-        [HttpGet("product/get")]
+        [HttpGet("get")]
         public IActionResult GetProduct([FromQuery] long? id)
         {
             try
@@ -32,7 +32,7 @@ namespace SteamAppServer.Controllers
         }
 
         //Todo itroduce filters
-        [HttpGet("products/get")]
+        [HttpGet("get/all")]
         public IActionResult GetProducts()
         {
             try
@@ -46,7 +46,7 @@ namespace SteamAppServer.Controllers
             }
         }
 
-        [HttpPost("product/create")]
+        [HttpPost("create")]
         public IActionResult CreateProduct([FromBody] ProductDto productDto)
         {
             try
@@ -60,7 +60,7 @@ namespace SteamAppServer.Controllers
             }
         }
 
-        [HttpPost("products/create")]
+        [HttpPost("create/bulk")]
         public IActionResult CreateProducts([FromBody] ProductDto[] productDtos)
         {
 
@@ -75,7 +75,7 @@ namespace SteamAppServer.Controllers
             }
         }
 
-        [HttpPut("product/update")]
+        [HttpPut("update")]
         public IActionResult UpdateProduct([FromQuery] ProductDto productDto)
         {
 
@@ -90,7 +90,7 @@ namespace SteamAppServer.Controllers
             }
         }
 
-        [HttpPut("products/update")]
+        [HttpPut("update/bulk")]
         public IActionResult UpdateProducts([FromBody] ProductDto[] productDtos)
         {
             try
@@ -134,7 +134,7 @@ namespace SteamAppServer.Controllers
         //}
 
 
-        [HttpDelete("product/delete")]
+        [HttpDelete("delete")]
         public IActionResult DeleteProduct(long? id)
         {
             try
@@ -148,7 +148,7 @@ namespace SteamAppServer.Controllers
             }
         }
 
-        [HttpDelete("products/delete")]
+        [HttpDelete("delete/bulk")]
         public IActionResult DeleteProducts([FromQuery] long[] ids)
         {
             try

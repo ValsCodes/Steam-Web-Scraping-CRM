@@ -16,7 +16,35 @@ namespace SteamAppServer.Controllers
             _steamService = steamService;
         }
 
-        [HttpGet("results/filtered/page_{page}")]
+        [HttpPost("get/weapon-listing-urls")]
+        public IActionResult GetWeaponListingsUrls(short fromIndex, short batchSize)
+        {
+            try
+            {
+                var result = _steamService.GetWeaponListingsUrls(fromIndex, batchSize).GetAwaiter().GetResult();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("get/hat-listing-urls")]
+        public IActionResult GetHatListingsUrls(short fromPage, short batchSize)
+        {
+            try
+            {
+                var result = _steamService.GetHatListingsUrls(fromPage, batchSize).GetAwaiter().GetResult();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("get/hat-listings")]
         public IActionResult GetFilterredListings(short page)
         {
             try
@@ -26,11 +54,11 @@ namespace SteamAppServer.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.InnerException);
+                return StatusCode(500, ex.Message);
             }
         }
 
-        [HttpGet("results/painted-only/page_{page}")]
+        [HttpPost("get/hat-listings/painted")]
         public IActionResult GetPaintedListings(short page)
         {
             try
@@ -40,11 +68,11 @@ namespace SteamAppServer.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.InnerException);
+                return StatusCode(500, ex.Message);
             }
         }
 
-        [HttpGet("result/{name}/is_painted")]
+        [HttpPost("get/is-hat-painted")]
         public IActionResult IsListingPainted(string name)
         {
             try
@@ -54,7 +82,7 @@ namespace SteamAppServer.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.InnerException);
+                return StatusCode(500, ex.Message);
             }
         }
     }

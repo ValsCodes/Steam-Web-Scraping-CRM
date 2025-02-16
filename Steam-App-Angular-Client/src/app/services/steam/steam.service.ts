@@ -3,8 +3,8 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 
-import { IListing } from '../../models/listing.model';
-import { ISellListing } from '../../models/sell.listing.model';
+import { Listing } from '../../models/listing.model';
+import { Product } from '../../models/sell.listing.model';
 
 @Injectable({
   providedIn: 'root',
@@ -13,92 +13,78 @@ export class SteamService {
   constructor(private http: HttpClient) {}
 
   // private readonly localHost: string = "https://localhost:7273/";
-  private readonly localHost: string = "https://localhost:5136/";
-  private readonly steam: string = "steam/";
-  private readonly sellListing: string = "sell-listings/";
-  private readonly swagger: string = "swagger/index.html";
+  private readonly localHost: string = 'https://localhost:44347/';
+
+  private readonly get: string = 'get';
+  private readonly update: string = 'update';
+  private readonly delete: string = 'delete';
+  private readonly create: string = 'create';
+
+  private readonly all: string = 'all';
+  private readonly bulk: string = 'bulk';
+
+  private readonly steamController: string = 'steam';
+  private readonly productController: string = 'product';
+  private readonly swagger: string = 'swagger/index.html';
+
+  private readonly weaponListings: string = 'weapon-listing-urls';
+  private readonly hatListings: string = 'hat-listing-urls';
 
   checkServerStatus(): Observable<boolean> {
-    
-    return this.http.get(this.localHost + this.swagger, { responseType: 'text' }).pipe(
-      map(() => true),  
-      catchError(() => of(false))
-    );
+    return this.http
+      .get(this.localHost + this.swagger, { responseType: 'text' })
+      .pipe(
+        map(() => true),
+        catchError(() => of(false))
+      );
   }
 
-  getListings(page:number): Observable<IListing[]> {
-    const url = `${this.localHost}${this.steam}results/filtered/page_${page}`;
-    return this.http.get<IListing[]>(url).pipe(
-      catchError(this.handleError) // Error handling
-    )
-  }
-
-  getPaintedListingsOnly(page:number): Observable<IListing[]> {
-    const url = `${this.localHost}${this.steam}results/painted-only/page_${page}`;
-    return this.http.get<IListing[]>(url).pipe(
+  //#region Product Endpoints
+  getProducts(): Observable<Product[]> {
+    const url = `${this.localHost}${this.productController}/${this.get}/${this.all}`;
+    return this.http.get<Product[]>(url).pipe(
       catchError(this.handleError) // Error handling
     );
   }
 
-  isPaintedListings(name:string): Observable<boolean> {
-    const url = `${this.localHost}${this.steam}result/${name}/is_painted`;
-    return this.http.get<boolean>(url).pipe(
+  createProducts(products: Product[]): Observable<boolean[]> {
+    const url = `${this.localHost}${this.productController}/${this.get}/${this.bulk}`;
+    return this.http.post<boolean[]>(url, products).pipe(
       catchError(this.handleError) // Error handling
     );
   }
 
-  getSellListings(): Observable<ISellListing[]> {
-    const url = `${this.localHost}${this.sellListing}listings`;
-    return this.http.get<ISellListing[]>(url).pipe(
+  updateProducts(products: Product[]): Observable<boolean[]> {
+    const url = `${this.localHost}${this.productController}/${this.update}/${this.bulk}`;
+    return this.http.put<boolean[]>(url, products).pipe(
       catchError(this.handleError) // Error handling
     );
   }
 
-  createSellListings(sellListing: ISellListing): Observable<ISellListing> {
-    const url = `${this.localHost}${this.sellListing}listings`;
-    return this.http.post<ISellListing>(url, sellListing).pipe(
+  deleteProducts(productIds: number[]): Observable<boolean[]> {
+    const url = `${this.localHost}${this.productController}/${this.delete}/${this.bulk}`;
+    return this.http.put<boolean[]>(url, productIds).pipe(
       catchError(this.handleError) // Error handling
     );
   }
 
-  updateSellListing(sellListing: ISellListing): Observable<ISellListing> {
-    const url = `${this.localHost}${this.sellListing}listings/${sellListing.id}`;
-    return this.http.put<ISellListing>(url, sellListing).pipe(
+  //#endregion
+
+  //#region Steam Web Scraper Endpoints
+  getWeaponUrls(fromIndex: number, batchSize: number): Observable<string[]> {
+    const url = `${this.localHost}${this.steamController}/${this.get}/${this.weaponListings}`;
+    return this.http.post<string[]>(url, [fromIndex, batchSize]).pipe(
       catchError(this.handleError) // Error handling
     );
   }
 
-  partialUpdateSellListing(id: number, partialUpdate: Partial<ISellListing>): Observable<ISellListing> {
-    const url = `${this.localHost}${this.sellListing}listings/${id}`;
-    return this.http.patch<ISellListing>(url, partialUpdate).pipe(
+  getHatUrls(fromPage: number, batchSize: number): Observable<string[]> {
+    const url = `${this.localHost}${this.steamController}/${this.get}/${this.hatListings}`;
+    return this.http.post<string[]>(url, [fromPage, batchSize]).pipe(
       catchError(this.handleError) // Error handling
     );
   }
-
-  deleteSellListing(id: number): Observable<void> {
-    const url = `${this.localHost}${this.sellListing}listings/${id}`;
-    return this.http.delete<void>(url).pipe(
-      catchError(this.handleError) // Error handling
-    );
-  }
-
-  updateBulkListings(listings: ISellListing[]){
-        throw new Error('Method not implemented.');
-
-    // const url = `${this.localHost}${this.sellListing}listings/${id}`;
-    // return this.http.delete<void>(url).pipe(
-    //   catchError(this.handleError) // Error handling
-    // );
-  }
-
-  deleteBulkListings(listings: number[]){
-    throw new Error('Method not implemented.');
-
-// const url = `${this.localHost}${this.sellListing}listings/${id}`;
-// return this.http.delete<void>(url).pipe(
-//   catchError(this.handleError) // Error handling
-// );
-}
+  //#endregion
 
   // Error handling function
   private handleError(error: HttpErrorResponse) {
@@ -113,6 +99,8 @@ export class SteamService {
       errorMessage = `Server returned code: ${error.status}, error message is: ${error.message}`;
     }
     console.error(errorMessage);
-    return throwError(() => new Error('Something went wrong; please try again later.'));
+    return throwError(
+      () => new Error('Something went wrong; please try again later.')
+    );
   }
 }

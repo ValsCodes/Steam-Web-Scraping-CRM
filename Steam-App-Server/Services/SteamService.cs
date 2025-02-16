@@ -8,6 +8,7 @@ using SteamAppServer.Models.DTO;
 using SteamAppServer.Models.Proxies;
 using SteamAppServer.Repositories.Interfaces;
 using SteamAppServer.Services.Interfaces;
+using System;
 using System.Web;
 
 namespace SteamAppServer.Services
@@ -141,18 +142,62 @@ namespace SteamAppServer.Services
             return await _steamRepository.DeleteProductsAsync(ids);
         }
 
-        #region Test Teritorry
-
-        public async Task<IEnumerable<ProductProxy>> GetFilterredListingsAsync(short page)
+        #region Web Scraper
+        public Task<string[]> GetHatListingsUrls(short fromPage, short batchSize)
         {
-            var url = $"{Constants.JSON_100_LISTINGS_URL}{page}";
-            var filteredResult = await GetFilterredResults(url);
-            if (!filteredResult.Any())
+            if (fromPage <= 0 || fromPage > 500)
             {
-                return Enumerable.Empty<ProductProxy>();
+                throw new ArgumentOutOfRangeException("Page is either negative or greater than 500.");
             }
 
-            return filteredResult.Select(x => new ProductProxy { Name = x.Name, Price = x.SellPrice, Quantity = x.SellListings });
+            var url = Constants.MANUAL_HATS_URL;
+            var result = new List<string>();
+            var currentPage = fromPage;
+
+            for (; currentPage < fromPage + batchSize; currentPage++)
+            {
+                result.Add($"{url}p{currentPage}_price_asc`");
+            }
+
+            if (!result.Any())
+            {
+                throw new Exception("No URLs found.");
+            }
+
+            return Task.FromResult(result.ToArray());
+        }
+
+        public Task<string[]> GetWeaponListingsUrls(short fromIndex, short batchSize)
+        {
+            if (fromIndex < 0 || fromIndex > 500)
+            {
+                throw new ArgumentOutOfRangeException("Index is either negative or greater than 500.");
+            }
+
+            var url = Constants.MANUAL_WEAPONS_URL;
+            var result = new List<string>();
+            var currentIndex = fromIndex;
+
+            for (; currentIndex < fromIndex + batchSize; currentIndex++)
+            {
+                result.Add($"{url}{Constants.WEAPON_NAMES[currentIndex - 1]}`");
+            }
+
+            if (!result.Any())
+            {
+                throw new Exception("No URLs found.");
+            }
+
+            return Task.FromResult(result.ToArray());
+        }
+
+        public async Task<ProductProxy[]> GetFilterredListingsAsync(short page)
+        {
+            // Same page result ???
+            var url = $"{Constants.JSON_100_LISTINGS_URL}{page}";
+            var filteredResult = await GetFilterredResults(url);
+
+            return filteredResult.Select(x => new ProductProxy { Name = x.Name, Price = x.SellPrice, Quantity = x.SellListings }).ToArray();
         }
 
         public async Task<(bool, string)> IsListingPaintedAsync(string name)
@@ -180,37 +225,43 @@ namespace SteamAppServer.Services
             return (false, string.Empty);
         }
 
-        public Task<IEnumerable<ProductProxy>> GetPaintedListingsOnlyAsync(short page)
+        public async Task<IEnumerable<ProductProxy>> GetPaintedListingsOnlyAsync(short page)
         {
-            throw new NotImplementedException("This endpoint is not implemented yet.");
+            var url = $"{Constants.JSON_100_LISTINGS_URL}{page}";
+            var results = await GetFilterredResults(url);
+
+            if(!results.Any())
+            {
+                throw new Exception("No results found.");
+            }
+
+            var onlyPaintedResutls = await GetOnlyPaintedListingsFromResults(results);
+
+            return onlyPaintedResutls;
         }
 
-        #endregion
+
+        #endregion Web Scraper
+
+
 
         #region Private Methods
-        private async Task<IEnumerable<Result>> GetFilterredResults(string url)
+        private async Task<Result[]> GetFilterredResults(string url)
         {
             var jsonResponse = await GetHttpResposeAsync(url);
             if (string.IsNullOrEmpty(jsonResponse))
             {
-                Console.WriteLine("No JSON received or request failed.");
-                return null!;
+                throw new Exception("No JSON received or request failed.");
             }
 
             var jsonString = FormatJsonStringForDeserialization(jsonResponse);
             var result = DeserializeFormattedJsonString<ListingDetails_Json>(jsonString);
             if (result == null)
             {
-                Console.WriteLine("Failed to deserialize JSON.");
-                return null!;
+                throw new Exception("Failed to deserialize JSON.");
             }
 
-            if (result.Results!.Any())
-            {
-                return result.Results!.Where(x => x.SellPrice >= 150 && x.SellPrice <= 450).OrderBy(x => x.SellPrice).ToList();
-            }
-
-            return Enumerable.Empty<Result>();
+            return result.Results!.Where(x => x.SellPrice >= 150 && x.SellPrice <= 450).OrderBy(x => x.SellPrice).ToArray();
         }
 
         private async Task<IEnumerable<ProductProxy>> GetOnlyPaintedListingsFromResults(Result[] results)
@@ -258,6 +309,7 @@ namespace SteamAppServer.Services
 
             return itemCollection;
         }
+
 
         private async Task<string?> GetHttpResponseAsync(string url)
         {

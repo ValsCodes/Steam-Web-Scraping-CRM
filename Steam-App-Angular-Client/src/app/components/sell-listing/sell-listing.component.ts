@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-import { ISellListing } from '../../models/sell.listing.model';
+import { Product } from '../../models/sell.listing.model';
 
 @Component({
   selector: 'steam-sell-listing',
@@ -13,9 +13,9 @@ import { ISellListing } from '../../models/sell.listing.model';
 })
 export class SellListingComponent {
 
-  private previousSellListing!: ISellListing;
+  private previousSellListing!: Product;
 
-  @Input() sellListing!: ISellListing;
+  @Input() sellListing!: Product;
   @Input() isModified?: boolean = true;
   @Output() deleteSellListing = new EventEmitter<number>();
 
@@ -43,7 +43,7 @@ export class SellListingComponent {
       this.sellListing.description !== this.previousSellListing.description ||
       this.sellListing.dateBought !== this.previousSellListing.dateBought ||
       this.sellListing.dateSold !== this.previousSellListing.dateSold ||
-      this.sellListing.costPrice !== this.previousSellListing.costPrice ||
+      this.sellListing.boughtPrice !== this.previousSellListing.boughtPrice ||
       this.sellListing.targetSellPrice1 !== this.previousSellListing.targetSellPrice1 ||
       this.sellListing.targetSellPrice2 !== this.previousSellListing.targetSellPrice2 ||
       this.sellListing.targetSellPrice3 !== this.previousSellListing.targetSellPrice3 ||
@@ -56,8 +56,9 @@ export class SellListingComponent {
   }
 
   soldButtonClicked() {
-    //Doesn't Set Date in the input because of the format of the date LFS
-    this.sellListing.dateSold = new Date();
+    const today = new Date();
+    const formattedDate = today.toISOString().split('T')[0];
+    this.sellListing.dateSold = new Date(formattedDate);
 
     if(!this.isModified)
     {

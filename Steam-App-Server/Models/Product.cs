@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace SteamAppServer.Models
 {
@@ -27,21 +28,28 @@ namespace SteamAppServer.Models
         public virtual DateTime? DateSold { get; set; }
 
         [Column("cost_price")]
+        [Precision(18, 2)]
         public decimal CostPrice { get; set; }
 
         [Column("t_sell_price_1")]
+        [Precision(18, 2)]
         public virtual decimal TargetSellPrice1 { get; set; }
+        
 
         [Column("t_sell_price_2")]
+        [Precision(18, 2)]
         public virtual decimal? TargetSellPrice2 { get; set; }
 
         [Column("t_sell_price_3")]
+        [Precision(18, 2)]
         public virtual decimal? TargetSellPrice3 { get; set; }
 
         [Column("t_sell_price_4")]
+        [Precision(18, 2)]
         public virtual decimal? TargetSellPrice4 { get; set; }
 
         [Column("sold_price")]
+        [Precision(18, 2)]
         public virtual decimal? SoldPrice { get; set; }
 
         [Column("is_hat")]

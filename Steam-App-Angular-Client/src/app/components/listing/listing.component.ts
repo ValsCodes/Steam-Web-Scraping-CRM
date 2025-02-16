@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-import { IListing } from '../../models/listing.model';
+import { Listing } from '../../models/listing.model';
 
 @Component({
   selector: 'steam-listing',
@@ -11,7 +11,7 @@ import { IListing } from '../../models/listing.model';
   styleUrl: './listing.component.scss',
 })
 export class ListingComponent {
-  @Input() listing!: IListing;
+  @Input() listing!: Listing;
   @Output() checkIsPainted = new EventEmitter();
 
 

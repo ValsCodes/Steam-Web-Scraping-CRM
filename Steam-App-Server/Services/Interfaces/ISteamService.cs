@@ -5,8 +5,8 @@ namespace SteamAppServer.Services.Interfaces
 {
     public interface ISteamService
     {
-        #region Steam Scraper
-        Task<IEnumerable<ProductProxy>> GetFilterredListingsAsync(short page);
+        #region Steam Web Scraper
+        Task<ProductProxy[]> GetFilterredListingsAsync(short page);
         Task<IEnumerable<ProductProxy>> GetPaintedListingsOnlyAsync(short page);
         Task<(bool, string)> IsListingPaintedAsync(string name);
         #endregion
@@ -22,5 +22,8 @@ namespace SteamAppServer.Services.Interfaces
 
         Task<bool> DeleteProductAsync(long? id);
         Task<bool[]> DeleteProductsAsync(long[] ids);
+        Task<string[]> GetWeaponListingsUrls(short fromIndex, short batchSize);
+
+        Task<string[]> GetHatListingsUrls(short fromPage, short batchSize);
     }
 }

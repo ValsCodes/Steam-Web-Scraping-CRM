@@ -9,13 +9,12 @@ import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 
 
-import { IListing } from '../../models/listing.model';
+import { Listing } from '../../models/listing.model';
 
 @Component({
-  selector: 'steam-home',
+  selector: 'home',
   standalone: true,
-  imports: [ListingComponent, FormsModule, CommonModule,     MatTableModule,
-    MatSort,
+  imports: [FormsModule, CommonModule,     MatTableModule,
     MatSortModule,
     MatPaginatorModule,],
   templateUrl: './home.component.html',
@@ -24,91 +23,6 @@ import { IListing } from '../../models/listing.model';
     SteamService,    
   ],
 })
-export class HomeComponent implements OnInit, AfterViewInit{
-  pageNumber: number = 0;
-  displayedColumns: string[] = [
-    'item',
-    'quantity',
-    'color',
-    'price',
-    'actions'
-  ];
+export class HomeComponent{
 
-  dataSource = new MatTableDataSource<IListing>([]);
-
-  ngOnInit(): void {}
-
-  ngAfterViewInit(): void {
-    if (!this.dataSource.paginator) {
-      this.dataSource.paginator = this.paginator;
-    }
-    if (!this.dataSource.sort) {
-      this.dataSource.sort = this.sort;
-    }
-
-    this.dataSource.data = this.listings; 
-  }
-
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
-
-  public listings: IListing[] = [{
-    name: 'Red Jacket',
-    price: 59.99,
-    imageUrl: 'https://example.com/images/red-jacket.png',
-    quantity: 10,
-    color: 'Red',
-    linkUrl: "https://examplelink.com"
-  },
-  {
-    name: 'Blue Shoes',
-    price: 89.99,
-    imageUrl: 'https://example.com/images/blue-shoes.png',
-    quantity: 5,
-    color: 'Blue',
-    linkUrl: "https://examplelink.com"
-  },
-  {
-    name: 'Green Hat',
-    price: 25.00,
-    imageUrl: 'https://example.com/images/green-hat.png',
-    quantity: 15,
-    color: 'Green',
-    linkUrl: "https://examplelink.com"
-  },
-  {
-    name: 'Yellow Scarf',
-    price: 19.99,
-    imageUrl: 'https://example.com/images/yellow-scarf.png',
-    quantity: 8,
-    color: 'Yellow',
-    linkUrl: "https://examplelink.com"
-  },
-  {
-    name: 'Black Watch',
-    price: 150.00,
-    imageUrl: 'https://example.com/images/black-watch.png',
-    quantity: 3,
-    color: 'Black',
-    linkUrl: "https://examplelink.com"
-  }]
-
-  constructor(private steamService: SteamService) {}
-
-  getListingsButtonClicked(pageNum: number) {
-      this.pageNumber += 1;
-  }
-
-  isPaintedButtonClicked(name: string) {
-      this.pageNumber += 1;
-  }
-
-  onPageNumberChange(value: number) {
-    
-    if (value < 0 || value > 100000) {
-      this.pageNumber = 0;
-    } else {
-      this.pageNumber = value;
-    }
-  }
 }

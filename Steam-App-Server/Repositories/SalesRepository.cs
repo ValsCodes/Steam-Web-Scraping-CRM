@@ -72,7 +72,6 @@ namespace SteamAppServer.Repositories
         }
         #endregion
 
-
         #region Update Product
         public async Task<bool> UpdateProductAsync(ProductDto product)
         {
@@ -167,5 +166,6 @@ namespace SteamAppServer.Repositories
             return deleteStatuses;
         }
         #endregion
+
     }
 }
