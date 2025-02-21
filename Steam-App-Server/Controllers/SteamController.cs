@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SteamAppServer.Services.Interfaces;
+using SteamApp.Infrastructure.Services;
 
-namespace SteamAppServer.Controllers
+namespace SteamApp.Controllers
 {
     [ApiController]
     [Route("steam")]

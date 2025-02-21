@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using SteamAppServer.Context;
+using SteamApp.Context;
 
 #nullable disable
 
-namespace SteamAppServer.Migrations
+namespace SteamApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20241226221419_NewDatabase3")]

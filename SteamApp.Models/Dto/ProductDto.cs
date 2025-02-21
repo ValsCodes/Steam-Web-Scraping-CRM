@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace SteamAppServer.Models.DTO
+namespace SteamApp.Models.Dto
 {
     public class ProductDto
     {

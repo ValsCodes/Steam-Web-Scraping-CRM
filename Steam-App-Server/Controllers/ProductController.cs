@@ -1,20 +1,20 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SteamAppServer.Models.DTO;
-using SteamAppServer.Services.Interfaces;
+using SteamApp.Infrastructure.Services;
+using SteamApp.Models.Dto;
 
-namespace SteamAppServer.Controllers
+namespace SteamApp.Controllers
 {
     [ApiController]
     [Route("product")]
     public class ProductController : ControllerBase
     {
         //private readonly ILogger<SteamController> _logger;
-        private readonly ISteamService _steamService;
+        private readonly IProductService _productService;
 
-        public ProductController(ISteamService steamService)//, ILogger<SteamController> logger )
+        public ProductController(IProductService productService)//, ILogger<SteamController> logger )
         {
             //_logger = logger;
-            _steamService = steamService;
+            _productService = productService;
         }
 
         [HttpGet("get")]
@@ -22,7 +22,7 @@ namespace SteamAppServer.Controllers
         {
             try
             {
-                var result = _steamService.GetProductAsync(id).GetAwaiter().GetResult();
+                var result = _productService.GetProductAsync(id).GetAwaiter().GetResult();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -37,7 +37,7 @@ namespace SteamAppServer.Controllers
         {
             try
             {
-                var result = _steamService.GetProductsAsync().GetAwaiter().GetResult();
+                var result = _productService.GetProductsAsync().GetAwaiter().GetResult();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -51,7 +51,7 @@ namespace SteamAppServer.Controllers
         {
             try
             {
-                var result = _steamService.CreateProductAsync(productDto).GetAwaiter().GetResult();
+                var result = _productService.CreateProductAsync(productDto).GetAwaiter().GetResult();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -66,7 +66,7 @@ namespace SteamAppServer.Controllers
 
             try
             {
-                var result = _steamService.CreateProductsAsync(productDtos).GetAwaiter().GetResult();
+                var result = _productService.CreateProductsAsync(productDtos).GetAwaiter().GetResult();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -78,10 +78,9 @@ namespace SteamAppServer.Controllers
         [HttpPut("update")]
         public IActionResult UpdateProduct([FromQuery] ProductDto productDto)
         {
-
             try
             {
-                var result = _steamService.UpdateProductAsync(productDto).GetAwaiter().GetResult();
+                var result = _productService.UpdateProductAsync(productDto).GetAwaiter().GetResult();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -95,7 +94,7 @@ namespace SteamAppServer.Controllers
         {
             try
             {
-                var result = _steamService.UpdateProductsAsync(productDtos).GetAwaiter().GetResult();
+                var result = _productService.UpdateProductsAsync(productDtos).GetAwaiter().GetResult();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -135,11 +134,11 @@ namespace SteamAppServer.Controllers
 
 
         [HttpDelete("delete")]
-        public IActionResult DeleteProduct(long? id)
+        public IActionResult DeleteProduct([FromQuery] long? id)
         {
             try
             {
-                var result = _steamService.DeleteProductAsync(id).GetAwaiter().GetResult();
+                var result = _productService.DeleteProductAsync(id).GetAwaiter().GetResult();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -153,7 +152,7 @@ namespace SteamAppServer.Controllers
         {
             try
             {
-                var result = _steamService.DeleteProductsAsync(ids).GetAwaiter().GetResult();
+                var result = _productService.DeleteProductsAsync(ids).GetAwaiter().GetResult();
                 return Ok(result);
             }
             catch (Exception ex)

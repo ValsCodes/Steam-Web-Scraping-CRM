@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace SteamAppServer.Migrations
+namespace SteamApp.Migrations
 {
     /// <inheritdoc />
     public partial class NewDatabase3 : Migration

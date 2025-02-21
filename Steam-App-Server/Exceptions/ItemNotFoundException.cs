@@ -1,4 +1,4 @@
-﻿namespace SteamAppServer.Exceptions
+﻿namespace SteamApp.Exceptions
 {
     public class ItemNotFoundException : Exception
     {

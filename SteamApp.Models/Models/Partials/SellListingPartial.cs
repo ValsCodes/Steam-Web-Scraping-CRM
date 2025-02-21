@@ -1,4 +1,4 @@
-﻿namespace SteamAppServer.Models.Partials
+﻿namespace SteamApp.Models.Partials
 {
     public class SellListingPartial
     {

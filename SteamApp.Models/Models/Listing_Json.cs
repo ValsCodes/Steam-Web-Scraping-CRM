@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace SteamAppServer.Models
+namespace SteamApp.Models
 {
     public class Listing_Json
     {

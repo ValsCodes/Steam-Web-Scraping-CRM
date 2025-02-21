@@ -1,12 +1,12 @@
+using SteamApp.Infrastructure.Services;
+using SteamApp.Infrastructure.Repositories;
+using SteamApp.Mapper;
+using SteamApp.Context;
 using Microsoft.EntityFrameworkCore;
-using SteamAppServer.Context;
-using SteamAppServer.Repositories.Interfaces;
-using SteamAppServer.Repositories;
-using SteamAppServer.Services.Interfaces;
-using SteamAppServer.Services;
-using SteamAppServer.Mapper;
+using SteamApp.Services;
+using SteamApp.Repository;
 
-namespace SteamAppServer
+namespace SteamApp
 {
     public class Program
     {
@@ -17,8 +17,8 @@ namespace SteamAppServer
             #region Service Scopes
 
             builder.Services.AddHttpClient<ISteamService, SteamService>();
-            builder.Services.AddScoped<ISalesRepository, SalesRepository>();
-            builder.Services.AddScoped<ISteamService, SteamService>();
+            builder.Services.AddScoped<IProductService, ProductService>();
+            builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
             // Inject Auto Mapper 
             builder.Services.AddAutoMapper(typeof(MappingProfile));

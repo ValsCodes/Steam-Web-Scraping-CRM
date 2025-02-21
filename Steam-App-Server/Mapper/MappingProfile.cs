@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
-using SteamAppServer.Models.DTO;
-using SteamAppServer.Models;
+using SteamApp.Models;
+using SteamApp.Models.Dto;
 
-namespace SteamAppServer.Mapper
+namespace SteamApp.Mapper
 {
     public class MappingProfile : Profile
     {

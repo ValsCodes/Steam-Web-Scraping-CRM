@@ -1,9 +1,9 @@
-﻿using SteamAppServer.Models;
-using SteamAppServer.Models.DTO;
+﻿using SteamApp.Models;
+using SteamApp.Models.Dto;
 
-namespace SteamAppServer.Repositories.Interfaces
+namespace SteamApp.Infrastructure.Repositories
 {
-    public interface ISalesRepository
+    public interface IProductRepository
     {
         Task<Product> GetProductAsync(long id);
         Task<IEnumerable<Product>> GetProductsAsync();

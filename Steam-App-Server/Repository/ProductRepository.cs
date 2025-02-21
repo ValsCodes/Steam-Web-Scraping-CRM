@@ -1,20 +1,20 @@
 ﻿using AutoMapper;
+using SteamApp.Context;
+using SteamApp.Infrastructure.Repositories;
+using SteamApp.Models;
+using SteamApp.Models.Dto;
+using SteamApp.Exceptions;
 using Microsoft.EntityFrameworkCore;
-using SteamAppServer.Context;
-using SteamAppServer.Exceptions;
-using SteamAppServer.Models;
-using SteamAppServer.Models.DTO;
-using SteamAppServer.Repositories.Interfaces;
 
-namespace SteamAppServer.Repositories
+namespace SteamApp.Repository
 {
-    public class SalesRepository : ISalesRepository
+    public class ProductRepository : IProductRepository
     {
         private readonly IMapper _mapper;
         //Add logs if you want
         private readonly ApplicationDbContext _context;
 
-        public SalesRepository(ApplicationDbContext context, IMapper mapper)
+        public ProductRepository(ApplicationDbContext context, IMapper mapper)
         {
             _context = context;
             _mapper = mapper;

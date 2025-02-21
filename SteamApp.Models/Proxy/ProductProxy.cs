@@ -1,6 +1,4 @@
-﻿using System.Drawing;
-
-namespace SteamAppServer.Models.Proxies
+﻿namespace SteamApp.Models.Proxy
 {
     public class ProductProxy
     {
@@ -15,6 +13,5 @@ namespace SteamAppServer.Models.Proxies
         public short Quantity { get; set; }
 
         public string? Color { get; set; }
-  
     }
 }

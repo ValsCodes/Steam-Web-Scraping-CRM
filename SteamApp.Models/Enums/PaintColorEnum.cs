@@ -1,4 +1,4 @@
-﻿namespace SteamAppServer.Common.Enums
+﻿namespace SteamApp.Models.Enums
 {
     public enum PaintColorEnum
     {
