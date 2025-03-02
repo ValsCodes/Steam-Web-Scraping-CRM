@@ -1,19 +1,10 @@
-﻿using MathNet.Numerics;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SteamApp.Models
 {
     [Table("sell_listing")]
-    public class Product
+    public class Product : BaseModel
     {
-        [Key]
-        [Column("id")]
-        public virtual  long Id { get; set; }
-
-        [Column("name")]
-        public virtual string? Name { get; set; }
-
         [Column("quality_id")]
         public virtual short? QualityId { get; set; }
 
@@ -30,8 +21,7 @@ namespace SteamApp.Models
         public decimal CostPrice { get; set; }
 
         [Column("t_sell_price_1")]
-        public virtual decimal TargetSellPrice1 { get; set; }
-        
+        public virtual decimal TargetSellPrice1 { get; set; }     
 
         [Column("t_sell_price_2")]
         public virtual decimal? TargetSellPrice2 { get; set; }

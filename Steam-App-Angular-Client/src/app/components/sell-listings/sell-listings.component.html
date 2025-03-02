@@ -43,8 +43,7 @@
         <ng-container matColumnDef="date-bought">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Date Bought </th>
             <td mat-cell *matCellDef="let sellListing" class="date">
-                <input type="date" [value]="sellListing.dateBought ? (sellListing.dateBought | date:'yyyy-MM-dd') : ''"
-                    (change)="onDateSoldChange(sellListing, $event)" />
+                <input type="date" [value]="sellListing.dateBought ? (sellListing.dateBought | date:'yyyy-MM-dd') : ''"/>
                 <!-- {{ sellListing.dateBought | date }} -->
             </td>
         </ng-container>
@@ -71,8 +70,7 @@
         <ng-container matColumnDef="date-sold">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Date Sold </th>
             <td mat-cell *matCellDef="let sellListing" class="date">
-                <input type="date" [value]="sellListing.dateSold ? (sellListing.dateSold | date:'yyyy-MM-dd') : ''"
-                    (change)="onDateSoldChange(sellListing, $event)" />
+                <input type="date" [value]="sellListing.dateSold ? (sellListing.dateSold | date:'yyyy-MM-dd') : ''"/>
             </td>
         </ng-container>
 
@@ -87,14 +85,12 @@
 
         <!-- Actions Column -->
         <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef> Actions </th>
-            <td mat-cell *matCellDef="let sellListing">
-                <ng-container *ngIf="sellListing">
-                    <steam-sell-listing (deleteSellListing)="onDeleteSellListing($event)" [sellListing]="sellListing"
-                        [isModified]="modifiedStates[sellListing.id] || false"></steam-sell-listing>
-                </ng-container>
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let element; let i = index">
+              <button type="button" class="sell-button ml-2" (click)="soldButtonClicked(i)">Sold</button>
+              <button type="button" class="delete-button ml-2" (click)="deleteButtonClicked(i)">Delete</button>
             </td>
-        </ng-container>
+          </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>

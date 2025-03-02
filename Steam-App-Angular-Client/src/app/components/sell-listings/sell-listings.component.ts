@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
-import { SellListingComponent } from '../sell-listing/sell-listing.component';
+import { FormBuilder, FormGroup, FormArray } from '@angular/forms';
 import { SteamService } from '../../services/steam/steam.service';
 import { CommonModule } from '@angular/common';
 import { MatTableDataSource } from '@angular/material/table';
@@ -7,15 +7,13 @@ import { MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { FormsModule } from '@angular/forms';
-import { QueryList, ViewChildren } from '@angular/core';
 
-import { Product } from '../../models/sell.listing.model';
+import { Product } from '../../models/product.model';
 
 @Component({
   selector: 'steam-sell-listings',
   standalone: true,
   imports: [
-    SellListingComponent,
     CommonModule,
     MatTableModule,
     MatSort,
@@ -28,41 +26,13 @@ import { Product } from '../../models/sell.listing.model';
   providers: [SteamService],
 })
 export class SellListingsComponent implements OnInit, AfterViewInit {
-  private deletedListings: number[] = [];
-
-  constructor(private steamService: SteamService) {
-    this.fetchSellListings();
-  }
-
-  ngOnInit() {
-
-    if (!this.dataSource.sort) {
-      this.dataSource.sort = this.sort;
-    }
-  }
-
-  ngAfterViewInit(): void {
-    if (!this.dataSource.paginator) {
-      this.dataSource.paginator = this.paginator;
-      this.dataSource.paginator.pageSize = 10;
-      this.dataSource.paginator.pageSizeOptions = [5, 10, 25];
-    }
- 
-  }
-
-  //#region Decorators
-
-  @ViewChildren(SellListingComponent)
-  sellListingComponents!: QueryList<SellListingComponent>;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
-  //#endregion
 
-  //#region Public Properties
-  dataSource = new MatTableDataSource<Product>([]);
+  private deletedProductIds: number[] = [];
+  private tableForm: FormArray = new FormArray<any>([]);
 
-  loading = true;
-
+  dataSource = new MatTableDataSource<any>();
   displayedColumns: string[] = [
     'item',
     'description',
@@ -76,11 +46,26 @@ export class SellListingsComponent implements OnInit, AfterViewInit {
     'sold-price',
     'actions',
   ];
-//#endregion Public Properties
-modifiedStates: { [key: number]: boolean } = {};
-  //#region Button Commands
-  addButtonClicked() {
-    //TODO set Child Component IsModified to true
+
+  constructor(private steamService: SteamService, private fb: FormBuilder) {}
+
+  ngOnInit() {
+    this.fetchSellListings();
+
+    if (!this.dataSource.sort) {
+      this.dataSource.sort = this.sort;
+    }
+  }
+
+  ngAfterViewInit(): void {
+    if (!this.dataSource.paginator) {
+      this.dataSource.paginator = this.paginator;
+      this.dataSource.paginator.pageSize = 10;
+      this.dataSource.paginator.pageSizeOptions = [5, 10, 25];
+    }
+  }
+
+  addButtonClicked(): void {
     const emptySellListing: Product = {
       id: 0,
       name: '',
@@ -96,19 +81,22 @@ modifiedStates: { [key: number]: boolean } = {};
       soldPrice: null,
       isHat: false,
       isWeapon: false,
-      isSold: false
+      isSold: false,
     };
 
-    this.modifiedStates[emptySellListing.id] = true;
-
+    // Update dataSource
     const currentData = this.dataSource.data;
     currentData.unshift(emptySellListing);
-
     this.dataSource.data = currentData;
+
+    // Also update the FormArray with the new row including soldDate control
+    this.tableForm.insert(0, this.createRow(emptySellListing));
   }
 
   clearButtonClicked(): void {
     this.dataSource.data = [];
+
+    console.log(this.tableForm);
   }
 
   refreshButtonClicked(): void {
@@ -116,59 +104,87 @@ modifiedStates: { [key: number]: boolean } = {};
   }
 
   saveButtonClicked(): void {
-    if (this.deletedListings.length > 0) {
-     // this.steamService.deleteBulkListings(this.deletedListings);
+    if (this.deletedProductIds.length > 0) {
+      this.steamService.deleteProducts(this.deletedProductIds);
     }
 
-    var updatedProducts = this.sellListingComponents
-      .filter((x) => {
-        return x.isModified === true;
-      }
-    )
-      .map((x) => x.sellListing);
-
-    this.steamService.updateProducts(updatedProducts);
-  }
-
-  onDeleteSellListing(id: number) {
-    if (id != 0) {
-      this.deletedListings.push(id);
+    const updatedProducts = this.tableForm.controls.filter((row) => row.dirty); // changed rows
+    if (updatedProducts.length > 0) {
+      // Map
+      // this.steamService.updateProducts(updatedProducts);
     }
 
-    const index = this.dataSource.data.findIndex((item) => item.id === id);
-    this.dataSource.data.splice(index, 1);
-    this.dataSource.data = [...this.dataSource.data];
+    const newProducts = (this.tableForm.controls as FormGroup[]).filter(
+      (group) => group.get('id')?.value === 0
+    );
+    if (newProducts.length > 0) {
+      // Map
+      // this.steamService.createProducts(newProducts);
+    }
   }
 
-  importButtonClicked() {
+  importButtonClicked(): void {
     throw new Error('Method not implemented.');
   }
 
-  exportButtonClicked() {
+  exportButtonClicked(): void {
     throw new Error('Method not implemented.');
   }
-  //#endregion Button Commands
 
-  //#region Private Methods
+  soldButtonClicked(index: number): void {
+    const rowGroup = this.tableForm.at(index) as FormGroup;
+    if (rowGroup && rowGroup.get('soldDate')) {
+      const today = new Date().toISOString().substring(0, 10);
+      // Update the form control
+      rowGroup.get('soldDate')?.setValue(today);
+
+      // Update the underlying data object
+      this.dataSource.data[index].dateSold = today;
+
+      // Refresh the table to reflect changes
+      this.dataSource._updateChangeSubscription();
+    } else {
+      console.error('Control "soldDate" not found on row at index', index);
+    }
+  }
+
+  deleteButtonClicked(index: number): void {
+    const itemId = (this.tableForm.at(index) as FormGroup).get('id')?.value;
+    if (itemId > 0) {
+      this.deletedProductIds.push(itemId);
+    }
+
+    this.tableForm.removeAt(index);
+    const data = this.dataSource.data;
+    data.splice(index, 1);
+    this.dataSource.data = data;
+  }
 
   private fetchSellListings(): void {
     this.steamService.getProducts().subscribe(
       (listings: Product[]) => {
-        this.dataSource.data = listings; // Assign data to MatTableDataSource
-        this.loading = false; // Set loading to false when data has been loaded
+        this.tableForm = this.fb.array(
+          listings.map((row) => this.createRow(row))
+        );
+        this.dataSource = new MatTableDataSource(listings); // Assign data to MatTableDataSource
       },
       (error) => {
         console.error('Error fetching sell listings:', error);
-        this.loading = false; // Set loading to false in case of error
       }
     );
   }
 
-  onDateSoldChange(sellListing: Product, event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const value = input.value;
-    sellListing.dateSold = value ? new Date(value) : null;
-  }
+  private createRow(data: any): FormGroup {
+    const group = this.fb.group({
+      id: [data.id],
+      name: [data.name],
+      soldDate: [data.dateSold], // include the soldDate control here
+    });
 
-  //#endregion Private Methods
+    group.valueChanges.subscribe(() => {
+      group.markAsDirty();
+    });
+
+    return group;
+  }
 }

@@ -1,5 +1,4 @@
 import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
-import { ListingComponent } from '../listing/listing.component';
 import { SteamService } from '../../services/steam/steam.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -14,7 +13,7 @@ import { Listing } from '../../models/listing.model';
 @Component({
   selector: 'web-scraper',
   standalone: true,
-  imports: [ListingComponent, FormsModule, CommonModule, MatTableModule,
+  imports: [ FormsModule, CommonModule, MatTableModule,
     MatSort,
     MatSortModule,
     MatPaginatorModule,],
@@ -25,6 +24,11 @@ import { Listing } from '../../models/listing.model';
   ],
 })
 export class WebScraperComponent implements OnInit, AfterViewInit{
+
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+  dataSource = new MatTableDataSource<any>([]);
+
   pageNumber: number = 0;
   displayedColumns: string[] = [
     'item',
@@ -34,7 +38,7 @@ export class WebScraperComponent implements OnInit, AfterViewInit{
     'actions'
   ];
 
-  dataSource = new MatTableDataSource<Listing>([]);
+  
 
   ngOnInit(): void {}
 
@@ -49,8 +53,6 @@ export class WebScraperComponent implements OnInit, AfterViewInit{
     this.dataSource.data = this.listings; 
   }
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
 
   public listings: Listing[] = [{
     name: 'Red Jacket',
@@ -99,8 +101,10 @@ export class WebScraperComponent implements OnInit, AfterViewInit{
       this.pageNumber += 1;
   }
 
-  isPaintedButtonClicked(name: string) {
+  checkPaintButtonClicked(index: number) {
       this.pageNumber += 1;
+
+      //logic
   }
 
   onPageNumberChange(value: number) {

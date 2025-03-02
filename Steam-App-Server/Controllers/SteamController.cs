@@ -16,7 +16,7 @@ namespace SteamApp.Controllers
             _steamService = steamService;
         }
 
-        [HttpPost("get/weapon-listing-urls")]
+        [HttpPost("get/weapon-listing-urls/fromIndex/{fromIndex}/batchSize/{batchSize}")]
         public IActionResult GetWeaponListingsUrls(short fromIndex, short batchSize)
         {
             try
@@ -30,7 +30,7 @@ namespace SteamApp.Controllers
             }
         }
 
-        [HttpPost("get/hat-listing-urls")]
+        [HttpPost("get/hat-listing-urls/fromIndex/{fromIndex}/batchSize/{batchSize}")]
         public IActionResult GetHatListingsUrls(short fromPage, short batchSize)
         {
             try
@@ -44,7 +44,7 @@ namespace SteamApp.Controllers
             }
         }
 
-        [HttpPost("get/hat-listings")]
+        [HttpPost("get/hat-listings/page/{page}")]
         public IActionResult GetFilterredListings(short page)
         {
             try
@@ -58,7 +58,7 @@ namespace SteamApp.Controllers
             }
         }
 
-        [HttpPost("get/hat-listings/painted")]
+        [HttpPost("get/hat-listings/painted/page/{page}")]
         public IActionResult GetPaintedListings(short page)
         {
             try
@@ -72,7 +72,7 @@ namespace SteamApp.Controllers
             }
         }
 
-        [HttpPost("get/is-hat-painted")]
+        [HttpPost("get/is-hat-painted/name/{name}")]
         public IActionResult IsListingPainted(string name)
         {
             try

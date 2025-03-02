@@ -9,8 +9,8 @@ namespace SteamApp.Mapper
         public MappingProfile()
         {
             // Basic mapping (AutoMapper automatically maps properties with the same name and type)
-            CreateMap<ProductDto, Product>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore()); //Ignore ID
+            CreateMap<ProductDto, Product>();
+                //.ForMember(dest => dest.Id, opt => opt.Ignore()); //Ignore ID
 
             // Reverse mapping
             CreateMap<Product, ProductDto>();

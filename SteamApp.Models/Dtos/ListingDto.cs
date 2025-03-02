@@ -1,7 +1,10 @@
-﻿namespace SteamApp.Models.Proxy
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace SteamApp.Models.Dto
 {
-    public class ProductProxy
+    public class ListingDto
     {
+        [Required]
         public string? Name { get; set; }
 
         public double Price { get; set; }

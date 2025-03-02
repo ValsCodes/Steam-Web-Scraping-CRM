@@ -1,7 +1,8 @@
 ﻿using Newtonsoft.Json;
 using SteamApp.Infrastructure.Services;
 using SteamApp.Models;
-using SteamApp.Models.Proxy;
+using SteamApp.Models.Dto;
+using SteamApp.Models.Models.Json;
 using System.Web;
 
 namespace SteamApp.Services
@@ -63,22 +64,22 @@ namespace SteamApp.Services
             return Task.FromResult(result.ToArray());
         }
 
-        public async Task<ProductProxy[]> GetFilterredListingsAsync(short page)
+        public async Task<ListingDto[]> GetFilterredListingsAsync(short page)
         {
             // Same page result ???
             var url = $"{Constants.JSON_100_LISTINGS_URL}{page}";
             var filteredResult = await GetFilterredResults(url);
 
-            return filteredResult.Select(x => new ProductProxy { Name = x.Name, Price = x.SellPrice, Quantity = x.SellListings }).ToArray();
+            return filteredResult.Select(x => new ListingDto { Name = x.Name, Price = x.SellPrice, Quantity = x.SellListings }).ToArray();
         }
 
         public async Task<(bool, string)> IsListingPaintedAsync(string name)
         {
-            var formattedName = FormatListingNameForUrl(name);
+            var formattedName = EncodeStringForUrl(name);
             var url = $"{Constants.FIRST_PAGE_URL_PART_1}{formattedName}{Constants.FIRST_PAGE_URL_PART_2}";
             var jsonResponse = await GetHttpResposeAsync(url);
             var jsonString = FormatJsonStringForDeserialization(jsonResponse);
-            var result = DeserializeFormattedJsonString<Listing_Json>(jsonString);
+            var result = DeserializeFormattedJsonString<Listing>(jsonString);
 
             //When Deserializing assets:440:2 doesn't deserialize the data correctly and leaves everything as null
             //Model binding problem probably
@@ -97,7 +98,7 @@ namespace SteamApp.Services
             return (false, string.Empty);
         }
 
-        public async Task<IEnumerable<ProductProxy>> GetPaintedListingsOnlyAsync(short page)
+        public async Task<IEnumerable<ListingDto>> GetPaintedListingsOnlyAsync(short page)
         {
             var url = $"{Constants.JSON_100_LISTINGS_URL}{page}";
             var results = await GetFilterredResults(url);
@@ -107,7 +108,7 @@ namespace SteamApp.Services
                 throw new Exception("No results found.");
             }
 
-            var onlyPaintedResutls = await GetOnlyPaintedListingsFromResults(results);
+            var onlyPaintedResutls = await GetOnlyPaintedResults(results);
 
             return onlyPaintedResutls;
         }
@@ -123,7 +124,7 @@ namespace SteamApp.Services
             }
 
             var jsonString = FormatJsonStringForDeserialization(jsonResponse);
-            var result = DeserializeFormattedJsonString<ListingDetails_Json>(jsonString);
+            var result = DeserializeFormattedJsonString<ListingDetails>(jsonString);
             if (result == null)
             {
                 throw new Exception("Failed to deserialize JSON.");
@@ -132,16 +133,16 @@ namespace SteamApp.Services
             return result.Results!.Where(x => x.SellPrice >= 150 && x.SellPrice <= 450).OrderBy(x => x.SellPrice).ToArray();
         }
 
-        private async Task<IEnumerable<ProductProxy>> GetOnlyPaintedListingsFromResults(Result[] results)
+        private async Task<IEnumerable<ListingDto>> GetOnlyPaintedResults(Result[] results)
         {
-            var itemCollection = new List<ProductProxy>();
+            var itemCollection = new List<ListingDto>();
             foreach (var item in results)
             {
-                var formattedName = FormatListingNameForUrl(item.Name!);
+                var formattedName = EncodeStringForUrl(item.Name!);
                 var url = $"{Constants.FIRST_PAGE_URL_PART_1}{formattedName}{Constants.FIRST_PAGE_URL_PART_2}";
                 var jsonResponse = await GetHttpResposeAsync(url);
                 var jsonString = FormatJsonStringForDeserialization(jsonResponse);
-                var deserializedResult = DeserializeFormattedJsonString<Listing_Json>(jsonString);
+                var deserializedResult = DeserializeFormattedJsonString<Listing>(jsonString);
 
                 //When Deserializing assets:440:2 doesn't deserialize the data correctly and leaves everything as null
                 //Model binding problem *probably*
@@ -161,7 +162,7 @@ namespace SteamApp.Services
 
                     if (color != null)
                     {
-                        var listing = new ProductProxy
+                        var listing = new ListingDto
                         {
                             Name = item.Name,
                             Price = item.SellPrice,
@@ -178,8 +179,7 @@ namespace SteamApp.Services
             return itemCollection;
         }
 
-
-        private async Task<string?> GetHttpResponseAsync(string url)
+        private async Task<string> GetHttpResposeAsync(string url)
         {
             _httpClient.Timeout = TimeSpan.FromSeconds(30);
 
@@ -189,18 +189,12 @@ namespace SteamApp.Services
 
             string responseContent = await response.Content.ReadAsStringAsync();
 
-            return responseContent;
-        }
-
-        private async Task<string> GetHttpResposeAsync(string url)
-        {
-            string? httpResponse = await GetHttpResponseAsync(url);
-            if (httpResponse == null)
+            if (responseContent == null)
             {
                 return null!;
             }
 
-            return httpResponse;
+            return responseContent;
         }
 
         private T? DeserializeFormattedJsonString<T>(string formattedJsonObject) where T : class
@@ -219,7 +213,7 @@ namespace SteamApp.Services
             return formattedJson;
         }
 
-        private string FormatListingNameForUrl(string name)
+        private string EncodeStringForUrl(string name)
         {
             return HttpUtility.UrlEncode(name);
         }

@@ -1,8 +1,6 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { SellListingComponent } from '../sell-listing/sell-listing.component';
-
 @Component({
   selector: 'steam-manual-mode',
   standalone: true,

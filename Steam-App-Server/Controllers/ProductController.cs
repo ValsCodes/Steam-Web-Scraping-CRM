@@ -17,8 +17,8 @@ namespace SteamApp.Controllers
             _productService = productService;
         }
 
-        [HttpGet("get")]
-        public IActionResult GetProduct([FromQuery] long? id)
+        [HttpGet("get/{id}")]
+        public IActionResult GetProduct(long id)
         {
             try
             {
@@ -76,7 +76,7 @@ namespace SteamApp.Controllers
         }
 
         [HttpPut("update")]
-        public IActionResult UpdateProduct([FromQuery] ProductDto productDto)
+        public IActionResult UpdateProduct([FromBody] ProductDto productDto)
         {
             try
             {
@@ -133,8 +133,8 @@ namespace SteamApp.Controllers
         //}
 
 
-        [HttpDelete("delete")]
-        public IActionResult DeleteProduct([FromQuery] long? id)
+        [HttpDelete("delete/{id}")]
+        public IActionResult DeleteProduct(long? id)
         {
             try
             {

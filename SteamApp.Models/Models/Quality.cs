@@ -1,16 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SteamApp.Models
 {
     [Table("quality")]
-    public class Quality
+    public class Quality : BaseModel
     {
-        [Key]
-        [Column("id")]
-        public virtual short Id { get; set; }
 
-        [Column("name")]
-        public virtual string Name { get; set; }
     }
 }

@@ -1,5 +1,4 @@
 import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
-import { ListingComponent } from '../listing/listing.component';
 import { SteamService } from '../../services/steam/steam.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -8,8 +7,6 @@ import { MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 
-
-import { Listing } from '../../models/listing.model';
 
 @Component({
   selector: 'home',
