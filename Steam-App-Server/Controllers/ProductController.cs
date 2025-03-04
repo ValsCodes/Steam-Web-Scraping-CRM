@@ -42,7 +42,7 @@ namespace SteamApp.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.InnerException);
+                return StatusCode(500, ex.Message);
             }
         }
 

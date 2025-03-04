@@ -7,7 +7,7 @@ namespace SteamApp.Models
     {
         [Key]
         [Column("id")]
-        public virtual short Id { get; set; }
+        public virtual long Id { get; set; }
 
         [Column("name")]
         public virtual string Name { get; set; }
