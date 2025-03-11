@@ -1,3 +1,4 @@
+# Web Scraping CRM for Steam Community market
 
 **An Angular 18 client integrated with a .NET 9 Web API backend**. This application helps you find items listed on the Steam Community Market (specifically for **Team Fortress 2**) at favorable price ranges—whether you’re investing or simply adding to your personal collection.
 
