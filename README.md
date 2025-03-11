@@ -33,10 +33,10 @@ Terminal 1 (Web API):
    ```bash
    dotnet run
    ```
-Terminal 2 (Angular client):
-  ```bash
+5. **Terminal 2 (Angular client)**:
+   ```bash
     npm start
-  ```
+   ```
 Open your browser at http://localhost:4200.
 
 ## 📌 Requirements
