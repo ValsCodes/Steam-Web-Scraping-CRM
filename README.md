@@ -18,28 +18,23 @@
 1. **Clone the Repository**:
    ```bash
    git clone https://github.com/ValsCodes/Steam-App-Angular-Server
-   cd steam-app
    ```
 2. **Install Angular Client Dependencies**:
     ```bash
-    cd ClientApp
     npm install
     ```
 3. **Restore & Build the .NET 9 Web API**:
     ```bash
-    cd ../Server
     dotnet restore
     dotnet build
     ```
 4. **Run the Application**:
 Terminal 1 (Web API):
    ```bash
-   cd Server
    dotnet run
    ```
 Terminal 2 (Angular client):
   ```bash
-    cd ClientApp
     npm start
   ```
 Open your browser at http://localhost:4200.
