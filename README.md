@@ -17,7 +17,7 @@
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/steam-app.git
+   git clone https://github.com/ValsCodes/Steam-App-Angular-Server
    cd steam-app
    ```
 2. **Install Angular Client Dependencies**:
