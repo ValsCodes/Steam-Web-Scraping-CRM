@@ -1,23 +1,49 @@
-# Steam App
 
-**An Angular 18 Client with a .NET 9 Web Api Server**
+**An Angular 18 client integrated with a .NET 9 Web API backend**. This application helps you find items listed on the Steam Community Market (specifically for **Team Fortress 2**) at favorable price ranges—whether you’re investing or simply adding to your personal collection.
 
-The App assists with finding Listings on the Steam Community Market for the game **Team Fortress 2**   
-in a good price range that have potential for investments or acquisition for personal use.
+> **Disclaimer**: This project is **not** affiliated with, endorsed, or sponsored by Valve Software. It simply consumes publicly available endpoints provided by Valve.
 
-It uses **already exsisting** endpoints provided by **Valve Software** in order to extract the information   
-the user is looking for and with a minimalstic design in order to process it.
+---
 
+## 🚀 Features
+- 💰 **Price Scanning**: Quickly search for TF2 listings on the Steam Community Market within your desired price range.
+- 🏷️ **Minimalistic UI**: A sleek interface built with Angular, Tailwind, and SASS for a focused user experience.
+- ⏱️ **Real-Time Updates**: Fetch live listing and pricing data directly from the Steam Community Market.
+- 📈 **Investment Insights**: Identify undervalued items that might be profitable for collectors or traders.
 
+---
 
-## UI
+## 📥 Installation
 
-<ul> 
-<li style="color: #38bdf8;"><b>Tailwind</b> </li>
-<li style="color: #ff0000;"><b>SASS</b></li>
-</ul>
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/your-username/steam-app.git
+   cd steam-app
+   ```
+2. **Install Angular Client Dependencies**:
+    ```bash
+    cd ClientApp
+    npm install
+    ```
+3. **Restore & Build the .NET 9 Web API**:
+    ```bash
+    cd ../Server
+    dotnet restore
+    dotnet build
+    ```
+4. **Run the Application**:
+Terminal 1 (Web API):
+   ```bash
+   cd Server
+   dotnet run
+   ```
+Terminal 2 (Angular client):
+  ```bash
+    cd ClientApp
+    npm start
+  ```
+Open your browser at http://localhost:4200.
 
-
-## Dependencies
-<div style="background-color: #1e1e1e; color: #ff0; padding: 10px; font-family: monospace;"> dotnet add package Newtonsoft.Json --version 13.0.3 </div>
-<div style="background-color: #1e1e1e; color: #ff0; padding: 10px; font-family: monospace;"> dotnet add package DotNetSeleniumExtras.WaitHelpers </div>
+## 📌 Requirements
+- 🏷️ Node.js (latest LTS recommended)
+- 🎯 .NET 9 SDK
