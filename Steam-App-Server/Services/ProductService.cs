@@ -76,16 +76,8 @@ namespace SteamApp.Services
             }
 
             var products = await _steamRepository.CreateProductsAsync(productDtos);
-            var result = new List<ProductDto>();
-            if (products.Any())
-            {
-                foreach (var product in products)
-                {
-                    result.Add(_mapper.Map<ProductDto>(product));
-                }
-            }
 
-            return result;
+            return _mapper.Map<List<ProductDto>>(products);
         }
 
         public async Task<bool> UpdateProductAsync(ProductDto? product)

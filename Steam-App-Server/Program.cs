@@ -19,6 +19,8 @@ namespace SteamApp
             builder.Services.AddHttpClient<ISteamService, SteamService>();
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
+            builder.Services.AddScoped<IItemService, ItemService>();
+            builder.Services.AddScoped<IItemRepository, ItemRepository>();
 
             // Inject Auto Mapper 
             builder.Services.AddAutoMapper(typeof(MappingProfile));

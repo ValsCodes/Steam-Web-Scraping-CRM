@@ -17,6 +17,20 @@ namespace SteamApp.Controllers
             _productService = productService;
         }
 
+        [HttpGet("save")]
+        public IActionResult SaveProducts([FromBody] ProductDto[] products)
+        {
+            try
+            {
+                var result = _productService.SaveProductsAsync(products).GetAwaiter().GetResult();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         [HttpGet("get/{id}")]
         public IActionResult GetProduct(long id)
         {
@@ -47,11 +61,11 @@ namespace SteamApp.Controllers
         }
 
         [HttpPost("create")]
-        public IActionResult CreateProduct([FromBody] ProductDto productDto)
+        public IActionResult CreateProduct([FromBody] ProductDto product)
         {
             try
             {
-                var result = _productService.CreateProductAsync(productDto).GetAwaiter().GetResult();
+                var result = _productService.CreateProductAsync(product).GetAwaiter().GetResult();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -61,12 +75,12 @@ namespace SteamApp.Controllers
         }
 
         [HttpPost("create/bulk")]
-        public IActionResult CreateProducts([FromBody] ProductDto[] productDtos)
+        public IActionResult CreateProducts([FromBody] ProductDto[] products)
         {
 
             try
             {
-                var result = _productService.CreateProductsAsync(productDtos).GetAwaiter().GetResult();
+                var result = _productService.CreateProductsAsync(products).GetAwaiter().GetResult();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -76,11 +90,11 @@ namespace SteamApp.Controllers
         }
 
         [HttpPut("update")]
-        public IActionResult UpdateProduct([FromBody] ProductDto productDto)
+        public IActionResult UpdateProduct([FromBody] ProductDto product)
         {
             try
             {
-                var result = _productService.UpdateProductAsync(productDto).GetAwaiter().GetResult();
+                var result = _productService.UpdateProductAsync(product).GetAwaiter().GetResult();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -90,11 +104,11 @@ namespace SteamApp.Controllers
         }
 
         [HttpPut("update/bulk")]
-        public IActionResult UpdateProducts([FromBody] ProductDto[] productDtos)
+        public IActionResult UpdateProducts([FromBody] ProductDto[] products)
         {
             try
             {
-                var result = _productService.UpdateProductsAsync(productDtos).GetAwaiter().GetResult();
+                var result = _productService.UpdateProductsAsync(products).GetAwaiter().GetResult();
                 return Ok(result);
             }
             catch (Exception ex)

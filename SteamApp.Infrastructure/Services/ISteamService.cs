@@ -4,12 +4,16 @@ namespace SteamApp.Infrastructure.Services
 {
     public interface ISteamService
     {
-        Task<ListingDto[]> GetFilterredListingsAsync(short page);
+        Task<IEnumerable<ListingDto>> GetFilterredListingsAsync(short page);
         Task<IEnumerable<ListingDto>> GetPaintedListingsOnlyAsync(short page);
         Task<(bool, string)> IsListingPaintedAsync(string name);
 
-        Task<string[]> GetWeaponListingsUrls(short fromIndex, short batchSize);
+        Task<IEnumerable<ListingDto>> ScrapePageAsync(short page);
 
-        Task<string[]> GetHatListingsUrls(short fromPage, short batchSize);
+        //Task<IEnumerable<string>> GetWeaponListingsUrls(short fromIndex, short batchSize);
+        IEnumerable<string> GetWeaponListingsUrls(short fromIndex, short batchSize);
+
+        //Task<IEnumerable<string>> GetHatListingsUrls(short fromPage, short batchSize);
+        IEnumerable<string> GetHatListingsUrls(short fromPage, short batchSize);
     }
 }

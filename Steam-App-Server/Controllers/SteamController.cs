@@ -16,12 +16,18 @@ namespace SteamApp.Controllers
             _steamService = steamService;
         }
 
+        /// <summary>
+        /// Works.
+        /// </summary>
+        /// <param name="page"></param>
+        /// <returns></returns>
+        /// TODO: Add Strings to DB
         [HttpPost("get/weapon-listing-urls/fromIndex/{fromIndex}/batchSize/{batchSize}")]
         public IActionResult GetWeaponListingsUrls(short fromIndex, short batchSize)
         {
             try
             {
-                var result = _steamService.GetWeaponListingsUrls(fromIndex, batchSize).GetAwaiter().GetResult();
+                var result = _steamService.GetWeaponListingsUrls(fromIndex, batchSize);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -30,12 +36,18 @@ namespace SteamApp.Controllers
             }
         }
 
+        /// <summary>
+        /// Works.
+        /// </summary>
+        /// <param name="page"></param>
+        /// <returns></returns>
+        /// /// TODO: Add Strings to DB
         [HttpPost("get/hat-listing-urls/fromIndex/{fromIndex}/batchSize/{batchSize}")]
         public IActionResult GetHatListingsUrls(short fromPage, short batchSize)
         {
             try
             {
-                var result = _steamService.GetHatListingsUrls(fromPage, batchSize).GetAwaiter().GetResult();
+                var result = _steamService.GetHatListingsUrls(fromPage, batchSize);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -44,7 +56,31 @@ namespace SteamApp.Controllers
             }
         }
 
-        [HttpPost("get/hat-listings/page/{page}")]
+        /// <summary>
+        /// Works.
+        /// </summary>
+        /// <param name="page"></param>
+        /// <returns></returns>
+        [HttpPost("web-scrape/hat/page/{page}")]
+        public IActionResult WebScrapePage(short page)
+        {
+            try
+            {
+                var result = _steamService.ScrapePageAsync(page).GetAwaiter().GetResult();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Works.
+        /// </summary>
+        /// <param name="page"></param>
+        /// <returns></returns>
+        [HttpPost("serialize/hat/page/{page}")]
         public IActionResult GetFilterredListings(short page)
         {
             try

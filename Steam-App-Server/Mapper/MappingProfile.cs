@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using SteamApp.Models;
 using SteamApp.Models.Dto;
+using SteamApp.Models.DTOs;
+using SteamApp.Models.Models;
 
 namespace SteamApp.Mapper
 {
@@ -14,6 +16,10 @@ namespace SteamApp.Mapper
 
             // Reverse mapping
             CreateMap<Product, ProductDto>();
+
+            CreateMap<ItemDto, Item>();
+
+            CreateMap<Item, ItemDto>();
 
             // Customize mappings (optional)
             //CreateMap<ProductDto, Product>()

@@ -5,7 +5,7 @@ namespace SteamApp.Models.Dto
     public class ProductDto
     {
         [DefaultValue(0)]
-        public long Id { get; set; }
+        public virtual long Id { get; set; }
 
         [DefaultValue("Test Product")]
         public virtual string Name { get; set; }
@@ -22,7 +22,7 @@ namespace SteamApp.Models.Dto
         public virtual DateTime? DateSold { get; set; }
 
         [DefaultValue(0)]
-        public decimal CostPrice { get; set; } = decimal.Zero;
+        public virtual decimal CostPrice { get; set; } = decimal.Zero;
 
         public virtual decimal TargetSellPrice1 { get; set; }
 

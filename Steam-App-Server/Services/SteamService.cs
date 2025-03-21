@@ -1,8 +1,13 @@
 ﻿using Newtonsoft.Json;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Support.UI;
+using SeleniumExtras.WaitHelpers;
 using SteamApp.Infrastructure.Services;
 using SteamApp.Models;
 using SteamApp.Models.Dto;
 using SteamApp.Models.Models.Json;
+using System.Collections.ObjectModel;
 using System.Web;
 
 namespace SteamApp.Services
@@ -16,7 +21,7 @@ namespace SteamApp.Services
             _httpClient = httpClient;
         }
 
-        public Task<string[]> GetHatListingsUrls(short fromPage, short batchSize)
+        public IEnumerable<string> GetHatListingsUrls(short fromPage, short batchSize)
         {
             if (fromPage <= 0 || fromPage > 500)
             {
@@ -32,15 +37,10 @@ namespace SteamApp.Services
                 result.Add($"{url}p{currentPage}_price_asc`");
             }
 
-            if (!result.Any())
-            {
-                throw new Exception("No URLs found.");
-            }
-
-            return Task.FromResult(result.ToArray());
+            return result;
         }
 
-        public Task<string[]> GetWeaponListingsUrls(short fromIndex, short batchSize)
+        public IEnumerable<string> GetWeaponListingsUrls(short fromIndex, short batchSize)
         {
             if (fromIndex < 0 || fromIndex > 500)
             {
@@ -56,21 +56,84 @@ namespace SteamApp.Services
                 result.Add($"{url}{StaticCollections.WEAPON_NAMES[currentIndex - 1]}`");
             }
 
-            if (!result.Any())
-            {
-                throw new Exception("No URLs found.");
-            }
-
-            return Task.FromResult(result.ToArray());
+            return result;
         }
 
-        public async Task<ListingDto[]> GetFilterredListingsAsync(short page)
+        /// <summary>
+        /// Web Scrapes the market by loading the DOM
+        /// </summary>
+        /// <param name="page"></param>
+        /// <returns></returns>
+        public async Task<IEnumerable<ListingDto>> ScrapePageAsync(short page)
         {
-            // Same page result ???
-            var url = $"{Constants.JSON_100_LISTINGS_URL}{page}";
+            var url = Constants.MANUAL_HATS_URL + $"p{page}_price_asc";
+
+            var options = new ChromeOptions();
+            options.AddArgument("--headless");
+            options.AddArgument("--disable-gpu");
+
+            return await Task.Run(() =>
+            {
+                var results = new List<ListingDto>();
+
+                using (IWebDriver driver = new ChromeDriver(options))
+                {
+                    driver.Navigate().GoToUrl(url);
+
+                    // Wait until at least one listing anchor is present.
+                    var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
+                    wait.Until(ExpectedConditions.ElementExists(By.XPath("//a[starts-with(@id, 'resultlink_')]")));
+
+                    // Get all listing anchor elements.
+                    ReadOnlyCollection<IWebElement> listingAnchors =
+                        driver.FindElements(By.XPath("//a[starts-with(@id, 'resultlink_')]"));
+
+                    foreach (var anchor in listingAnchors)
+                    {
+                        var listing = new ListingDto();
+
+                        listing.ListingUrl = anchor.GetAttribute("href");
+
+                        IWebElement listingDiv = anchor.FindElement(
+                            By.XPath(".//div[contains(@class,'market_listing_searchresult')]")
+                        );
+                        listing.Name = listingDiv.GetAttribute("data-hash-name");
+
+                        IWebElement imageElem = listingDiv.FindElement(
+                            By.XPath(".//img[contains(@id, 'result_') and contains(@id, '_image')]")
+                        );
+                        listing.ImageUrl = imageElem.GetAttribute("src");
+
+                        IWebElement quantitySpan = listingDiv.FindElement(
+                            By.XPath(".//span[contains(@class,'market_listing_num_listings_qty') and @data-qty]")
+                        );
+                        listing.Quantity = short.Parse(quantitySpan.GetAttribute("data-qty"));
+
+                        IWebElement priceSpan = listingDiv.FindElement(
+                            By.XPath(".//span[contains(@class,'normal_price') and @data-price]")
+                        );
+                        var nonConvertedPrice = priceSpan.GetAttribute("data-price");
+                        listing.Price = double.Parse(nonConvertedPrice) / 100;
+
+                        results.Add(listing);
+                    }
+                }
+
+                return results;
+            });
+        }
+
+        /// <summary>
+        /// Accepts a page value from 0 to 99 and returns only listings in a good price range
+        /// </summary>
+        /// <param name="page"></param>
+        /// <returns> A Collection of ListingDTOs</returns>
+        public async Task<IEnumerable<ListingDto>> GetFilterredListingsAsync(short page)
+        {
+            var url = $"{Constants.JSON_100_LISTINGS_URL_PART_1}{page}{Constants.JSON_100_LISTINGS_URL_PART_2}";
             var filteredResult = await GetFilterredResults(url);
 
-            return filteredResult.Select(x => new ListingDto { Name = x.Name, Price = x.SellPrice, Quantity = x.SellListings }).ToArray();
+            return filteredResult.Select(x => new ListingDto { Name = x.Name, Price = x.SellPrice / 100, Quantity = x.SellListings });
         }
 
         public async Task<(bool, string)> IsListingPaintedAsync(string name)
@@ -100,7 +163,7 @@ namespace SteamApp.Services
 
         public async Task<IEnumerable<ListingDto>> GetPaintedListingsOnlyAsync(short page)
         {
-            var url = $"{Constants.JSON_100_LISTINGS_URL}{page}";
+            var url = $"{Constants.JSON_100_LISTINGS_URL_PART_1}{page}{Constants.JSON_100_LISTINGS_URL_PART_2}";
             var results = await GetFilterredResults(url);
 
             if (!results.Any())
