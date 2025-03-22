@@ -17,19 +17,19 @@ namespace SteamApp.Controllers
             _productService = productService;
         }
 
-        [HttpGet("save")]
-        public IActionResult SaveProducts([FromBody] ProductDto[] products)
-        {
-            try
-            {
-                var result = _productService.SaveProductsAsync(products).GetAwaiter().GetResult();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
+        //[HttpGet("save")]
+        //public IActionResult SaveProducts([FromBody] ProductDto[] products)
+        //{
+        //    try
+        //    {
+        //        var result = _productService.SaveProductsAsync(products).GetAwaiter().GetResult();
+        //        return Ok(result);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, ex.Message);
+        //    }
+        //}
 
         [HttpGet("get/{id}")]
         public IActionResult GetProduct(long id)

@@ -24,11 +24,25 @@
         public const int FROM_PAGE = 75;
         public const int BATCH_SIZE = 7;
 
-        public readonly string MARKET_LISTING_ROW_LINK_CLASS_NAME = "market_listing_row_link";
-        public readonly string MARKET_LISTING_ITEM_IMG_CLASS_NAME = "market_listing_item_img";
-        public readonly string MARKET_LISTING_ITEM_NAME_CLASS_NAME = "market_listing_item_name";
+        public const string MARKET_LISTING_SEARCHRESULT = "market_listing_searchresult";
+        public const string MARKET_LISTING_NUM_LISTING_QTY = "market_listing_num_listings_qty";
 
-        public readonly string SRC = "src";
-        public readonly string HREF = "href";
+
+        public const string NORMAL_PRICE = "normal_price";
+        public const string DATA_PRICE = "data-price";
+        public const string DATA_QTY = "data-qty";
+        public const string DATA_HASH_NAME = "data-hash-name";
+
+        public const string RESULTLINK = "resultlink_";
+        public const string RESULT = "result_";
+        public const string _IMAGE  = "_image";
+
+
+        public const string MARKET_LISTING_ROW_LINK_CLASS_NAME = "market_listing_row_link";
+        public const string MARKET_LISTING_ITEM_IMG_CLASS_NAME = "market_listing_item_img";
+        public const string MARKET_LISTING_ITEM_NAME_CLASS_NAME = "market_listing_item_name";
+
+        public const string SRC = "src";
+        public const string HREF = "href";
     }
 }

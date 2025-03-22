@@ -2,13 +2,13 @@
 {
     public static class StaticCollections
     {
-        public static readonly string[] GoodPaintsStringValues = new[]
+        public static readonly string[] GoodPaints = new[]
         {
-            "Paint Color: The Bitter Taste of Defeat and Lime", // Lime Green                                                          
-            "Paint Color: An Extraordinary Abundance of Tinge", // White
-            "Paint Color: A Distinctive Lack of Hue",           // Black
-            "Paint Color: Pink as Hell",                        // Pink
-            "Paint Color: Team Spirit",                         // Team Color
+            "The Bitter Taste of Defeat and Lime", // Lime Green                                                          
+            "An Extraordinary Abundance of Tinge", // White
+            "A Distinctive Lack of Hue",           // Black
+            "Pink as Hell",                        // Pink
+            "Team Spirit",                         // Team Color
         };
 
         public static readonly Dictionary<string, short> Sheens = new Dictionary<string, short>

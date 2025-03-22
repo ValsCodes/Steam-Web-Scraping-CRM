@@ -23,7 +23,7 @@ namespace SteamApp.Models.Models.Json
         public IDictionary<string, ListingInfo>? ListingInfo { get; set; }
 
         [JsonProperty("assets")]
-        public IDictionary<string, IDictionary<string, IDictionary<string, AssetDetail>>> Assets { get; set; }
+        public Dictionary<string, Dictionary<string, Dictionary<string, AssetDetail>>> Assets { get; set; }
 
         [JsonProperty("currency")]
         public IList<object>? Currency { get; set; }

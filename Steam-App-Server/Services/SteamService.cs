@@ -6,22 +6,22 @@ using SeleniumExtras.WaitHelpers;
 using SteamApp.Infrastructure.Services;
 using SteamApp.Models;
 using SteamApp.Models.Dto;
+using SteamApp.Models.DTOs;
 using SteamApp.Models.Models.Json;
 using System.Collections.ObjectModel;
-using System.Web;
 
 namespace SteamApp.Services
 {
     public class SteamService : ISteamService
     {
-        private readonly HttpClient _httpClient;
-
-        public SteamService(HttpClient httpClient)
-        {
-            _httpClient = httpClient;
-        }
-
-        public IEnumerable<string> GetHatListingsUrls(short fromPage, short batchSize)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="fromPage"></param>
+        /// <param name="batchSize"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public IEnumerable<string> GetHatBatchUrls(short fromPage, short batchSize)
         {
             if (fromPage <= 0 || fromPage > 500)
             {
@@ -40,7 +40,14 @@ namespace SteamApp.Services
             return result;
         }
 
-        public IEnumerable<string> GetWeaponListingsUrls(short fromIndex, short batchSize)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="fromIndex"></param>
+        /// <param name="batchSize"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public IEnumerable<string> GetWeaponBatchUrls(short fromIndex, short batchSize)
         {
             if (fromIndex < 0 || fromIndex > 500)
             {
@@ -66,6 +73,11 @@ namespace SteamApp.Services
         /// <returns></returns>
         public async Task<IEnumerable<ListingDto>> ScrapePageAsync(short page)
         {
+            if (page < 0 || page > short.MaxValue)
+            {
+                throw new ArgumentOutOfRangeException("Page is either negative or greater than 500.");
+            }
+
             var url = Constants.MANUAL_HATS_URL + $"p{page}_price_asc";
 
             var options = new ChromeOptions();
@@ -81,104 +93,174 @@ namespace SteamApp.Services
                     driver.Navigate().GoToUrl(url);
 
                     // Wait until at least one listing anchor is present.
-                    var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
-                    wait.Until(ExpectedConditions.ElementExists(By.XPath("//a[starts-with(@id, 'resultlink_')]")));
+                    var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
+                    wait.Until(ExpectedConditions.ElementExists(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]")));
 
                     // Get all listing anchor elements.
                     ReadOnlyCollection<IWebElement> listingAnchors =
-                        driver.FindElements(By.XPath("//a[starts-with(@id, 'resultlink_')]"));
+                        driver.FindElements(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]"));
 
                     foreach (var anchor in listingAnchors)
                     {
-                        var listing = new ListingDto();
-
-                        listing.ListingUrl = anchor.GetAttribute("href");
-
-                        IWebElement listingDiv = anchor.FindElement(
-                            By.XPath(".//div[contains(@class,'market_listing_searchresult')]")
-                        );
-                        listing.Name = listingDiv.GetAttribute("data-hash-name");
-
-                        IWebElement imageElem = listingDiv.FindElement(
-                            By.XPath(".//img[contains(@id, 'result_') and contains(@id, '_image')]")
-                        );
-                        listing.ImageUrl = imageElem.GetAttribute("src");
-
-                        IWebElement quantitySpan = listingDiv.FindElement(
-                            By.XPath(".//span[contains(@class,'market_listing_num_listings_qty') and @data-qty]")
-                        );
-                        listing.Quantity = short.Parse(quantitySpan.GetAttribute("data-qty"));
-
-                        IWebElement priceSpan = listingDiv.FindElement(
-                            By.XPath(".//span[contains(@class,'normal_price') and @data-price]")
-                        );
-                        var nonConvertedPrice = priceSpan.GetAttribute("data-price");
-                        listing.Price = double.Parse(nonConvertedPrice) / 100;
-
+                        var listing = ParseListingFromAnchor(anchor);
                         results.Add(listing);
                     }
                 }
 
                 return results;
             });
-        }
+        }      
 
         /// <summary>
         /// Accepts a page value from 0 to 99 and returns only listings in a good price range
         /// </summary>
         /// <param name="page"></param>
         /// <returns> A Collection of ListingDTOs</returns>
-        public async Task<IEnumerable<ListingDto>> GetFilterredListingsAsync(short page)
+        public async Task<IEnumerable<ListingDto>> GetFilteredBulkListingsAsync(short page)
         {
-            var url = $"{Constants.JSON_100_LISTINGS_URL_PART_1}{page}{Constants.JSON_100_LISTINGS_URL_PART_2}";
-            var filteredResult = await GetFilterredResults(url);
+            if (page < 0 || page > 500)
+            {
+                throw new ArgumentOutOfRangeException("Page is either negative or greater than 500.");
+            }
 
-            return filteredResult.Select(x => new ListingDto { Name = x.Name, Price = x.SellPrice / 100, Quantity = x.SellListings });
+            var url = $"{Constants.JSON_100_LISTINGS_URL_PART_1}{page}{Constants.JSON_100_LISTINGS_URL_PART_2}";
+            var filteredResult = await GetResultsFromUrl(url);
+
+            return filteredResult.Where(x => x.SellPrice >= 150 && x.SellPrice <= 450)
+                .OrderBy(x => x.SellPrice)
+                .Select(x => new ListingDto { Name = x.Name, Price = x.SellPrice / 100, Quantity = x.SellListings });
         }
 
-        public async Task<(bool, string)> IsListingPaintedAsync(string name)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public async Task<PaintedListingDto> CheckIsListingPaintedAsync(string name)
         {
+            // TODO check if name is in DB of item names
+            name = name.Trim();
+            if (string.IsNullOrEmpty(name))
+            {
+                throw new ArgumentNullException("Name is null or empty.");
+            }
+
+            if (name.Length > 200)
+            {
+                throw new ArgumentNullException("Name is too long.");
+            }
+
             var formattedName = EncodeStringForUrl(name);
             var url = $"{Constants.FIRST_PAGE_URL_PART_1}{formattedName}{Constants.FIRST_PAGE_URL_PART_2}";
+
             var jsonResponse = await GetHttpResposeAsync(url);
+
             var jsonString = FormatJsonStringForDeserialization(jsonResponse);
+
             var result = DeserializeFormattedJsonString<Listing>(jsonString);
 
-            //When Deserializing assets:440:2 doesn't deserialize the data correctly and leaves everything as null
-            //Model binding problem probably
+            var resultAssets = result?.Assets?.FirstOrDefault().Value?.FirstOrDefault().Value?.FirstOrDefault().Value; // assets/440/2/ first
 
-            var resultAssets = result?.Assets?.FirstOrDefault().Value?.FirstOrDefault().Value?.FirstOrDefault().Value?.Descriptions?.Where(x => x.Value != null);
+            var descriptions = resultAssets!.Descriptions?.Where(x => x.Value != null);
 
-            if (resultAssets != null && resultAssets.Any(x => StaticCollections.GoodPaintsStringValues.Contains(x.Value)))
+            var lisitngResult = new PaintedListingDto();
+            lisitngResult.Name = resultAssets.Name;
+
+            if (resultAssets != null)
             {
-                var paint = resultAssets.FirstOrDefault(x => x.Value.StartsWith("Paint Color:"))?.Value;
+                var paint = descriptions!.FirstOrDefault(x => x.Value.StartsWith("Paint Color:"))?.Value;
                 if (paint != null)
-                {
-                    return (true, paint);
+                {                 
+                    lisitngResult.IsPainted = true;
+                    lisitngResult.PaintText = paint.Replace("Paint Color:", string.Empty).Trim();
+                    lisitngResult.IsGoodPaint = StaticCollections.GoodPaints.Contains(lisitngResult.PaintText);
                 }
             }
 
-            return (false, string.Empty);
+            return lisitngResult;
         }
-
-        public async Task<IEnumerable<ListingDto>> GetPaintedListingsOnlyAsync(short page)
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="page"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public async Task<IEnumerable<PaintedListingsDto>> ScrapePageForPaintedListingsOnlyAsync(short page)
         {
-            var url = $"{Constants.JSON_100_LISTINGS_URL_PART_1}{page}{Constants.JSON_100_LISTINGS_URL_PART_2}";
-            var results = await GetFilterredResults(url);
-
-            if (!results.Any())
+            if (page < 0 || page > 500)
             {
-                throw new Exception("No results found.");
+                throw new ArgumentOutOfRangeException("Page is either negative or greater than 500.");
             }
 
-            var onlyPaintedResutls = await GetOnlyPaintedResults(results);
+            var results = new List<PaintedListingsDto>();
+            var listings = await ScrapePageAsync(page);
 
-            return onlyPaintedResutls;
+            if (listings.Any())
+            {
+                foreach (var listing in listings)
+                {
+                    var isListingPaintedResult = await CheckIsListingPaintedAsync(listing.Name!);
+                    if (isListingPaintedResult.IsPainted)
+                    {
+                        var paintedListing = new PaintedListingsDto
+                        {
+                            Name = listing.Name,
+                            Quantity = listing.Quantity,
+                            Price = listing.Price,
+                            ImageUrl = listing.ImageUrl,
+                            ListingUrl = listing.ListingUrl,
+                            IsPainted = isListingPaintedResult.IsPainted,
+                            PaintText = isListingPaintedResult.PaintText,
+                            IsGoodPaint = isListingPaintedResult.IsGoodPaint
+                        };
+
+                        results.Add(paintedListing);
+                    }
+                }
+            }
+
+            return results.OrderBy(x => x.Name);
         }
 
 
         #region Private Methods
-        private async Task<Result[]> GetFilterredResults(string url)
+        private ListingDto ParseListingFromAnchor(IWebElement anchor)
+        {
+            var listing = new ListingDto
+            {
+                ListingUrl = anchor.GetAttribute(Constants.HREF)
+            };
+
+            // Find the main container div for the listing
+            var listingDiv = anchor.FindElement(
+                By.XPath($".//div[contains(@class,'{Constants.MARKET_LISTING_SEARCHRESULT}')]")
+            );
+            listing.Name = listingDiv.GetAttribute(Constants.DATA_HASH_NAME);
+
+            // Extract the image URL
+            var imageElem = listingDiv.FindElement(
+                By.XPath($".//img[contains(@id, '{Constants.RESULT}') and contains(@id, '{Constants._IMAGE}')]")
+            );
+            listing.ImageUrl = imageElem.GetAttribute(Constants.SRC);
+
+            // Extract the quantity and parse it
+            var quantitySpan = listingDiv.FindElement(
+                By.XPath($".//span[contains(@class,'{Constants.MARKET_LISTING_NUM_LISTING_QTY}') and @{Constants.DATA_QTY}]")
+            );
+            listing.Quantity = short.Parse(quantitySpan.GetAttribute(Constants.DATA_QTY));
+
+            // Extract the price, convert it, and assign it
+            var priceSpan = listingDiv.FindElement(
+                By.XPath($".//span[contains(@class,'{Constants.NORMAL_PRICE}') and @{Constants.DATA_PRICE}]")
+            );
+            var nonConvertedPrice = priceSpan.GetAttribute(Constants.DATA_PRICE);
+            listing.Price = double.Parse(nonConvertedPrice) / 100;
+
+            return listing;
+        }
+
+        private async Task<IEnumerable<Result>> GetResultsFromUrl(string url)
         {
             var jsonResponse = await GetHttpResposeAsync(url);
             if (string.IsNullOrEmpty(jsonResponse))
@@ -193,71 +275,29 @@ namespace SteamApp.Services
                 throw new Exception("Failed to deserialize JSON.");
             }
 
-            return result.Results!.Where(x => x.SellPrice >= 150 && x.SellPrice <= 450).OrderBy(x => x.SellPrice).ToArray();
+            return result.Results!;
         }
-
-        private async Task<IEnumerable<ListingDto>> GetOnlyPaintedResults(Result[] results)
-        {
-            var itemCollection = new List<ListingDto>();
-            foreach (var item in results)
-            {
-                var formattedName = EncodeStringForUrl(item.Name!);
-                var url = $"{Constants.FIRST_PAGE_URL_PART_1}{formattedName}{Constants.FIRST_PAGE_URL_PART_2}";
-                var jsonResponse = await GetHttpResposeAsync(url);
-                var jsonString = FormatJsonStringForDeserialization(jsonResponse);
-                var deserializedResult = DeserializeFormattedJsonString<Listing>(jsonString);
-
-                //When Deserializing assets:440:2 doesn't deserialize the data correctly and leaves everything as null
-                //Model binding problem *probably*
-                if (deserializedResult == null)
-                {
-                    continue;
-                }
-
-                var firstAppAssets = deserializedResult.Assets?.FirstOrDefault().Value;
-                var firstAssetDetail = firstAppAssets?.FirstOrDefault().Value?.FirstOrDefault().Value;
-                var resultAssets = firstAssetDetail?.Descriptions?.Where(x => x.Value != null);
-                var isContained = resultAssets?.Any(x => StaticCollections.GoodPaintsStringValues.Contains(x.Value)) ?? false;
-
-                if (isContained)
-                {
-                    var color = resultAssets?.FirstOrDefault(x => x.Value!.StartsWith("Paint Color"))?.Value;
-
-                    if (color != null)
-                    {
-                        var listing = new ListingDto
-                        {
-                            Name = item.Name,
-                            Price = item.SellPrice,
-                            ImageUrl = item.AssetDescription?.IconUrl,  // Use null-conditional here as well
-                            Quantity = item.SellListings,
-                            Color = color
-                        };
-
-                        itemCollection.Add(listing);
-                    }
-                }
-            }
-
-            return itemCollection;
-        }
+   
 
         private async Task<string> GetHttpResposeAsync(string url)
         {
-            _httpClient.Timeout = TimeSpan.FromSeconds(30);
-
-            var response = await _httpClient.GetAsync(url).ConfigureAwait(false);
-
-            response.EnsureSuccessStatusCode();
-
-            string responseContent = await response.Content.ReadAsStringAsync();
-
-            if (responseContent == null)
+            using (HttpClient httpClient = new HttpClient())
             {
-                return null!;
-            }
+                httpClient.Timeout = TimeSpan.FromSeconds(30);
 
-            return responseContent;
+                var response = await httpClient.GetAsync(url).ConfigureAwait(false);
+
+                response.EnsureSuccessStatusCode();
+
+                string responseContent = await response.Content.ReadAsStringAsync();
+
+                if (responseContent == null)
+                {
+                    return null!;
+                }
+
+                return responseContent;
+            }
         }
 
         private T? DeserializeFormattedJsonString<T>(string formattedJsonObject) where T : class
@@ -278,7 +318,7 @@ namespace SteamApp.Services
 
         private string EncodeStringForUrl(string name)
         {
-            return HttpUtility.UrlEncode(name);
+            return Uri.EscapeDataString(name);
         }
         #endregion
     }
