@@ -1,33 +1,34 @@
 import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
 import { SteamService } from '../../services/steam/steam.service';
-import { FormsModule } from '@angular/forms';
+import { FormArray, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
-
-
-import { Listing } from '../../models/listing.model';
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'web-scraper',
   standalone: true,
-  imports: [ FormsModule, CommonModule, MatTableModule,
+  imports: [
+    FormsModule,
+    CommonModule,
+    MatTableModule,
     MatSort,
     MatSortModule,
-    MatPaginatorModule,],
+    MatPaginatorModule,
+  ],
   templateUrl: './web-scraper.component.html',
   styleUrl: './web-scraper.component.scss',
-  providers: [
-    SteamService,    
-  ],
+  providers: [SteamService],
 })
-export class WebScraperComponent implements OnInit, AfterViewInit{
-
+export class WebScraperComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
   dataSource = new MatTableDataSource<any>([]);
+
+  private tableForm: FormArray = new FormArray<any>([]);
 
   pageNumber: number = 0;
   displayedColumns: string[] = [
@@ -35,10 +36,8 @@ export class WebScraperComponent implements OnInit, AfterViewInit{
     'quantity',
     'color',
     'price',
-    'actions'
+    'actions',
   ];
-
-  
 
   ngOnInit(): void {}
 
@@ -49,66 +48,101 @@ export class WebScraperComponent implements OnInit, AfterViewInit{
     if (!this.dataSource.sort) {
       this.dataSource.sort = this.sort;
     }
-
-    this.dataSource.data = this.listings; 
   }
-
-
-  public listings: Listing[] = [{
-    name: 'Red Jacket',
-    price: 59.99,
-    imageUrl: 'https://example.com/images/red-jacket.png',
-    quantity: 10,
-    color: 'Red',
-    linkUrl: "https://examplelink.com"
-  },
-  {
-    name: 'Blue Shoes',
-    price: 89.99,
-    imageUrl: 'https://example.com/images/blue-shoes.png',
-    quantity: 5,
-    color: 'Blue',
-    linkUrl: "https://examplelink.com"
-  },
-  {
-    name: 'Green Hat',
-    price: 25.00,
-    imageUrl: 'https://example.com/images/green-hat.png',
-    quantity: 15,
-    color: 'Green',
-    linkUrl: "https://examplelink.com"
-  },
-  {
-    name: 'Yellow Scarf',
-    price: 19.99,
-    imageUrl: 'https://example.com/images/yellow-scarf.png',
-    quantity: 8,
-    color: 'Yellow',
-    linkUrl: "https://examplelink.com"
-  },
-  {
-    name: 'Black Watch',
-    price: 150.00,
-    imageUrl: 'https://example.com/images/black-watch.png',
-    quantity: 3,
-    color: 'Black',
-    linkUrl: "https://examplelink.com"
-  }]
 
   constructor(private steamService: SteamService) {}
 
-  getListingsButtonClicked(pageNum: number) {
-      this.pageNumber += 1;
+  getListingsButtonClicked() {
+    this.steamService.getScrapedPage(this.pageNumber).subscribe(
+      (response) => {
+        if (response.length === 0) {
+          console.log('No results found');
+        }
+
+        this.dataSource.data = response;
+        console.log([response]);
+      },
+      (error) => {
+        console.error('Error fetching data:', error);
+      }
+    );
+
+    this.pageNumber += 1;
   }
 
-  checkPaintButtonClicked(index: number) {
-      this.pageNumber += 1;
+  getPaintedListingsButtonClicked() {
+    this.steamService.getScrapedPagePaintedOnly(this.pageNumber).subscribe(
+      (response) => {
+        if (response.length === 0) {
+          console.log('No results found');
+        }
 
-      //logic
+        this.dataSource.data = response;
+        console.log([response]);
+      },
+      (error) => {
+        console.error('Error fetching data:', error);
+      }
+    );
+  }
+
+  getBulkListingsButtonClicked() {
+    this.steamService.getBulkPage(this.pageNumber).subscribe(
+      (response) => {
+        if (response.length === 0) {
+          console.log('No results found');
+        }
+
+        this.dataSource.data = response;
+        console.table(response);
+      },
+      (error) => {
+        console.error('Error fetching data:', error);
+      }
+    );
+  }
+
+  checkPaintButtonClicked(name:string, index:number) {
+
+    this.steamService.getIsHatPainted(name).subscribe(
+      (response) => {
+
+        console.log([response]);
+
+        if(response.isPainted === false)
+        {
+          this.dataSource.data[index].color = "Not Painted";
+        }
+        else
+        {
+          this.dataSource.data[index].color = response.paintText;
+        }  
+      },
+      (error) => {
+        console.error('Error fetching data:', error);
+      }
+    );
+  }
+
+  exportButtonClicked(): void {
+    const dataToExport = this.dataSource.data;
+
+    const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
+
+    const workbook: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
+
+    const today = new Date();
+    XLSX.writeFile(workbook, `Export_${today.toDateString()}_Listings.xlsx`);
+  }
+
+  clearButtonClicked(): void {
+    this.dataSource.data = [];
+
+    console.log(this.tableForm);
   }
 
   onPageNumberChange(value: number) {
-    
     if (value < 0 || value > 100000) {
       this.pageNumber = 0;
     } else {

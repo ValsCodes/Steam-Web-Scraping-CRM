@@ -22,7 +22,7 @@ namespace SteamApp.Controllers
         /// </summary>
         /// <param name="page"></param>
         /// <returns></returns>
-        [HttpPost("hat/urls/fromPage/{fromPage}/batchSize/{batchSize}")]
+        [HttpGet("hat/urls/fromPage/{fromPage}/batchSize/{batchSize}")]
         public IActionResult GetHatBatchUrls(short fromPage, short batchSize = 1)
         {
             try
@@ -41,7 +41,7 @@ namespace SteamApp.Controllers
         /// </summary>
         /// <param name="page"></param>
         /// <returns></returns>
-        [HttpPost("weapon/urls/fromIndex/{fromIndex}/batchSize/{batchSize}")]
+        [HttpGet("weapon/urls/fromIndex/{fromIndex}/batchSize/{batchSize}")]
         public IActionResult GetWeaponBatchUrls(short fromIndex, short batchSize = 1)
         {
             try
@@ -60,7 +60,7 @@ namespace SteamApp.Controllers
         /// </summary>
         /// <param name="page"></param>
         /// <returns></returns>
-        [HttpPost("hat/page/{page}")]
+        [HttpGet("hat/page/{page}")]
         public IActionResult ScrapePageAsync(short page)
         {
             try
@@ -79,7 +79,7 @@ namespace SteamApp.Controllers
         /// </summary>
         /// <param name="page"></param>
         /// <returns></returns>
-        [HttpPost("hat/page/{page}/bulk")]
+        [HttpGet("hat/page/{page}/bulk")]
         public IActionResult GetFilteredBulkListings(short page)
         {
             try
@@ -97,7 +97,7 @@ namespace SteamApp.Controllers
         /// </summary>
         /// <param name="page"></param>
         /// <returns></returns>
-        [HttpPost("hat/page/{page}/painted")]
+        [HttpGet("hat/page/{page}/painted")]
         public IActionResult ScrapePageForPaintedListingsOnly(short page)
         {
             try
@@ -116,7 +116,7 @@ namespace SteamApp.Controllers
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        [HttpPost("hat/name/{name}/is-painted")]
+        [HttpGet("hat/name/{name}/is-painted")]
         public IActionResult CheckIsListingPainted(string name)
         {
             try

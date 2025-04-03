@@ -5,21 +5,24 @@ import { catchError, map } from 'rxjs/operators';
 import { Product } from '../../models/product.model';
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
-export class SteamService {
+export class ProductService {
+
   constructor(private http: HttpClient) {}
 
-  // private readonly localHost: string = "https://localhost:7273/";
   private readonly localHost: string = 'https://localhost:44347/';
 
   private readonly get: string = 'get';
+  private readonly update: string = 'update';
+  private readonly delete: string = 'delete';
 
-  private readonly steam: string = 'steam/';
+  private readonly all: string = 'all';
+  private readonly bulk: string = 'bulk';
+
+  private readonly productController: string = 'product';
   private readonly swagger: string = 'swagger/index.html';
 
-  private readonly weaponListings: string = 'weapon-listing-urls';
-  private readonly hatListings: string = 'hat-listing-urls';
 
   checkServerStatus(): Observable<boolean> {
     return this.http
@@ -30,51 +33,37 @@ export class SteamService {
       );
   }
 
-  getWeaponUrls(fromIndex: number, batchSize: number): Observable<string[]> {
-    const url = `${this.localHost}${this.steam}weapon/urls/fromPage/${fromIndex}/batchSize/${batchSize}`;
-    return this.http.get<string[]>(url).pipe(
-      catchError(this.handleError) // Error handling
-    );
-  }
- 
-  getHatUrls(fromPage: number, batchSize: number): Observable<string[]> {
-    const url = `${this.localHost}${this.steam}hat/urls/fromPage/${fromPage}/batchSize/${batchSize}`;
-    return this.http.get<string[]>(url).pipe(
+  //#region Product Endpoints
+  getProducts(): Observable<Product[]> {
+    const url = `${this.localHost}${this.productController}/${this.get}/${this.all}`;
+    return this.http.get<Product[]>(url).pipe(
       catchError(this.handleError) // Error handling
     );
   }
 
-  getScrapedPage(page: number): Observable<any> {
-    const url = `${this.localHost}${this.steam}hat/page/${page}`;
-    return this.http.get<any>(url).pipe(
+  createProducts(products: Product[]): Observable<boolean[]> {
+    const url = `${this.localHost}${this.productController}/${this.get}/${this.bulk}`;
+    return this.http.post<boolean[]>(url, products).pipe(
       catchError(this.handleError) // Error handling
     );
   }
 
-  getBulkPage(page: number): Observable<any> {
-    const url = `${this.localHost}${this.steam}hat/page/${page}/bulk`;
-    return this.http.get<any>(url).pipe(
+  updateProducts(products: Product[]): Observable<boolean[]> {
+    const url = `${this.localHost}${this.productController}/${this.update}/${this.bulk}`;
+    return this.http.put<boolean[]>(url, products).pipe(
       catchError(this.handleError) // Error handling
     );
   }
 
-  getScrapedPagePaintedOnly(page: number): Observable<any> {
-    const url = `${this.localHost}${this.steam}hat/page/${page}/painted`;
-    console.log('Request URL:', url);
-    return this.http.get<any>(url).pipe(
+  deleteProducts(productIds: number[]): Observable<boolean[]> {
+    const url = `${this.localHost}${this.productController}/${this.delete}/${this.bulk}`;
+    return this.http.put<boolean[]>(url, productIds).pipe(
       catchError(this.handleError) // Error handling
     );
   }
 
-  getIsHatPainted(name: string): Observable<any> {
-    const url = `${this.localHost}${this.steam}hat/name/${name}/is-painted`;
-    return this.http.get<any>(url).pipe(
-      catchError(this.handleError) // Error handling
-    );
-  }
+  //#endregion
 
-
-  // Error handling function
   private handleError(error: HttpErrorResponse) {
     // In a real-world app, you may want to send the error to a remote logging infrastructure
     let errorMessage = '';

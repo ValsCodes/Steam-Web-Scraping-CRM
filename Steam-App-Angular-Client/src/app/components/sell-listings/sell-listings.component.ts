@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray } from '@angular/forms';
-import { SteamService } from '../../services/steam/steam.service';
+import { ProductService } from '../../services/product/product.service';
 import { CommonModule } from '@angular/common';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatTableModule } from '@angular/material/table';
@@ -24,7 +24,7 @@ import { Product } from '../../models/product.model';
   ],
   templateUrl: './sell-listings.component.html',
   styleUrl: './sell-listings.component.scss',
-  providers: [SteamService],
+  providers: [ProductService],
 })
 export class SellListingsComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -48,7 +48,7 @@ export class SellListingsComponent implements OnInit, AfterViewInit {
     'actions',
   ];
 
-  constructor(private steamService: SteamService, private fb: FormBuilder) {}
+  constructor(private productService: ProductService, private fb: FormBuilder) {}
 
   ngOnInit() {
     this.fetchSellListings();
@@ -106,7 +106,7 @@ export class SellListingsComponent implements OnInit, AfterViewInit {
 
   saveButtonClicked(): void {
     if (this.deletedProductIds.length > 0) {
-      this.steamService.deleteProducts(this.deletedProductIds);
+      this.productService.deleteProducts(this.deletedProductIds);
     }
 
     const updatedProducts = this.tableForm.controls.filter((row) => row.dirty); // changed rows
@@ -170,7 +170,7 @@ export class SellListingsComponent implements OnInit, AfterViewInit {
   }
 
   private fetchSellListings(): void {
-    this.steamService.getProducts().subscribe(
+    this.productService.getProducts().subscribe(
       (listings: Product[]) => {
         this.tableForm = this.fb.array(
           listings.map((row) => this.createRow(row))

@@ -1,10 +1,14 @@
+import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { catchError } from 'rxjs';
+import { ManualModesEnum } from '../../models/enums/manual-modes.enum';
 
 @Component({
   selector: 'steam-manual-mode',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, CommonModule],
   templateUrl: './manual-mode.component.html',
   styleUrl: './manual-mode.component.scss',
 })
@@ -12,69 +16,19 @@ export class ManualModeComponent {
   private readonly HATS_URL: string =
     'https://steamcommunity.com/market/search?q=&category_440_Collection%5B%5D=any&category_440_Type%5B%5D=tag_misc&category_440_Quality%5B%5D=tag_Unique&category_440_Quality%5B%5D=tag_strange&category_440_Rarity%5B%5D=tag_Rarity_Rare&category_440_Rarity%5B%5D=tag_Rarity_Mythical&category_440_Rarity%5B%5D=tag_Rarity_Legendary&category_440_Rarity%5B%5D=tag_Rarity_Ancient&appid=440#';
   // 'https://steamcommunity.com/market/search?q=&category_440_Collection%5B%5D=any&category_440_Type%5B%5D=tag_misc&category_440_Quality%5B%5D=tag_Unique&category_440_Quality%5B%5D=tag_strange&appid=440#';
-  private readonly WEAPONS_URL: string =
+  public readonly WEAPONS_URL: string =
     'https://steamcommunity.com/market/listings/440/Strange%20Specialized%20Killstreak%20';
 
-  private readonly WEAPON_NAMES: string[] = [
-    'Degreaser',
-    'Backburner',
-    'Phlogistinator',
-    'Flame%20Thrower',
-    'Scattergun',
-    'Force-A-Nature',
-   // 'Guilotine',
-    'Rocket%20Launcher',
-    'Direct%20Hit',
-    'Black%20Box',
-    'Minigun',
-    'Rescue%20Ranger',
-    'Crusader%27s%20Crossbow',
-    'Sniper%20Rifle',
-    'L%27Etranger',
-    'Shotgun',
-    'Spy-cicle',
-    'Tomislav',
-    'Medi%20Gun',
-    'Axtinguisher',
-    'Kukri',
-    'Powerjack',
-    'Fists%20of%20Steel',
-    'Bushwacka',
-    'Your%20Eternal%20Reward',
-    'Gloves%20of%20Running%20Urgently',
-    'Detonator',
-    'SMG',
-    'Holiday%20Punch',
-    'Jag',
-    'Conniver%27s%20Kunai',
-    'Escape%20Plan',
-    'Scorch%20Shot',
-    'Wrench',
-    'Disciplinary%20Action',
-    'Flare%20Gun',
-    'Eyelander',
-    'Hitman%27s%20Heatmaker',
-    'Quick-Fix',
-    'Knife',
-    'Market%20Gardener',
-    'Backburner',
-    'Bottle',
-    'Machina',
-    'Revolver',
-    'Ambassador',
-    'Pistol',
-    'Wrangler',
-    'Stickybomb%20Launcher',
-    'Frontier%20Justice',
-    'Kritzkrieg',
-    'Huntsman',
-    'Grenade%20Launcher',
-    'Cleaner%27s%20Carbine',
-    'Quickiebomb%20Launcher',
-    'Ubersaw',
-  ];
+  public readonly WEAPON_NAMES: string[] = [];
+  private readonly localHost:string = 'https://localhost:44347/';
 
   private currentUrl: string = this.HATS_URL;
+
+constructor(private http: HttpClient) {
+
+    this.getWeaponNames();
+  }
+
   public isHatsSearch: boolean = true;
   public batchSize: number = 7;
   public currentPage: number = 76;
@@ -116,6 +70,30 @@ export class ManualModeComponent {
     }
   }
 
+  getWeaponNames(): void {
+    const url = `${this.localHost}item/get/all`;
+    this.http.get<any[]>(url).subscribe({
+      next: (data: any[]) => {
+
+      const filteredData = data.reduce((acc:string[], item:any) => {
+        if(item.isActive === true)
+        {
+          acc.push(item.name);
+        }
+
+        return acc;
+      },[]);
+
+      this.WEAPON_NAMES.push(...filteredData);
+
+      },
+      error: (error) => {
+        console.error('Error fetching weapon names:', error);
+      }
+    });
+  }
+
+
   hatsButtonClicked() {
     if (!this.isHatsSearch) {
       this.currentUrl = this.HATS_URL;
@@ -129,7 +107,6 @@ export class ManualModeComponent {
     if (this.isHatsSearch) {
       this.currentUrl = this.WEAPONS_URL;
       this.isHatsSearch = false;
-
       this.resetButtonClicked();
     }
   }
