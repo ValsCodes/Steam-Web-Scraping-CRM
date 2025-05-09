@@ -1,26 +1,52 @@
 @import '../../../scss/main.scss';
 @import '../../../scss/variables.scss';
 
-.my-container{
-    padding: .625rem;
+h1 {
+    font-weight:400;
+    font-size: 1.5rem;
+    text-align: center;
+}
 
-    &.panels {
+h2 {
+    font-weight:400;
+    font-size: 1.125rem;
+    text-align: center;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    .panel {
+        margin: .625rem;
         border-width: .0625rem;
         border-color: black;
         border-radius: .625rem;
-        
-        &.control-panel{
+
+        &--control {
+            justify-content: center;
             background-color: antiquewhite;
-            max-height: 10.9375rem;
+            max-height: 12.5rem;
+            max-width: 18.75rem;
+            padding: .625rem;    
         }
 
-        &.weapon-list {
-            min-width: 12.5rem;
-            --tw-bg-opacity: 1;
-            background-color: rgb(248 113 113 / var(--tw-bg-opacity));
-            margin: 0.5rem;
-            padding: 0.5rem;
-        }
-    } 
-
+        &--weapon-list {
+            display: grid;
+            padding: .625rem;
+            grid-template-rows: repeat(5, min-content);
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(7.5rem, 1fr);
+            gap: 1rem;
+            
+            .grid-item {
+                background: white;
+                padding: .75rem;
+                border-radius: .375rem;
+                box-shadow: 0 .125rem .375rem rgba(0,0,0,0.1);
+                text-align: center;
+              }
+          }       
+    }
 }

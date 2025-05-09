@@ -2,7 +2,7 @@
 
 namespace SteamApp.Models
 {
-    [Table("sell_listing")]
+    [Table("product")]
     public class Product : BaseModel
     {
         [Column("quality_id")]
@@ -21,7 +21,7 @@ namespace SteamApp.Models
         public decimal CostPrice { get; set; }
 
         [Column("t_sell_price_1")]
-        public virtual decimal TargetSellPrice1 { get; set; }     
+        public virtual decimal? TargetSellPrice1 { get; set; }     
 
         [Column("t_sell_price_2")]
         public virtual decimal? TargetSellPrice2 { get; set; }

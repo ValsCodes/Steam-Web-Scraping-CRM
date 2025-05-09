@@ -1,128 +1,134 @@
 ﻿using AutoMapper;
 using SteamApp.Exceptions;
+using SteamApp.Infrastructure;
+using SteamApp.Infrastructure.DTOs.Product;
 using SteamApp.Infrastructure.Repositories;
 using SteamApp.Infrastructure.Services;
-using SteamApp.Models.Dto;
+using SteamApp.Mapper;
+using SteamApp.Models;
 
 namespace SteamApp.Services
 {
     public class ProductService : IProductService
     {
-        private readonly IProductRepository _steamRepository;
+        private readonly IProductRepository _repository;
         private readonly IMapper _mapper;
 
-        public ProductService(IProductRepository steamRepository, IMapper mapper)
+        public ProductService(IProductRepository repository, IMapper mapper)
         {
-            _steamRepository = steamRepository;
+            _repository = repository;
             _mapper = mapper;
         }
 
-        public async Task<ProductDto> GetProductAsync(long? id)
+        public async Task<ProductDto> GetByIdAsync(long id, CancellationToken ct = default)
         {
-            if (id == null || id <= 0 || id > long.MaxValue)
-            {
-                throw new ItemNotFoundException($"Product with ID {id} doesn't exist.");
-            }
+            var product = await _repository.GetByIdAsync(id, ct);
+            if (product == null)
+                throw new ItemNotFoundException($"Product with ID {id} not found.");
 
-            var product = await _steamRepository.GetProductAsync(id.Value);
             return _mapper.Map<ProductDto>(product);
         }
 
-        public async Task<IEnumerable<ProductDto>> GetProductsAsync()
+        public async Task<IEnumerable<ProductDto>> GetListAsync(CancellationToken ct = default)
         {
-            var products = await _steamRepository.GetProductsAsync();
-            var result = new List<ProductDto>();
-
-            if (products.Any())
-            {
-                foreach (var product in products)
-                {
-                    result.Add(_mapper.Map<ProductDto>(product));
-                }
-            }
-
-            return result;
+            var products = await _repository.GetListAsync(ct);
+            return products.Select(p => _mapper.Map<ProductDto>(p));
         }
 
-        public async Task<ProductDto> CreateProductAsync(ProductDto? productDto)
+        public async Task<CreateResult> CreateAsync(CreateProductDto productDto, CancellationToken ct = default)
         {
             if (productDto == null)
-            {
-                throw new NullReferenceException($"Product cannot be null.");
-            }
+                throw new ArgumentNullException(nameof(productDto));
 
-            if (productDto.QualityId == 0)
-            {
-                productDto.QualityId = null;
-            }
+            var product = _mapper.Map<Product>(productDto);
 
-            var product = await _steamRepository.CreateProductAsync(productDto);
-            return _mapper.Map<ProductDto>(product);
+            var id = await _repository.CreateAsync(product, ct);
+            return new CreateResult
+            {
+                Id = id,
+                Message = $"Product {id} created successfully"
+            };
         }
 
-        public async Task<IEnumerable<ProductDto>> CreateProductsAsync(ProductDto[] productDtos)
+        public async Task<IEnumerable<CreateResult>> CreateRangeAsync(IEnumerable<CreateProductDto> productDtos,CancellationToken ct = default)
         {
-            if (!productDtos.Any())
+            if (productDtos == null || !productDtos.Any())
+                throw new ArgumentException("Product collection cannot be null or empty.", nameof(productDtos));
+
+            var products = productDtos.Select(_mapper.Map<Product>);
+
+            var ids = await _repository.CreateRangeAsync(products, ct);
+            return ids.Select(id => new CreateResult
             {
-                throw new Exception("Empty collection.");
-            }
-
-            if (productDtos.Where(x => x.QualityId == 0).Any())
-            {
-                foreach (var productDto in productDtos.Where(x => x.QualityId == 0))
-                {
-                    productDto.QualityId = null;
-                }
-            }
-
-            var products = await _steamRepository.CreateProductsAsync(productDtos);
-
-            return _mapper.Map<List<ProductDto>>(products);
+                Id = id,
+                Message = $"Product {id} created successfully"
+            });
         }
 
-        public async Task<bool> UpdateProductAsync(ProductDto? product)
+        public async Task<OperationResult> UpdateAsync(UpdateProductDto productDto, CancellationToken ct = default)
         {
-            if (product == null)
-            {
-                throw new ArgumentNullException(nameof(product), "ProductDto cannot be null.");
-            }
+            await Task.CompletedTask;
+            throw new NotImplementedException("UpdateRangeAsync is not implemented yet.");
 
-            if (product?.Id == null || product.Id <= 0 || product.Id > long.MaxValue)
-            {
-                throw new ItemNotFoundException($"Product with ID {product!.Id} doesn't exist.");
-            }
+            //if (productDto == null)
+            //    throw new ArgumentNullException(nameof(productDto));
 
-            return await _steamRepository.UpdateProductAsync(product);
+            //var success = await _repository.UpdateAsync(productDto, ct);
+            //return new OperationResult
+            //{
+            //    Success = success,
+            //    Message = success
+            //        ? $"Product {productDto.Id} updated successfully"
+            //        : $"Product {productDto.Id} not found"
+            //};
         }
 
-        public async Task<bool[]> UpdateProductsAsync(ProductDto[] productDtos)
+        public async Task<IEnumerable<OperationResult>> UpdateRangeAsync(IEnumerable<UpdateProductDto> productDtos, CancellationToken ct = default)
         {
-            if (productDtos == null || productDtos.Length == 0)
-            {
-                throw new ArgumentNullException(nameof(productDtos), "ProductDtos cannot be null or empty.");
-            }
 
-            return await _steamRepository.UpdateProductsAsync(productDtos);
+            await Task.CompletedTask;
+            throw new NotImplementedException("UpdateRangeAsync is not implemented yet.");
+
+            //if (productDtos == null || !productDtos.Any())
+            //    throw new ArgumentException("Product collection cannot be null or empty.", nameof(productDtos));
+
+            //var results = await _repository.UpdateRangeAsync(productDtos, ct);
+            //return productDtos.Select((dto, idx) => new OperationResult
+            //{
+            //    Success = results.ElementAt(idx),
+            //    Message = results.ElementAt(idx)
+            //        ? $"Product {dto.Id} updated successfully"
+            //        : $"Product {dto.Id} not found"
+            //});
         }
 
-        public async Task<bool> DeleteProductAsync(long? id)
+        public async Task<OperationResult> DeleteAsync(long id, CancellationToken ct = default)
         {
-            if (id == null || id <= 0 || id > long.MaxValue)
-            {
-                throw new ItemNotFoundException($"Product with ID {id} doesn't exist.");
-            }
+            var success = await _repository.DeleteAsync(id, ct);
 
-            return await _steamRepository.DeleteProductAsync(id.Value);
+            return new OperationResult
+            {
+                Success = success,
+                Message = success
+                    ? $"Product {id} deleted successfully"
+                    : $"Product {id} not found"
+            };
         }
 
-        public async Task<bool[]> DeleteProductsAsync(long[] ids)
+        public async Task<IEnumerable<OperationResult>> DeleteRangeAsync(IEnumerable<long> ids, CancellationToken ct = default)
         {
-            if (ids == null || ids.Length == 0)
-            {
-                throw new ArgumentNullException(nameof(ids), "IDs cannot be null or empty.");
-            }
+            if (ids == null || !ids.Any())
+                throw new ArgumentException("ID collection cannot be null or empty.", nameof(ids));
 
-            return await _steamRepository.DeleteProductsAsync(ids);
+            var results = await _repository.DeleteRangeAsync(ids, ct);
+
+            return ids.Select((id, idx) => new OperationResult
+            {
+                Success = results.ElementAt(idx),
+                Message = results.ElementAt(idx)
+                    ? $"Product {id} deleted successfully"
+                    : $"Product {id} not found"
+            });
         }
     }
 }

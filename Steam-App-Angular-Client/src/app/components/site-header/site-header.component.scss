@@ -1,16 +1,16 @@
 .nav-container {
-    font-size: 1.5rem;
-    padding: .3125rem .5rem .3125rem .5rem;
-    border-bottom: .125rem solid #818285;
+  font-size: 1.5rem;
+  padding: .3125rem .5rem .3125rem .5rem;
+  display: flex;
+  gap: .625rem;
+
+  a {
+    border: .125rem solid transparent;
+
+    &:hover {
+      border-bottom: .125rem solid black;
+    }
   }
-  
-  .left {
-    display: flex;
-    align-items: center;
-    margin-left: .625rem;
-  }
-  
-  .left * {
-    margin-right: 1.5625rem;
-  }
+}
+
   

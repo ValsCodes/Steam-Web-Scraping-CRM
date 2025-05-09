@@ -8,8 +8,9 @@ import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { FormsModule } from '@angular/forms';
 import * as XLSX from 'xlsx';
+import { CONSTANTS } from '../../common/constants';
 
-import { Product } from '../../models/product.model';
+import { Product, CreateProduct } from '../../models/product.model';
 
 @Component({
   selector: 'steam-sell-listings',
@@ -36,6 +37,7 @@ export class SellListingsComponent implements OnInit, AfterViewInit {
   dataSource = new MatTableDataSource<any>();
   displayedColumns: string[] = [
     'item',
+    'listing_URL',
     'description',
     'bought-price',
     'date-bought',
@@ -48,7 +50,14 @@ export class SellListingsComponent implements OnInit, AfterViewInit {
     'actions',
   ];
 
-  constructor(private productService: ProductService, private fb: FormBuilder) {}
+  private _constants = CONSTANTS;
+
+  listingUrlPartial: string = this._constants.LISTING_URL_PARTIAL;
+
+  constructor(
+    private productService: ProductService,
+    private fb: FormBuilder
+  ) {}
 
   ngOnInit() {
     this.fetchSellListings();
@@ -74,7 +83,7 @@ export class SellListingsComponent implements OnInit, AfterViewInit {
       description: '',
       dateBought: new Date(),
       dateSold: null,
-      boughtPrice: 0,
+      costPrice: 0,
       targetSellPrice1: 0,
       targetSellPrice2: 0,
       targetSellPrice3: 0,
@@ -85,19 +94,15 @@ export class SellListingsComponent implements OnInit, AfterViewInit {
       isSold: false,
     };
 
-    // Update dataSource
     const currentData = this.dataSource.data;
     currentData.unshift(emptySellListing);
     this.dataSource.data = currentData;
 
-    // Also update the FormArray with the new row including soldDate control
     this.tableForm.insert(0, this.createRow(emptySellListing));
   }
 
   clearButtonClicked(): void {
     this.dataSource.data = [];
-
-    console.log(this.tableForm);
   }
 
   refreshButtonClicked(): void {
@@ -106,22 +111,63 @@ export class SellListingsComponent implements OnInit, AfterViewInit {
 
   saveButtonClicked(): void {
     if (this.deletedProductIds.length > 0) {
-      this.productService.deleteProducts(this.deletedProductIds);
+      this.productService.deleteProducts(this.deletedProductIds).subscribe({
+        error: (err: any) => {
+          console.error('Error Deleting sell listings:', err);
+        },
+        complete: () => {
+          this.deletedProductIds.length = 0;
+        },
+      });
     }
 
-    const updatedProducts = this.tableForm.controls.filter((row) => row.dirty); // changed rows
+    const array = Object.values(this.tableForm.controls) as FormGroup[];
+    const updatedProducts = array
+      .filter((g) => g.dirty)
+      .map((g) => g.value as Product);
+
     if (updatedProducts.length > 0) {
-      // Map
-      // this.steamService.updateProducts(updatedProducts);
+      this.productService.updateProducts(updatedProducts).subscribe({
+        error: (err: any) => {
+          console.error('Error Updating sell listings:', err);
+        },
+        complete: () => {},
+      });
     }
 
-    const newProducts = (this.tableForm.controls as FormGroup[]).filter(
-      (group) => group.get('id')?.value === 0
-    );
+    const newProducts = (this.tableForm.controls as FormGroup[])
+      .filter((group) => group.get('id')?.value === 0)
+      .map((row) => {
+        const base = row.value;
+        const product: CreateProduct = {
+          name: 'Test CLient',
+          description: 'Test',
+          dateBought: base.dateBought ?? new Date(),
+          qualityId: 0,
+          dateSold: new Date(),
+          costPrice: null,
+          targetSellPrice1: null,
+          targetSellPrice2: null,
+          targetSellPrice3: null,
+          targetSellPrice4: null,
+          soldPrice: null,
+          isHat: true,
+          isWeapon: false,
+          isSold: false,
+        };
+
+        return product;
+      });
+
     if (newProducts.length > 0) {
-      // Map
-      // this.steamService.createProducts(newProducts);
+      this.productService.createProducts(newProducts).subscribe({
+        error: (err: any) => {
+          console.error('Error Creating sell listings:', err);
+        },
+      });
     }
+
+    console.info('Save Complete!');
   }
 
   importButtonClicked(): void {
@@ -144,13 +190,10 @@ export class SellListingsComponent implements OnInit, AfterViewInit {
     const rowGroup = this.tableForm.at(index) as FormGroup;
     if (rowGroup && rowGroup.get('soldDate')) {
       const today = new Date().toISOString().substring(0, 10);
-      // Update the form control
       rowGroup.get('soldDate')?.setValue(today);
 
-      // Update the underlying data object
       this.dataSource.data[index].dateSold = today;
 
-      // Refresh the table to reflect changes
       this.dataSource._updateChangeSubscription();
     } else {
       console.error('Control "soldDate" not found on row at index', index);
@@ -170,20 +213,18 @@ export class SellListingsComponent implements OnInit, AfterViewInit {
   }
 
   private fetchSellListings(): void {
-    this.productService.getProducts().subscribe(
-      (listings: Product[]) => {
-        this.tableForm = this.fb.array(
-          listings.map((row) => this.createRow(row))
-        );
-        this.dataSource = new MatTableDataSource(listings); // Assign data to MatTableDataSource
+    this.productService.getProducts().subscribe({
+      next: (value: Product[]) => {
+        this.tableForm = this.fb.array(value.map((row) => this.createRow(row)));
+        this.dataSource = new MatTableDataSource(value);
       },
-      (error) => {
-        console.error('Error fetching sell listings:', error);
-      }
-    );
+      error: (err: any) => {
+        console.error('Error fetching sell listings:', err);
+      },
+    });
   }
 
-  private createRow(data: any): FormGroup {
+  private createRow(data: Product): FormGroup {
     const group = this.fb.group({
       id: [data.id],
       name: [data.name],
@@ -192,6 +233,7 @@ export class SellListingsComponent implements OnInit, AfterViewInit {
 
     group.valueChanges.subscribe(() => {
       group.markAsDirty();
+      console.log('Marked as dirty');
     });
 
     return group;

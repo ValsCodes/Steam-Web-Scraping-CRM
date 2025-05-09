@@ -1,7 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SteamApp.Context;
 using SteamApp.Infrastructure.Repositories;
-using SteamApp.Models.DTOs;
+using SteamApp.Infrastructure.DTOs;
+using SteamApp.Infrastructure.Models;
 using SteamApp.Models.Models;
 
 namespace SteamApp.Repository
@@ -15,21 +16,27 @@ namespace SteamApp.Repository
             _context = context;
         }
 
-        public async Task<IEnumerable<Item>> GetItemsAsync()
+        public async Task<IEnumerable<IItem>> GetItemsAsync()
         {
-            return _context.Items.OrderBy(x => x.Id);
+            return await _context.Items.OrderBy(x => x.Id).Select(x => new ItemDto {
+                             Id = x.Id,
+                             Name = x.Name,
+                             IsActive = x.IsActive,
+                             IsWeapon = x.IsWeapon
+                         })
+                         .ToListAsync<IItem>();
         }
 
-        public async Task<Item> GetItemByIdAsync(long id)
+        public async Task<IItem> GetItemByIdAsync(long id)
         {
-            var result = await _context.Items.FirstOrDefaultAsync(x => x.Id == id);
-
+            var result = await _context.Items.FirstOrDefaultAsync(x => x.Id == id);              
+            
             if (result == null)
             {
                 throw new Exception("Item not found");
             }
 
-            return result;
+            return (IItem)result;
         }
 
         public async Task<bool> CreateItemAsync(ItemDto item)

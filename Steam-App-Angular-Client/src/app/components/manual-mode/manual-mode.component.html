@@ -1,35 +1,37 @@
-<div class="my-container flex flex-row">
-    <div class="my-container panels control-panel">
-        <div>
-            <button (click)="startButtonClicked()" class="button button-small-green">Start Batch</button>
-            <button (click)="resetButtonClicked()" class="button button-small-red">Reset</button>
-            <button (click)="weaponsButtonClicked()" [hidden]="!this.isHatsSearch" [disabled]="!this.isHatsSearch"
-                class="button button-small-blue">Weapons</button>
-            <button (click)="hatsButtonClicked()" [hidden]="this.isHatsSearch" [disabled]="this.isHatsSearch"
-                class="button button-small-yellow">Hats</button>
+<!-- <h1>Manual Mode</h1> -->
+<div class="container">
+    <div class="flex justify-center">
+        <div class="panel panel--control"> 
+            <h2>Control Panel</h2>
+            <div>
+                <button (click)="startButtonClicked()" class="button button-small-green">Start Batch</button>
+                <button (click)="resetButtonClicked()" class="button button-small-red">Reset</button>
+                <button (click)="weaponsButtonClicked()" [hidden]="!this.isHatsSearch" [disabled]="!this.isHatsSearch"
+                    class="button button-small-blue">Weapons</button>
+                <button (click)="hatsButtonClicked()" [hidden]="this.isHatsSearch" [disabled]="this.isHatsSearch"
+                    class="button button-small-yellow">Hats</button>
 
-            <label class="float-right">{{statusLabel}}</label>
-        </div>
-        <div class="flex-col">
-            <div class="py-2">
-                <label for="page-number">Current Page: </label>
-                <input [(ngModel)]="currentPage" class="w-[5rem] ml-2 pl-2 rounded-md" type="number" min="1" max="500"
-                    step="1" title="Enter a positive number">
+                <label class="float-right">{{statusLabel}}</label>
             </div>
-            <div class="py-2">
-                <label for="page-number">Batch Size: </label>
-                <input [(ngModel)]="batchSize" class="w-[5rem] ml-2 pl-2 rounded-md" type="number" min="1" max="500"
-                    step="1" title="Enter a positive number">
+            <div class="flex-col">
+                <div class="py-2">
+                    <label for="page-number">Current Page: </label>
+                    <input [(ngModel)]="currentPage" class="w-[5rem] ml-2 pl-2 rounded-md" type="number" min="1"
+                        max="500" step="1" title="Enter a positive number">
+                </div>
+                <div class="py-2">
+                    <label for="page-number">Batch Size: </label>
+                    <input [(ngModel)]="batchSize" class="w-[5rem] ml-2 pl-2 rounded-md" type="number" min="1" max="500"
+                        step="1" title="Enter a positive number">
+                </div>
             </div>
         </div>
     </div>
-    <div class="my-container panels weapon-list">
-        <h1 class="text-center font-normal">Weapon List</h1>
-
-        <ol>
-            <li *ngFor="let weapon of WEAPON_NAMES">
-                <a href="{{WEAPONS_URL}}{{weapon}}">{{weapon}}</a>
-            </li>
-        </ol>
+    <div class="flex justify-center">
+        <div class="panel panel--weapon-list">
+            <div class="grid-item" *ngFor="let weapon of weaponNames; let i = index">
+                <strong>{{ i + 1 }}.</strong> <a href="{{weaponUrlPartial}}{{weapon}}">{{weapon}}</a>
+            </div>
+        </div>
     </div>
 </div>

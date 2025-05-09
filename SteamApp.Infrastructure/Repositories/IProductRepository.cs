@@ -1,20 +1,19 @@
 ﻿using SteamApp.Models;
-using SteamApp.Models.Dto;
 
 namespace SteamApp.Infrastructure.Repositories
 {
     public interface IProductRepository
     {
-        Task<Product> GetProductAsync(long id);
-        Task<IEnumerable<Product>> GetProductsAsync();
+        Task<Product> GetByIdAsync(long id, CancellationToken ct = default);
+        Task<IEnumerable<Product>> GetListAsync(CancellationToken ct = default);
 
-        Task<Product> CreateProductAsync(ProductDto product);
-        Task<IEnumerable<Product>> CreateProductsAsync(ProductDto[] products);
+        Task<long> CreateAsync(Product product, CancellationToken ct = default);
+        Task<IEnumerable<long>> CreateRangeAsync(IEnumerable<Product> products, CancellationToken ct = default);
 
-        Task<bool> UpdateProductAsync(ProductDto product);
-        Task<bool[]> UpdateProductsAsync(ProductDto[] products);
+        Task<bool> UpdateAsync(Product product, CancellationToken ct = default);
+        Task<IEnumerable<bool>> UpdateRangeAsync(IEnumerable<Product> products, CancellationToken ct = default);
 
-        Task<bool> DeleteProductAsync(long id);
-        Task<bool[]> DeleteProductsAsync(long[] ids);
+        Task<bool> DeleteAsync(long id, CancellationToken ct = default);
+        Task<IEnumerable<bool>> DeleteRangeAsync(IEnumerable<long> ids, CancellationToken ct = default);
     }
 }

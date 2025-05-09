@@ -52,6 +52,9 @@ export class WebScraperComponent implements OnInit, AfterViewInit {
 
   constructor(private steamService: SteamService) {}
 
+  public readonly hatURL: string =
+  'https://steamcommunity.com/market/listings/440/';
+
   getListingsButtonClicked() {
     this.steamService.getScrapedPage(this.pageNumber).subscribe(
       (response) => {

@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using SteamApp.Infrastructure.Repositories;
 using SteamApp.Infrastructure.Services;
-using SteamApp.Models.DTOs;
+using SteamApp.Infrastructure.DTOs; 
 
 namespace SteamApp.Services
 {
@@ -23,9 +23,11 @@ namespace SteamApp.Services
 
         public async Task<IEnumerable<ItemDto>> GetItemsAsync()
         {
-            var items = _itemRepository.GetItemsAsync().Result;
+            var items = await _itemRepository.GetItemsAsync();
 
-            return _mapper.Map<List<ItemDto>>(items);
+            var mappedItem = _mapper.Map<List<ItemDto>>(items);
+
+            return mappedItem;
         }
 
         public async Task<bool> CreateItemAsync(ItemDto item)

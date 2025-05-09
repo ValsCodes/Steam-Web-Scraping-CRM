@@ -5,8 +5,7 @@ using OpenQA.Selenium.Support.UI;
 using SeleniumExtras.WaitHelpers;
 using SteamApp.Infrastructure.Services;
 using SteamApp.Models;
-using SteamApp.Models.Dto;
-using SteamApp.Models.DTOs;
+using SteamApp.Infrastructure.DTOs;
 using SteamApp.Models.Models.Json;
 using System.Collections.ObjectModel;
 

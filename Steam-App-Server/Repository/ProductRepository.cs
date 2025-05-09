@@ -1,17 +1,15 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using SteamApp.Context;
+using SteamApp.Exceptions;
 using SteamApp.Infrastructure.Repositories;
 using SteamApp.Models;
-using SteamApp.Models.Dto;
-using SteamApp.Exceptions;
-using Microsoft.EntityFrameworkCore;
 
 namespace SteamApp.Repository
 {
     public class ProductRepository : IProductRepository
     {
         private readonly IMapper _mapper;
-        //Add logs if you want
         private readonly ApplicationDbContext _context;
 
         public ProductRepository(ApplicationDbContext context, IMapper mapper)
@@ -21,7 +19,7 @@ namespace SteamApp.Repository
         }
 
         #region Get Product
-        public async Task<Product> GetProductAsync(long id)
+        public async Task<Product> GetByIdAsync(long id, CancellationToken ct = default)
         {
             var result = await _context.Products.FirstOrDefaultAsync(x => x.Id == id);
             if (result == null)
@@ -32,7 +30,7 @@ namespace SteamApp.Repository
             return result;
         }
 
-        public async Task<IEnumerable<Product>> GetProductsAsync()
+        public async Task<IEnumerable<Product>> GetListAsync(CancellationToken ct = default)
         {
             var result = await _context.Products.ToListAsync();
             return result;
@@ -40,89 +38,40 @@ namespace SteamApp.Repository
         #endregion
 
         #region Create Product
-        public async Task<Product> CreateProductAsync(ProductDto productDto)
+        public async Task<long> CreateAsync(Product product, CancellationToken ct = default)
         {
-            var product = _mapper.Map<Product>(productDto);
-
             await _context.AddAsync(product);
             await _context.SaveChangesAsync();
 
-            return product;
+            return product.Id;
         }
 
-        public async Task<IEnumerable<Product>> CreateProductsAsync(ProductDto[] productDtos)
+        public async Task<IEnumerable<long>> CreateRangeAsync(IEnumerable<Product> products, CancellationToken ct = default)
         {
-            if (productDtos == null || productDtos.Length == 0)
-            {
-                throw new ArgumentNullException(nameof(productDtos), "ProductDtos cannot be null or empty.");
-            }
-
-            var products = new List<Product>();
-
-            foreach (var productDto in productDtos)
-            {
-                var product = _mapper.Map<Product>(productDto);
-                products.Add(product);
-            }
-
             await _context.AddRangeAsync(products);
             await _context.SaveChangesAsync();
 
-            return products;
+            return products.Select(x => x.Id);
         }
         #endregion
 
         #region Update Product
-        public async Task<bool> UpdateProductAsync(ProductDto product)
+        public async Task<bool> UpdateAsync(Product product, CancellationToken ct = default)
         {
-            var existingProduct = await _context.Products.FindAsync(product.Id);
-
-            if (existingProduct == null)
-            {
-                throw new ItemNotFoundException($"Product with ID {product.Id} not found.");
-            }
-
-            _mapper.Map(product, existingProduct);
-
-            await _context.SaveChangesAsync();
-            return true;
+            await Task.CompletedTask;
+            throw new NotImplementedException("UpdateRangeAsync is not implemented yet.");
         }
 
-        public async Task<bool[]> UpdateProductsAsync(ProductDto[] productDtos)
+        public async Task<IEnumerable<bool>> UpdateRangeAsync(IEnumerable<Product> products, CancellationToken ct = default)
         {
-            var updateStatuses = new bool[productDtos.Length];
-            var productsToUpdate = new List<Product>();
-
-            for (int i = 0; i < productDtos.Length; i++)
-            {
-                var productDto = productDtos[i];
-                var existingProduct = await _context.Products.FindAsync(productDtos[i].Id);
-
-                if (existingProduct == null)
-                {
-                    updateStatuses[i] = false;
-                    continue;
-                }
-
-                _mapper.Map(productDto, existingProduct);
-                productsToUpdate.Add(existingProduct);
-                updateStatuses[i] = true;
-            }
-
-            if (productsToUpdate.Count > 0)
-            {
-                _context.UpdateRange(productsToUpdate);
-
-                await _context.SaveChangesAsync();
-            }
-
-            return updateStatuses;
+            await Task.CompletedTask;
+            throw new NotImplementedException("UpdateRangeAsync is not implemented yet.");
         }
         #endregion
 
         #region Delete Product
 
-        public async Task<bool> DeleteProductAsync(long id)
+        public async Task<bool> DeleteAsync(long id, CancellationToken ct = default)
         {
             var existingListing = await _context.Products.FindAsync(id);
 
@@ -137,33 +86,19 @@ namespace SteamApp.Repository
             return true;
         }
 
-        public async Task<bool[]> DeleteProductsAsync(long[] ids)
+        public async Task<IEnumerable<bool>> DeleteRangeAsync(IEnumerable<long> ids, CancellationToken ct = default)
         {
-            var deleteStatuses = new bool[ids.Length];
-            var productsForDeletion = _context.Products.Where(x => ids.Contains(x.Id)).ToList();
+            var productsToDelete = await _context.Products.Where(p => ids.Contains(p.Id)).ToListAsync(ct);
 
-            for (int i = 0; i < ids.Length; i++)
+            var foundIds = productsToDelete.Select(p => p.Id).ToHashSet();
+
+            if (productsToDelete.Any())
             {
-                var id = ids[i];
-                var product = productsForDeletion.FirstOrDefault(p => p.Id == id);
-
-                if (product == null)
-                {
-                    deleteStatuses[i] = false;
-                }
-                else
-                {
-                    _context.Products.Remove(product);
-                    deleteStatuses[i] = true;
-                }
+                _context.Products.RemoveRange(productsToDelete);
+                await _context.SaveChangesAsync(ct);
             }
 
-            if (productsForDeletion.Any())
-            {
-                await _context.SaveChangesAsync();
-            }
-
-            return deleteStatuses;
+            return ids.Select(id => foundIds.Contains(id));
         }
         #endregion
 

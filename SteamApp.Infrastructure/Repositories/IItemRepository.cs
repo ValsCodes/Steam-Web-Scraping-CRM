@@ -1,12 +1,12 @@
-﻿using SteamApp.Models.Models;
-using SteamApp.Models.DTOs;
+﻿using SteamApp.Infrastructure.DTOs;
+using SteamApp.Infrastructure.Models;
 
 namespace SteamApp.Infrastructure.Repositories
 {
     public interface IItemRepository
     {
-        Task<Item> GetItemAsync(long id);
-        Task<IEnumerable<Item>> GetItemsAsync();
+        Task<IItem> GetItemByIdAsync(long id);
+        Task<IEnumerable<IItem>> GetItemsAsync();
 
         Task<bool> CreateItemAsync(ItemDto item);
 

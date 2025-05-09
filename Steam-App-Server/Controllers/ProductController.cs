@@ -1,178 +1,87 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using SteamApp.Infrastructure;
+using SteamApp.Infrastructure.DTOs.Product;
 using SteamApp.Infrastructure.Services;
-using SteamApp.Models.Dto;
 
 namespace SteamApp.Controllers
 {
     [ApiController]
-    [Route("product")]
+    [Route("api/products")]
     public class ProductController : ControllerBase
     {
-        //private readonly ILogger<SteamController> _logger;
         private readonly IProductService _productService;
 
-        public ProductController(IProductService productService)//, ILogger<SteamController> logger )
+        public ProductController(IProductService productService)
         {
-            //_logger = logger;
             _productService = productService;
         }
 
-        //[HttpGet("save")]
-        //public IActionResult SaveProducts([FromBody] ProductDto[] products)
-        //{
-        //    try
-        //    {
-        //        var result = _productService.SaveProductsAsync(products).GetAwaiter().GetResult();
-        //        return Ok(result);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, ex.Message);
-        //    }
-        //}
-
-        [HttpGet("get/{id}")]
-        public IActionResult GetProduct(long id)
+        [HttpGet("{id:long}")]
+        public async Task<ActionResult<ProductDto>> GetById(long id, CancellationToken ct)
         {
-            try
-            {
-                var result = _productService.GetProductAsync(id).GetAwaiter().GetResult();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
+            var dto = await _productService.GetByIdAsync(id, ct);
+            if (dto is null)
+                return NotFound();
+
+            return Ok(dto);
         }
 
-        //Todo itroduce filters
-        [HttpGet("get/all")]
-        public IActionResult GetProducts()
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<ProductDto>>> GetAll(CancellationToken ct)
         {
-            try
-            {
-                var result = _productService.GetProductsAsync().GetAwaiter().GetResult();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
+            var list = await _productService.GetListAsync(ct);
+            return Ok(list);
         }
 
-        [HttpPost("create")]
-        public IActionResult CreateProduct([FromBody] ProductDto product)
+        [HttpPost]
+        public async Task<ActionResult<CreateResult>> Create([FromBody] CreateProductDto dto, CancellationToken ct)
         {
-            try
-            {
-                var result = _productService.CreateProductAsync(product).GetAwaiter().GetResult();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
+            var result = await _productService.CreateAsync(dto, ct);
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = result.Id },
+                result);
         }
 
-        [HttpPost("create/bulk")]
-        public IActionResult CreateProducts([FromBody] ProductDto[] products)
+        [HttpPost("batch")]
+        public async Task<ActionResult<IEnumerable<CreateResult>>> CreateBatch([FromBody] IEnumerable<CreateProductDto> dtos, CancellationToken ct)
         {
-
-            try
-            {
-                var result = _productService.CreateProductsAsync(products).GetAwaiter().GetResult();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
+            var results = await _productService.CreateRangeAsync(dtos, ct);
+            return Ok(results);
         }
 
-        [HttpPut("update")]
-        public IActionResult UpdateProduct([FromBody] ProductDto product)
+        [HttpPatch]
+        public async Task<ActionResult<OperationResult>> Update([FromBody] UpdateProductDto dto, CancellationToken ct)
         {
-            try
-            {
-                var result = _productService.UpdateProductAsync(product).GetAwaiter().GetResult();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
+            var result = await _productService.UpdateAsync(dto, ct);
+            if (!result.Success)
+                return BadRequest(result.Message);
+
+            return Ok(result);
         }
 
-        [HttpPut("update/bulk")]
-        public IActionResult UpdateProducts([FromBody] ProductDto[] products)
+        [HttpPatch("batch")]
+        public async Task<ActionResult<IEnumerable<OperationResult>>> UpdateBatch([FromBody] IEnumerable<UpdateProductDto> dtos, CancellationToken ct)
         {
-            try
-            {
-                var result = _productService.UpdateProductsAsync(products).GetAwaiter().GetResult();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
+            var results = await _productService.UpdateRangeAsync(dtos, ct);
+            return Ok(results);
         }
 
-        //[HttpPatch("product/update/patch")]
-        //public IActionResult PatchProduct([FromQuery] ProductDto[] productDtos)
-        //{
-        //    try
-        //    {
-        //        var result = _steamService.UpdateProductsAsync(productDtos).GetAwaiter().GetResult();
-        //        return Ok(result);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, ex.Message);
-        //    }
-        //}
-
-        //[HttpPatch("products/update/patch")]
-        //public IActionResult PatchProducts([FromQuery] ProductDto[] product)
-        //{
-        //    throw new NotImplementedException();
-        //    try
-        //    {
-        //        var result = _steamService.UpdateProductsAsync(request).GetAwaiter().GetResult();
-        //        return Ok(result);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, ex.InnerException);
-        //    }
-        //}
-
-
-        [HttpDelete("delete/{id}")]
-        public IActionResult DeleteProduct(long? id)
+        [HttpDelete("{id:long}")]
+        public async Task<ActionResult<OperationResult>> Delete(long id, CancellationToken ct)
         {
-            try
-            {
-                var result = _productService.DeleteProductAsync(id).GetAwaiter().GetResult();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
+            var result = await _productService.DeleteAsync(id, ct);
+            if (!result.Success)
+                return NotFound(result.Message);
+
+            return Ok(result);
         }
 
-        [HttpDelete("delete/bulk")]
-        public IActionResult DeleteProducts([FromQuery] long[] ids)
+        [HttpDelete("batch")]
+        public async Task<ActionResult<IEnumerable<OperationResult>>> DeleteBatch([FromBody] IEnumerable<long> ids, CancellationToken ct)
         {
-            try
-            {
-                var result = _productService.DeleteProductsAsync(ids).GetAwaiter().GetResult();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
+            var results = await _productService.DeleteRangeAsync(ids, ct);
+            return Ok(results);
         }
     }
 }

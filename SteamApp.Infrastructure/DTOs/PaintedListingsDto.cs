@@ -1,6 +1,4 @@
-﻿using SteamApp.Models.Dto;
-
-namespace SteamApp.Models.DTOs
+﻿namespace SteamApp.Infrastructure.DTOs
 {
     public class PaintedListingsDto : ListingDto
     {

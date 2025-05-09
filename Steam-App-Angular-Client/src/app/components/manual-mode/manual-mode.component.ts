@@ -2,8 +2,9 @@ import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { catchError } from 'rxjs';
-import { ManualModesEnum } from '../../models/enums/manual-modes.enum';
+import { ManualModeEnum } from '../../common/enums/index';
+import { CONSTANTS } from '../../common/constants';
+
 
 @Component({
   selector: 'steam-manual-mode',
@@ -13,21 +14,18 @@ import { ManualModesEnum } from '../../models/enums/manual-modes.enum';
   styleUrl: './manual-mode.component.scss',
 })
 export class ManualModeComponent {
-  private readonly HATS_URL: string =
-    'https://steamcommunity.com/market/search?q=&category_440_Collection%5B%5D=any&category_440_Type%5B%5D=tag_misc&category_440_Quality%5B%5D=tag_Unique&category_440_Quality%5B%5D=tag_strange&category_440_Rarity%5B%5D=tag_Rarity_Rare&category_440_Rarity%5B%5D=tag_Rarity_Mythical&category_440_Rarity%5B%5D=tag_Rarity_Legendary&category_440_Rarity%5B%5D=tag_Rarity_Ancient&appid=440#';
-  // 'https://steamcommunity.com/market/search?q=&category_440_Collection%5B%5D=any&category_440_Type%5B%5D=tag_misc&category_440_Quality%5B%5D=tag_Unique&category_440_Quality%5B%5D=tag_strange&appid=440#';
-  public readonly WEAPONS_URL: string =
-    'https://steamcommunity.com/market/listings/440/Strange%20Specialized%20Killstreak%20';
 
-  public readonly WEAPON_NAMES: string[] = [];
-  private readonly localHost:string = 'https://localhost:44347/';
+  private _constants = CONSTANTS;
 
-  private currentUrl: string = this.HATS_URL;
+  private readonly _hatUrlPartial: string = this._constants.SEARCH_URL_PARTIAL + this._constants.PRODUCT_QUERY_PARAMS_EXTENDED;
 
-constructor(private http: HttpClient) {
+  private currentUrl: string = this._hatUrlPartial;
 
-    this.getWeaponNames();
-  }
+
+constructor(private http: HttpClient) {  this.getWeaponNames(); }
+
+  public readonly weaponUrlPartial: string = this._constants.LISTING_URL_PARTIAL + this._constants.WEAPON_URL_QUERY_PARAMS;;
+  public readonly weaponNames: string[] = [];
 
   public isHatsSearch: boolean = true;
   public batchSize: number = 7;
@@ -41,8 +39,8 @@ constructor(private http: HttpClient) {
     for (; this.currentPage < toPage; this.currentPage++) {
       let url = this.isHatsSearch
         ? `${this.currentUrl}p${this.currentPage}_price_asc`
-        : this.WEAPON_NAMES.length > this.currentPage
-        ? `${this.currentUrl}${this.WEAPON_NAMES[this.currentPage - 1]}`
+        : this.weaponNames.length > this.currentPage
+        ? `${this.currentUrl}${this.weaponNames[this.currentPage - 1]}`
         : null;
 
       if (url == null) {
@@ -71,7 +69,7 @@ constructor(private http: HttpClient) {
   }
 
   getWeaponNames(): void {
-    const url = `${this.localHost}item/get/all`;
+    const url = `${this._constants.LOCAL_HOST}item/get/all`;
     this.http.get<any[]>(url).subscribe({
       next: (data: any[]) => {
 
@@ -84,7 +82,7 @@ constructor(private http: HttpClient) {
         return acc;
       },[]);
 
-      this.WEAPON_NAMES.push(...filteredData);
+      this.weaponNames.push(...filteredData);
 
       },
       error: (error) => {
@@ -93,19 +91,18 @@ constructor(private http: HttpClient) {
     });
   }
 
-
-  hatsButtonClicked() {
+  hatsButtonClicked(): void {
     if (!this.isHatsSearch) {
-      this.currentUrl = this.HATS_URL;
+      this.currentUrl = this._hatUrlPartial;
       this.isHatsSearch = true;
 
       this.resetButtonClicked();
     }
   }
 
-  weaponsButtonClicked() {
+  weaponsButtonClicked(): void {
     if (this.isHatsSearch) {
-      this.currentUrl = this.WEAPONS_URL;
+      this.currentUrl = this.weaponUrlPartial;
       this.isHatsSearch = false;
       this.resetButtonClicked();
     }

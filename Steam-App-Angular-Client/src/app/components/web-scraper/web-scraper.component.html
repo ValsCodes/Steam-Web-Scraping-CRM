@@ -1,9 +1,13 @@
 <div class="main-container">
     <div>
-        <button (click)="getListingsButtonClicked()" class="button button-small-green">Get Results</button>
-        <button (click)="getBulkListingsButtonClicked()" class="button button-small-yellow">Get Bulk Results</button>
-        <button (click)="getPaintedListingsButtonClicked()" class="button button-small-blue">Get Painted Results</button>
-        <button (click)="clearButtonClicked()" class="button button-small-red">Clear</button>
+        <button (click)="getListingsButtonClicked()" class="button button-small-green"
+        title="Web Scrape all Results from page">Web Scraper</button>
+        <button (click)="getBulkListingsButtonClicked()" class="button button-small-yellow" title="Get Bulk Results filtered by Price & Quantity"
+        >Public API</button>
+        <button (click)="getPaintedListingsButtonClicked()" class="button button-small-blue"
+        title="Get Painted Results from page (every ~30s)">Deep Web Scraper</button>
+        <button (click)="clearButtonClicked()" class="button button-small-red"
+        title="Clear Current Data">Clear</button>
     </div>
     <div class="flex">
         <div class="px-2 py-4">
@@ -12,7 +16,8 @@
                 type="number" min="1" step="1" title="Enter a positive number">
         </div>
         <div class="ml-auto">
-            <button (click)="exportButtonClicked()" class="justify-end button button-small-blue py-0 mr-4">Export</button>
+            <button (click)="exportButtonClicked()" class="justify-end button button-small-blue py-0 mr-4"
+            title="Export current data to Excel">Export</button>
             <!-- <button class="button button-small-green mr-4">Import</button> -->
         </div>
     </div>
@@ -22,7 +27,7 @@
         <!-- Item Column -->
         <ng-container matColumnDef="item">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Item </th>
-            <td mat-cell *matCellDef="let listing"> {{ listing.name }} </td>
+            <td mat-cell *matCellDef="let listing"> <a  href="{{hatURL}}{{listing.name}}">{{ listing.name }} </a></td>
         </ng-container>
 
         <!-- Quantity Column -->
