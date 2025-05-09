@@ -18,7 +18,6 @@ namespace SteamApp.Repository
             _mapper = mapper;
         }
 
-        #region Get Product
         public async Task<Product> GetByIdAsync(long id, CancellationToken ct = default)
         {
             var result = await _context.Products.FirstOrDefaultAsync(x => x.Id == id);
@@ -35,9 +34,7 @@ namespace SteamApp.Repository
             var result = await _context.Products.ToListAsync();
             return result;
         }
-        #endregion
 
-        #region Create Product
         public async Task<long> CreateAsync(Product product, CancellationToken ct = default)
         {
             await _context.AddAsync(product);
@@ -53,9 +50,7 @@ namespace SteamApp.Repository
 
             return products.Select(x => x.Id);
         }
-        #endregion
 
-        #region Update Product
         public async Task<bool> UpdateAsync(Product product, CancellationToken ct = default)
         {
             await Task.CompletedTask;
@@ -67,9 +62,6 @@ namespace SteamApp.Repository
             await Task.CompletedTask;
             throw new NotImplementedException("UpdateRangeAsync is not implemented yet.");
         }
-        #endregion
-
-        #region Delete Product
 
         public async Task<bool> DeleteAsync(long id, CancellationToken ct = default)
         {
@@ -100,7 +92,5 @@ namespace SteamApp.Repository
 
             return ids.Select(id => foundIds.Contains(id));
         }
-        #endregion
-
     }
 }

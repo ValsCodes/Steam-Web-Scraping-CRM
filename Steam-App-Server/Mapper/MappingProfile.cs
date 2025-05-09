@@ -12,6 +12,7 @@ namespace SteamApp.Mapper
         public MappingProfile()
         {
             #region Product Mapping
+
             CreateMap<Product, ProductDto>();
 
             CreateMap<ProductDto, Product>();
