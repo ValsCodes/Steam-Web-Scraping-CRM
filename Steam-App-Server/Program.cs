@@ -1,10 +1,11 @@
-using SteamApp.Infrastructure.Services;
-using SteamApp.Infrastructure.Repositories;
-using SteamApp.Mapper;
-using SteamApp.Context;
 using Microsoft.EntityFrameworkCore;
-using SteamApp.Services;
+using Newtonsoft.Json.Serialization;
+using SteamApp.Context;
+using SteamApp.Infrastructure.Repositories;
+using SteamApp.Infrastructure.Services;
+using SteamApp.Mapper;
 using SteamApp.Repository;
+using SteamApp.Services;
 
 namespace SteamApp
 {
@@ -34,7 +35,14 @@ namespace SteamApp
                     builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
             });
 
-            builder.Services.AddControllers();
+            builder.Services
+                .AddControllers()
+                .AddNewtonsoftJson(opts =>
+                {
+                    opts.SerializerSettings.ContractResolver =
+                        new CamelCasePropertyNamesContractResolver();
+                });
+
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();

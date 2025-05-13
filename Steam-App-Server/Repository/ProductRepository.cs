@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using SteamApp.Context;
 using SteamApp.Exceptions;
+using SteamApp.Infrastructure.DTOs.Product;
 using SteamApp.Infrastructure.Repositories;
 using SteamApp.Models;
 
@@ -51,10 +52,12 @@ namespace SteamApp.Repository
             return products.Select(x => x.Id);
         }
 
+        //public async Task<bool> UpdateAsync(long id, Product product, CancellationToken ct = default)
         public async Task<bool> UpdateAsync(Product product, CancellationToken ct = default)
         {
-            await Task.CompletedTask;
-            throw new NotImplementedException("UpdateRangeAsync is not implemented yet.");
+            await _context.SaveChangesAsync(ct);
+
+            return true;
         }
 
         public async Task<IEnumerable<bool>> UpdateRangeAsync(IEnumerable<Product> products, CancellationToken ct = default)

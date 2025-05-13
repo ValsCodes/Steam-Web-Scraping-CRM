@@ -1,4 +1,5 @@
-﻿using SteamApp.Infrastructure.DTOs.Product;
+﻿using Microsoft.AspNetCore.JsonPatch;
+using SteamApp.Infrastructure.DTOs.Product;
 
 namespace SteamApp.Infrastructure.Services
 {
@@ -10,7 +11,7 @@ namespace SteamApp.Infrastructure.Services
         Task<CreateResult> CreateAsync(CreateProductDto product, CancellationToken ct = default);
         Task<IEnumerable<CreateResult>> CreateRangeAsync(IEnumerable<CreateProductDto> products, CancellationToken ct = default);
 
-        Task<OperationResult> UpdateAsync(UpdateProductDto product, CancellationToken ct = default);
+        Task<OperationResult> UpdateAsync(long id, JsonPatchDocument<ProductForPatchDto> patchDoc, CancellationToken ct = default);
         Task<IEnumerable<OperationResult>> UpdateRangeAsync(IEnumerable<UpdateProductDto> products, CancellationToken ct = default);
 
         Task<OperationResult> DeleteAsync(long id, CancellationToken ct = default);

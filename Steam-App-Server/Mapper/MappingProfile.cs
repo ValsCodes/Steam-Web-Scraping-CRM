@@ -21,6 +21,9 @@ namespace SteamApp.Mapper
 
             CreateMap<UpdateProductDto, Product>();
 
+            CreateMap<ProductForPatchDto, Product>();
+            CreateMap<ProductForPatchDto, Product>().ReverseMap();     
+
             #endregion
 
             #region Item Mapping

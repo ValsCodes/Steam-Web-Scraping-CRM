@@ -10,6 +10,7 @@ namespace SteamApp.Infrastructure.Repositories
         Task<long> CreateAsync(Product product, CancellationToken ct = default);
         Task<IEnumerable<long>> CreateRangeAsync(IEnumerable<Product> products, CancellationToken ct = default);
 
+        //Task<bool> UpdateAsync(long id, Product product, CancellationToken ct = default);
         Task<bool> UpdateAsync(Product product, CancellationToken ct = default);
         Task<IEnumerable<bool>> UpdateRangeAsync(IEnumerable<Product> products, CancellationToken ct = default);
 

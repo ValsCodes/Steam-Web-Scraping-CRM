@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.Mvc;
 using SteamApp.Infrastructure;
 using SteamApp.Infrastructure.DTOs.Product;
 using SteamApp.Infrastructure.Services;
@@ -51,9 +52,9 @@ namespace SteamApp.Controllers
         }
 
         [HttpPatch]
-        public async Task<ActionResult<OperationResult>> Update([FromBody] UpdateProductDto dto, CancellationToken ct)
+        public async Task<ActionResult<OperationResult>> Update(long id, [FromBody] JsonPatchDocument<ProductForPatchDto> patchDoc, CancellationToken ct)
         {
-            var result = await _productService.UpdateAsync(dto, ct);
+            var result = await _productService.UpdateAsync(id, patchDoc, ct);
             if (!result.Success)
                 return BadRequest(result.Message);
 

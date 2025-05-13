@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.JsonPatch;
 using SteamApp.Exceptions;
 using SteamApp.Infrastructure;
 using SteamApp.Infrastructure.DTOs.Product;
@@ -65,22 +66,25 @@ namespace SteamApp.Services
             });
         }
 
-        public async Task<OperationResult> UpdateAsync(UpdateProductDto productDto, CancellationToken ct = default)
+        public async Task<OperationResult> UpdateAsync(long id, JsonPatchDocument<ProductForPatchDto> patchDoc, CancellationToken ct = default)
         {
-            await Task.CompletedTask;
-            throw new NotImplementedException("UpdateRangeAsync is not implemented yet.");
+            var product = await _repository.GetByIdAsync(id, ct);
 
-            //if (productDto == null)
-            //    throw new ArgumentNullException(nameof(productDto));
+            var dto = _mapper.Map<ProductForPatchDto>(patchDoc);
 
-            //var success = await _repository.UpdateAsync(productDto, ct);
-            //return new OperationResult
-            //{
-            //    Success = success,
-            //    Message = success
-            //        ? $"Product {productDto.Id} updated successfully"
-            //        : $"Product {productDto.Id} not found"
-            //};
+            patchDoc.ApplyTo(dto);
+
+            _mapper.Map(dto, product);
+
+            var success = await _repository.UpdateAsync(product, ct);
+
+            return new OperationResult
+            {
+                Success = success,
+                Message = success
+                    ? $"Product {id} updated successfully"
+                    : $"Product {id} not found"
+            };
         }
 
         public async Task<IEnumerable<OperationResult>> UpdateRangeAsync(IEnumerable<UpdateProductDto> productDtos, CancellationToken ct = default)
