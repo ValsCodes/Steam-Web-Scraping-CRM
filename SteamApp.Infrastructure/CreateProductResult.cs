@@ -2,7 +2,7 @@
 
 namespace SteamApp.Infrastructure
 {
-    public class CreateResult : OperationResult
+    public class CreateProductResult : OperationResult
     {
         public long Id { get; set; }
         public ProductDto? Created { get; set; }

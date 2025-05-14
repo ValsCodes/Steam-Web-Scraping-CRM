@@ -35,7 +35,7 @@ namespace SteamApp.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<CreateResult>> Create([FromBody] CreateProductDto dto, CancellationToken ct)
+        public async Task<ActionResult<CreateProductResult>> Create([FromBody] CreateProductDto dto, CancellationToken ct)
         {
             var result = await _productService.CreateAsync(dto, ct);
             return CreatedAtAction(
@@ -45,7 +45,7 @@ namespace SteamApp.Controllers
         }
 
         [HttpPost("batch")]
-        public async Task<ActionResult<IEnumerable<CreateResult>>> CreateBatch([FromBody] IEnumerable<CreateProductDto> dtos, CancellationToken ct)
+        public async Task<ActionResult<IEnumerable<CreateProductResult>>> CreateBatch([FromBody] IEnumerable<CreateProductDto> dtos, CancellationToken ct)
         {
             var results = await _productService.CreateRangeAsync(dtos, ct);
             return Ok(results);

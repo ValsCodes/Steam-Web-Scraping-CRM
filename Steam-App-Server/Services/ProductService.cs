@@ -36,7 +36,7 @@ namespace SteamApp.Services
             return products.Select(p => _mapper.Map<ProductDto>(p));
         }
 
-        public async Task<CreateResult> CreateAsync(CreateProductDto productDto, CancellationToken ct = default)
+        public async Task<CreateProductResult> CreateAsync(CreateProductDto productDto, CancellationToken ct = default)
         {
             if (productDto == null)
                 throw new ArgumentNullException(nameof(productDto));
@@ -44,14 +44,14 @@ namespace SteamApp.Services
             var product = _mapper.Map<Product>(productDto);
 
             var id = await _repository.CreateAsync(product, ct);
-            return new CreateResult
+            return new CreateProductResult
             {
                 Id = id,
                 Message = $"Product {id} created successfully"
             };
         }
 
-        public async Task<IEnumerable<CreateResult>> CreateRangeAsync(IEnumerable<CreateProductDto> productDtos,CancellationToken ct = default)
+        public async Task<IEnumerable<CreateProductResult>> CreateRangeAsync(IEnumerable<CreateProductDto> productDtos,CancellationToken ct = default)
         {
             if (productDtos == null || !productDtos.Any())
                 throw new ArgumentException("Product collection cannot be null or empty.", nameof(productDtos));
@@ -59,7 +59,7 @@ namespace SteamApp.Services
             var products = productDtos.Select(_mapper.Map<Product>);
 
             var ids = await _repository.CreateRangeAsync(products, ct);
-            return ids.Select(id => new CreateResult
+            return ids.Select(id => new CreateProductResult
             {
                 Id = id,
                 Message = $"Product {id} created successfully"
