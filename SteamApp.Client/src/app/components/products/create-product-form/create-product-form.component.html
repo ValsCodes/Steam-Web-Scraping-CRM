@@ -1,0 +1,69 @@
+<form [formGroup]="productForm" (ngSubmit)="onSubmit()" class="p-4">
+    <h2>Create Product</h2>
+  <div>
+    <label>Name *</label>
+    <input formControlName="name" placeholder="Product name" />
+    <div *ngIf="productForm.get('name')?.touched && productForm.get('name')?.invalid">
+      Name is required.
+    </div>
+  </div>
+
+  <div>
+    <label>Quality</label>
+    <select formControlName="qualityId">
+      <option [value]="null">Select quality</option>
+      <option *ngFor="let q of qualities" [value]="q.id">{{ q.label }}</option>
+    </select>
+  </div>
+
+  <div>
+    <label>Description</label>
+    <textarea formControlName="description" rows="3"></textarea>
+  </div>
+
+  <div>
+    <label>Date Bought</label>
+    <input type="date" formControlName="dateBought" />
+  </div>
+
+  <div>
+    <label>Date Sold</label>
+    <input type="date" formControlName="dateSold" />
+  </div>
+
+  <div>
+    <label>Cost Price</label>
+    <input type="number" formControlName="costPrice" min="0" />
+  </div>
+
+  <div>
+    <label>Target Sell Prices</label>
+    <div *ngFor="let idx of [1,2,3,4]">
+      <input
+        type="number"
+        [formControlName]="'targetSellPrice' + idx"
+        placeholder="Target Sell Price {{idx}}"
+        min="0"
+      />
+    </div>
+  </div>
+
+  <div>
+    <label>Sold Price</label>
+    <input type="number" formControlName="soldPrice" min="0" />
+  </div>
+
+  <div>
+    <label>
+      <input type="checkbox" formControlName="isHat" /> Hat
+    </label>
+    <label>
+      <input type="checkbox" formControlName="isWeapon" /> Weapon
+    </label>
+    <label>
+      <input type="checkbox" formControlName="isSold" /> Sold
+    </label>
+  </div>
+
+  <button type="submit" [disabled]="productForm.invalid">Create Product</button>
+</form>
