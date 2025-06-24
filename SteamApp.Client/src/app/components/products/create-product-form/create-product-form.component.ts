@@ -9,7 +9,7 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'steam-create-product-form',
   standalone: true,
-  imports: [     CommonModule,
+  imports: [ CommonModule,
     ReactiveFormsModule,  ],
   templateUrl: './create-product-form.component.html',
   styleUrl: './create-product-form.component.scss'

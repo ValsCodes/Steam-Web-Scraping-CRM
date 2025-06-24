@@ -1,59 +1,73 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SteamApp.Context;
+using SteamApp.Exceptions;
 using SteamApp.Infrastructure.Repositories;
-using SteamApp.Infrastructure.DTOs;
-using SteamApp.Infrastructure.Models;
 using SteamApp.Models.Models;
 
 namespace SteamApp.Repository
 {
-    public class ItemRepository : IItemRepository
+    public class ItemRepository(ApplicationDbContext context) : IItemRepository
     {
-        private readonly ApplicationDbContext _context;
-
-        public ItemRepository(ApplicationDbContext context)
+        public async Task<IEnumerable<Item>> GetItemsAsync(CancellationToken ct, IEnumerable<long>? classFilters = null, IEnumerable<long>? slotFilters = null)
         {
-            _context = context;
+            IQueryable<Item> items = context.Items;
+
+            if (classFilters?.Any() == true)
+            {
+                var arr = classFilters.ToArray();
+                items = items.Where(x => x.ClassId.HasValue && arr.Contains(x.ClassId.Value));
+            }
+
+            if (slotFilters?.Any() == true)
+            {
+                var arr = slotFilters.ToArray();
+                items = items.Where(x => x.SlotId.HasValue && arr.Contains(x.SlotId.Value));
+            }
+
+            return await items.ToArrayAsync(ct);
         }
 
-        public async Task<IEnumerable<IItem>> GetItemsAsync()
+        public async Task<Item> GetItemByIdAsync(long id, CancellationToken ct)
         {
-            return await _context.Items.OrderBy(x => x.Id).Select(x => new ItemDto {
-                             Id = x.Id,
-                             Name = x.Name,
-                             IsActive = x.IsActive,
-                             IsWeapon = x.IsWeapon
-                         })
-                         .ToListAsync<IItem>();
-        }
-
-        public async Task<IItem> GetItemByIdAsync(long id)
-        {
-            var result = await _context.Items.FirstOrDefaultAsync(x => x.Id == id);              
+            var result = await context.Items.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);              
             
             if (result == null)
             {
                 throw new Exception("Item not found");
             }
 
-            return (IItem)result;
+            return result;
         }
 
-        public async Task<bool> CreateItemAsync(ItemDto item)
+        public async Task<long> CreateItemAsync(Item item, CancellationToken ct)
         {
-            
+            await context.AddAsync(item, ct);
+            await context.SaveChangesAsync(ct);
 
-            throw new NotImplementedException();
+            return item.Id;
         }
 
-        public async Task<bool> DeleteItemAsync(long id)
+        public async Task<bool> UpdateItemAsync(Item item, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            context.Items.Update(item);
+            await context.SaveChangesAsync(ct);
+
+            return true;
         }
 
-        public async Task<Item> GetItemAsync(long id)
+        public async Task<bool> DeleteItemAsync(long id, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            var existingItem = await context.Items.FindAsync(id, ct);
+
+            if (existingItem == null)
+            {
+                throw new ItemNotFoundException($"Item with ID {id} not found.");
+            }
+
+            context.Remove(existingItem);
+            await context.SaveChangesAsync(ct);
+
+            return true;
         }
     }
 }

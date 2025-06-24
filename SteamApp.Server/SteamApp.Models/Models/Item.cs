@@ -10,5 +10,11 @@ namespace SteamApp.Models.Models
 
         [Column("is_weapon")]
         public bool IsWeapon { get; set; }
+
+        [Column("class_id")]
+        public long? ClassId { get; set; }
+
+        [Column("slot_id")]
+        public long? SlotId { get; set; }
     }
 }

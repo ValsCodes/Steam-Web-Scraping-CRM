@@ -1,14 +1,15 @@
-﻿using SteamApp.Infrastructure.DTOs;
+﻿using SteamApp.Infrastructure.DTOs.Item;
 
 namespace SteamApp.Infrastructure.Services
 {
     public interface IItemService
     {
-        Task<ItemDto> GetItemAsync(long id);
-        Task<IEnumerable<ItemDto>> GetItemsAsync();
+        Task<ItemDto> GetItemByIdAsync(long id, CancellationToken ct);
+        Task<IEnumerable<ItemDto>> GetItemsAsync(CancellationToken ct, IEnumerable<long>? classFilters = null, IEnumerable<long>? slotFilters = null);
 
-        Task<bool> CreateItemAsync(ItemDto item);
+        Task<OperationResult> CreateItemAsync(CreateItemDto item, CancellationToken ct);
+        Task<OperationResult> UpdateItemAsync(ItemDto item, CancellationToken ct);
 
-        Task<bool> DeleteItemAsync(long id);
+        Task<OperationResult> DeleteItemAsync(long id, CancellationToken ct);
     }
 }

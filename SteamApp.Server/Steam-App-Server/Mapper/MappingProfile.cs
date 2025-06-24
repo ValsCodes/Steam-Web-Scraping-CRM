@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
-using SteamApp.Infrastructure.DTOs;
+using SteamApp.Infrastructure.DTOs.Item;
 using SteamApp.Infrastructure.DTOs.Product;
-using SteamApp.Infrastructure.Models;
 using SteamApp.Models;
 using SteamApp.Models.Models;
 
@@ -32,9 +31,7 @@ namespace SteamApp.Mapper
 
             CreateMap<Item, ItemDto>();
 
-            CreateMap<ItemDto, IItem>();
-
-            CreateMap<IItem, ItemDto>();
+            CreateMap<CreateItemDto, Item>().ForMember(dest => dest.Id, opt => opt.Ignore());
             #endregion
         }
     }
