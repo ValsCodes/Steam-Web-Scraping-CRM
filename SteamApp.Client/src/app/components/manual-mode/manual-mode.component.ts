@@ -15,6 +15,30 @@ import { CONSTANTS } from '../../common/constants';
 })
 export class ManualModeComponent {
 
+  selectedClasses: number[] = [];
+
+  // list out your classes with their IDs
+  classes = [
+    { id: 1,  name: 'Scout'    },
+    { id: 2,  name: 'Soldier'  },
+    { id: 3,  name: 'Pyro'     },
+    { id: 4,  name: 'Demoman'  },
+    { id: 5,  name: 'Heavy'    },
+    { id: 6,  name: 'Engineer' },
+    { id: 7,  name: 'Medic'    },
+    { id: 8,  name: 'Sniper'   },
+    { id: 9,  name: 'Spy'      }
+  ];
+
+    selectedSlots: number[] = [];
+
+  slots = [
+    { id: 1,  name: 'Primary'    },
+    { id: 2,  name: 'Secondary'  },
+    { id: 3,  name: 'Melle'     },
+    { id: 4,  name: 'Other'  },
+  ];
+
   private _constants = CONSTANTS;
 
   private readonly _hatUrlPartial: string = this._constants.SEARCH_URL_PARTIAL + this._constants.PRODUCT_QUERY_PARAMS_EXTENDED;
@@ -25,7 +49,7 @@ export class ManualModeComponent {
 constructor(private http: HttpClient) {  this.getWeaponNames(); }
 
   public readonly weaponUrlPartial: string = this._constants.LISTING_URL_PARTIAL + this._constants.WEAPON_URL_QUERY_PARAMS;;
-  public readonly weaponNames: string[] = [];
+  public weaponNames: string[] = [];
 
   public isHatsSearch: boolean = true;
   public batchSize: number = 7;
@@ -68,20 +92,50 @@ constructor(private http: HttpClient) {  this.getWeaponNames(); }
     }
   }
 
+  onClassCheckboxChange(event: Event, classId: number) {
+    const checkbox = event.target as HTMLInputElement;
+    if (checkbox.checked) {
+      if (!this.selectedClasses.includes(classId)) {
+        this.selectedClasses.push(classId);
+      }
+    } else {
+      this.selectedClasses = this.selectedClasses.filter(id => id !== classId);
+    }
+    console.log('Selected class IDs:', this.selectedClasses);
+
+    this.getWeaponNames();
+  }
+
+   onSlotCheckboxChange(event: Event, slotId: number) {
+    const checkbox = event.target as HTMLInputElement;
+    if (checkbox.checked) {
+      if (!this.selectedSlots.includes(slotId)) {
+        this.selectedSlots.push(slotId);
+      }
+    } else {
+      this.selectedSlots = this.selectedSlots.filter(id => id !== slotId);
+    }
+    console.log('Selected slot IDs:', this.selectedSlots);
+
+    this.getWeaponNames();
+  }
+
   getWeaponNames(): void {
-    const url = `${this._constants.LOCAL_HOST}item/get/all`;
+    const classFilters = this.selectedClasses.map(id => `classFilters=${encodeURIComponent(id)}`);
+    const slotFilters = this.selectedSlots.map(id => `slotFilters=${encodeURIComponent(id)}`);
+    const filters = [...classFilters, ...slotFilters].join('&');
+    
+    const url = `${this._constants.LOCAL_HOST}item?${filters}`;
+    console.log(url);
     this.http.get<any[]>(url).subscribe({
       next: (data: any[]) => {
 
-      const filteredData = data.reduce((acc:string[], item:any) => {
-        if(item.isActive === true)
-        {
-          acc.push(item.name);
-        }
+ const filteredData = data
+      .filter(item => item.isActive)
+      .sort((a, b) => (a.classId - b.classId) ||  (a.slotId   - b.slotId))
+      .map(item => item.name);
 
-        return acc;
-      },[]);
-
+      this.weaponNames.length = 0;
       this.weaponNames.push(...filteredData);
 
       },
@@ -106,6 +160,24 @@ constructor(private http: HttpClient) {  this.getWeaponNames(); }
       this.isHatsSearch = false;
       this.resetButtonClicked();
     }
+  }
+
+  clearSlotFilters(): void {
+      this.selectedSlots.length = 0
+
+    document.querySelectorAll('.slot-filters input[type="checkbox"]')
+    .forEach((el: Element) => (el as HTMLInputElement).checked = false);
+
+      this.getWeaponNames();
+  }
+
+  clearClassFilters(): void {
+      this.selectedClasses.length = 0
+
+    document.querySelectorAll('.class-filters input[type="checkbox"]')
+    .forEach((el: Element) => (el as HTMLInputElement).checked = false);
+
+      this.getWeaponNames();
   }
 
   resetButtonClicked(): void {

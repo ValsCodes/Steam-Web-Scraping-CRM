@@ -27,11 +27,32 @@
             </div>
         </div>
     </div>
-    <div class="flex justify-center">
+    <div class="flex m-auto">
+        <div class="filters flex gap-4">
+                <button (click)="clearClassFilters()" class="button button-small-red">Clear Class Filters</button>
+<div class="class-filters gap-2">
+
+  <label *ngFor="let cls of classes">
+    {{ cls.name }}
+    <input type="checkbox" [value]="cls.id" (change)="onClassCheckboxChange($event, cls.id)" onreadystatechange=""    />
+  </label>
+</div>
+<div class="slot-filters flex gap-2">
+  <label *ngFor="let slot of slots">
+    {{ slot.name }}
+    <input
+      type="checkbox"
+      [value]="slot.id"
+      (change)="onSlotCheckboxChange($event, slot.id)"
+    />
+  </label>
+
+</div>
+<button (click)="clearSlotFilters()" class="button button-small-red">Clear Slot Filters</button>
+</div>
+        </div>
         <div class="panel panel--weapon-list">
             <div class="grid-item" *ngFor="let weapon of weaponNames; let i = index">
                 <strong>{{ i + 1 }}.</strong> <a href="{{weaponUrlPartial}}{{weapon}}">{{weapon}}</a>
             </div>
         </div>
-    </div>
-</div>

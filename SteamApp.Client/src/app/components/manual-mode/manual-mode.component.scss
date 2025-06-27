@@ -13,10 +13,41 @@ h2 {
     text-align: center;
 }
 
+%filter-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1rem;
+  border-width: .0625rem;
+  border-color: black;
+  border-radius: .625rem;
+  padding: 0.625rem;
+}
+
+%filter-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    cursor: pointer;
+  }
+}
+
+.class-filters,
+.slot-filters {
+  @extend %filter-container;
+
+  label {
+    @extend %filter-item;
+  }
+}
+
 .container {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    max-width: 100%;
 
     .panel {
         margin: .625rem;
@@ -28,15 +59,17 @@ h2 {
             justify-content: center;
             background-color: antiquewhite;
             max-height: 12.5rem;
-            max-width: 18.75rem;
-            padding: .625rem;    
+            padding: .625rem;   
+            margin: 1.5625rem 0; 
         }
 
         &--weapon-list {
+            justify-content: center;
             display: grid;
             padding: .625rem;
-            grid-template-rows: repeat(5, min-content);
-            grid-auto-flow: column;
+            border-color: transparent;
+            grid-template-columns: repeat(8, min-content);
+            grid-auto-flow: row;
             grid-auto-columns: minmax(7.5rem, 1fr);
             gap: 1rem;
             
@@ -46,6 +79,8 @@ h2 {
                 border-radius: .375rem;
                 box-shadow: 0 .125rem .375rem rgba(0,0,0,0.1);
                 text-align: center;
+                min-width: 9.375rem;
+                min-height: 3.125rem;
               }
           }       
     }

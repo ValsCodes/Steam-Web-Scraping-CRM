@@ -5,6 +5,8 @@ namespace SteamApp.Infrastructure.Services
     public interface IItemService
     {
         Task<ItemDto> GetItemByIdAsync(long id, CancellationToken ct);
+
+        Task<IEnumerable<ItemDto>> GetItemByNameAsync(string name, CancellationToken ct);
         Task<IEnumerable<ItemDto>> GetItemsAsync(CancellationToken ct, IEnumerable<long>? classFilters = null, IEnumerable<long>? slotFilters = null);
 
         Task<OperationResult> CreateItemAsync(CreateItemDto item, CancellationToken ct);

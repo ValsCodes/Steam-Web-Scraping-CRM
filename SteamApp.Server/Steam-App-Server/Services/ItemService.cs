@@ -22,6 +22,19 @@ namespace SteamApp.Services
             return mapper.Map<ItemDto>(item);
         }
 
+        public async Task<IEnumerable<ItemDto>> GetItemByNameAsync(string name, CancellationToken ct)
+        {
+            if (string.IsNullOrEmpty(name))
+                throw new InvalidCastException();
+
+            var items = await itemRepository.GetItemByNameAsync(name, ct);
+
+            if (items == null)
+                throw new InvalidCastException();
+
+            return mapper.Map<List<ItemDto>>(items);
+        }
+
         public async Task<IEnumerable<ItemDto>> GetItemsAsync(CancellationToken ct, IEnumerable<long>? classFilters = null, IEnumerable<long>? slotFilters = null)
         {
             var items = await itemRepository.GetItemsAsync(ct, classFilters, slotFilters);

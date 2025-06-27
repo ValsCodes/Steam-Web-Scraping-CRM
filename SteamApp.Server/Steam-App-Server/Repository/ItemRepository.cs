@@ -10,7 +10,7 @@ namespace SteamApp.Repository
     {
         public async Task<IEnumerable<Item>> GetItemsAsync(CancellationToken ct, IEnumerable<long>? classFilters = null, IEnumerable<long>? slotFilters = null)
         {
-            IQueryable<Item> items = context.Items;
+            IQueryable<Item> items = context.Items; 
 
             if (classFilters?.Any() == true)
             {
@@ -24,13 +24,26 @@ namespace SteamApp.Repository
                 items = items.Where(x => x.SlotId.HasValue && arr.Contains(x.SlotId.Value));
             }
 
-            return await items.ToArrayAsync(ct);
+            return await items.OrderBy(x => x.Id).ToArrayAsync(ct);
         }
 
         public async Task<Item> GetItemByIdAsync(long id, CancellationToken ct)
         {
             var result = await context.Items.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);              
             
+            if (result == null)
+            {
+                throw new Exception("Item not found");
+            }
+
+            return result;
+        }
+
+        public async Task<IEnumerable<Item>> GetItemByNameAsync(string name, CancellationToken ct)
+        {
+            var formattedName = name.Trim().ToLower();
+            var result = await context.Items.AsNoTracking().Where(x => x.Name.Trim().ToLower().Contains(formattedName)).ToArrayAsync(ct);
+
             if (result == null)
             {
                 throw new Exception("Item not found");
