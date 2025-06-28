@@ -4,7 +4,9 @@ export const CONSTANTS = {
   
   SEARCH_URL_PARTIAL: 'https://steamcommunity.com/market/search',
 
-  LOCAL_HOST: 'https://localhost:44347/',
+  //LOCAL_HOST: 'https://localhost:44347/',
+
+  LOCAL_HOST: 'https://localhost:7273/',
 
   PRODUCT_QUERY_PARAMS_EXTENDED:
     '?q=&category_440_Collection%5B%5D=any&category_440_Type%5B%5D=tag_misc&category_440_Quality%5B%5D=tag_Unique&category_440_Quality%5B%5D=tag_strange&category_440_Rarity%5B%5D=tag_Rarity_Rare&category_440_Rarity%5B%5D=tag_Rarity_Mythical&category_440_Rarity%5B%5D=tag_Rarity_Legendary&category_440_Rarity%5B%5D=tag_Rarity_Ancient&appid=440#',

@@ -25,26 +25,12 @@ namespace SteamApp.Controllers
             }
         }
 
-        [HttpGet("{name}")]
-        public IActionResult GetItemByName(string name, CancellationToken ct)
-        {
-            try
-            {
-                var result = itemService.GetItemByNameAsync(name, ct).GetAwaiter().GetResult();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
-
         [HttpGet]
-        public IActionResult GetItems (CancellationToken ct, [FromQuery] IEnumerable<long>? classFilters = null, [FromQuery] IEnumerable<long>? slotFilters = null)
+        public IActionResult GetItems(CancellationToken ct, [FromQuery] string? name = null, [FromQuery] IEnumerable<long>? classFilters = null, [FromQuery] IEnumerable<long>? slotFilters = null)
         {
             try
             {
-                var result = itemService.GetItemsAsync(ct, classFilters, slotFilters).GetAwaiter().GetResult();
+                var result = itemService.GetItemsAsync(ct, name, classFilters, slotFilters).GetAwaiter().GetResult();
                 return Ok(result);
             }
             catch (Exception ex)

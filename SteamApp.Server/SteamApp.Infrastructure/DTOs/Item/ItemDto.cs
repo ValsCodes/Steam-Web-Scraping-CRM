@@ -1,6 +1,4 @@
-﻿using SteamApp.Infrastructure.Models;
-
-namespace SteamApp.Infrastructure.DTOs.Item
+﻿namespace SteamApp.Infrastructure.DTOs.Item
 {
     public class ItemDto
     {

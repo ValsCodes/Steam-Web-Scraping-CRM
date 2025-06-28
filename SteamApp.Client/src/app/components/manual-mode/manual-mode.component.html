@@ -1,21 +1,20 @@
 <!-- <h1>Manual Mode</h1> -->
 <div class="container">
     <div class="flex justify-center">
-        <div class="panel panel--control"> 
-            <h2>Control Panel</h2>
+        <div class="panel panel--control">
+            <h2>Control Panel - {{isHatsSearch ? "Hat Mode" : "Weapon Mode"}}</h2>
             <div>
                 <button (click)="startButtonClicked()" class="button button-small-green">Start Batch</button>
                 <button (click)="resetButtonClicked()" class="button button-small-red">Reset</button>
-                <button (click)="weaponsButtonClicked()" [hidden]="!this.isHatsSearch" [disabled]="!this.isHatsSearch"
+                <button (click)="weaponsButtonClicked()" [disabled]="!this.isHatsSearch"
                     class="button button-small-blue">Weapons</button>
-                <button (click)="hatsButtonClicked()" [hidden]="this.isHatsSearch" [disabled]="this.isHatsSearch"
+                <button (click)="hatsButtonClicked()" [disabled]="this.isHatsSearch"
                     class="button button-small-yellow">Hats</button>
-
                 <label class="float-right">{{statusLabel}}</label>
             </div>
             <div class="flex-col">
                 <div class="py-2">
-                    <label for="page-number">Current Page: </label>
+                    <label for="page-number">Current {{isHatsSearch ? "Page" : "Item"}}: </label>
                     <input [(ngModel)]="currentPage" class="w-[5rem] ml-2 pl-2 rounded-md" type="number" min="1"
                         max="500" step="1" title="Enter a positive number">
                 </div>
@@ -23,36 +22,47 @@
                     <label for="page-number">Batch Size: </label>
                     <input [(ngModel)]="batchSize" class="w-[5rem] ml-2 pl-2 rounded-md" type="number" min="1" max="500"
                         step="1" title="Enter a positive number">
+                    @if(!isHatsSearch)
+                    {
+                    <button (click)="showAllWeaponsButtonClicked()" class="button button-small-blue">Show All</button>
+                    }
                 </div>
             </div>
         </div>
     </div>
-    <div class="flex m-auto">
-        <div class="filters flex gap-4">
-                <button (click)="clearClassFilters()" class="button button-small-red">Clear Class Filters</button>
-<div class="class-filters gap-2">
-
-  <label *ngFor="let cls of classes">
-    {{ cls.name }}
-    <input type="checkbox" [value]="cls.id" (change)="onClassCheckboxChange($event, cls.id)" onreadystatechange=""    />
-  </label>
-</div>
-<div class="slot-filters flex gap-2">
-  <label *ngFor="let slot of slots">
-    {{ slot.name }}
-    <input
-      type="checkbox"
-      [value]="slot.id"
-      (change)="onSlotCheckboxChange($event, slot.id)"
-    />
-  </label>
-
-</div>
-<button (click)="clearSlotFilters()" class="button button-small-red">Clear Slot Filters</button>
-</div>
-        </div>
-        <div class="panel panel--weapon-list">
-            <div class="grid-item" *ngFor="let weapon of weaponNames; let i = index">
-                <strong>{{ i + 1 }}.</strong> <a href="{{weaponUrlPartial}}{{weapon}}">{{weapon}}</a>
+    <div class="flex flex-col m-auto">
+        <button (click)="clearAllFilter()" class="button button-small-red max-w-[9.375rem]">Clear All Filters</button>
+        <div class="flex gap-2 justify-start">              
+            <div class="flex">
+                <div>
+                    <label class="mr-2">Item Name</label>
+                    <input type="text" [formControl]="searchControl" placeholder="Search weapons…"
+                        class="my-3 px-0.5 py-1 w-[19rem]" />
+                </div>
+                <button (click)="clearSearchFilter()" class="button button-small-red">Clear Search Filter</button>
             </div>
         </div>
+        <div class="filters flex gap-4">         
+            <div class="class-filters gap-2">
+                <label *ngFor="let cls of classes">
+                    {{ cls.name }}
+                    <input type="checkbox" [value]="cls.id" (change)="onClassCheckboxChange($event, cls.id)"
+                        onreadystatechange="" />
+                </label>
+            </div>
+            <button (click)="clearClassFilters()" class="button button-small-red">Clear Class Filters</button>
+            <div class="slot-filters flex gap-2">
+                <label *ngFor="let slot of slots">
+                    {{ slot.name }}
+                    <input type="checkbox" [value]="slot.id" (change)="onSlotCheckboxChange($event, slot.id)" />
+                </label>
+
+            </div>
+            <button (click)="clearSlotFilters()" class="button button-small-red">Clear Slot Filters</button>
+        </div>
+    </div>
+    <div class="panel panel--weapon-list">
+        <div class="grid-item" *ngFor="let weapon of weaponNames; let i = index">
+            <strong>{{ i + 1 }}. </strong> <a href="{{weaponUrlPartial}}{{weapon}}">{{weapon}}</a>
+        </div>
+    </div>

@@ -1,6 +1,0 @@
-@SteamAppServer_HostAddress = http://localhost:5136
-
-GET {{SteamAppServer_HostAddress}}/steam/listings/
-Accept: application/json
-
-###

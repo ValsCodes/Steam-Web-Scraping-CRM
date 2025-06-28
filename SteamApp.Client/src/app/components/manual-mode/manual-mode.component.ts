@@ -1,54 +1,74 @@
 import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormControl, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ManualModeEnum } from '../../common/enums/index';
 import { CONSTANTS } from '../../common/constants';
-
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { ReactiveFormsModule } from '@angular/forms';
 
 @Component({
   selector: 'steam-manual-mode',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule, CommonModule, ReactiveFormsModule],
   templateUrl: './manual-mode.component.html',
   styleUrl: './manual-mode.component.scss',
 })
 export class ManualModeComponent {
+  searchControl = new FormControl<string>('', { nonNullable: true });
+  searchByItemName: string = '';
+
+  constructor(private http: HttpClient) {
+    this.getWeaponNames();
+  }
+
+  ngOnInit() {
+    this.searchControl.valueChanges
+      .pipe(debounceTime(500), distinctUntilChanged())
+      .subscribe((value) => {
+        this.onSearchByNameChange(value);
+      });
+  }
+
+  onSearchByNameChange(value: string) {
+    this.searchByItemName = value;
+
+    this.getWeaponNames();
+  }
 
   selectedClasses: number[] = [];
-
-  // list out your classes with their IDs
   classes = [
-    { id: 1,  name: 'Scout'    },
-    { id: 2,  name: 'Soldier'  },
-    { id: 3,  name: 'Pyro'     },
-    { id: 4,  name: 'Demoman'  },
-    { id: 5,  name: 'Heavy'    },
-    { id: 6,  name: 'Engineer' },
-    { id: 7,  name: 'Medic'    },
-    { id: 8,  name: 'Sniper'   },
-    { id: 9,  name: 'Spy'      }
+    { id: 1, name: 'Scout' },
+    { id: 2, name: 'Soldier' },
+    { id: 3, name: 'Pyro' },
+    { id: 4, name: 'Demoman' },
+    { id: 5, name: 'Heavy' },
+    { id: 6, name: 'Engineer' },
+    { id: 7, name: 'Medic' },
+    { id: 8, name: 'Sniper' },
+    { id: 9, name: 'Spy' },
   ];
 
-    selectedSlots: number[] = [];
-
+  selectedSlots: number[] = [];
   slots = [
-    { id: 1,  name: 'Primary'    },
-    { id: 2,  name: 'Secondary'  },
-    { id: 3,  name: 'Melle'     },
-    { id: 4,  name: 'Other'  },
+    { id: 1, name: 'Primary' },
+    { id: 2, name: 'Secondary' },
+    { id: 3, name: 'Melle' },
+    { id: 4, name: 'Other' },
   ];
 
   private _constants = CONSTANTS;
 
-  private readonly _hatUrlPartial: string = this._constants.SEARCH_URL_PARTIAL + this._constants.PRODUCT_QUERY_PARAMS_EXTENDED;
+  private readonly _hatUrlPartial: string =
+    this._constants.SEARCH_URL_PARTIAL +
+    this._constants.PRODUCT_QUERY_PARAMS_EXTENDED;
 
   private currentUrl: string = this._hatUrlPartial;
 
+  public readonly weaponUrlPartial: string =
+    this._constants.LISTING_URL_PARTIAL +
+    this._constants.WEAPON_URL_QUERY_PARAMS;
 
-constructor(private http: HttpClient) {  this.getWeaponNames(); }
-
-  public readonly weaponUrlPartial: string = this._constants.LISTING_URL_PARTIAL + this._constants.WEAPON_URL_QUERY_PARAMS;;
   public weaponNames: string[] = [];
 
   public isHatsSearch: boolean = true;
@@ -63,7 +83,7 @@ constructor(private http: HttpClient) {  this.getWeaponNames(); }
     for (; this.currentPage < toPage; this.currentPage++) {
       let url = this.isHatsSearch
         ? `${this.currentUrl}p${this.currentPage}_price_asc`
-        : this.weaponNames.length > this.currentPage
+        : this.weaponNames.length >= this.currentPage
         ? `${this.currentUrl}${this.weaponNames[this.currentPage - 1]}`
         : null;
 
@@ -99,21 +119,23 @@ constructor(private http: HttpClient) {  this.getWeaponNames(); }
         this.selectedClasses.push(classId);
       }
     } else {
-      this.selectedClasses = this.selectedClasses.filter(id => id !== classId);
+      this.selectedClasses = this.selectedClasses.filter(
+        (id) => id !== classId
+      );
     }
     console.log('Selected class IDs:', this.selectedClasses);
 
     this.getWeaponNames();
   }
 
-   onSlotCheckboxChange(event: Event, slotId: number) {
+  onSlotCheckboxChange(event: Event, slotId: number) {
     const checkbox = event.target as HTMLInputElement;
     if (checkbox.checked) {
       if (!this.selectedSlots.includes(slotId)) {
         this.selectedSlots.push(slotId);
       }
     } else {
-      this.selectedSlots = this.selectedSlots.filter(id => id !== slotId);
+      this.selectedSlots = this.selectedSlots.filter((id) => id !== slotId);
     }
     console.log('Selected slot IDs:', this.selectedSlots);
 
@@ -121,28 +143,40 @@ constructor(private http: HttpClient) {  this.getWeaponNames(); }
   }
 
   getWeaponNames(): void {
-    const classFilters = this.selectedClasses.map(id => `classFilters=${encodeURIComponent(id)}`);
-    const slotFilters = this.selectedSlots.map(id => `slotFilters=${encodeURIComponent(id)}`);
-    const filters = [...classFilters, ...slotFilters].join('&');
-    
-    const url = `${this._constants.LOCAL_HOST}item?${filters}`;
+    const classFilters = this.selectedClasses.map(
+      (id) => `classFilters=${encodeURIComponent(id)}`
+    );
+    const slotFilters = this.selectedSlots.map(
+      (id) => `slotFilters=${encodeURIComponent(id)}`
+    );
+    const nameFilter =
+      this.searchByItemName !== '' ? `name=${this.searchByItemName}&` : '';
+    const filters =
+      '?' + nameFilter + [...classFilters, ...slotFilters].join('&');
+
+    const url =
+      filters.length > 1
+        ? `${this._constants.LOCAL_HOST}item${filters}`
+        : `${this._constants.LOCAL_HOST}item`;
     console.log(url);
     this.http.get<any[]>(url).subscribe({
       next: (data: any[]) => {
+        const filteredData = data
+          .filter((item) => item.isActive)
+          .sort((a, b) => a.classId - b.classId || a.slotId - b.slotId)
+          .map((item) => item.name);
 
- const filteredData = data
-      .filter(item => item.isActive)
-      .sort((a, b) => (a.classId - b.classId) ||  (a.slotId   - b.slotId))
-      .map(item => item.name);
-
-      this.weaponNames.length = 0;
-      this.weaponNames.push(...filteredData);
-
+        this.weaponNames.length = 0;
+        this.weaponNames.push(...filteredData);
       },
       error: (error) => {
         console.error('Error fetching weapon names:', error);
-      }
+      },
     });
+
+    if (!this.isHatsSearch) {
+      this.resetButtonClicked();
+    }
   }
 
   hatsButtonClicked(): void {
@@ -162,22 +196,55 @@ constructor(private http: HttpClient) {  this.getWeaponNames(); }
     }
   }
 
+  showAllWeaponsButtonClicked(): void {
+    let blocked = false;
+    let weaponNamesLength = this.weaponNames.length;
+
+    for (let index = 0; index < weaponNamesLength; index++) {
+      let url = `${this.currentUrl}${this.weaponNames[index]}`;
+      console.log(url);
+      let newWindow = window.open(url, '_blank');
+
+      if (
+        !newWindow ||
+        newWindow.closed ||
+        typeof newWindow.closed === 'undefined'
+      ) {
+        blocked = true;
+      }
+    }
+
+    this.statusLabel = blocked ? 'Bad Batch!' : 'Successful Batch!';
+
+    if (blocked) {
+      alert(
+        'Pop-ups were blocked. Please enable pop-ups for this website to open all pages.'
+      );
+    }
+  }
+
   clearSlotFilters(): void {
-      this.selectedSlots.length = 0
+    this.selectedSlots.length = 0;
 
-    document.querySelectorAll('.slot-filters input[type="checkbox"]')
-    .forEach((el: Element) => (el as HTMLInputElement).checked = false);
+    document
+      .querySelectorAll('.slot-filters input[type="checkbox"]')
+      .forEach((el: Element) => ((el as HTMLInputElement).checked = false));
 
-      this.getWeaponNames();
+    this.getWeaponNames();
   }
 
   clearClassFilters(): void {
-      this.selectedClasses.length = 0
+    this.selectedClasses.length = 0;
 
-    document.querySelectorAll('.class-filters input[type="checkbox"]')
-    .forEach((el: Element) => (el as HTMLInputElement).checked = false);
+    document
+      .querySelectorAll('.class-filters input[type="checkbox"]')
+      .forEach((el: Element) => ((el as HTMLInputElement).checked = false));
 
-      this.getWeaponNames();
+    this.getWeaponNames();
+  }
+
+  clearSearchFilter(): void {
+    this.searchControl.reset();
   }
 
   resetButtonClicked(): void {
@@ -190,5 +257,20 @@ constructor(private http: HttpClient) {  this.getWeaponNames(); }
     }
 
     this.statusLabel = '';
+  }
+
+  clearAllFilter():void { 
+    this.selectedClasses.length = 0;
+
+    document
+      .querySelectorAll('.class-filters input[type="checkbox"]')
+      .forEach((el: Element) => ((el as HTMLInputElement).checked = false));
+
+      this.selectedSlots.length = 0;
+    document
+      .querySelectorAll('.slot-filters input[type="checkbox"]')
+      .forEach((el: Element) => ((el as HTMLInputElement).checked = false));
+
+    this.clearSearchFilter();
   }
 }

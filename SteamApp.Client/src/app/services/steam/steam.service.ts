@@ -10,8 +10,8 @@ import { Product } from '../../models/product.model';
 export class SteamService {
   constructor(private http: HttpClient) {}
 
-  // private readonly localHost: string = "https://localhost:7273/";
-  private readonly localHost: string = 'https://localhost:44347/';
+   private readonly localHost: string = "https://localhost:7273/";
+  //private readonly localHost: string = 'https://localhost:44347/';
 
   private readonly get: string = 'get';
 

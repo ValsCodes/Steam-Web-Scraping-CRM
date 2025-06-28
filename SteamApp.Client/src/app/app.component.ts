@@ -11,7 +11,7 @@ import { MatPaginatorModule } from '@angular/material/paginator';
     RouterOutlet,
     FormsModule,
     SiteHeaderComponent,
-    MatPaginatorModule
+    MatPaginatorModule,
 ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',

@@ -10,7 +10,8 @@ import { Product, CreateProduct, UpdateProduct } from '../../models/product.mode
 export class ProductService {
   constructor(private http: HttpClient) {}
 
-  private readonly localHost: string = 'https://localhost:44347/';
+  //private readonly localHost: string = 'https://localhost:44347/';
+    private readonly localHost: string = 'https://localhost:7273/';
 
   private readonly productController: string = 'api/products';
   private readonly swagger: string = 'swagger/index.html';
