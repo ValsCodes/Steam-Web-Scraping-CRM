@@ -111,7 +111,7 @@ deleteButtonClicked(index: number): void {
     this.productService.deleteProduct(item.id).subscribe({
 
       next: product => {
-        console.log('Product deleted:', item.id);
+        console.log('Product deleted:', product.id);
         this.fetchSellListings();
       },
       error: err => console.error('Error deleting product:', err)

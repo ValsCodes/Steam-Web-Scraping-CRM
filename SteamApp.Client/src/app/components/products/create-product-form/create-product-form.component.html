@@ -1,14 +1,18 @@
-<form [formGroup]="productForm" (ngSubmit)="onSubmit()" class="p-4">
-    <h2>Create Product</h2>
-  <div>
+<form [formGroup]="productForm"
+      (ngSubmit)="onSubmit()"
+      class="create-product-form">
+  <h2>Create Product</h2>
+
+  <div class="form-group">
     <label>Name *</label>
-    <input formControlName="name" placeholder="Product name" />
-    <div *ngIf="productForm.get('name')?.touched && productForm.get('name')?.invalid">
+    <input class="px-2 py-1" formControlName="name" placeholder="Product name" />
+    <div class="error" 
+         *ngIf="productForm.get('name')?.touched && productForm.get('name')?.invalid">
       Name is required.
     </div>
   </div>
 
-  <div>
+  <div class="form-group">
     <label>Quality</label>
     <select formControlName="qualityId">
       <option [value]="null">Select quality</option>
@@ -16,54 +20,51 @@
     </select>
   </div>
 
-  <div>
+  <div class="form-group">
     <label>Description</label>
     <textarea formControlName="description" rows="3"></textarea>
   </div>
 
-  <div>
+  <div class="form-group">
     <label>Date Bought</label>
     <input type="date" formControlName="dateBought" />
   </div>
 
-  <div>
+  <div class="form-group">
     <label>Date Sold</label>
     <input type="date" formControlName="dateSold" />
   </div>
 
-  <div>
+  <div class="form-group">
     <label>Cost Price</label>
     <input type="number" formControlName="costPrice" min="0" />
   </div>
 
-  <div>
+  <div class="form-group price-group">
     <label>Target Sell Prices</label>
-    <div *ngFor="let idx of [1,2,3,4]">
+    <div class="price-inputs">
       <input
+        *ngFor="let idx of [1,2,3,4]"
         type="number"
         [formControlName]="'targetSellPrice' + idx"
-        placeholder="Target Sell Price {{idx}}"
+        placeholder="Price {{idx}}"
         min="0"
       />
     </div>
   </div>
 
-  <div>
+  <div class="form-group">
     <label>Sold Price</label>
     <input type="number" formControlName="soldPrice" min="0" />
   </div>
 
-  <div>
-    <label>
-      <input type="checkbox" formControlName="isHat" /> Hat
-    </label>
-    <label>
-      <input type="checkbox" formControlName="isWeapon" /> Weapon
-    </label>
-    <label>
-      <input type="checkbox" formControlName="isSold" /> Sold
-    </label>
+  <div class="form-group checkbox-group">
+    <label><input type="checkbox" formControlName="isHat"   /> Hat</label>
+    <label><input type="checkbox" formControlName="isWeapon"/> Weapon</label>
+    <label><input type="checkbox" formControlName="isSold"  /> Sold</label>
   </div>
 
-  <button type="submit" [disabled]="productForm.invalid">Create Product</button>
+  <button type="submit" [disabled]="productForm.invalid">
+    Create Product
+  </button>
 </form>

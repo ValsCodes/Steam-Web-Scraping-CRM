@@ -8,11 +8,19 @@ button {
     transition: background-color 0.3s ease;
     margin-bottom: 1rem;
 
-    &.refresh-button {
+    &.create-button {
         background-color: map-get($button-colors, success);
 
         &:hover {
             background-color: lighten(map-get($button-colors, success), 10%);
+        }
+    }
+
+    &.refresh-button {
+        background-color: map-get($button-colors, primary);
+
+        &:hover {
+            background-color: lighten(map-get($button-colors, primary), 10%);
         }
     }
 

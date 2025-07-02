@@ -6,7 +6,7 @@ using SteamApp.Infrastructure.Services;
 namespace SteamApp.Controllers
 {
     [ApiController]
-    [Route("item")]
+    [Route("api/items")]
     public class ItemController(IItemService itemService) : ControllerBase
     {
         //private readonly ILogger<SteamController> _logger;

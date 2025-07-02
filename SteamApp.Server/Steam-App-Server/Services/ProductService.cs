@@ -41,6 +41,11 @@ namespace SteamApp.Services
             if (productDto == null)
                 throw new ArgumentNullException(nameof(productDto));
 
+            if (productDto.DateBought == null)
+            {
+                productDto.DateBought = DateTime.UtcNow;
+            }
+
             var product = _mapper.Map<Product>(productDto);
 
             var id = await _repository.CreateAsync(product, ct);
@@ -51,7 +56,7 @@ namespace SteamApp.Services
             };
         }
 
-        public async Task<IEnumerable<CreateProductResult>> CreateRangeAsync(IEnumerable<CreateProductDto> productDtos,CancellationToken ct = default)
+        public async Task<IEnumerable<CreateProductResult>> CreateRangeAsync(IEnumerable<CreateProductDto> productDtos, CancellationToken ct = default)
         {
             if (productDtos == null || !productDtos.Any())
                 throw new ArgumentException("Product collection cannot be null or empty.", nameof(productDtos));
@@ -65,27 +70,6 @@ namespace SteamApp.Services
                 Message = $"Product {id} created successfully"
             });
         }
-
-        //public async Task<OperationResult> UpdateAsync(long id, JsonPatchDocument<ProductForPatchDto> patchDoc, CancellationToken ct = default)
-        //{
-        //    var product = await _repository.GetByIdAsync(id, ct);
-
-        //    var dto = _mapper.Map<ProductForPatchDto>(patchDoc);
-
-        //    patchDoc.ApplyTo(dto);
-
-        //    _mapper.Map(dto, product);
-
-        //    var success = await _repository.UpdateAsync(product, ct);
-
-        //    return new OperationResult
-        //    {
-        //        Success = success,
-        //        Message = success
-        //            ? $"Product {id} updated successfully"
-        //            : $"Product {id} not found"
-        //    };
-        //}
 
         public async Task<OperationResult> UpdateAsync(ProductDto productDto, CancellationToken ct = default)
         {

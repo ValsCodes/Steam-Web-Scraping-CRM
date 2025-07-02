@@ -5,6 +5,8 @@ import { ProductService } from '../../../services/product/product.service';
 import { ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { qualitiesCollection, Quality, qualitiesMap } from '../../../models/enums/quality.enum';
+
 
 @Component({
   selector: 'steam-create-product-form',
@@ -16,12 +18,12 @@ import { Router } from '@angular/router';
 })
 export class CreateProductFormComponent implements OnInit {
   productForm!: FormGroup;
-  qualities = [
-    { id: 1, label: 'Poor' },
-    { id: 2, label: 'Fair' },
-    { id: 3, label: 'Good' },
-    { id: 4, label: 'Excellent' }
-  ];
+
+ qualities = qualitiesCollection;
+
+ getQualityLabel(id: Quality) {
+    return qualitiesMap[id];
+  }
 
   constructor(
     private router:Router,

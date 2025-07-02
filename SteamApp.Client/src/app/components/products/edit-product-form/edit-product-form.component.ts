@@ -4,25 +4,25 @@ import { UpdateProduct } from '../../../models/product.model';
 import { ProductService } from '../../../services/product/product.service';
 import { ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Router,ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
+import {
+  qualitiesCollection,
+  qualitiesMap,
+  Quality,
+} from '../../../models/enums/quality.enum';
 
 @Component({
   selector: 'steam-edit-product-form',
   standalone: true,
-  imports: [CommonModule,
-    ReactiveFormsModule,  ],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './edit-product-form.component.html',
-  styleUrl: './edit-product-form.component.scss'
+  styleUrl: './edit-product-form.component.scss',
 })
 export class EditProductFormComponent implements OnInit {
   productForm!: FormGroup;
+
   productId!: number;
-  qualities = [
-    { id: 1, label: 'Poor' },
-    { id: 2, label: 'Fair' },
-    { id: 3, label: 'Good' },
-    { id: 4, label: 'Excellent' }
-  ];
+  qualities = qualitiesCollection;
 
   constructor(
     private fb: FormBuilder,
@@ -32,10 +32,8 @@ export class EditProductFormComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // get id from route
     this.productId = Number(this.route.snapshot.paramMap.get('id'));
 
-    // init form
     this.productForm = this.fb.group({
       name: ['', Validators.required],
       qualityId: [null],
@@ -50,16 +48,17 @@ export class EditProductFormComponent implements OnInit {
       soldPrice: [null, [Validators.min(0)]],
       isHat: [false],
       isWeapon: [false],
-      isSold: [false]
+      isSold: [false],
     });
 
-    // load existing product
-    this.productService.getProductById(this.productId).subscribe(product => {
+    this.productService.getProductById(this.productId).subscribe((product) => {
       this.productForm.patchValue({
         name: product.name,
         qualityId: product.qualityId,
         description: product.description,
-        dateBought: product.dateBought ? this.formatDate(product.dateBought) : null,
+        dateBought: product.dateBought
+          ? this.formatDate(product.dateBought)
+          : null,
         dateSold: product.dateSold ? this.formatDate(product.dateSold) : null,
         costPrice: product.costPrice,
         targetSellPrice1: product.targetSellPrice1,
@@ -69,17 +68,24 @@ export class EditProductFormComponent implements OnInit {
         soldPrice: product.soldPrice,
         isHat: product.isHat,
         isWeapon: product.isWeapon,
-        isSold: product.isSold
+        isSold: product.isSold,
       });
     });
   }
 
+  getQualityLabel(id: Quality) {
+    return qualitiesMap[id];
+  }
+
   private formatDate(date: Date): string {
-    // format yyyy-MM-dd for input[type=date]
     const d = new Date(date);
     const month = ('0' + (d.getMonth() + 1)).slice(-2);
     const day = ('0' + d.getDate()).slice(-2);
     return `${d.getFullYear()}-${month}-${day}`;
+  }
+
+  backButtonClicked() {
+    this.router.navigate(['products-catalog']);
   }
 
   onSubmit(): void {
@@ -90,14 +96,15 @@ export class EditProductFormComponent implements OnInit {
 
     const updated: UpdateProduct = {
       id: this.productId,
-      ...this.productForm.value
+      ...this.productForm.value,
     };
 
     this.productService.updateProduct(updated).subscribe({
-      next: product => {
+      next: (product) => {
         console.log('Updated product', updated);
-      this.router.navigate(['products-catalog']);
-      }, 
-      error: err => console.error('Error updating product:', err)})
+        this.router.navigate(['products-catalog']);
+      },
+      error: (err) => console.error('Error updating product:', err),
+    });
   }
 }
