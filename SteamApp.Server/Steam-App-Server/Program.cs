@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Serialization;
-using SteamApp.Context;
 using SteamApp.Infrastructure.Repositories;
 using SteamApp.Infrastructure.Services;
-using SteamApp.Mapper;
-using SteamApp.Repository;
-using SteamApp.Services;
+using SteamApp.WebAPI.Context;
+using SteamApp.WebAPI.Mapper;
+using SteamApp.WebAPI.Repositories;
+using SteamApp.WebAPI.Services;
 
 namespace SteamApp
 {

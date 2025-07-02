@@ -1,12 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using SteamApp.Models;
-using SteamApp.Models.Models;
+using SteamApp.Models.Entities;
 
-namespace SteamApp.Context
+namespace SteamApp.WebAPI.Context;
+
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {
-    public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
-    {
-        public DbSet<Item> Items { get; set; }
-        public DbSet<Product> Products { get; set; }
-    }
+    public DbSet<Item> Items { get; set; }
+    public DbSet<Product> Products { get; set; }
 }

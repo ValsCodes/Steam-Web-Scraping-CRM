@@ -1,4 +1,4 @@
-﻿using SteamApp.Infrastructure.DTOs.Item;
+﻿using SteamApp.Models.DTOs.Item;
 
 namespace SteamApp.Infrastructure.Services;
 

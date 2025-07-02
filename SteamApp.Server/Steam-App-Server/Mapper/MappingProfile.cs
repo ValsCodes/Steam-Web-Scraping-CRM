@@ -1,38 +1,29 @@
 ﻿using AutoMapper;
-using SteamApp.Infrastructure.DTOs.Item;
-using SteamApp.Infrastructure.DTOs.Product;
-using SteamApp.Models;
-using SteamApp.Models.Models;
+using SteamApp.Models.DTOs.Item;
+using SteamApp.Models.DTOs.Product;
+using SteamApp.Models.Entities;
 
-namespace SteamApp.Mapper
+namespace SteamApp.WebAPI.Mapper;
+
+public class MappingProfile : Profile
 {
-    public class MappingProfile : Profile
+    public MappingProfile()
     {
-        public MappingProfile()
-        {
-            #region Product Mapping
 
-            CreateMap<Product, ProductDto>();
+        CreateMap<Product, ProductDto>();
 
-            CreateMap<ProductDto, Product>();
+        CreateMap<ProductDto, Product>();
 
-            CreateMap<CreateProductDto, Product>().ForMember(dest => dest.Id, opt => opt.Ignore());
+        CreateMap<CreateProductDto, Product>().ForMember(dest => dest.Id, opt => opt.Ignore());
 
-            CreateMap<UpdateProductDto, Product>();
+        CreateMap<UpdateProductDto, Product>();
 
-            CreateMap<ProductForPatchDto, Product>();
-            CreateMap<ProductForPatchDto, Product>().ReverseMap();     
+        CreateMap<UpdateProductDto, Product>().ReverseMap();     
 
-            #endregion
+        CreateMap<ItemDto, Item>();
 
-            #region Item Mapping
+        CreateMap<Item, ItemDto>();
 
-            CreateMap<ItemDto, Item>();
-
-            CreateMap<Item, ItemDto>();
-
-            CreateMap<CreateItemDto, Item>().ForMember(dest => dest.Id, opt => opt.Ignore());
-            #endregion
-        }
+        CreateMap<CreateItemDto, Item>().ForMember(dest => dest.Id, opt => opt.Ignore());
     }
 }

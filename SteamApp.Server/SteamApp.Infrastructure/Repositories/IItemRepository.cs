@@ -1,4 +1,4 @@
-﻿using SteamApp.Models.Models;
+﻿using SteamApp.Models.Entities;
 
 namespace SteamApp.Infrastructure.Repositories;
 
