@@ -1,5 +1,5 @@
 <div class="table-container">
-    <div class="flex flex-row justify-between w-full">
+    <div class="flex flex-row justify-between">
         <div>
             <button class="create-button mr-4" (click)="createButtonClicked()">Create Item</button>
             <button class="refresh-button mr-4" (click)="refreshButtonClicked()">Refresh</button>
@@ -30,36 +30,36 @@
         <ng-container matColumnDef="is_active">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Is Active </th>
             <td mat-cell *matCellDef="let item">
-                {{item.isActive}}
+                <input  type="checkbox"  [checked]="item.isActive"  disabled/>
             </td>
         </ng-container>
 
         <ng-container matColumnDef="is_weapon">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Weapon</th>
             <td mat-cell *matCellDef="let item">
-                {{item.isWeapon }}
+               <input  type="checkbox"  [checked]="item.isWeapon"  disabled/>
             </td>
         </ng-container>
 
         <ng-container matColumnDef="class_id">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Class </th>
             <td mat-cell *matCellDef="let item">
-                {{ item.classId}}
+                {{ getClassLabel(item.classId) }}
             </td>
         </ng-container>
 
                 <ng-container matColumnDef="slot_id">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Slot </th>
             <td mat-cell *matCellDef="let item" >
-                {{ item.slotId }}
+                {{ getSlotLabel(item.slotId) }}
             </td>
         </ng-container>
 
         <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef>Actions</th>
             <td mat-cell *matCellDef="let element; let i = index">
-              <button class="sell-button ml-2" (click)="editButtonClicked(i)">Edit</button>
-              <button class="delete-button ml-2" (click)="deleteButtonClicked(i)">Delete</button>
+              <button class="sell-button ml-2" (click)="editButtonClicked(element.id)">Edit</button>
+              <button class="delete-button ml-2" (click)="deleteButtonClicked(element.id)">Delete</button>
             </td>
           </ng-container>
 

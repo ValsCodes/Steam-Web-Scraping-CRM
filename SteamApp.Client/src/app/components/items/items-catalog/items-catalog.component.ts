@@ -9,6 +9,8 @@ import * as XLSX from 'xlsx';
 import { Item } from '../../../models/item.model';
 import { Router } from '@angular/router';
 import { ItemService } from '../../../services/item/item.service';
+import { Class, classesCollection, classesMap } from '../../../models/enums/class.enum';
+import { Slot, slotsCollection, slotsMap } from '../../../models/enums/slot.enum';
 
 @Component({
   selector: 'steam-items-catalog',
@@ -33,11 +35,23 @@ export class ItemsCatalogComponent implements OnInit, AfterViewInit {
     'id',
     'name',
     'is_active',
-    'is_weapon', 
+    'is_weapon',
     'class_id',
     'slot_id',
     'actions',
   ];
+
+      classes = classesCollection;
+      getClassLabel(id: Class) {
+        console.log(classesMap[id])
+        return classesMap[id];
+      }
+    
+      slots = slotsCollection;
+    
+      getSlotLabel(id: Slot) {
+        return slotsMap[id];
+      }
 
   constructor(private router: Router, private itemService: ItemService) {}
 
@@ -81,23 +95,23 @@ export class ItemsCatalogComponent implements OnInit, AfterViewInit {
     XLSX.writeFile(workbook, `Export_${today.toDateString()}_Items.xlsx`);
   }
 
-  editButtonClicked(index: number): void {
-    const itemId = this.dataSource.data.at(index)?.id!;
-
-    if (itemId > 0) {
-      this.router.navigate(['edit-item', itemId]);
-    }
-  }
-
-  deleteButtonClicked(index: number): void {
-    const item = this.dataSource.data[index];
-    if (!item || item.id <= 0) {
-      console.warn('Invalid item id:', item?.id);
+  editButtonClicked(id: number): void {
+    if (!id || id <= 0) {
+      console.warn('Invalid item id:', id);
       return;
     }
 
-    console.log('Deleting item with id:', item.id);
-    this.itemService.deleteItem(item.id).subscribe({
+    this.router.navigate(['edit-item', id]);
+  }
+
+  deleteButtonClicked(id: number): void {
+    if (!id || id <= 0) {
+      console.warn('Invalid item id:', id);
+      return;
+    }
+
+    console.log('Deleting item with id:', id);
+    this.itemService.deleteItem(id).subscribe({
       next: (product) => {
         console.log('Item deleted:', product.id);
         this.fetchItems();

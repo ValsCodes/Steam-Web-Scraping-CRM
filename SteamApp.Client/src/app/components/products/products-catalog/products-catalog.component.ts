@@ -91,23 +91,23 @@ export class ProductsCatalogComponent implements OnInit, AfterViewInit {
     XLSX.writeFile(workbook, `Export_${today.toDateString()}_Products.xlsx`);
   }
 
-  editButtonClicked(index: number): void {
-    const itemId = this.dataSource.data.at(index)?.id!;
-
-    if (itemId > 0) {
-      this.router.navigate(['edit-product', itemId]);
-    }
-  }
-
-deleteButtonClicked(index: number): void {
-    const item = this.dataSource.data[index];
-    if (!item || item.id <= 0) {
-      console.warn('Invalid item id:', item?.id);
+  editButtonClicked(id: number): void {
+    if (!id ||  id <= 0) {
+      console.warn('Invalid item id:', id);
       return;
     }
 
-    console.log('Deleting product with id:', item.id);
-    this.productService.deleteProduct(item.id).subscribe({
+    this.router.navigate(['edit-product', id]);
+  }
+
+deleteButtonClicked(id: number): void {
+    if (!id || id <= 0) {
+      console.warn('Invalid item id:', id);
+      return;
+    }
+
+    console.log('Deleting product with id:', id);
+    this.productService.deleteProduct(id).subscribe({
 
       next: product => {
         console.log('Product deleted:', product.id);

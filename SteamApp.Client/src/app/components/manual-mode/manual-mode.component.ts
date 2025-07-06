@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { CONSTANTS } from '../../common/constants';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ReactiveFormsModule } from '@angular/forms';
+import { ItemService } from '../../services/item/item.service';
 
 @Component({
   selector: 'steam-manual-mode',
@@ -17,7 +18,7 @@ export class ManualModeComponent {
   searchControl = new FormControl<string>('', { nonNullable: true });
   searchByItemName: string = '';
 
-  constructor(private http: HttpClient) {
+  constructor(private http:HttpClient, private itemService: ItemService) {
     this.getWeaponNames();
   }
 
@@ -155,8 +156,8 @@ export class ManualModeComponent {
 
     const url =
       filters.length > 1
-        ? `${this._constants.LOCAL_HOST}item${filters}`
-        : `${this._constants.LOCAL_HOST}item`;
+        ? `${this._constants.LOCAL_HOST}api/items${filters}`
+        : `${this._constants.LOCAL_HOST}api/items`;
     console.log(url);
     this.http.get<any[]>(url).subscribe({
       next: (data: any[]) => {
@@ -258,14 +259,14 @@ export class ManualModeComponent {
     this.statusLabel = '';
   }
 
-  clearAllFilter():void { 
+  clearAllFilter(): void {
     this.selectedClasses.length = 0;
 
     document
       .querySelectorAll('.class-filters input[type="checkbox"]')
       .forEach((el: Element) => ((el as HTMLInputElement).checked = false));
 
-      this.selectedSlots.length = 0;
+    this.selectedSlots.length = 0;
     document
       .querySelectorAll('.slot-filters input[type="checkbox"]')
       .forEach((el: Element) => ((el as HTMLInputElement).checked = false));
