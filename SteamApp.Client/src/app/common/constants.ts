@@ -1,5 +1,6 @@
 export const CONSTANTS = {
   LISTING_URL_PARTIAL: 'https://steamcommunity.com/market/listings/440/',
+  
   WEAPON_URL_QUERY_PARAMS: 'Strange%20Specialized%20Killstreak%20',
   
   SEARCH_URL_PARTIAL: 'https://steamcommunity.com/market/search',

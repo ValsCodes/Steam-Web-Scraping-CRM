@@ -36,7 +36,7 @@ export class ItemService {
     return this.http.patch<any>(url, item).pipe(catchError(handleError));
   }
 
-  deleteProduct(itemId: number): Observable<any> {
+  deleteItem(itemId: number): Observable<any> {
     const url = `${g.localHost}${this.itemController}/${itemId}`;
 
     return this.http.delete<any>(url).pipe(catchError(handleError));

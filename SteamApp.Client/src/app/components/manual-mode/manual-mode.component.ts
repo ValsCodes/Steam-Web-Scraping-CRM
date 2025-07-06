@@ -2,7 +2,6 @@ import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { FormControl, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { ManualModeEnum } from '../../common/enums/index';
 import { CONSTANTS } from '../../common/constants';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ReactiveFormsModule } from '@angular/forms';
