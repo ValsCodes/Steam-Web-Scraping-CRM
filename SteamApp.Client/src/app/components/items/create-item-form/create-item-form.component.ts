@@ -28,6 +28,7 @@ export class CreateItemFormComponent implements OnInit {
 
   classes = classesCollection;
   getClassLabel(id: Class) {
+    console.log(classesMap[id])
     return classesMap[id];
   }
 

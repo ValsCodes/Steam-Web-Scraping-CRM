@@ -10,26 +10,14 @@ export enum Class {
   Spy = 9,
 }
 
-export const classesMap: Record<Class, string> = {
-  [Class.Scout]: 'Scout',
-  [Class.Soldier]: 'Soldier',
-  [Class.Pyro]: 'Pyro',
-  [Class.Demoman]: 'Demoman',
-  [Class.Heavy]: 'Heavy',
-  [Class.Engineer]: 'Engineer',
-  [Class.Medic]: 'Medic',
-  [Class.Sniper]: 'Sniper',
-  [Class.Spy]: 'Spy',
-};
+const classIds = Object.values(Class)
+  .filter((v): v is Class => typeof v === 'number')
 
-export const classesCollection: { id: Class; label: string }[] = [
-  { id: Class.Scout, label: classesMap[Class.Scout] },
-  { id: Class.Soldier, label: classesMap[Class.Soldier] },
-  { id: Class.Pyro, label: classesMap[Class.Pyro] },
-  { id: Class.Demoman, label: classesMap[Class.Demoman] },
-  { id: Class.Heavy, label: classesMap[Class.Heavy] },
-  { id: Class.Engineer, label: classesMap[Class.Engineer] },
-  { id: Class.Medic, label: classesMap[Class.Medic] },
-  { id: Class.Sniper, label: classesMap[Class.Sniper] },
-  { id: Class.Spy, label: classesMap[Class.Spy] },
-];
+export const classesMap = Object.fromEntries(
+  classIds.map(id => [id, Class[id]])
+) as Record<Class, string>
+
+export const classesCollection = classIds.map(id => ({
+  id,
+  label: Class[id],
+}))
