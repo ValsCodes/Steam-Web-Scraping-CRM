@@ -1,61 +1,31 @@
-import { HttpClient } from '@angular/common/http';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormControl, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { CONSTANTS } from '../../common/constants';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ItemService } from '../../services/item/item.service';
+import { ItemSearchComponent } from '../item-search/item-search.component';
 
 @Component({
   selector: 'steam-manual-mode',
   standalone: true,
-  imports: [FormsModule, CommonModule, ReactiveFormsModule],
+  imports: [
+    FormsModule,
+    CommonModule,
+    ReactiveFormsModule,
+    ItemSearchComponent,
+  ],
   templateUrl: './manual-mode.component.html',
   styleUrl: './manual-mode.component.scss',
 })
-export class ManualModeComponent {
+export class ManualModeComponent implements OnInit {
   searchControl = new FormControl<string>('', { nonNullable: true });
   searchByItemName: string = '';
 
-  constructor(private http:HttpClient, private itemService: ItemService) {
-    this.getWeaponNames();
-  }
-
-  ngOnInit() {
-    this.searchControl.valueChanges
-      .pipe(debounceTime(500), distinctUntilChanged())
-      .subscribe((value) => {
-        this.onSearchByNameChange(value);
-      });
-  }
-
-  onSearchByNameChange(value: string) {
-    this.searchByItemName = value;
-
-    this.getWeaponNames();
-  }
-
   selectedClasses: number[] = [];
-  classes = [
-    { id: 1, name: 'Scout' },
-    { id: 2, name: 'Soldier' },
-    { id: 3, name: 'Pyro' },
-    { id: 4, name: 'Demoman' },
-    { id: 5, name: 'Heavy' },
-    { id: 6, name: 'Engineer' },
-    { id: 7, name: 'Medic' },
-    { id: 8, name: 'Sniper' },
-    { id: 9, name: 'Spy' },
-  ];
 
   selectedSlots: number[] = [];
-  slots = [
-    { id: 1, name: 'Primary' },
-    { id: 2, name: 'Secondary' },
-    { id: 3, name: 'Melle' },
-    { id: 4, name: 'Other' },
-  ];
 
   private _constants = CONSTANTS;
 
@@ -75,6 +45,33 @@ export class ManualModeComponent {
   public batchSize: number = 7;
   public currentPage: number = 76;
   public statusLabel: string = '';
+
+  constructor(private itemService: ItemService) {}
+
+  ngOnInit(): void {
+    this.loadWeapons();
+
+    this.searchControl.valueChanges
+      .pipe(debounceTime(500), distinctUntilChanged())
+      .subscribe((value) => {
+        this.searchByItemName = value;
+        this.loadWeapons();
+      });
+  }
+
+  onClassesChanged(newClasses: number[]) {
+    this.selectedClasses = newClasses;
+  }
+
+  onSlotsChanged(newSlots: number[]) {
+    this.selectedSlots = newSlots;
+  }
+
+  onSearchByNameChange(value: string) {
+    this.searchByItemName = value;
+
+    this.loadWeapons();
+  }
 
   startButtonClicked(): void {
     let toPage = this.currentPage + this.batchSize;
@@ -123,9 +120,8 @@ export class ManualModeComponent {
         (id) => id !== classId
       );
     }
-    console.log('Selected class IDs:', this.selectedClasses);
 
-    this.getWeaponNames();
+    this.loadWeapons();
   }
 
   onSlotCheckboxChange(event: Event, slotId: number) {
@@ -137,47 +133,27 @@ export class ManualModeComponent {
     } else {
       this.selectedSlots = this.selectedSlots.filter((id) => id !== slotId);
     }
-    console.log('Selected slot IDs:', this.selectedSlots);
 
-    this.getWeaponNames();
+    this.loadWeapons();
   }
 
-  getWeaponNames(): void {
-    const classFilters = this.selectedClasses.map(
-      (id) => `classFilters=${encodeURIComponent(id)}`
-    );
-    const slotFilters = this.selectedSlots.map(
-      (id) => `slotFilters=${encodeURIComponent(id)}`
-    );
-    const nameFilter =
-      this.searchByItemName !== '' ? `name=${this.searchByItemName}&` : '';
-    const filters =
-      '?' + nameFilter + [...classFilters, ...slotFilters].join('&');
+  loadWeapons = (nameFilter: string = this.searchByItemName): void => {
+    this.itemService
+      .getItems(this.selectedClasses, this.selectedSlots, nameFilter)
+      .subscribe({
+        next: (data) => {
+          const filteredData = data
+            .filter((item) => item.isActive && item.isWeapon)
+            .map((item) => item.name);
 
-    const url =
-      filters.length > 1
-        ? `${this._constants.LOCAL_HOST}api/items${filters}`
-        : `${this._constants.LOCAL_HOST}api/items`;
-    console.log(url);
-    this.http.get<any[]>(url).subscribe({
-      next: (data: any[]) => {
-        const filteredData = data
-          .filter((item) => item.isActive)
-          .sort((a, b) => a.classId - b.classId || a.slotId - b.slotId)
-          .map((item) => item.name);
-
-        this.weaponNames.length = 0;
-        this.weaponNames.push(...filteredData);
-      },
-      error: (error) => {
-        console.error('Error fetching weapon names:', error);
-      },
-    });
-
-    if (!this.isHatsSearch) {
-      this.resetButtonClicked();
-    }
-  }
+          this.weaponNames.length = 0;
+          this.weaponNames.push(...filteredData);
+        },
+        error: (err) => {
+          console.log('Error Loading Items: ' + err);
+        },
+      });
+  };
 
   hatsButtonClicked(): void {
     if (!this.isHatsSearch) {
@@ -223,30 +199,6 @@ export class ManualModeComponent {
     }
   }
 
-  clearSlotFilters(): void {
-    this.selectedSlots.length = 0;
-
-    document
-      .querySelectorAll('.slot-filters input[type="checkbox"]')
-      .forEach((el: Element) => ((el as HTMLInputElement).checked = false));
-
-    this.getWeaponNames();
-  }
-
-  clearClassFilters(): void {
-    this.selectedClasses.length = 0;
-
-    document
-      .querySelectorAll('.class-filters input[type="checkbox"]')
-      .forEach((el: Element) => ((el as HTMLInputElement).checked = false));
-
-    this.getWeaponNames();
-  }
-
-  clearSearchFilter(): void {
-    this.searchControl.reset();
-  }
-
   resetButtonClicked(): void {
     if (this.isHatsSearch) {
       this.currentPage = 76;
@@ -257,20 +209,5 @@ export class ManualModeComponent {
     }
 
     this.statusLabel = '';
-  }
-
-  clearAllFilter(): void {
-    this.selectedClasses.length = 0;
-
-    document
-      .querySelectorAll('.class-filters input[type="checkbox"]')
-      .forEach((el: Element) => ((el as HTMLInputElement).checked = false));
-
-    this.selectedSlots.length = 0;
-    document
-      .querySelectorAll('.slot-filters input[type="checkbox"]')
-      .forEach((el: Element) => ((el as HTMLInputElement).checked = false));
-
-    this.clearSearchFilter();
   }
 }

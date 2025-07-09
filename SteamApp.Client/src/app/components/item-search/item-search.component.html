@@ -1,0 +1,35 @@
+    <div class="flex flex-col m-auto">
+        <div class="flex">
+        <button (click)="getItems()" class="button button-small-blue max-w-[9.375rem]">Refresh</button>
+        <button (click)="clearAllFilter()" class="button button-small-red max-w-[9.375rem]">Clear All Filters</button>
+
+        </div>
+        <div class="flex gap-2 justify-start">              
+            <div class="flex">
+                <div>
+                    <label class="mr-2">Item Name</label>
+                    <input  #searchBox type="text" [formControl]="searchControl" placeholder="Search weapons…"
+                        class="my-3 px-0.5 py-1 w-[19rem]"/>
+                </div>
+                <button (click)="clearSearchFilter()" class="button button-small-red">Clear Search Filter</button>
+            </div>
+        </div>
+        <div class="filters flex gap-4">         
+            <div class="class-filters gap-2">
+                <label *ngFor="let cls of classes">
+                    {{ cls.label }}
+                    <input type="checkbox" [value]="cls.id" (change)="onClassChange($event, cls.id)"
+                        onreadystatechange="" />
+                </label>
+            </div>
+            <button (click)="clearClassFilters()" class="button button-small-red">Clear Class Filters</button>
+            <div class="slot-filters flex gap-2">
+                <label *ngFor="let slot of slots">
+                    {{ slot.label }}
+                    <input type="checkbox" [value]="slot.id" (change)="onSlotChange($event, slot.id)" />
+                </label>
+
+            </div>
+            <button (click)="clearSlotFilters()" class="button button-small-red">Clear Slot Filters</button>
+        </div>
+    </div>
