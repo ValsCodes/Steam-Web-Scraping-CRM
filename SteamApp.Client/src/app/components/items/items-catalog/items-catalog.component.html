@@ -10,6 +10,46 @@
             <!-- <button class="import-button mr-4" (click)="importButtonClicked()">Import</button> -->
         </div>
     </div>
+<div class="flex gap-2">
+  <label>
+    <input
+      type="checkbox"
+      [(ngModel)]="isActive"
+      (ngModelChange)="fetchItems()"
+      name="activeToggle"
+    />
+    Active
+  </label>
+    <label>
+    <input
+      type="checkbox"
+      [(ngModel)]="isInactive"
+      (ngModelChange)="fetchItems()"
+      name="activeToggle"
+    />
+    Inactive
+  </label>
+  <label>
+    <input
+      type="checkbox"
+      [(ngModel)]="isWeapon"
+      (ngModelChange)="fetchItems()"
+      name="weaponToggle"
+    />
+    Weapon
+  </label>
+  <label>
+    <input
+      type="checkbox"
+      [(ngModel)]="isNotWeapon"
+      (ngModelChange)="fetchItems()"
+      name="notWeaponToggle"
+    />
+    Not Weapon
+  </label>
+</div>
+    <steam-item-search [getItems]="fetchItems" (selectedClasses)="onClassesChanged($event)"
+        (selectedSlots)="onSlotsChanged($event)" (searchByNameValue)="onSearchByNameChange(($event))" />
 
     <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z8">
 
@@ -27,17 +67,26 @@
             </td>
         </ng-container>
 
+        <ng-container matColumnDef="url">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> URL </th>
+            <td mat-cell *matCellDef="let item">
+                <a href="{{weaponUrlPartial}}{{item.name}}">
+                    < URL>
+                </a>
+            </td>
+        </ng-container>
+
         <ng-container matColumnDef="is_active">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Is Active </th>
             <td mat-cell *matCellDef="let item">
-                <input  type="checkbox"  [checked]="item.isActive"  disabled/>
+                <input type="checkbox" [checked]="item.isActive" disabled />
             </td>
         </ng-container>
 
         <ng-container matColumnDef="is_weapon">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Weapon</th>
             <td mat-cell *matCellDef="let item">
-               <input  type="checkbox"  [checked]="item.isWeapon"  disabled/>
+                <input type="checkbox" [checked]="item.isWeapon" disabled />
             </td>
         </ng-container>
 
@@ -48,9 +97,9 @@
             </td>
         </ng-container>
 
-                <ng-container matColumnDef="slot_id">
+        <ng-container matColumnDef="slot_id">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Slot </th>
-            <td mat-cell *matCellDef="let item" >
+            <td mat-cell *matCellDef="let item">
                 {{ getSlotLabel(item.slotId) }}
             </td>
         </ng-container>
@@ -58,10 +107,10 @@
         <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef>Actions</th>
             <td mat-cell *matCellDef="let element; let i = index">
-              <button class="sell-button ml-2" (click)="editButtonClicked(element.id)">Edit</button>
-              <button class="delete-button ml-2" (click)="deleteButtonClicked(element.id)">Delete</button>
+                <button class="sell-button ml-2" (click)="editButtonClicked(element.id)">Edit</button>
+                <button class="delete-button ml-2" (click)="deleteButtonClicked(element.id)">Delete</button>
             </td>
-          </ng-container>
+        </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
