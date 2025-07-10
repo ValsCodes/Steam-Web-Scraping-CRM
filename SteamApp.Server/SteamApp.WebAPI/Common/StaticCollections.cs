@@ -1,7 +1,24 @@
-﻿namespace SteamApp.WebAPI.Common;
+﻿using SteamApp.Models.ValueObjects;
+using System.Drawing;
+
+namespace SteamApp.WebAPI.Common;
 
 public static class StaticCollections
 {
+
+    public static readonly Paint[] GoodPaintsColorCollection =
+[
+   new Paint() { Name = "Pink",  Color = Color.FromArgb(192, 255, 105, 180), IsGoodPaint = true},
+    new Paint() { Name ="Green", Color = Color.FromArgb(192,  50, 205,  50), IsGoodPaint = true },
+   new Paint()  { Name ="Black", Color = Color.FromArgb(192,  20,  20,  20), IsGoodPaint = true},
+        new Paint()  { Name ="White", Color = Color.FromArgb(192,  230,  230,  230), IsGoodPaint = true},
+        new Paint()  { Name ="Bright Team Color", Color = Color.FromArgb(192,  184,  56,  59), IsGoodPaint = true},
+         new Paint()  { Name ="Yellow", Color = Color.FromArgb(192,  231,  181,  59)},
+        new Paint()  { Name ="Mint", Color = Color.FromArgb(192,  188,  221,  179)},
+        new Paint()  { Name ="Orange", Color = Color.FromArgb(192,  207,  115,  54)},
+        new Paint()  { Name ="Purple", Color = Color.FromArgb(192,  125,  64,  113)}
+];
+
     public static readonly string[] GoodPaints = new[]
     {
         "The Bitter Taste of Defeat and Lime", // Lime Green                                                          

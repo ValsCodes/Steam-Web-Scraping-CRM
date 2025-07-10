@@ -55,6 +55,23 @@ public class SteamController : ControllerBase
         }
     }
 
+
+
+    [HttpGet("get-paint-info-source")]
+    public IActionResult GetPaintInfoFromSourceAsync(string src)
+    {
+        try
+        {
+            var result = _steamService.GetPaintInfoFromSource(src).GetAwaiter().GetResult();
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
+
+
     /// <summary>
     /// Web scrapes a page from the Community Market
     /// </summary>
@@ -65,7 +82,21 @@ public class SteamController : ControllerBase
     {
         try
         {
-            var result = _steamService.ScrapePageAsync(page).GetAwaiter().GetResult();
+            var result = _steamService.ScrapePage(page).GetAwaiter().GetResult();
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
+
+    [HttpGet("hat/page-by-pixel/{page}")]
+    public IActionResult ScrapePageByPixelAsync(short page, bool isGoodPaintsOnly = true)
+    {
+        try
+        {
+            var result = _steamService.ScrapePageByPixel(page, isGoodPaintsOnly).GetAwaiter().GetResult();
             return Ok(result);
         }
         catch (Exception ex)
@@ -84,7 +115,7 @@ public class SteamController : ControllerBase
     {
         try
         {
-            var result = _steamService.GetFilteredBulkListingsAsync(page).GetAwaiter().GetResult();
+            var result = _steamService.GetFilteredBulkListings(page).GetAwaiter().GetResult();
             return Ok(result);
         }
         catch (Exception ex)
@@ -102,7 +133,7 @@ public class SteamController : ControllerBase
     {
         try
         {
-            var result = _steamService.ScrapePageForPaintedListingsOnlyAsync(page).GetAwaiter().GetResult();
+            var result = _steamService.ScrapePageForPaintedListingsOnly(page).GetAwaiter().GetResult();
             return Ok(result);
         }
         catch (Exception ex)
@@ -121,7 +152,7 @@ public class SteamController : ControllerBase
     {
         try
         {
-            var result = _steamService.CheckIsListingPaintedAsync(name).GetAwaiter().GetResult();
+            var result = _steamService.CheckIsListingPainted(name).GetAwaiter().GetResult();
             return Ok(result);
         }
         catch (JsonSerializationException ex)

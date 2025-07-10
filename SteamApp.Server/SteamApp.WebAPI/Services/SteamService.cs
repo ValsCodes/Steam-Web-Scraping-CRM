@@ -4,10 +4,12 @@ using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using SeleniumExtras.WaitHelpers;
 using SteamApp.Infrastructure.Services;
-using System.Collections.ObjectModel;
+using SteamApp.Models.DTOs;
 using SteamApp.Models.JsonObjects;
 using SteamApp.WebAPI.Common;
-using SteamApp.Models.DTOs;
+using System.Collections.ObjectModel;
+using System.Drawing;
+using System.Text;
 
 namespace SteamApp.WebAPI.Services;
 
@@ -70,7 +72,7 @@ public class SteamService : ISteamService
     /// </summary>
     /// <param name="page"></param>
     /// <returns></returns>
-    public async Task<IEnumerable<ListingDto>> ScrapePageAsync(short page)
+    public async Task<IEnumerable<ListingDto>> ScrapePage(short page)
     {
         if (page < 0 || page > short.MaxValue)
         {
@@ -110,12 +112,99 @@ public class SteamService : ISteamService
         });
     }
 
+    public async Task<string> GetPaintInfoFromSource(string src)
+    {
+        //no color
+        //string srcImage = "https://community.fastly.steamstatic.com/economy/image/fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEDaQYVVQ7srD1Rm_fxH_OcN-wBid0wq8AE2mc7xlV4MOazZjIyJgLHWfRcBPBsoli-CnZjvZEyAtPv8ewFfl3x9NyREldD0mM";
+
+        string srcImage = src.Replace("/62fx62f", string.Empty);
+
+        var result = new StringBuilder();
+
+        using (HttpClient client = new())
+        {
+            byte[] bytes = await client.GetByteArrayAsync(srcImage);
+
+            using var ms = new MemoryStream(bytes);
+            using Bitmap bmp = new(ms);
+
+            Color c = bmp.GetPixel(450, 50);
+
+            result.AppendLine(c.Name);
+            result.AppendLine($"R - {c.R}, G - {c.G}, B - {c.B}");
+        }
+
+        return result.ToString();
+    }
+
+    public async Task<IEnumerable<ListingDto>> ScrapePageByPixel(short page, bool isGoodColorOnly = true)
+    {
+        if (page < 0 || page > short.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException("Page is either negative or greater than 500.");
+        }
+
+        var url = Constants.MANUAL_HATS_URL + $"p{page}_price_asc";
+
+        var options = new ChromeOptions();
+        options.AddArgument("--headless");
+        options.AddArgument("--disable-gpu");
+
+
+        var results = new List<ListingDto>();
+
+        using (IWebDriver driver = new ChromeDriver(options))
+        {
+            driver.Navigate().GoToUrl(url);
+
+            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
+            wait.Until(ExpectedConditions.ElementExists(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]")));
+
+            ReadOnlyCollection<IWebElement> listingAnchors =
+                driver.FindElements(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]"));
+
+            foreach (var anchor in listingAnchors)
+            {
+                var listing = ParseListingFromAnchor(anchor);
+
+                string srcImage = listing.ImageUrl!.Replace("/62fx62f", string.Empty);
+                using HttpClient client = new HttpClient();
+                byte[] bytes = await client.GetByteArrayAsync(srcImage);
+
+                using var ms = new MemoryStream(bytes);
+                using Bitmap bmp = new Bitmap(ms);
+                Color c = bmp.GetPixel(450, 50);
+
+                if (isGoodColorOnly)
+                {
+                    var colorMatch = StaticCollections.GoodPaintsColorCollection.FirstOrDefault(x => x.Color.Name.Equals(c.Name) && x.IsGoodPaint);
+                    if (colorMatch != null)
+                    {
+                        listing.Color = colorMatch.Name;
+                        results.Add(listing);
+                    }
+                }
+                else
+                {
+                    if (!c.Name.Equals("0"))
+                    {
+                        var colorMatch = StaticCollections.GoodPaintsColorCollection.FirstOrDefault(x => x.Color.Name.Equals(c.Name));
+                        listing.Color = colorMatch!.Name;
+                        results.Add(listing);
+                    }
+                }
+            }
+        }
+
+        return results;
+    }
+
     /// <summary>
     /// Accepts a page value from 0 to 99 and returns only listings in a good price range
     /// </summary>
     /// <param name="page"></param>
     /// <returns> A Collection of ListingDTOs</returns>
-    public async Task<IEnumerable<ListingDto>> GetFilteredBulkListingsAsync(short page)
+    public async Task<IEnumerable<ListingDto>> GetFilteredBulkListings(short page)
     {
         if (page < 0 || page > 500)
         {
@@ -135,7 +224,7 @@ public class SteamService : ISteamService
     /// </summary>
     /// <param name="name"></param>
     /// <returns></returns>
-    public async Task<PaintedListingDto> CheckIsListingPaintedAsync(string name)
+    public async Task<PaintedListingDto> CheckIsListingPainted(string name)
     {
         // TODO check if name is in DB of item names
         name = name.Trim();
@@ -185,7 +274,7 @@ public class SteamService : ISteamService
     /// <param name="page"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<IEnumerable<PaintedListingsDto>> ScrapePageForPaintedListingsOnlyAsync(short page)
+    public async Task<IEnumerable<PaintedListingsDto>> ScrapePageForPaintedListingsOnly(short page)
     {
         if (page < 0 || page > 500)
         {
@@ -193,13 +282,13 @@ public class SteamService : ISteamService
         }
 
         var results = new List<PaintedListingsDto>();
-        var listings = await ScrapePageAsync(page);
+        var listings = await ScrapePage(page);
 
         if (listings.Any())
         {
             foreach (var listing in listings)
             {
-                var isListingPaintedResult = await CheckIsListingPaintedAsync(listing.Name!);
+                var isListingPaintedResult = await CheckIsListingPainted(listing.Name!);
                 if (isListingPaintedResult.IsPainted)
                 {
                     var paintedListing = new PaintedListingsDto
