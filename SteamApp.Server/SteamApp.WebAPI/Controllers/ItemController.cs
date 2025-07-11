@@ -61,11 +61,15 @@ public class ItemController(IItemService itemService) : ControllerBase
         try
         {
             if (dto == null)
+            {
                 return BadRequest("No data provided.");
+            }
 
             var item = await itemService.GetItemById(dto.Id, ct);
             if (item == null)
+            {
                 return NotFound();
+            }
 
             if (dto.Name != null) item.Name = dto.Name;
             if (dto.IsWeapon.HasValue) item.IsWeapon = dto.IsWeapon.Value;
@@ -74,7 +78,6 @@ public class ItemController(IItemService itemService) : ControllerBase
             if (dto.IsActive.HasValue) item.IsActive = dto.IsActive.Value;
             if (dto.CurrentStock.HasValue) item.CurrentStock = dto.CurrentStock.Value;
 
-
             var result = await itemService.UpdateItem(item, ct);
             return Ok(result);
         }
@@ -82,9 +85,7 @@ public class ItemController(IItemService itemService) : ControllerBase
         {
             return StatusCode(500, ex.Message);
         }
-
     }
-
 
     [HttpDelete("{id:long}")]
     public async Task<ActionResult<OperationResult>> DeleteByIdAsync(long id, CancellationToken ct)
@@ -93,7 +94,9 @@ public class ItemController(IItemService itemService) : ControllerBase
         {
             var result = await itemService.DeleteById(id, ct);
             if (!result.Success)
+            {
                 return NotFound(result.Message);
+            }
 
             return Ok(result);
         }

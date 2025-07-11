@@ -43,7 +43,7 @@ export class EditItemFormComponent implements OnInit {
   ngOnInit(): void {
     this.itemId = Number(this.route.snapshot.paramMap.get('id'));
 
-    this.itemForm = this.fb.group({
+    this.itemForm= this.fb.group({
       name: ['', Validators.required],
         classId: [null],
         slotId: [null],
@@ -58,6 +58,7 @@ export class EditItemFormComponent implements OnInit {
         slotId: product.slotId,
         isActive: product.isActive,
         isWeapon: product.isWeapon,
+        currentStock: product.currentStock
       });
     });
   }
@@ -79,7 +80,7 @@ export class EditItemFormComponent implements OnInit {
     };
 
     this.itemService.updateItem(updated).subscribe({
-      next: (item) => {
+      next: () => {
         console.log('Updated item', updated);
         this.router.navigate(['items-catalog']);
       },

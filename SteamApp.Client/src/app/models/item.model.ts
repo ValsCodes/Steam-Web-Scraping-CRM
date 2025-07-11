@@ -6,6 +6,7 @@ export interface Item {
   isActive: boolean;
   classId?: number | null;
   slotId?: number | null;
+  currentStock?: number | null;
 }
 
 export interface UpdateItem {
@@ -15,6 +16,7 @@ export interface UpdateItem {
   isActive?: boolean | null;
   classId?: number | null;
   slotId?: number | null;
+  currentStock?: number | null;
 }
 
 export interface CreateItem
@@ -24,4 +26,5 @@ export interface CreateItem
     isActive?: boolean | null;
     classId?: number | null;
     slotId?: number | null;
+    currentStock?: number | null;
 }

@@ -52,6 +52,7 @@ export class ItemsCatalogComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = [
     'id',
     'name',
+    'currentStock',
     'url',
     'is_active',
     'is_weapon',
