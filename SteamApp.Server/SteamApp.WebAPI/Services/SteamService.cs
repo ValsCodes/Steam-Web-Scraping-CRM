@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using OpenQA.Selenium;
+﻿using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using SeleniumExtras.WaitHelpers;
@@ -7,6 +6,7 @@ using SteamApp.Infrastructure.Services;
 using SteamApp.Models.DTOs;
 using SteamApp.Models.JsonObjects;
 using SteamApp.WebAPI.Common;
+using SteamApp.WebAPI.Helpers;
 using System.Collections.ObjectModel;
 using System.Drawing;
 using System.Text;
@@ -15,13 +15,6 @@ namespace SteamApp.WebAPI.Services;
 
 public class SteamService : ISteamService
 {
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="fromPage"></param>
-    /// <param name="batchSize"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
     public IEnumerable<string> GetHatBatchUrls(short fromPage, short batchSize)
     {
         if (fromPage <= 0 || fromPage > 500)
@@ -41,13 +34,6 @@ public class SteamService : ISteamService
         return result;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="fromIndex"></param>
-    /// <param name="batchSize"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
     public IEnumerable<string> GetWeaponBatchUrls(short fromIndex, short batchSize)
     {
         if (fromIndex < 0 || fromIndex > 500)
@@ -67,52 +53,63 @@ public class SteamService : ISteamService
         return result;
     }
 
-    /// <summary>
-    /// Web Scrapes the market by loading the DOM
-    /// </summary>
-    /// <param name="page"></param>
-    /// <returns></returns>
-    public async Task<IEnumerable<ListingDto>> ScrapePage(short page)
+    public async Task<IEnumerable<ListingDto>> ScrapePage(short page, CancellationToken ct)
     {
-        if (page < 0 || page > short.MaxValue)
+        const short MaxPage = 500;
+        if (page < 0 || page > MaxPage)
         {
-            throw new ArgumentOutOfRangeException("Page is either negative or greater than 500.");
+            throw new ArgumentOutOfRangeException(nameof(page), $"Page must be between 0 and {MaxPage}");
         }
 
-        var url = Constants.MANUAL_HATS_URL + $"p{page}_price_asc";
+        var url = $"{Constants.MANUAL_HATS_URL}p{page}_price_asc";
 
         var options = new ChromeOptions();
         options.AddArgument("--headless");
         options.AddArgument("--disable-gpu");
 
+        options.PageLoadStrategy = PageLoadStrategy.Eager;
+
         return await Task.Run(() =>
         {
-            var results = new List<ListingDto>();
+            ct.ThrowIfCancellationRequested();
 
-            using (IWebDriver driver = new ChromeDriver(options))
+            using var driver = new ChromeDriver(options);
+            try
             {
-                driver.Navigate().GoToUrl(url);
+                 driver.Navigate().GoToUrl(url);
 
-                // Wait until at least one listing anchor is present.
                 var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
-                wait.Until(ExpectedConditions.ElementExists(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]")));
-
-                // Get all listing anchor elements.
-                ReadOnlyCollection<IWebElement> listingAnchors =
-                    driver.FindElements(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]"));
-
-                foreach (var anchor in listingAnchors)
+                wait.Until(drv =>
                 {
-                    var listing = ParseListingFromAnchor(anchor);
-                    results.Add(listing);
-                }
-            }
+                    if (ct.IsCancellationRequested)
+                    {
+                        return true;
+                    }
 
-            return results;
-        });
+                    return drv.FindElements(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]")).Count > 0;
+                });
+
+                ct.ThrowIfCancellationRequested();
+
+                var anchors = driver.FindElements(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]"));
+
+                var results = new List<ListingDto>(anchors.Count);
+                foreach (var anchor in anchors)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    results.Add(ParseListingFromAnchor(anchor));
+                }
+
+                return (IEnumerable<ListingDto>)results;
+            }
+            finally
+            {
+                driver.Quit();
+            }
+        }, ct);
     }
 
-    public async Task<string> GetPaintInfoFromSource(string src)
+    public async Task<string> GetPaintInfoFromSource(string src, CancellationToken ct)
     {
         //no color
         //string srcImage = "https://community.fastly.steamstatic.com/economy/image/fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEDaQYVVQ7srD1Rm_fxH_OcN-wBid0wq8AE2mc7xlV4MOazZjIyJgLHWfRcBPBsoli-CnZjvZEyAtPv8ewFfl3x9NyREldD0mM";
@@ -123,7 +120,7 @@ public class SteamService : ISteamService
 
         using (HttpClient client = new())
         {
-            byte[] bytes = await client.GetByteArrayAsync(srcImage);
+            byte[] bytes = await client.GetByteArrayAsync(srcImage, ct);
 
             using var ms = new MemoryStream(bytes);
             using Bitmap bmp = new(ms);
@@ -137,7 +134,7 @@ public class SteamService : ISteamService
         return result.ToString();
     }
 
-    public async Task<IEnumerable<ListingDto>> ScrapePageByPixel(short page, bool isGoodColorOnly = true)
+    public async Task<IEnumerable<ListingDto>> ScrapePageWithSrcPixelPaintCheck(short page, bool isGoodColorOnly, CancellationToken ct)
     {
         if (page < 0 || page > short.MaxValue)
         {
@@ -169,11 +166,11 @@ public class SteamService : ISteamService
 
                 string srcImage = listing.ImageUrl!.Replace("/62fx62f", string.Empty);
                 using HttpClient client = new HttpClient();
-                byte[] bytes = await client.GetByteArrayAsync(srcImage);
+                byte[] bytes = await client.GetByteArrayAsync(srcImage, ct);
 
                 using var ms = new MemoryStream(bytes);
                 using Bitmap bmp = new Bitmap(ms);
-                Color c = bmp.GetPixel(450, 50);
+                Color c = bmp.GetPixel(x: 450, y: 50);
 
                 if (isGoodColorOnly)
                 {
@@ -188,8 +185,9 @@ public class SteamService : ISteamService
                 {
                     if (!c.Name.Equals("0"))
                     {
-                        var colorMatch = StaticCollections.GoodPaintsColorCollection.FirstOrDefault(x => x.Color.Name.Equals(c.Name));
-                        listing.Color = colorMatch!.Name;
+                        var colorMatch = StaticCollections.GoodPaintsColorCollection.FirstOrDefault(x => x.Color.Name.Equals(c.Name)); 
+
+                        listing.Color = colorMatch != null ? colorMatch!.Name : "Undiscoverred color";
                         results.Add(listing);
                     }
                 }
@@ -199,12 +197,8 @@ public class SteamService : ISteamService
         return results;
     }
 
-    /// <summary>
-    /// Accepts a page value from 0 to 99 and returns only listings in a good price range
-    /// </summary>
-    /// <param name="page"></param>
-    /// <returns> A Collection of ListingDTOs</returns>
-    public async Task<IEnumerable<ListingDto>> GetFilteredBulkListings(short page)
+
+    public async Task<IEnumerable<ListingDto>> GetDeserializedLisitngsFromUrl(short page, CancellationToken ct)
     {
         if (page < 0 || page > 500)
         {
@@ -212,19 +206,15 @@ public class SteamService : ISteamService
         }
 
         var url = $"{Constants.JSON_100_LISTINGS_URL_PART_1}{page}{Constants.JSON_100_LISTINGS_URL_PART_2}";
-        var filteredResult = await GetResultsFromUrl(url);
+        var filteredResult = await GetResultsFromUrl(url, ct);
 
         return filteredResult.Where(x => x.SellPrice >= 150 && x.SellPrice <= 450)
             .OrderBy(x => x.SellPrice)
             .Select(x => new ListingDto { Name = x.Name, Price = x.SellPrice / 100, Quantity = x.SellListings });
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="name"></param>
-    /// <returns></returns>
-    public async Task<PaintedListingDto> CheckIsListingPainted(string name)
+
+    public async Task<PaintedListingDto> CheckIsListingPainted(string name, CancellationToken ct)
     {
         // TODO check if name is in DB of item names
         name = name.Trim();
@@ -235,17 +225,17 @@ public class SteamService : ISteamService
 
         if (name.Length > 200)
         {
-            throw new ArgumentNullException("Name is too long.");
+            throw new ArgumentOutOfRangeException("Name is too long.");
         }
 
-        var formattedName = EncodeStringForUrl(name);
+        var formattedName = UrlUtilities.UrlEncode(name);
         var url = $"{Constants.FIRST_PAGE_URL_PART_1}{formattedName}{Constants.FIRST_PAGE_URL_PART_2}";
 
-        var jsonResponse = await GetHttpResposeAsync(url);
+        var jsonResponse = await HttpUtilities.GetHttpResposeAsync(url, ct);
 
-        var jsonString = FormatJsonStringForDeserialization(jsonResponse);
+        var jsonString = JsonUtilities.FormatJsonStringForDeserialization(jsonResponse);
 
-        var result = DeserializeFormattedJsonString<Listing>(jsonString);
+        var result = JsonUtilities.DeserializeFormattedJsonString<Listing>(jsonString);
 
         var resultAssets = result?.Assets?.FirstOrDefault().Value?.FirstOrDefault().Value?.FirstOrDefault().Value; // assets/440/2/ first
 
@@ -268,13 +258,7 @@ public class SteamService : ISteamService
         return lisitngResult;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="page"></param>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
-    public async Task<IEnumerable<PaintedListingsDto>> ScrapePageForPaintedListingsOnly(short page)
+    public async Task<IEnumerable<PaintedListingsDto>> ScrapePageForPaintedListingsOnly(short page, CancellationToken ct)
     {
         if (page < 0 || page > 500)
         {
@@ -282,29 +266,26 @@ public class SteamService : ISteamService
         }
 
         var results = new List<PaintedListingsDto>();
-        var listings = await ScrapePage(page);
+        var listings = await ScrapePage(page, ct);
 
-        if (listings.Any())
+        foreach (var listing in listings)
         {
-            foreach (var listing in listings)
+            var isListingPaintedResult = await CheckIsListingPainted(listing.Name!, ct);
+            if (isListingPaintedResult.IsPainted)
             {
-                var isListingPaintedResult = await CheckIsListingPainted(listing.Name!);
-                if (isListingPaintedResult.IsPainted)
+                var paintedListing = new PaintedListingsDto
                 {
-                    var paintedListing = new PaintedListingsDto
-                    {
-                        Name = listing.Name,
-                        Quantity = listing.Quantity,
-                        Price = listing.Price,
-                        ImageUrl = listing.ImageUrl,
-                        ListingUrl = listing.ListingUrl,
-                        IsPainted = isListingPaintedResult.IsPainted,
-                        PaintText = isListingPaintedResult.PaintText,
-                        IsGoodPaint = isListingPaintedResult.IsGoodPaint
-                    };
+                    Name = listing.Name,
+                    Quantity = listing.Quantity,
+                    Price = listing.Price,
+                    ImageUrl = listing.ImageUrl,
+                    ListingUrl = listing.ListingUrl,
+                    IsPainted = isListingPaintedResult.IsPainted,
+                    PaintText = isListingPaintedResult.PaintText,
+                    IsGoodPaint = isListingPaintedResult.IsGoodPaint
+                };
 
-                    results.Add(paintedListing);
-                }
+                results.Add(paintedListing);
             }
         }
 
@@ -312,8 +293,7 @@ public class SteamService : ISteamService
     }
 
 
-    #region Private Methods
-    private ListingDto ParseListingFromAnchor(IWebElement anchor)
+    private static ListingDto ParseListingFromAnchor(IWebElement anchor)
     {
         var listing = new ListingDto
         {
@@ -348,16 +328,16 @@ public class SteamService : ISteamService
         return listing;
     }
 
-    private async Task<IEnumerable<Result>> GetResultsFromUrl(string url)
+    private static async Task<IEnumerable<Result>> GetResultsFromUrl(string url, CancellationToken ct)
     {
-        var jsonResponse = await GetHttpResposeAsync(url);
+        var jsonResponse = await HttpUtilities.GetHttpResposeAsync(url, ct);
         if (string.IsNullOrEmpty(jsonResponse))
         {
             throw new Exception("No JSON received or request failed.");
         }
 
-        var jsonString = FormatJsonStringForDeserialization(jsonResponse);
-        var result = DeserializeFormattedJsonString<ListingDetails>(jsonString);
+        var jsonString = JsonUtilities.FormatJsonStringForDeserialization(jsonResponse);
+        var result = JsonUtilities.DeserializeFormattedJsonString<ListingDetails>(jsonString);
         if (result == null)
         {
             throw new Exception("Failed to deserialize JSON.");
@@ -365,48 +345,4 @@ public class SteamService : ISteamService
 
         return result.Results!;
     }
-
-
-    private async Task<string> GetHttpResposeAsync(string url)
-    {
-        using (HttpClient httpClient = new HttpClient())
-        {
-            httpClient.Timeout = TimeSpan.FromSeconds(30);
-
-            var response = await httpClient.GetAsync(url).ConfigureAwait(false);
-
-            response.EnsureSuccessStatusCode();
-
-            string responseContent = await response.Content.ReadAsStringAsync();
-
-            if (responseContent == null)
-            {
-                return null!;
-            }
-
-            return responseContent;
-        }
-    }
-
-    private T? DeserializeFormattedJsonString<T>(string formattedJsonObject) where T : class
-    {
-        if (string.IsNullOrEmpty(formattedJsonObject))
-        {
-            throw new JsonSerializationException("Object for Deserialization was null.");
-        }
-
-        return JsonConvert.DeserializeObject<T>(formattedJsonObject);
-    }
-
-    private string FormatJsonStringForDeserialization(string jsonString)
-    {
-        string formattedJson = jsonString.Replace("\\r\\n", "\r\n");
-        return formattedJson;
-    }
-
-    private string EncodeStringForUrl(string name)
-    {
-        return Uri.EscapeDataString(name);
-    }
-    #endregion
 }

@@ -2,23 +2,21 @@
 
 namespace SteamApp.Infrastructure.Services;
 
-
-//  TODO add cancelation tokens
 public interface ISteamService
 {
     IEnumerable<string> GetWeaponBatchUrls(short fromIndex, short batchSize);
 
     IEnumerable<string> GetHatBatchUrls(short fromPage, short batchSize);
 
-    Task<string> GetPaintInfoFromSource(string src);
+    Task<string> GetPaintInfoFromSource(string src, CancellationToken cancellationToken);
 
-    Task<IEnumerable<ListingDto>> GetFilteredBulkListings(short page);
+    Task<IEnumerable<ListingDto>> GetDeserializedLisitngsFromUrl(short page, CancellationToken cancellationToken);
 
-    Task<IEnumerable<ListingDto>> ScrapePage(short page);
+    Task<IEnumerable<ListingDto>> ScrapePage(short page, CancellationToken cancellationToken);
 
-    Task<IEnumerable<ListingDto>> ScrapePageByPixel(short page, bool isGoodPaintsOnly = true);
+    Task<IEnumerable<ListingDto>> ScrapePageWithSrcPixelPaintCheck(short page, bool isGoodPaintsOnly, CancellationToken cancellationToken);
 
-    Task<IEnumerable<PaintedListingsDto>> ScrapePageForPaintedListingsOnly(short page);
+    Task<IEnumerable<PaintedListingsDto>> ScrapePageForPaintedListingsOnly(short page, CancellationToken cancellationToken);
 
-    Task<PaintedListingDto> CheckIsListingPainted(string name);
+    Task<PaintedListingDto> CheckIsListingPainted(string name, CancellationToken cancellationToken);
 }

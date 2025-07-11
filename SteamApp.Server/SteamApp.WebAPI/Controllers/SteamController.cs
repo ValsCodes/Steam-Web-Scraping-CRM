@@ -6,16 +6,9 @@ namespace SteamApp.WebAPI.Controllers;
 
 [ApiController]
 [Route("steam")]
-public class SteamController : ControllerBase
+public class SteamController(ISteamService steamService) : ControllerBase
 {
     // private readonly ILogger<SteamController> _logger;
-    private readonly ISteamService _steamService;
-
-    public SteamController(ISteamService steamService)//, ILogger<SteamController> logger)
-    {
-        //_logger = logger;
-        _steamService = steamService;
-    }
 
     /// <summary>
     /// Returns Hat Listing URLs for a batch
@@ -27,7 +20,7 @@ public class SteamController : ControllerBase
     {
         try
         {
-            var result = _steamService.GetHatBatchUrls(fromPage, batchSize);
+            var result = steamService.GetHatBatchUrls(fromPage, batchSize);
             return Ok(result);
         }
         catch (Exception ex)
@@ -46,23 +39,7 @@ public class SteamController : ControllerBase
     {
         try
         {
-            var result = _steamService.GetWeaponBatchUrls(fromIndex, batchSize);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ex.Message);
-        }
-    }
-
-
-
-    [HttpGet("get-paint-info-source")]
-    public IActionResult GetPaintInfoFromSourceAsync(string src)
-    {
-        try
-        {
-            var result = _steamService.GetPaintInfoFromSource(src).GetAwaiter().GetResult();
+            var result = steamService.GetWeaponBatchUrls(fromIndex, batchSize);
             return Ok(result);
         }
         catch (Exception ex)
@@ -73,16 +50,16 @@ public class SteamController : ControllerBase
 
 
     /// <summary>
-    /// Web scrapes a page from the Community Market
+    /// Returns the RGB values found on a specific pixel of an item src image
     /// </summary>
-    /// <param name="page"></param>
+    /// <param name="src"></param>
     /// <returns></returns>
-    [HttpGet("hat/page/{page}")]
-    public IActionResult ScrapePageAsync(short page)
+    [HttpGet("hat/paint-info-source")]
+    public IActionResult GetPaintInfoFromSourceAsync(string src, CancellationToken ct = default)
     {
         try
         {
-            var result = _steamService.ScrapePage(page).GetAwaiter().GetResult();
+            var result = steamService.GetPaintInfoFromSource(src, ct).GetAwaiter().GetResult();
             return Ok(result);
         }
         catch (Exception ex)
@@ -91,12 +68,38 @@ public class SteamController : ControllerBase
         }
     }
 
-    [HttpGet("hat/page-by-pixel/{page}")]
-    public IActionResult ScrapePageByPixelAsync(short page, bool isGoodPaintsOnly = true)
+    /// <summary>
+    /// Web scrapes content from a page of the Steam Community Market
+    /// </summary>
+    /// <param name="page"></param>
+    /// <returns></returns>
+    [HttpGet("hat/page/{page}")]
+    public IActionResult ScrapePageAsync(short page, CancellationToken ct = default)
     {
         try
         {
-            var result = _steamService.ScrapePageByPixel(page, isGoodPaintsOnly).GetAwaiter().GetResult();
+            var result = steamService.ScrapePage(page, ct).GetAwaiter().GetResult();
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// ScrapePageAsync() + Checks the src images of the scraped listings if they contain a pixel at a specific location 
+    /// matching a desirable paint color
+    /// </summary>
+    /// <param name="page"></param>
+    /// <param name="isGoodPaintsOnly"></param>
+    /// <returns></returns>
+    [HttpGet("hat/check-paint-by-pixel/{page}")]
+    public IActionResult ScrapePageWithSrcPixelPaintCheckAsync(short page, bool isGoodPaintsOnly = true, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = steamService.ScrapePageWithSrcPixelPaintCheck(page, isGoodPaintsOnly, ct).GetAwaiter().GetResult();
             return Ok(result);
         }
         catch (Exception ex)
@@ -111,29 +114,11 @@ public class SteamController : ControllerBase
     /// <param name="page"></param>
     /// <returns></returns>
     [HttpGet("hat/page/{page}/bulk")]
-    public IActionResult GetFilteredBulkListings(short page)
+    public IActionResult GetDeserializedLisitngsFromUrlAsync(short page, CancellationToken ct = default)
     {
         try
         {
-            var result = _steamService.GetFilteredBulkListings(page).GetAwaiter().GetResult();
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ex.Message);
-        }
-    }
-    /// <summary>
-    /// Works.
-    /// </summary>
-    /// <param name="page"></param>
-    /// <returns></returns>
-    [HttpGet("hat/page/{page}/painted")]
-    public IActionResult ScrapePageForPaintedListingsOnly(short page)
-    {
-        try
-        {
-            var result = _steamService.ScrapePageForPaintedListingsOnly(page).GetAwaiter().GetResult();
+            var result = steamService.GetDeserializedLisitngsFromUrl(page, ct).GetAwaiter().GetResult();
             return Ok(result);
         }
         catch (Exception ex)
@@ -143,21 +128,42 @@ public class SteamController : ControllerBase
     }
 
     /// <summary>
-    /// Works.
+    /// Checks if the First listing with this name in the steam marketplace has a paint.
+    /// Extracts the data from a json responce.
     /// </summary>
     /// <param name="name"></param>
     /// <returns></returns>
     [HttpGet("hat/name/{name}/is-painted")]
-    public IActionResult CheckIsListingPainted(string name)
+    public IActionResult CheckIsListingPaintedAsync(string name, CancellationToken ct = default)
     {
         try
         {
-            var result = _steamService.CheckIsListingPainted(name).GetAwaiter().GetResult();
+            var result = steamService.CheckIsListingPainted(name, ct).GetAwaiter().GetResult();
             return Ok(result);
         }
-        catch (JsonSerializationException ex)
+        catch (JsonSerializationException)
         {
             return StatusCode(400, "Error: Invalid Listing");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// ScrapePageAsync + CheckIsListingPaintedAsync.
+    /// Currently the most brute force way to make the check.
+    /// </summary>
+    /// <param name="page"></param>
+    /// <returns></returns>
+    [HttpGet("hat/page/{page}/painted")]
+    public IActionResult ScrapePageForPaintedListingsOnlyAsync(short page, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = steamService.ScrapePageForPaintedListingsOnly(page, ct).GetAwaiter().GetResult();
+            return Ok(result);
         }
         catch (Exception ex)
         {
