@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using SteamApp.Infrastructure.Services;
 
@@ -6,6 +7,7 @@ namespace SteamApp.WebAPI.Controllers;
 
 [ApiController]
 [Route("steam")]
+[Authorize]
 public class SteamController(ISteamService steamService) : ControllerBase
 {
     // private readonly ILogger<SteamController> _logger;

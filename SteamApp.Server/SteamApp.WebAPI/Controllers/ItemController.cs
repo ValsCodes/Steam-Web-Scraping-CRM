@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SteamApp.Infrastructure;
 using SteamApp.Infrastructure.Services;
 using SteamApp.Models.DTOs.Item;
@@ -7,6 +8,7 @@ namespace SteamApp.WebAPI.Controllers;
 
 [ApiController]
 [Route("api/items")]
+[Authorize]
 public class ItemController(IItemService itemService) : ControllerBase
 {
     //private readonly ILogger<SteamController> _logger;
