@@ -4,11 +4,11 @@ namespace SteamApp.Infrastructure.Repositories;
 
 public interface IItemRepository
 {
-    Task<Item> GetItemByIdAsync(long id, CancellationToken ct);
-    Task<IEnumerable<Item>> GetItemsAsync(CancellationToken ct, string? name = null, IEnumerable<long>? classFilters = null, IEnumerable<long>? slotFilters = null);
+    Task<ManualSearchItem> GetItemById(long id, CancellationToken ct);
+    Task<IEnumerable<ManualSearchItem>> GetItems(CancellationToken ct, string? name = null, IEnumerable<long>? classFilters = null, IEnumerable<long>? slotFilters = null);
 
-    Task<long> CreateItemAsync(Item item, CancellationToken ct);
-    Task<bool> UpdateItemAsync(Item item, CancellationToken ct);
+    Task<long> CreateItem(ManualSearchItem item, CancellationToken ct);
+    Task<bool> UpdateItem(ManualSearchItem item, CancellationToken ct);
 
-    Task<bool> DeleteItemAsync(long id, CancellationToken ct);
+    Task<bool> DeleteItem(long id, CancellationToken ct);
 }

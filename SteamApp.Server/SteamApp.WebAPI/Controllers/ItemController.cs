@@ -9,16 +9,16 @@ namespace SteamApp.WebAPI.Controllers;
 [ApiController]
 [Route("api/items")]
 [Authorize]
+
+//ILogger<SteamController> _logger;
 public class ItemController(IItemService itemService) : ControllerBase
 {
-    //private readonly ILogger<SteamController> _logger;
-
     [HttpGet("{id:long}")]
     public IActionResult GetItemById(long id, CancellationToken ct)
     {
         try
         {
-            var result = itemService.GetItemByIdAsync(id, ct).GetAwaiter().GetResult();
+            var result = itemService.GetItemById(id, ct).GetAwaiter().GetResult();
             return Ok(result);
         }
         catch (Exception ex)
@@ -28,11 +28,11 @@ public class ItemController(IItemService itemService) : ControllerBase
     }
 
     [HttpGet]
-    public IActionResult GetItems(CancellationToken ct, [FromQuery] string? name = null, [FromQuery] IEnumerable<long>? classFilters = null, [FromQuery] IEnumerable<long>? slotFilters = null)
+    public IActionResult GetItemsAsync(CancellationToken ct, [FromQuery] string? name = null, [FromQuery] IEnumerable<long>? classFilters = null, [FromQuery] IEnumerable<long>? slotFilters = null)
     {
         try
         {
-            var result = itemService.GetItemsAsync(ct, name, classFilters, slotFilters).GetAwaiter().GetResult();
+            var result = itemService.GetItems(ct, name, classFilters, slotFilters).GetAwaiter().GetResult();
             return Ok(result);
         }
         catch (Exception ex)
@@ -42,7 +42,7 @@ public class ItemController(IItemService itemService) : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<OperationResult>> Create([FromBody] CreateItemDto dto, CancellationToken ct)
+    public async Task<ActionResult<OperationResult>> CreateAsync([FromBody] CreateItemDto dto, CancellationToken ct)
     {
         try
         {
@@ -56,14 +56,14 @@ public class ItemController(IItemService itemService) : ControllerBase
     }
 
     [HttpPatch]
-    public async Task<ActionResult<OperationResult>> Update([FromBody] UpdateItemDto dto, CancellationToken ct)
+    public async Task<ActionResult<OperationResult>> UpdateAsync([FromBody] UpdateItemDto dto, CancellationToken ct)
     {
         try
         {
             if (dto == null)
                 return BadRequest("No data provided.");
 
-            var item = await itemService.GetItemByIdAsync(dto.Id, ct);
+            var item = await itemService.GetItemById(dto.Id, ct);
             if (item == null)
                 return NotFound();
 
@@ -72,9 +72,10 @@ public class ItemController(IItemService itemService) : ControllerBase
             if (dto.ClassId.HasValue) item.ClassId = dto.ClassId.Value;
             if (dto.SlotId.HasValue) item.SlotId = dto.SlotId.Value;
             if (dto.IsActive.HasValue) item.IsActive = dto.IsActive.Value;
+            if (dto.CurrentStock.HasValue) item.CurrentStock = dto.CurrentStock.Value;
 
 
-            var result = await itemService.UpdateItemAsync(item, ct);
+            var result = await itemService.UpdateItem(item, ct);
             return Ok(result);
         }
         catch (Exception ex)
@@ -86,11 +87,11 @@ public class ItemController(IItemService itemService) : ControllerBase
 
 
     [HttpDelete("{id:long}")]
-    public async Task<ActionResult<OperationResult>> Delete(long id, CancellationToken ct)
+    public async Task<ActionResult<OperationResult>> DeleteByIdAsync(long id, CancellationToken ct)
     {
         try
         {
-            var result = await itemService.DeleteItemAsync(id, ct);
+            var result = await itemService.DeleteById(id, ct);
             if (!result.Success)
                 return NotFound(result.Message);
 

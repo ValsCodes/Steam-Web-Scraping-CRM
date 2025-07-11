@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SteamApp.Infrastructure.Repositories;
 using SteamApp.Models.Entities;
 using SteamApp.WebAPI.Context;
@@ -7,20 +6,11 @@ using SteamApp.WebAPI.Exceptions;
 
 namespace SteamApp.WebAPI.Repositories;
 
-public class ProductRepository : IProductRepository
+public class ProductRepository(ApplicationDbContext context) : IProductRepository
 {
-    private readonly IMapper _mapper;
-    private readonly ApplicationDbContext _context;
-
-    public ProductRepository(ApplicationDbContext context, IMapper mapper)
-    {
-        _context = context;
-        _mapper = mapper;
-    }
-
     public async Task<Product> GetByIdAsync(long id, CancellationToken ct = default)
     {
-        var result = await _context.Products.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+        var result = await context.Products.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
         if (result == null)
         {
             throw new ItemNotFoundException($"Product with ID {id} not found.");
@@ -31,31 +21,30 @@ public class ProductRepository : IProductRepository
 
     public async Task<IEnumerable<Product>> GetListAsync(CancellationToken ct = default)
     {
-        var result = await _context.Products.ToListAsync();
+        var result = await context.Products.ToListAsync();
         return result;
     }
 
     public async Task<long> CreateAsync(Product product, CancellationToken ct = default)
     {
-        await _context.AddAsync(product);
-        await _context.SaveChangesAsync();
+        await context.AddAsync(product);
+        await context.SaveChangesAsync();
 
         return product.Id;
     }
 
     public async Task<IEnumerable<long>> CreateRangeAsync(IEnumerable<Product> products, CancellationToken ct = default)
     {
-        await _context.AddRangeAsync(products);
-        await _context.SaveChangesAsync();
+        await context.AddRangeAsync(products);
+        await context.SaveChangesAsync();
 
         return products.Select(x => x.Id);
     }
 
-    //public async Task<bool> UpdateAsync(long id, Product product, CancellationToken ct = default)
     public async Task<bool> UpdateAsync(Product product, CancellationToken ct = default)
     {
-        _context.Products.Update(product);
-        await _context.SaveChangesAsync();
+        context.Products.Update(product);
+        await context.SaveChangesAsync();
 
         return true;
     }
@@ -68,29 +57,29 @@ public class ProductRepository : IProductRepository
 
     public async Task<bool> DeleteAsync(long id, CancellationToken ct = default)
     {
-        var existingListing = await _context.Products.FindAsync(id);
+        var existingListing = await context.Products.FindAsync(id);
 
         if (existingListing == null)
         {
             throw new ItemNotFoundException($"Product with ID {id} not found.");
         }
 
-        _context.Remove(existingListing);
-        await _context.SaveChangesAsync();
+        context.Remove(existingListing);
+        await context.SaveChangesAsync();
 
         return true;
     }
 
     public async Task<IEnumerable<bool>> DeleteRangeAsync(IEnumerable<long> ids, CancellationToken ct = default)
     {
-        var productsToDelete = await _context.Products.Where(p => ids.Contains(p.Id)).ToListAsync(ct);
+        var productsToDelete = await context.Products.Where(p => ids.Contains(p.Id)).ToListAsync(ct);
 
         var foundIds = productsToDelete.Select(p => p.Id).ToHashSet();
 
         if (productsToDelete.Any())
         {
-            _context.Products.RemoveRange(productsToDelete);
-            await _context.SaveChangesAsync(ct);
+            context.Products.RemoveRange(productsToDelete);
+            await context.SaveChangesAsync(ct);
         }
 
         return ids.Select(id => foundIds.Contains(id));

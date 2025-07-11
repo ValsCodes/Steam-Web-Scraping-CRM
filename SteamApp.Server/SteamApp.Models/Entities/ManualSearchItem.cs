@@ -3,7 +3,7 @@
 namespace SteamApp.Models.Entities
 {
     [Table("item")]
-    public class Item : BaseModel
+    public class ManualSearchItem : BaseModel
     {
         [Column("is_active")]
         public bool IsActive { get; set; }
@@ -16,5 +16,8 @@ namespace SteamApp.Models.Entities
 
         [Column("slot_id")]
         public long? SlotId { get; set; }
+
+        [Column("current_stock")]
+        public int? CurrentStock { get; set; }
     }
 }

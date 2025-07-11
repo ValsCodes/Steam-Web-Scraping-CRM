@@ -8,5 +8,6 @@
         public virtual bool IsWeapon { get; set; }
         public virtual long? ClassId { get; set; }
         public virtual long? SlotId { get; set; }
+        public virtual int? CurrentStock { get; set; }
     }
 }

@@ -9,19 +9,12 @@ namespace SteamApp.WebAPI.Controllers;
 [ApiController]
 [Route("api/products")]
 [Authorize]
-public class ProductController : ControllerBase
+public class ProductController(IProductService productService) : ControllerBase
 {
-    private readonly IProductService _productService;
-
-    public ProductController(IProductService productService)
-    {
-        _productService = productService;
-    }
-
     [HttpGet("{id:long}")]
     public async Task<ActionResult<ProductDto>> GetById(long id, CancellationToken ct)
     {
-        var dto = await _productService.GetByIdAsync(id, ct);
+        var dto = await productService.GetByIdAsync(id, ct);
         if (dto is null)
             return NotFound();
 
@@ -31,14 +24,14 @@ public class ProductController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ProductDto>>> GetAll(CancellationToken ct)
     {
-        var list = await _productService.GetListAsync(ct);
+        var list = await productService.GetListAsync(ct);
         return Ok(list);
     }
 
     [HttpPost]
     public async Task<ActionResult<CreateProductResult>> Create([FromBody] CreateProductDto dto, CancellationToken ct)
     {
-        var result = await _productService.CreateAsync(dto, ct);
+        var result = await productService.CreateAsync(dto, ct);
         return CreatedAtAction(
             nameof(GetById),
             new { id = result.Id },
@@ -48,7 +41,7 @@ public class ProductController : ControllerBase
     [HttpPost("batch")]
     public async Task<ActionResult<IEnumerable<CreateProductResult>>> CreateBatch([FromBody] IEnumerable<CreateProductDto> dtos, CancellationToken ct)
     {
-        var results = await _productService.CreateRangeAsync(dtos, ct);
+        var results = await productService.CreateRangeAsync(dtos, ct);
         return Ok(results);
     }
 
@@ -58,7 +51,7 @@ public class ProductController : ControllerBase
         if (dto == null)
             return BadRequest("No data provided.");
 
-        var product = await _productService.GetByIdAsync(dto.Id);
+        var product = await productService.GetByIdAsync(dto.Id);
         if (product == null)
             return NotFound();
 
@@ -77,21 +70,21 @@ public class ProductController : ControllerBase
         if (dto.IsWeapon.HasValue) product.IsWeapon = dto.IsWeapon.Value;
         if (dto.IsSold.HasValue) product.IsSold = dto.IsSold.Value;
 
-        await _productService.UpdateAsync(product);
+        await productService.UpdateAsync(product);
         return NoContent();
     }
 
     [HttpPatch("batch")]
     public async Task<ActionResult<IEnumerable<OperationResult>>> UpdateBatch([FromBody] IEnumerable<UpdateProductDto> dtos, CancellationToken ct)
     {
-        var results = await _productService.UpdateRangeAsync(dtos, ct);
+        var results = await productService.UpdateRangeAsync(dtos, ct);
         return Ok(results);
     }
 
     [HttpDelete("{id:long}")]
     public async Task<ActionResult<OperationResult>> Delete(long id, CancellationToken ct)
     {
-        var result = await _productService.DeleteAsync(id, ct);
+        var result = await productService.DeleteAsync(id, ct);
         if (!result.Success)
             return NotFound(result.Message);
 
@@ -101,7 +94,7 @@ public class ProductController : ControllerBase
     [HttpDelete("batch")]
     public async Task<ActionResult<IEnumerable<OperationResult>>> DeleteBatch([FromBody] IEnumerable<long> ids, CancellationToken ct)
     {
-        var results = await _productService.DeleteRangeAsync(ids, ct);
+        var results = await productService.DeleteRangeAsync(ids, ct);
         return Ok(results);
     }
 }
