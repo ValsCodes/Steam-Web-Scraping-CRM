@@ -5,7 +5,7 @@ import { CONSTANTS } from '../../common/constants';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ItemService } from '../../services/item/item.service';
-import { ItemSearchComponent } from '../item-search/item-search.component';
+import { ItemSearchComponent } from '../../components/item-search/item-search.component';
 
 @Component({
   selector: 'steam-manual-mode',

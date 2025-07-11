@@ -19,7 +19,7 @@ import {
   slotsCollection,
   slotsMap,
 } from '../../../models/enums/slot.enum';
-import { ItemSearchComponent } from '../../item-search/item-search.component';
+import { ItemSearchComponent } from '../../../components/item-search/item-search.component';
 import { CONSTANTS } from '../../../common/constants';
 
 @Component({

@@ -11,7 +11,7 @@ import * as g from '../general-data'
 export class SteamService {
   constructor(private http: HttpClient) {}
 
-  private readonly steam: string = 'steam/';
+  private readonly steam: string = `${g.localHost}steam/`;
   private readonly swagger: string = 'swagger/index.html';
 
   checkServerStatus(): Observable<boolean> {
@@ -24,35 +24,42 @@ export class SteamService {
   }
 
   getWeaponUrls(fromIndex: number, batchSize: number): Observable<string[]> {
-    const url = `${g.localHost}${this.steam}weapon/urls/fromPage/${fromIndex}/batchSize/${batchSize}`;
+    const url = `${this.steam}weapon/urls/fromPage/${fromIndex}/batchSize/${batchSize}`;
     return this.http.get<string[]>(url).pipe(
       catchError(handleError)
     );
   }
  
   getHatUrls(fromPage: number, batchSize: number): Observable<string[]> {
-    const url = `${g.localHost}${this.steam}hat/urls/fromPage/${fromPage}/batchSize/${batchSize}`;
+    const url = `${this.steam}hat/urls/fromPage/${fromPage}/batchSize/${batchSize}`;
     return this.http.get<string[]>(url).pipe(
       catchError(handleError)
     );
   }
 
   getScrapedPage(page: number): Observable<any> {
-    const url = `${g.localHost}${this.steam}hat/page/${page}`;
+    const url = `${this.steam}hat/page/${page}`;
+    return this.http.get<any>(url).pipe(
+      catchError(handleError)
+    );
+  }
+
+    getScrapedPageByPixel(page: number, isGoodPaintsOnly:boolean = false): Observable<any> {
+    const url = `${this.steam}hat/check-paint-by-pixel/${page}?isGoodPaintsOnly=${isGoodPaintsOnly}`;
     return this.http.get<any>(url).pipe(
       catchError(handleError)
     );
   }
 
   getBulkPage(page: number): Observable<any> {
-    const url = `${g.localHost}${this.steam}hat/page/${page}/bulk`;
+    const url = `${this.steam}hat/page/${page}/bulk`;
     return this.http.get<any>(url).pipe(
       catchError(handleError)
     );
   }
 
   getScrapedPagePaintedOnly(page: number): Observable<any> {
-    const url = `${g.localHost}${this.steam}hat/page/${page}/painted`;
+    const url = `${this.steam}hat/page/${page}/painted`;
     console.log('Request URL:', url);
     return this.http.get<any>(url).pipe(
       catchError(handleError)
@@ -60,7 +67,7 @@ export class SteamService {
   }
 
   getIsHatPainted(name: string): Observable<any> {
-    const url = `${g.localHost}${this.steam}hat/name/${name}/is-painted`;
+    const url = `${this.steam}hat/name/${name}/is-painted`;
     return this.http.get<any>(url).pipe(
       catchError(handleError)
     );

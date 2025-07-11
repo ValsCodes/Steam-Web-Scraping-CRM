@@ -1,5 +1,5 @@
 <form [formGroup]="itemForm" (ngSubmit)="onSubmit()" class="general-form">
-  <h2>Edit Product</h2>
+  <h2>Create Product</h2>
 
   <div class="form-group">
     <label>Name *</label>
@@ -36,10 +36,9 @@
   </div>
 
   <button type="submit" [disabled]="itemForm.invalid">
-    Update Product
+    Create Product
   </button>
-
-  <button class="button button-large-blue" (click)="backButtonClicked()">
+    <button class="button button-large-blue" (click)="backButtonClicked()">
     Back
   </button>
 </form>

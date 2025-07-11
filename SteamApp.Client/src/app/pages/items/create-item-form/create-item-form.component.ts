@@ -55,6 +55,10 @@ export class CreateItemFormComponent implements OnInit {
     });
   }
 
+    backButtonClicked() {
+    this.router.navigate(['items-catalog']);
+  }
+
   onSubmit(): void {
     if (this.itemForm.invalid) {
       this.itemForm.markAllAsTouched();

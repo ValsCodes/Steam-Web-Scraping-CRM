@@ -73,6 +73,24 @@ export class WebScraperComponent implements OnInit, AfterViewInit {
     this.pageNumber += 1;
   }
 
+    getListingsWithPaintsButtonClicked() {
+    this.steamService.getScrapedPagePaintedOnly(this.pageNumber).subscribe(
+      (response) => {
+        if (response.length === 0) {
+          console.log('No results found');
+        }
+
+        this.dataSource.data = response;
+        console.log([response]);
+      },
+      (error) => {
+        console.error('Error fetching data:', error);
+      }
+    );
+
+    this.pageNumber += 1;
+  }
+
   getPaintedListingsButtonClicked() {
     this.steamService.getScrapedPagePaintedOnly(this.pageNumber).subscribe(
       (response) => {

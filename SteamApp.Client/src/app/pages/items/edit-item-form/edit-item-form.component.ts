@@ -63,8 +63,6 @@ export class EditItemFormComponent implements OnInit {
     });
   }
 
-
-
   backButtonClicked() {
     this.router.navigate(['items-catalog']);
   }
