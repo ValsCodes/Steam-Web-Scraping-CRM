@@ -13,44 +13,27 @@ using System.Text;
 
 namespace SteamApp.WebAPI.Services;
 
-public class SteamService : ISteamService
+public class SteamService() : ISteamService
 {
-    public IEnumerable<string> GetHatBatchUrls(short fromPage, short batchSize)
+    public async Task<IEnumerable<string>> GetHatBatchUrls(short fromPage, short batchSize, CancellationToken ct)
     {
         if (fromPage <= 0 || fromPage > 500)
+            throw new ArgumentOutOfRangeException(nameof(fromPage), "Page must be between 1 and 500.");
+
+        var baseUrl = Constants.MANUAL_HATS_URL;
+        var list = new List<string>();
+
+        var urls = await Task.Run(() =>
         {
-            throw new ArgumentOutOfRangeException("Page is either negative or greater than 500.");
-        }
+            for (short page = fromPage; page < fromPage + batchSize; page++)
+            {
+                list.Add($"{baseUrl}p{page}_price_asc");
+            }
 
-        var url = Constants.MANUAL_HATS_URL;
-        var result = new List<string>();
-        var currentPage = fromPage;
+            return (IEnumerable<string>)list;
+        }, ct);
 
-        for (; currentPage < fromPage + batchSize; currentPage++)
-        {
-            result.Add($"{url}p{currentPage}_price_asc`");
-        }
-
-        return result;
-    }
-
-    public IEnumerable<string> GetWeaponBatchUrls(short fromIndex, short batchSize)
-    {
-        if (fromIndex < 0 || fromIndex > 500)
-        {
-            throw new ArgumentOutOfRangeException("Index is either negative or greater than 500.");
-        }
-
-        var url = Constants.MANUAL_WEAPONS_URL;
-        var result = new List<string>();
-        var currentIndex = fromIndex;
-
-        for (; currentIndex < fromIndex + batchSize; currentIndex++)
-        {
-            result.Add($"{url}{StaticCollections.WEAPON_NAMES[currentIndex - 1]}`");
-        }
-
-        return result;
+        return urls;
     }
 
     public async Task<IEnumerable<ListingDto>> ScrapePage(short page, CancellationToken ct)
@@ -76,7 +59,7 @@ public class SteamService : ISteamService
             using var driver = new ChromeDriver(options);
             try
             {
-                 driver.Navigate().GoToUrl(url);
+                driver.Navigate().GoToUrl(url);
 
                 var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
                 wait.Until(drv =>
@@ -185,7 +168,7 @@ public class SteamService : ISteamService
                 {
                     if (!c.Name.Equals("0"))
                     {
-                        var colorMatch = StaticCollections.GoodPaintsColorCollection.FirstOrDefault(x => x.Color.Name.Equals(c.Name)); 
+                        var colorMatch = StaticCollections.GoodPaintsColorCollection.FirstOrDefault(x => x.Color.Name.Equals(c.Name));
 
                         listing.Color = colorMatch != null ? colorMatch!.Name : "Undiscoverred color";
                         results.Add(listing);

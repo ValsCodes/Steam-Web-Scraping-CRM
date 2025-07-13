@@ -53,11 +53,11 @@ export class ItemsCatalogComponent implements OnInit, AfterViewInit {
     'id',
     'name',
     'currentStock',
-    'url',
-    'is_active',
-    'is_weapon',
+    'tradesCount',
     'class_id',
     'slot_id',
+    'is_active',
+    'is_weapon',
     'actions',
   ];
 

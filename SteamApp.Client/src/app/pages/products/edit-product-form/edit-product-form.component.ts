@@ -10,6 +10,8 @@ import {
   qualitiesMap,
   Quality,
 } from '../../../models/enums/quality.enum';
+import { paintsCollection, paintsMap, Paint } from '../../../models/enums/paint.enum';
+import { Sheen, sheensCollection, sheensMap } from '../../../models/enums/sheen.enum';
 
 @Component({
   selector: 'steam-edit-product-form',
@@ -23,6 +25,8 @@ export class EditProductFormComponent implements OnInit {
 
   productId!: number;
   qualities = qualitiesCollection;
+          sheens = sheensCollection;
+      paints = paintsCollection;
 
   constructor(
     private fb: FormBuilder,
@@ -37,6 +41,8 @@ export class EditProductFormComponent implements OnInit {
     this.productForm = this.fb.group({
       name: ['', Validators.required],
       qualityId: [null],
+      paintId: [null],
+      sheenId: [null],
       description: [''],
       dateBought: [null],
       dateSold: [null],
@@ -48,6 +54,7 @@ export class EditProductFormComponent implements OnInit {
       soldPrice: [null, [Validators.min(0)]],
       isHat: [false],
       isWeapon: [false],
+      isStrange: [false],
       isSold: [false],
     });
 
@@ -55,6 +62,8 @@ export class EditProductFormComponent implements OnInit {
       this.productForm.patchValue({
         name: product.name,
         qualityId: product.qualityId,
+        paintId: product.paintId,
+        sheenId: product.sheenId,
         description: product.description,
         dateBought: product.dateBought
           ? this.formatDate(product.dateBought)
@@ -69,6 +78,7 @@ export class EditProductFormComponent implements OnInit {
         isHat: product.isHat,
         isWeapon: product.isWeapon,
         isSold: product.isSold,
+        isStrange: product.isStrange
       });
     });
   }
@@ -76,6 +86,14 @@ export class EditProductFormComponent implements OnInit {
   getQualityLabel(id: Quality) {
     return qualitiesMap[id];
   }
+
+      getPaintLabel(id: Paint) {
+      return paintsMap[id];
+    }
+
+    getSheenLabel(id: Sheen) {
+      return sheensMap[id];
+    }
 
   private formatDate(date: Date): string {
     const d = new Date(date);

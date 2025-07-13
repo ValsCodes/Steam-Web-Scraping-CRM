@@ -77,6 +77,8 @@ public class ItemController(IItemService itemService) : ControllerBase
             if (dto.SlotId.HasValue) item.SlotId = dto.SlotId.Value;
             if (dto.IsActive.HasValue) item.IsActive = dto.IsActive.Value;
             if (dto.CurrentStock.HasValue) item.CurrentStock = dto.CurrentStock.Value;
+            if (dto.TradesCount.HasValue) item.TradesCount = dto.TradesCount.Value;
+            if (dto.Rating.HasValue) item.Rating = dto.Rating.Value;
 
             var result = await itemService.UpdateItem(item, ct);
             return Ok(result);

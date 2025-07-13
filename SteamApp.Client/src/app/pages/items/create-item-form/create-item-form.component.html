@@ -1,5 +1,5 @@
 <form [formGroup]="itemForm" (ngSubmit)="onSubmit()" class="general-form">
-  <h2>Create Product</h2>
+  <h2>Create Item</h2>
 
   <div class="form-group">
     <label>Name *</label>
@@ -13,6 +13,11 @@
     <label>Current Stock</label>
     <input type="number" class="px-2 py-1" formControlName="currentStock" placeholder="Number of Items" />
   </div>
+
+          <div class="form-group">
+      <label>Trades Made</label>
+      <input type="number" class="px-2 py-1" formControlName="tradesCount" placeholder="Number of Trades Made" />
+    </div>
 
   <div class="form-group">
     <label>Slot</label>
@@ -36,7 +41,7 @@
   </div>
 
   <button type="submit" [disabled]="itemForm.invalid">
-    Create Product
+    Create
   </button>
     <button class="button button-large-blue" (click)="backButtonClicked()">
     Back

@@ -4,9 +4,11 @@ export interface Item {
   name: string;
   isWeapon: boolean;
   isActive: boolean;
-  classId?: number | null;
-  slotId?: number | null;
-  currentStock?: number | null;
+  classId: number | null;
+  slotId: number | null;
+  currentStock: number | null;
+  tradesCount: number | null;
+  rating: number | null;
 }
 
 export interface UpdateItem {
@@ -17,6 +19,7 @@ export interface UpdateItem {
   classId?: number | null;
   slotId?: number | null;
   currentStock?: number | null;
+  tradesCount?: number | null;
 }
 
 export interface CreateItem
@@ -27,4 +30,5 @@ export interface CreateItem
     classId?: number | null;
     slotId?: number | null;
     currentStock?: number | null;
+    tradesCount?: number | null;
 }

@@ -17,5 +17,8 @@
         public bool? IsHat { get; set; }
         public bool? IsWeapon { get; set; }
         public bool? IsSold { get; set; }
+        public virtual bool? IsStrange { get; set; }
+        public virtual short? PaintId { get; set; }
+        public virtual short? SheenId { get; set; }
     }
 }

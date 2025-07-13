@@ -4,9 +4,7 @@ namespace SteamApp.Infrastructure.Services;
 
 public interface ISteamService
 {
-    IEnumerable<string> GetWeaponBatchUrls(short fromIndex, short batchSize);
-
-    IEnumerable<string> GetHatBatchUrls(short fromPage, short batchSize);
+    Task<IEnumerable<string>> GetHatBatchUrls(short fromPage, short batchSize, CancellationToken cancellationToken);
 
     Task<string> GetPaintInfoFromSource(string src, CancellationToken cancellationToken);
 

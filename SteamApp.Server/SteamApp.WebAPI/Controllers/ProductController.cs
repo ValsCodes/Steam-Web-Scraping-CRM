@@ -69,6 +69,9 @@ public class ProductController(IProductService productService) : ControllerBase
         if (dto.IsHat.HasValue) product.IsHat = dto.IsHat.Value;
         if (dto.IsWeapon.HasValue) product.IsWeapon = dto.IsWeapon.Value;
         if (dto.IsSold.HasValue) product.IsSold = dto.IsSold.Value;
+        if (dto.IsStrange.HasValue) product.IsStrange = dto.IsStrange.Value;
+        if (dto.PaintId.HasValue) product.PaintId = (short)dto.PaintId;
+        if (dto.SheenId.HasValue) product.SheenId = (short)dto.SheenId;
 
         await productService.UpdateAsync(product);
         return NoContent();

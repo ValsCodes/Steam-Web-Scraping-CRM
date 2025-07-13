@@ -8,6 +8,12 @@ namespace SteamApp.Models.Entities
         [Column("quality_id")]
         public virtual short? QualityId { get; set; }
 
+        [Column("paint_id")]
+        public virtual short? PaintId { get; set; }
+
+        [Column("sheen_id")]
+        public virtual short? SheenId { get; set; }
+
         [Column("desciption")]
         public virtual string? Description { get; set; }
 
@@ -43,5 +49,8 @@ namespace SteamApp.Models.Entities
 
         [Column("is_sold")]
         public virtual bool IsSold { get; set; }
+
+        [Column("is_strange")]
+        public virtual bool? IsStrange { get; set; }
     }
 }

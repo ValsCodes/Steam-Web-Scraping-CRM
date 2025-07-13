@@ -18,30 +18,11 @@ public class SteamController(ISteamService steamService) : ControllerBase
     /// <param name="page"></param>
     /// <returns></returns>
     [HttpGet("hat/urls/fromPage/{fromPage}/batchSize/{batchSize}")]
-    public IActionResult GetHatBatchUrls(short fromPage, short batchSize = 1)
+    public IActionResult GetHatBatchUrls(short fromPage, short batchSize = 1, CancellationToken ct = default)
     {
         try
         {
-            var result = steamService.GetHatBatchUrls(fromPage, batchSize);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ex.Message);
-        }
-    }
-
-    /// <summary>
-    /// Returns Weapon Listing URLs for a batch
-    /// </summary>
-    /// <param name="page"></param>
-    /// <returns></returns>
-    [HttpGet("weapon/urls/fromIndex/{fromIndex}/batchSize/{batchSize}")]
-    public IActionResult GetWeaponBatchUrls(short fromIndex, short batchSize = 1)
-    {
-        try
-        {
-            var result = steamService.GetWeaponBatchUrls(fromIndex, batchSize);
+            var result = steamService.GetHatBatchUrls(fromPage, batchSize, ct).GetAwaiter().GetResult();
             return Ok(result);
         }
         catch (Exception ex)

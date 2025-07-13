@@ -92,6 +92,9 @@ export class ProductsBetaComponent implements OnInit, AfterViewInit {
       isHat: false,
       isWeapon: false,
       isSold: false,
+      isStrange: null,
+      paintId: null,
+      sheenId: null
     };
 
     const currentData = this.dataSource.data;

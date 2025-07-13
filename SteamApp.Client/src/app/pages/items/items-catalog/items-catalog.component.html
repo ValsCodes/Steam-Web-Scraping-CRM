@@ -1,7 +1,7 @@
 <div class="table-container">
     <div class="flex flex-row justify-between">
         <div>
-            <button class="create-button mr-4" (click)="createButtonClicked()">Create Item</button>
+            <button class="create-button mr-4" (click)="createButtonClicked()">Create</button>
             <button class="refresh-button mr-4" (click)="refreshButtonClicked()">Refresh</button>
             <button class="clear-button" (click)="clearButtonClicked()">Clear</button>
         </div>
@@ -63,16 +63,16 @@
         <ng-container matColumnDef="name">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Name </th>
             <td mat-cell *matCellDef="let item">
-                {{item.name}}
+                <a href="{{weaponUrlPartial}}{{item.name}}">
+                    {{item.name}}
+                </a>
             </td>
         </ng-container>
 
-        <ng-container matColumnDef="url">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header> URL </th>
+                <ng-container matColumnDef="tradesCount">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Number of Trades </th>
             <td mat-cell *matCellDef="let item">
-                <a href="{{weaponUrlPartial}}{{item.name}}">
-                    < URL>
-                </a>
+                {{item.tradesCount}}
             </td>
         </ng-container>
 
@@ -113,7 +113,7 @@
 
         <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef>Actions</th>
-            <td mat-cell *matCellDef="let element; let i = index">
+            <td mat-cell *matCellDef="let element; let i = index" class="flex justify-center py-2">
                 <button class="sell-button ml-2" (click)="editButtonClicked(element.id)">Edit</button>
                 <button class="delete-button ml-2" (click)="deleteButtonClicked(element.id)">Delete</button>
             </td>

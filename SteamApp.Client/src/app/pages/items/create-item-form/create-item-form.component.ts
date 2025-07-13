@@ -51,7 +51,8 @@ export class CreateItemFormComponent implements OnInit {
       slotId: [null],
       isActive: [true],
       isWeapon: [true],
-      currentStock: [null]
+      currentStock: [null],
+      tradesCount: [null],
     });
   }
 

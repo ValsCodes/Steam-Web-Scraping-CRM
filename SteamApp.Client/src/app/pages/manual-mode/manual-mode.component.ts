@@ -6,6 +6,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ItemService } from '../../services/item/item.service';
 import { ItemSearchComponent } from '../../components/item-search/item-search.component';
+import { Item, UpdateItem } from '../../models/item.model';
 
 @Component({
   selector: 'steam-manual-mode',
@@ -39,7 +40,7 @@ export class ManualModeComponent implements OnInit {
     this._constants.LISTING_URL_PARTIAL +
     this._constants.WEAPON_URL_QUERY_PARAMS;
 
-  public weaponNames: string[] = [];
+  public weaponsCollection: Item[] = [];
 
   public isHatsSearch: boolean = true;
   public batchSize: number = 7;
@@ -80,8 +81,8 @@ export class ManualModeComponent implements OnInit {
     for (; this.currentPage < toPage; this.currentPage++) {
       let url = this.isHatsSearch
         ? `${this.currentUrl}p${this.currentPage}_price_asc`
-        : this.weaponNames.length >= this.currentPage
-        ? `${this.currentUrl}${this.weaponNames[this.currentPage - 1]}`
+        : this.weaponsCollection.length >= this.currentPage
+        ? `${this.currentUrl}${this.weaponsCollection[this.currentPage - 1]}`
         : null;
 
       if (url == null) {
@@ -142,12 +143,12 @@ export class ManualModeComponent implements OnInit {
       .getItems(this.selectedClasses, this.selectedSlots, nameFilter)
       .subscribe({
         next: (data) => {
-          const filteredData = data
-            .filter((item) => item.isActive && item.isWeapon)
-            .map((item) => item.name);
+          const filteredData = data.filter(
+            (item) => item.isActive && item.isWeapon
+          );
 
-          this.weaponNames.length = 0;
-          this.weaponNames.push(...filteredData);
+          this.weaponsCollection.length = 0;
+          this.weaponsCollection.push(...filteredData);
         },
         error: (err) => {
           console.log('Error Loading Items: ' + err);
@@ -172,12 +173,96 @@ export class ManualModeComponent implements OnInit {
     }
   }
 
+  addStockCount(id: number, currentStock: number | null): void {
+    if (Number.isNaN(id) || id <= 0) {
+      console.log('Bad Id');
+      return;
+    }
+
+    if (Number.isNaN(currentStock)) {
+      console.log('Bad Current Stock');
+      return;
+    }
+
+    if (currentStock === null) {
+      currentStock = 0;
+    }
+
+    currentStock++;
+
+    const updated: UpdateItem = {
+      id: id,
+      currentStock: currentStock,
+    };
+
+    this.updateItem(updated);
+  }
+
+  removeStockCount(id: number, currentStock: number | null): void {
+    if (Number.isNaN(id) || id <= 0) {
+      console.log('Bad Id');
+      return;
+    }
+
+    if (Number.isNaN(currentStock)) {
+      console.log('Bad Current Stock');
+      return;
+    }
+
+    if (currentStock === null) {
+      currentStock = 0;
+    }
+
+    currentStock--;
+
+    const updated: UpdateItem = {
+      id: id,
+      currentStock: currentStock,
+    };
+
+    this.updateItem(updated);
+  }
+
+  updateItem = (item: UpdateItem): void => {
+    this.itemService.updateItem(item).subscribe({
+      next: () => {
+        console.log('Updated item', item);
+        this.loadWeapons();
+      },
+      error: (err) => console.error('Error updating item:', err),
+    });
+  };
+
+  addTradesCount(id: number, tradesCount: number | null) {
+        if (Number.isNaN(id) || id <= 0) {
+      console.log('Bad Id');
+      return;
+    }
+
+    if (Number.isNaN(tradesCount)) {
+      console.log('Bad Trades Count');
+      return;
+    }
+
+    if (tradesCount === null) {
+      tradesCount = 0;
+    }
+
+    tradesCount++;
+
+    const updated: UpdateItem = {
+      id: id,
+      tradesCount: tradesCount,
+    };
+
+    this.updateItem(updated);
+  }
+
   showAllWeaponsButtonClicked(): void {
     let blocked = false;
-    let weaponNamesLength = this.weaponNames.length;
 
-    for (let index = 0; index < weaponNamesLength; index++) {
-      let url = `${this.currentUrl}${this.weaponNames[index]}`;
+    for (let index = 0; index < this.weaponsCollection.length; index++) {
+      let url = `${this.currentUrl}${this.weaponsCollection[index].name}`;
       console.log(url);
       let newWindow = window.open(url, '_blank');
 

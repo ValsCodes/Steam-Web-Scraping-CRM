@@ -1,21 +1,23 @@
-<form [formGroup]="itemForm"
-      (ngSubmit)="onSubmit()"
-      class="general-form">
-  <h2>Edit Product</h2>
+<form [formGroup]="itemForm" (ngSubmit)="onSubmit()" class="general-form">
+  <h2>Edit Item</h2>
 
   <div class="form-group">
     <label>Name *</label>
     <input class="px-2 py-1" formControlName="name" placeholder="Item name" />
-    <div class="error" 
-         *ngIf="itemForm.get('name')?.touched && itemForm.get('name')?.invalid">
+    <div class="error" *ngIf="itemForm.get('name')?.touched && itemForm.get('name')?.invalid">
       Name is required.
     </div>
   </div>
 
-    <div class="form-group">
-      <label>Current Stock</label>
-      <input type="number" class="px-2 py-1" formControlName="currentStock" placeholder="Number of Items" />
-    </div>
+  <div class="form-group">
+    <label>Current Stock</label>
+    <input type="number" class="px-2 py-1" formControlName="currentStock" placeholder="Number of Items" />
+  </div>
+
+  <div class="form-group">
+    <label>Trades Made</label>
+    <input type="number" class="px-2 py-1" formControlName="tradesCount" placeholder="Number of Trades Made" />
+  </div>
 
   <div class="form-group">
     <label>Slot</label>
@@ -25,7 +27,7 @@
     </select>
   </div>
 
-    <div class="form-group">
+  <div class="form-group">
     <label>Class</label>
     <select formControlName="classId">
       <option [value]="null">Select Class</option>
@@ -34,15 +36,16 @@
   </div>
 
   <div class="form-group checkbox-group">
-    <label><input type="checkbox" formControlName="isActive"   /> Active</label>
-    <label><input type="checkbox" formControlName="isWeapon"/> Weapon</label>
+    <label><input type="checkbox" formControlName="isActive" /> Active</label>
+    <label><input type="checkbox" formControlName="isWeapon" /> Weapon</label>
+    <label><input type="checkbox" formControlName="isStrange" /> Strange</label>
   </div>
 
   <button type="submit" [disabled]="itemForm.invalid">
-    Update Product
+    Update
   </button>
 
-   <button class="button button-large-blue" (click)="backButtonClicked()">
+  <button class="button button-large-blue" (click)="backButtonClicked()">
     Back
   </button>
 </form>

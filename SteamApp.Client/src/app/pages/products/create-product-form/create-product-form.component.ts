@@ -6,7 +6,8 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { qualitiesCollection, Quality, qualitiesMap } from '../../../models/enums/quality.enum';
-
+import { paintsCollection, paintsMap, Paint } from '../../../models/enums/paint.enum';
+import { Sheen, sheensCollection, sheensMap } from '../../../models/enums/sheen.enum';
 
 @Component({
   selector: 'steam-create-product-form',
@@ -20,10 +21,8 @@ export class CreateProductFormComponent implements OnInit {
   productForm!: FormGroup;
 
  qualities = qualitiesCollection;
-
- getQualityLabel(id: Quality) {
-    return qualitiesMap[id];
-  }
+        sheens = sheensCollection;
+    paints = paintsCollection;
 
   constructor(
     private router:Router,
@@ -35,6 +34,8 @@ export class CreateProductFormComponent implements OnInit {
     this.productForm = this.fb.group({
       name: ['', Validators.required],
       qualityId: [null],
+      paintId: [null],
+      sheenId: [null],
       description: [''],
       dateBought: [null],
       dateSold: [null],
@@ -46,9 +47,56 @@ export class CreateProductFormComponent implements OnInit {
       soldPrice: [null, [Validators.min(0)]],
       isHat: [false],
       isWeapon: [false],
-      isSold: [false]
+      isSold: [false],
+      isStrange:[false]
     });
+
+    // this.productForm.get('isHat')!.valueChanges.subscribe(isHat => {
+    //   const sheen = this.productForm.get('sheenId')!;
+    //   const isWeapon  = this.productForm.get('isWeapon')!;
+
+    //   if (isHat) {
+    //     // enable and require your hat fields
+    //     sheen.setValue(NaN);
+    //     sheen.disable();
+    //     isWeapon.setValue(false);
+    //   } else {
+    //     sheen.enable();
+    //     isWeapon.enable();
+    //   }
+    //   sheen.updateValueAndValidity();
+    //   isWeapon.updateValueAndValidity();
+    // });
+
+    //     this.productForm.get('isWeapon')!.valueChanges.subscribe(isWeapon => {
+    //   const paint = this.productForm.get('paintId')!;
+    //   const isHat = this.productForm.get('isHat')!;
+
+    //   if (isWeapon) {
+    //     // enable and require your hat fields
+    //     paint.disable();
+    //     paint.setValue(NaN);
+    //     isHat.setValue(false);
+    //   } else {
+    //     paint.enable();
+    //     isHat.enable();
+    //   }
+    //   paint.updateValueAndValidity();
+    //   isHat.updateValueAndValidity();
+    // });
   }
+
+   getQualityLabel(id: Quality) {
+    return qualitiesMap[id];
+  }
+
+    getPaintLabel(id: Paint) {
+      return paintsMap[id];
+    }
+
+    getSheenLabel(id: Sheen) {
+      return sheensMap[id];
+    }
 
   onSubmit(): void {
     if (this.productForm.invalid) {

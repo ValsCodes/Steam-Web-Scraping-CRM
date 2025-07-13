@@ -1,7 +1,7 @@
 <form [formGroup]="productForm"
       (ngSubmit)="onSubmit()"
       class="general-form">
-  <h2>Create Product</h2>
+  <h2>Create Listing</h2>
 
   <div class="form-group">
     <label>Name *</label>
@@ -12,11 +12,27 @@
     </div>
   </div>
 
+        <div class="form-group">
+    <label>Paint</label>
+    <select formControlName="paintId">
+      <option [value]="null">Select Paint</option>
+      <option *ngFor="let q of paints" [value]="q.id">{{ q.label }}</option>
+    </select>
+  </div>
+
   <div class="form-group">
     <label>Quality</label>
     <select formControlName="qualityId">
       <option [value]="null">Select quality</option>
       <option *ngFor="let q of qualities" [value]="q.id">{{ q.label }}</option>
+    </select>
+  </div>
+
+    <div class="form-group">
+    <label>Sheen</label>
+    <select formControlName="sheenId">
+      <option [value]="null">Select Sheen</option>
+      <option *ngFor="let q of sheens" [value]="q.id">{{ q.label }}</option>
     </select>
   </div>
 
@@ -61,10 +77,11 @@
   <div class="form-group checkbox-group">
     <label><input type="checkbox" formControlName="isHat"   /> Hat</label>
     <label><input type="checkbox" formControlName="isWeapon"/> Weapon</label>
+    <label><input type="checkbox" formControlName="isStrange"/> Strange</label>
     <label><input type="checkbox" formControlName="isSold"  /> Sold</label>
   </div>
 
   <button type="submit" [disabled]="productForm.invalid">
-    Create Product
+    Create
   </button>
 </form>

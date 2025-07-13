@@ -49,6 +49,8 @@ export class EditItemFormComponent implements OnInit {
         slotId: [null],
         isActive: [false],
         isWeapon: [false],
+        currentStock: [null],
+        tradesCount:[null],
     });
 
     this.itemService.getItemById(this.itemId).subscribe((product) => {
@@ -58,7 +60,8 @@ export class EditItemFormComponent implements OnInit {
         slotId: product.slotId,
         isActive: product.isActive,
         isWeapon: product.isWeapon,
-        currentStock: product.currentStock
+        currentStock: product.currentStock,
+        tradesCount: product.tradesCount,
       });
     });
   }

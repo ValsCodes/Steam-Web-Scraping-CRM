@@ -1,15 +1,20 @@
-<form [formGroup]="productForm"
-      (ngSubmit)="onSubmit()"
-      class="general-form">
-  <h2>Edit Product</h2>
+<form [formGroup]="productForm" (ngSubmit)="onSubmit()" class="general-form">
+  <h2>Edit Listing</h2>
 
   <div class="form-group">
     <label>Name *</label>
     <input class="px-2 py-1" formControlName="name" placeholder="Product name" />
-    <div class="error"
-         *ngIf="productForm.get('name')?.touched && productForm.get('name')?.invalid">
+    <div class="error" *ngIf="productForm.get('name')?.touched && productForm.get('name')?.invalid">
       Name is required.
     </div>
+  </div>
+
+  <div class="form-group">
+    <label>Paint</label>
+    <select formControlName="paintId">
+      <option [value]="null">Select Paint</option>
+      <option *ngFor="let q of paints" [value]="q.id">{{ q.label }}</option>
+    </select>
   </div>
 
   <div class="form-group quality-group">
@@ -19,6 +24,14 @@
       <option *ngFor="let q of qualities" [value]="q.id">
         {{ q.label }}
       </option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Sheen</label>
+    <select formControlName="sheenId">
+      <option [value]="null">Select Sheen</option>
+      <option *ngFor="let q of sheens" [value]="q.id">{{ q.label }}</option>
     </select>
   </div>
 
@@ -45,13 +58,8 @@
   <div class="form-group price-group">
     <label>Target Sell Prices</label>
     <div class="price-inputs">
-      <input
-        *ngFor="let idx of [1,2,3,4]"
-        type="number"
-        [formControlName]="'targetSellPrice' + idx"
-        placeholder="Price {{idx}}"
-        min="0"
-      />
+      <input *ngFor="let idx of [1,2,3,4]" type="number" [formControlName]="'targetSellPrice' + idx"
+        placeholder="Price {{idx}}" min="0" />
     </div>
   </div>
 
@@ -61,16 +69,16 @@
   </div>
 
   <div class="form-group checkbox-group">
-    <label><input type="checkbox" formControlName="isHat"   /> Hat</label>
-    <label><input type="checkbox" formControlName="isWeapon"/> Weapon</label>
-    <label><input type="checkbox" formControlName="isSold"  /> Sold</label>
+    <label><input type="checkbox" formControlName="isHat" /> Hat</label>
+    <label><input type="checkbox" formControlName="isWeapon" /> Weapon</label>
+    <label><input type="checkbox" formControlName="isSold" /> Sold</label>
   </div>
 
   <button type="submit" [disabled]="productForm.invalid">
-    Update Product
+    Update
   </button>
 
-   <button class="button button-large-blue" (click)="backButtonClicked()">
+  <button class="button button-large-blue" (click)="backButtonClicked()">
     Back
   </button>
 </form>

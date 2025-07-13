@@ -11,6 +11,13 @@ import { CONSTANTS } from '../../../common/constants';
 import { Product } from '../../../models/product.model';
 import { Router } from '@angular/router';
 
+import {
+  Paint,
+  paintsCollection,
+  paintsMap,
+} from '../../../models/enums/paint.enum';
+import { Sheen, sheensCollection, sheensMap } from '../../../models/enums/sheen.enum';
+
 @Component({
   selector: 'steam-sell-listings-2',
   standalone: true,
@@ -33,8 +40,10 @@ export class ProductsCatalogComponent implements OnInit, AfterViewInit {
   dataSource = new MatTableDataSource<Product>();
   displayedColumns: string[] = [
     'item',
-    'listing_URL',
-    'description',
+    // 'listing_URL',
+    // 'description',
+    'paint',
+    'sheen',
     'bought-price',
     'date-bought',
     'target1',
@@ -47,7 +56,18 @@ export class ProductsCatalogComponent implements OnInit, AfterViewInit {
   ];
 
   private _constants = CONSTANTS;
-  listingUrlPartial: string = this._constants.LISTING_URL_PARTIAL;
+  Url: string = this._constants.LISTING_URL_PARTIAL;
+
+  paints = paintsCollection;
+  sheen = sheensCollection;
+
+  getSheenLabel(id: Sheen) {
+    return sheensMap[id];
+  }
+
+  getPaintLabel(id: Paint) {
+    return paintsMap[id];
+  }
 
   constructor(private router: Router, private productService: ProductService) {}
 
@@ -92,7 +112,7 @@ export class ProductsCatalogComponent implements OnInit, AfterViewInit {
   }
 
   editButtonClicked(id: number): void {
-    if (!id ||  id <= 0) {
+    if (!id || id <= 0) {
       console.warn('Invalid item id:', id);
       return;
     }
@@ -100,7 +120,7 @@ export class ProductsCatalogComponent implements OnInit, AfterViewInit {
     this.router.navigate(['edit-product', id]);
   }
 
-deleteButtonClicked(id: number): void {
+  deleteButtonClicked(id: number): void {
     if (!id || id <= 0) {
       console.warn('Invalid item id:', id);
       return;
@@ -108,15 +128,12 @@ deleteButtonClicked(id: number): void {
 
     console.log('Deleting product with id:', id);
     this.productService.deleteProduct(id).subscribe({
-
-      next: product => {
+      next: (product) => {
         console.log('Product deleted:', product.id);
         this.fetchSellListings();
       },
-      error: err => console.error('Error deleting product:', err)
-    }
-
-    );
+      error: (err) => console.error('Error deleting product:', err),
+    });
   }
 
   private fetchSellListings(): void {

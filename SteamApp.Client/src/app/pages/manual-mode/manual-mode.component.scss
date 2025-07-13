@@ -1,5 +1,4 @@
 @import '../../../scss/main.scss';
-@import '../../../scss/variables.scss';
 
 h1 {
     font-weight:400;
@@ -58,7 +57,7 @@ h2{
         &--control {
             justify-content: center;
             background-color: antiquewhite;
-            max-height: 12.5rem;
+            max-height: 15rem;
             padding: .625rem;   
             margin: 1.5625rem 0; 
         }
@@ -79,7 +78,7 @@ h2{
                 border-radius: .375rem;
                 box-shadow: 0 .125rem .375rem rgba(0,0,0,0.1);
                 text-align: center;
-                min-width: 9.375rem;
+                min-width: 10rem;
                 min-height: 3.125rem;
               }
           }       
