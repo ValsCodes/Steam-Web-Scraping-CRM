@@ -16,7 +16,11 @@ import {
   paintsCollection,
   paintsMap,
 } from '../../../models/enums/paint.enum';
-import { Sheen, sheensCollection, sheensMap } from '../../../models/enums/sheen.enum';
+import {
+  Sheen,
+  sheensCollection,
+  sheensMap,
+} from '../../../models/enums/sheen.enum';
 
 @Component({
   selector: 'steam-sell-listings-2',
@@ -39,19 +43,19 @@ export class ProductsCatalogComponent implements OnInit, AfterViewInit {
 
   dataSource = new MatTableDataSource<Product>();
   displayedColumns: string[] = [
-    'item',
+    'name',
     // 'listing_URL',
     // 'description',
-    'paint',
-    'sheen',
-    'bought-price',
-    'date-bought',
-    'target1',
-    'target2',
+    'paintId',
+    'sheenId',
+    'costPrice',
+    'dateBought',
+    'targetSellPrice1',
+    'targetSellPrice2',
     // 'target3',
     // 'target4',
-    'date-sold',
-    'sold-price',
+    'dateSold',
+    'soldPrice',
     'actions',
   ];
 
@@ -61,25 +65,17 @@ export class ProductsCatalogComponent implements OnInit, AfterViewInit {
   paints = paintsCollection;
   sheen = sheensCollection;
 
-  getSheenLabel(id: Sheen) {
-    return sheensMap[id];
-  }
-
-  getPaintLabel(id: Paint) {
-    return paintsMap[id];
-  }
-
   constructor(private router: Router, private productService: ProductService) {}
 
   ngOnInit() {
     this.fetchSellListings();
-
-    if (!this.dataSource.sort) {
-      this.dataSource.sort = this.sort;
-    }
   }
 
   ngAfterViewInit(): void {
+    if (!this.dataSource.sort) {
+      this.dataSource.sort = this.sort;
+    }
+
     if (!this.dataSource.paginator) {
       this.dataSource.paginator = this.paginator;
       this.dataSource.paginator.pageSize = 10;
@@ -97,6 +93,14 @@ export class ProductsCatalogComponent implements OnInit, AfterViewInit {
 
   refreshButtonClicked(): void {
     this.fetchSellListings();
+  }
+
+  getSheenLabel(id: Sheen) {
+    return sheensMap[id];
+  }
+
+  getPaintLabel(id: Paint) {
+    return paintsMap[id];
   }
 
   exportButtonClicked(): void {

@@ -3,7 +3,6 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-
 import { ItemService } from '../../../services/item/item.service';
 import { UpdateItem } from '../../../models/item.model';
 import { Class, classesCollection, classesMap } from '../../../models/enums/class.enum';
@@ -51,6 +50,7 @@ export class EditItemFormComponent implements OnInit {
         isWeapon: [false],
         currentStock: [null],
         tradesCount:[null],
+        rating:[null]
     });
 
     this.itemService.getItemById(this.itemId).subscribe((product) => {
@@ -62,6 +62,7 @@ export class EditItemFormComponent implements OnInit {
         isWeapon: product.isWeapon,
         currentStock: product.currentStock,
         tradesCount: product.tradesCount,
+        rating: product.rating,
       });
     });
   }

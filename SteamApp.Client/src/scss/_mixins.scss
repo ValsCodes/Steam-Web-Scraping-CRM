@@ -1,0 +1,10 @@
+@mixin btn-variant($color-key, $padding, $text-color: white) {
+  @extend %btn-base;
+  padding: nth($padding, 1) nth($padding, 2);
+  background-color: map-get($button-colors, $color-key);
+  color: $text-color;
+
+  &:hover {
+    background-color: lighten(map-get($button-colors, $color-key), 10%);
+  }
+}

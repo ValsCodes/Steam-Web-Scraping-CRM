@@ -1,0 +1,9 @@
+// Utility‐style .button‑{size}-{color}
+@each $size, $pad in $button-sizes {
+  @each $key, $hex in $button-colors {
+    .button-#{$size}-#{$key} {
+      $text-col: if($key == warning, black, white);
+      @include btn-variant($key, $pad, $text-col);
+    }
+  }
+}

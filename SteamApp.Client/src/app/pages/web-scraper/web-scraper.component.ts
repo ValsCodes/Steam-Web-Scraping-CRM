@@ -7,6 +7,15 @@ import { MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import * as XLSX from 'xlsx';
+import { Listing } from '../../models/listing.model';
+
+
+enum ScrapingMode {
+  ClassicWebScraper = 1,
+  ClassicWebScraperPaintsOnlyByPixel = 2,
+  PublicApiDeserializer = 3,
+  DeepClassicWebScraperPaintsOnly = 4
+}
 
 @Component({
   selector: 'web-scraper',
@@ -26,123 +35,178 @@ import * as XLSX from 'xlsx';
 export class WebScraperComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
-  dataSource = new MatTableDataSource<any>([]);
 
-  private tableForm: FormArray = new FormArray<any>([]);
-
-  pageNumber: number = 0;
+  dataSource = new MatTableDataSource<Listing>([]);
   displayedColumns: string[] = [
-    'item',
+    'name',
     'quantity',
     'color',
     'price',
     'actions',
   ];
 
+  hatURL: string = 'https://steamcommunity.com/market/listings/440/';
+
+  pageNumber: number = 1;
+  statusLabel: string = '';
+  lastUsedMode: number | null = null;
+
+  constructor(private steamService: SteamService) {}
+
   ngOnInit(): void {}
 
   ngAfterViewInit(): void {
     if (!this.dataSource.paginator) {
       this.dataSource.paginator = this.paginator;
+      this.dataSource.paginator.pageSize = 10;
+      this.dataSource.paginator.pageSizeOptions = [10, 25, 50];
     }
     if (!this.dataSource.sort) {
       this.dataSource.sort = this.sort;
     }
   }
 
-  constructor(private steamService: SteamService) {}
+    retryBatchButtonClicked() {
 
-  public readonly hatURL: string =
-  'https://steamcommunity.com/market/listings/440/';
+    switch (this.lastUsedMode) {
+      case ScrapingMode.ClassicWebScraper:
+        this.classicWebScraperButtonClicked();
+        break;
+      case ScrapingMode.ClassicWebScraperPaintsOnlyByPixel:
+        this.scrapedPageByPixelButtonClicked();
+        break;
+      case ScrapingMode.PublicApiDeserializer:
+        this.publicApiDeserializerButtonClicked();
+        break;
 
-  getListingsButtonClicked() {
-    this.steamService.getScrapedPage(this.pageNumber).subscribe(
-      (response) => {
+      case ScrapingMode.DeepClassicWebScraperPaintsOnly:
+        this.deepClassicWebScraperPaintsOnlyButtonClicked();
+        break;
+    }
+  }
+
+  startBatchButtonClicked() {
+    this.pageNumber++;
+
+    switch (this.lastUsedMode) {
+      case ScrapingMode.ClassicWebScraper:
+        this.classicWebScraperButtonClicked();
+        break;
+      case ScrapingMode.ClassicWebScraperPaintsOnlyByPixel:
+        this.scrapedPageByPixelButtonClicked();
+        break;
+      case ScrapingMode.PublicApiDeserializer:
+        this.publicApiDeserializerButtonClicked();
+        break;
+
+      case ScrapingMode.DeepClassicWebScraperPaintsOnly:
+        this.deepClassicWebScraperPaintsOnlyButtonClicked();
+        break;
+    }
+  }
+
+  classicWebScraperButtonClicked() {
+   this.setLoading();
+    this.steamService.getScrapedPage(this.pageNumber).subscribe({
+      next: (response) => {
+        if (response.length === 0) {
+          console.log('No results found');
+        }
+        this.dataSource.data = response;
+        console.log([response]);
+        this.statusLabel = 'Successfully scraped Listings.';
+      },
+      error: (error) => {
+        this.statusLabel = 'Failed to scrape Listings.';
+        console.error('Error fetching data:', error);
+      },
+    });
+
+    this.lastUsedMode = ScrapingMode.ClassicWebScraper;
+  }
+
+  scrapedPageByPixelButtonClicked() {
+    this.setLoading();
+    this.steamService.getScrapedPageByPixel(this.pageNumber).subscribe({
+      next: (response) => {
         if (response.length === 0) {
           console.log('No results found');
         }
 
         this.dataSource.data = response;
+        this.statusLabel =
+          'Successfully scraped Listings with Paints by Pixel.';
         console.log([response]);
       },
-      (error) => {
+      error: (error) => {
+        this.statusLabel = 'Failed to scrape Listings with Paints by Pixel.';
         console.error('Error fetching data:', error);
-      }
-    );
+      },
+    });
 
-    this.pageNumber += 1;
+    this.lastUsedMode = ScrapingMode.ClassicWebScraperPaintsOnlyByPixel;
   }
 
-    getListingsWithPaintsButtonClicked() {
-    this.steamService.getScrapedPagePaintedOnly(this.pageNumber).subscribe(
-      (response) => {
+  publicApiDeserializerButtonClicked() {
+    this.setLoading();
+    this.steamService.getBulkPage(this.pageNumber).subscribe({
+      next: (response) => {
         if (response.length === 0) {
           console.log('No results found');
         }
-
-        this.dataSource.data = response;
-        console.log([response]);
-      },
-      (error) => {
-        console.error('Error fetching data:', error);
-      }
-    );
-
-    this.pageNumber += 1;
-  }
-
-  getPaintedListingsButtonClicked() {
-    this.steamService.getScrapedPagePaintedOnly(this.pageNumber).subscribe(
-      (response) => {
-        if (response.length === 0) {
-          console.log('No results found');
-        }
-
-        this.dataSource.data = response;
-        console.log([response]);
-      },
-      (error) => {
-        console.error('Error fetching data:', error);
-      }
-    );
-  }
-
-  getBulkListingsButtonClicked() {
-    this.steamService.getBulkPage(this.pageNumber).subscribe(
-      (response) => {
-        if (response.length === 0) {
-          console.log('No results found');
-        }
-
         this.dataSource.data = response;
         console.table(response);
+        this.statusLabel = 'Successfully scraped by Public API.';
       },
-      (error) => {
+      error: (error) => {
+        this.statusLabel = 'Failed to scrape by Public API.';
         console.error('Error fetching data:', error);
-      }
-    );
+      },
+    });
+
+    this.lastUsedMode = ScrapingMode.PublicApiDeserializer;
   }
 
-  checkPaintButtonClicked(name:string, index:number) {
+  deepClassicWebScraperPaintsOnlyButtonClicked() {
+    this.setLoading();
+    this.steamService.getDeepScrapePaintedOnly(this.pageNumber).subscribe({
+      next: (response) => {
+        if (response.length === 0) {
+          console.log('No results found');
+        }
 
-    this.steamService.getIsHatPainted(name).subscribe(
-      (response) => {
+        this.dataSource.data = response;
+        this.statusLabel = 'Successfully scraped by Deep Scraping.';
+        console.log([response]);
+      },
+      error: (error) => {
+        this.statusLabel = 'Failed to scrape by Deep Scraping.';
+        console.error('Error fetching data:', error);
+      },
+    });
 
+    this.lastUsedMode = ScrapingMode.DeepClassicWebScraperPaintsOnly;
+  }
+
+  checkPaintButtonClicked(name: string, index: number) {
+    this.setLoading();
+    this.steamService.getIsHatPainted(name).subscribe({
+      next: (response) => {
         console.log([response]);
 
-        if(response.isPainted === false)
-        {
-          this.dataSource.data[index].color = "Not Painted";
-        }
-        else
-        {
+        if (response.isPainted === false) {
+          this.dataSource.data[index].color = 'Not Painted';
+        } else {
           this.dataSource.data[index].color = response.paintText;
-        }  
+        }
+
+        this.statusLabel = 'Successfully Check Listing for Paint.';
       },
-      (error) => {
+      error: (error) => {
+        this.statusLabel = 'Failed to Check Listing for Paint.';
         console.error('Error fetching data:', error);
-      }
-    );
+      },
+    });
   }
 
   exportButtonClicked(): void {
@@ -160,12 +224,17 @@ export class WebScraperComponent implements OnInit, AfterViewInit {
   clearButtonClicked(): void {
     this.dataSource.data = [];
 
-    console.log(this.tableForm);
+    this.onPageNumberChange(1);
+  }
+
+  setLoading(): void {
+    this.dataSource.data = [];
+    this.statusLabel = 'Loading...';
   }
 
   onPageNumberChange(value: number) {
     if (value < 0 || value > 100000) {
-      this.pageNumber = 0;
+      this.pageNumber = 1;
     } else {
       this.pageNumber = value;
     }

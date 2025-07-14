@@ -1,98 +1,99 @@
-<div class="table-container">
-    <div class="flex flex-row justify-between w-full">
-        <div>
-            <button class="create-button mr-4" (click)="createButtonClicked()">Create</button>
-            <button class="refresh-button mr-4" (click)="refreshButtonClicked()">Refresh</button>
-            <button class="clear-button" (click)="clearButtonClicked()">Clear</button>
-        </div>
-        <div>
+<div>
+    <div class="flex justify-between pt-4 px-5">
+        <h2 class="text-2xl font-semibold text-gray-500 mb-4">Listings Catalog</h2>
+        <button class="create-button" (click)="createButtonClicked()">Create</button>
+        <!-- <button class="refresh-button mr-4" (click)="refreshButtonClicked()">Refresh</button> -->
+        <!-- <button class="clear-button" (click)="clearButtonClicked()">Clear</button> -->
+        <!-- <div>
             <button class="export-button mr-4" (click)="exportButtonClicked()">Export</button>
             <!-- <button class="import-button mr-4" (click)="importButtonClicked()">Import</button> -->
-        </div>
+        <!-- </div> -->
     </div>
 
-    <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z8">
+    <div class="table-container">
+        <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z8">
 
-        <ng-container matColumnDef="item">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header> Item </th>
-            <td mat-cell *matCellDef="let product">
-                <a href="{{Url}}{{product.name}}">
-                {{product.name}}
-                </a>
-            </td>
-        </ng-container>
+            <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Item </th>
+                <td mat-cell *matCellDef="let product">
+                    <a href="{{Url}}{{product.name}}">
+                        {{product.name}}
+                    </a>
+                </td>
+            </ng-container>
 
-        <ng-container matColumnDef="paint">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header> Paint </th>
-            <td mat-cell *matCellDef="let product">
-                {{ getPaintLabel(product.paintId) }}
-            </td>
-        </ng-container>
+            <ng-container matColumnDef="paintId">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Paint </th>
+                <td mat-cell *matCellDef="let product">
+                    {{ getPaintLabel(product.paintId) }}
+                </td>
+            </ng-container>
 
-        <ng-container matColumnDef="sheen">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header> Sheen </th>
-            <td mat-cell *matCellDef="let product">
-                {{ getSheenLabel(product.sheenId) }}
-            </td>
-        </ng-container>
+            <ng-container matColumnDef="sheenId">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Sheen </th>
+                <td mat-cell *matCellDef="let product">
+                    {{ getSheenLabel(product.sheenId) }}
+                </td>
+            </ng-container>
 
-        <!-- <ng-container matColumnDef="description">
+            <!-- <ng-container matColumnDef="description">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Description </th>
             <td mat-cell *matCellDef="let product">
                 {{product.description}}
             </td>
         </ng-container> -->
 
-        <ng-container matColumnDef="bought-price">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header> Bought Price </th>
-            <td mat-cell *matCellDef="let product" class="currency">{{product.costPrice | currency : "EUR"}}</td>
-        </ng-container>
+            <ng-container matColumnDef="costPrice">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Bought Price </th>
+                <td mat-cell *matCellDef="let product" class="currency">{{product.costPrice | currency : "EUR"}}</td>
+            </ng-container>
 
-        <ng-container matColumnDef="date-bought">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header> Date Bought </th>
-            <td mat-cell *matCellDef="let product" class="date">
-                {{ product.dateBought | date:'dd/MM/yyyy' }}
-            </td>
-        </ng-container>
+            <ng-container matColumnDef="dateBought">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Date Bought </th>
+                <td mat-cell *matCellDef="let product" class="date">
+                    {{ product.dateBought | date:'dd/MM/yyyy' }}
+                </td>
+            </ng-container>
 
-        <ng-container matColumnDef="target1">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header> Target 1 </th>
-            <td mat-cell *matCellDef="let product" class="currency">
-                {{product.targetSellPrice1 | currency : "EUR"}}
-            </td>
-        </ng-container>
+            <ng-container matColumnDef="targetSellPrice1">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Target 1 </th>
+                <td mat-cell *matCellDef="let product" class="currency">
+                    {{product.targetSellPrice1 | currency : "EUR"}}
+                </td>
+            </ng-container>
 
-        <ng-container matColumnDef="target2">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header> Target 2 </th>
-            <td mat-cell *matCellDef="let product" class="currency">
-                {{product.targetSellPrice2 | currency : "EUR"}}
-            </td>
-        </ng-container>
+            <ng-container matColumnDef="targetSellPrice2">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Target 2 </th>
+                <td mat-cell *matCellDef="let product" class="currency">
+                    {{product.targetSellPrice2 | currency : "EUR"}}
+                </td>
+            </ng-container>
 
-        <ng-container matColumnDef="date-sold">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header> Date Sold </th>
-            <td mat-cell *matCellDef="let product" class="date">
-                {{product.dateSold | date:'dd/MM/yyyy'}}
-            </td>
-        </ng-container>
+            <ng-container matColumnDef="dateSold">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Date Sold </th>
+                <td mat-cell *matCellDef="let product" class="date">
+                    {{product.dateSold | date:'dd/MM/yyyy'}}
+                </td>
+            </ng-container>
 
-        <ng-container matColumnDef="sold-price">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header> Sold Price </th>
-            <td mat-cell *matCellDef="let product" class="currency">
-                {{ product.soldPrice | currency : "EUR" }}
-            </td>
-        </ng-container>
+            <ng-container matColumnDef="soldPrice">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Sold Price </th>
+                <td mat-cell *matCellDef="let product" class="currency">
+                    {{ product.soldPrice | currency : "EUR" }}
+                </td>
+            </ng-container>
 
-        <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef>Actions</th>
-            <td mat-cell *matCellDef="let product" class="flex justify-center py-2">
-                <button class="sell-button ml-2" (click)="editButtonClicked(product.id)">Edit</button>
-                <button class="delete-button ml-2" (click)="deleteButtonClicked(product.id)">Delete</button>
-            </td>
-        </ng-container>
+            <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef>Actions</th>
+                <td mat-cell *matCellDef="let product" class="flex justify-center py-2 gap-2">
+                    <button class="edit-button" (click)="editButtonClicked(product.id)">Edit</button>
+                    <button class="delete-button" (click)="deleteButtonClicked(product.id)">Delete</button>
+                </td>
+            </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-    </table>
-    <mat-paginator showFirstLastButtons></mat-paginator>
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+        <mat-paginator showFirstLastButtons></mat-paginator>
+    </div>
 </div>

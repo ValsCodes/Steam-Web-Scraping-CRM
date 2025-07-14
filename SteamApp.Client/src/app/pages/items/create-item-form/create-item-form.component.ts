@@ -53,6 +53,7 @@ export class CreateItemFormComponent implements OnInit {
       isWeapon: [true],
       currentStock: [null],
       tradesCount: [null],
+      rating:[null]
     });
   }
 

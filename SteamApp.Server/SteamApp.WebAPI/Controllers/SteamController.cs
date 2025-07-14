@@ -8,30 +8,8 @@ namespace SteamApp.WebAPI.Controllers;
 [ApiController]
 [Route("steam")]
 [Authorize]
-public class SteamController(ISteamService steamService) : ControllerBase
+public class SteamController(ISteamService steamService/*, ILogger<SteamController> logger*/) : ControllerBase
 {
-    // private readonly ILogger<SteamController> _logger;
-
-    /// <summary>
-    /// Returns Hat Listing URLs for a batch
-    /// </summary>
-    /// <param name="page"></param>
-    /// <returns></returns>
-    [HttpGet("hat/urls/fromPage/{fromPage}/batchSize/{batchSize}")]
-    public IActionResult GetHatBatchUrls(short fromPage, short batchSize = 1, CancellationToken ct = default)
-    {
-        try
-        {
-            var result = steamService.GetHatBatchUrls(fromPage, batchSize, ct).GetAwaiter().GetResult();
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ex.Message);
-        }
-    }
-
-
     /// <summary>
     /// Returns the RGB values found on a specific pixel of an item src image
     /// </summary>

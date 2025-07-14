@@ -12,30 +12,7 @@ export class SteamService {
   constructor(private http: HttpClient) {}
 
   private readonly steam: string = `${g.localHost}steam/`;
-  private readonly swagger: string = 'swagger/index.html';
 
-  checkServerStatus(): Observable<boolean> {
-    return this.http
-      .get(g.localHost + this.swagger, { responseType: 'text' })
-      .pipe(
-        map(() => true),
-        catchError(() => of(false))
-      );
-  }
-
-  getWeaponUrls(fromIndex: number, batchSize: number): Observable<string[]> {
-    const url = `${this.steam}weapon/urls/fromPage/${fromIndex}/batchSize/${batchSize}`;
-    return this.http.get<string[]>(url).pipe(
-      catchError(handleError)
-    );
-  }
- 
-  getHatUrls(fromPage: number, batchSize: number): Observable<string[]> {
-    const url = `${this.steam}hat/urls/fromPage/${fromPage}/batchSize/${batchSize}`;
-    return this.http.get<string[]>(url).pipe(
-      catchError(handleError)
-    );
-  }
 
   getScrapedPage(page: number): Observable<any> {
     const url = `${this.steam}hat/page/${page}`;
@@ -58,7 +35,7 @@ export class SteamService {
     );
   }
 
-  getScrapedPagePaintedOnly(page: number): Observable<any> {
+  getDeepScrapePaintedOnly(page: number): Observable<any> {
     const url = `${this.steam}hat/page/${page}/painted`;
     console.log('Request URL:', url);
     return this.http.get<any>(url).pipe(

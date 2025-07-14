@@ -34,18 +34,20 @@ export class ManualModeComponent implements OnInit {
     this._constants.SEARCH_URL_PARTIAL +
     this._constants.PRODUCT_QUERY_PARAMS_EXTENDED;
 
-  private currentUrl: string = this._hatUrlPartial;
-
   public readonly weaponUrlPartial: string =
     this._constants.LISTING_URL_PARTIAL +
     this._constants.WEAPON_URL_QUERY_PARAMS;
 
   public weaponsCollection: Item[] = [];
 
-  public isHatsSearch: boolean = true;
-  public batchSize: number = 7;
+  public hatsBatchSize: number = 7;
+  public weaponsBatchSize: number = 3;
+
   public currentPage: number = 76;
-  public statusLabel: string = '';
+  public currentIndex: number = 1;
+
+  public hatStatusLabel: string = '';
+  public weaponStatusLabel: string = '';
 
   constructor(private itemService: ItemService) {}
 
@@ -74,19 +76,45 @@ export class ManualModeComponent implements OnInit {
     this.loadWeapons();
   }
 
-  startButtonClicked(): void {
-    let toPage = this.currentPage + this.batchSize;
+  startHatsBatch(): void {
+    let toPage = this.currentPage + this.hatsBatchSize;
     let blocked = false;
 
     for (; this.currentPage < toPage; this.currentPage++) {
-      let url = this.isHatsSearch
-        ? `${this.currentUrl}p${this.currentPage}_price_asc`
-        : this.weaponsCollection.length >= this.currentPage
-        ? `${this.currentUrl}${this.weaponsCollection[this.currentPage - 1]}`
-        : null;
+      let url = `${this._hatUrlPartial}p${this.currentPage}_price_asc`;
+
+      let newWindow = window.open(url, '_blank');
+
+      if (
+        !newWindow ||
+        newWindow.closed ||
+        typeof newWindow.closed === 'undefined'
+      ) {
+        blocked = true;
+      }
+    }
+
+    this.hatStatusLabel = blocked ? 'Bad Batch!' : 'Successful Batch!';
+
+    if (blocked) {
+      alert(
+        'Pop-ups were blocked. Please enable pop-ups for this website to open all pages.'
+      );
+    }
+  }
+
+  startWeaponsBatch(): void {
+    let toIndex = this.currentIndex + this.weaponsBatchSize;
+    let blocked = false;
+
+    for (; this.currentIndex < toIndex; this.currentIndex++) {
+      let url =
+        this.weaponsCollection.length >= this.currentIndex
+          ? `${this.weaponUrlPartial}${this.weaponsCollection[this.currentIndex - 1].name}`
+          : null;
 
       if (url == null) {
-        this.statusLabel = 'No More Weapons!';
+        this.weaponStatusLabel = 'No More Weapons!';
         return;
       }
 
@@ -101,7 +129,33 @@ export class ManualModeComponent implements OnInit {
       }
     }
 
-    this.statusLabel = blocked ? 'Bad Batch!' : 'Successful Batch!';
+    this.weaponStatusLabel = blocked ? 'Bad Batch!' : 'Successful Batch!';
+
+    if (blocked) {
+      alert(
+        'Pop-ups were blocked. Please enable pop-ups for this website to open all pages.'
+      );
+    }
+  }
+
+  showAllWeaponsButtonClicked(): void {
+    let blocked = false;
+
+    for (let index = 0; index < this.weaponsCollection.length; index++) {
+      let url = `${this.weaponUrlPartial}${this.weaponsCollection[index].name}`;
+      console.log(url);
+      let newWindow = window.open(url, '_blank');
+
+      if (
+        !newWindow ||
+        newWindow.closed ||
+        typeof newWindow.closed === 'undefined'
+      ) {
+        blocked = true;
+      }
+    }
+
+    this.weaponStatusLabel = blocked ? 'Bad Batch!' : 'Successful Batch!';
 
     if (blocked) {
       alert(
@@ -155,23 +209,6 @@ export class ManualModeComponent implements OnInit {
         },
       });
   };
-
-  hatsButtonClicked(): void {
-    if (!this.isHatsSearch) {
-      this.currentUrl = this._hatUrlPartial;
-      this.isHatsSearch = true;
-
-      this.resetButtonClicked();
-    }
-  }
-
-  weaponsButtonClicked(): void {
-    if (this.isHatsSearch) {
-      this.currentUrl = this.weaponUrlPartial;
-      this.isHatsSearch = false;
-      this.resetButtonClicked();
-    }
-  }
 
   addStockCount(id: number, currentStock: number | null): void {
     if (Number.isNaN(id) || id <= 0) {
@@ -234,7 +271,7 @@ export class ManualModeComponent implements OnInit {
   };
 
   addTradesCount(id: number, tradesCount: number | null) {
-        if (Number.isNaN(id) || id <= 0) {
+    if (Number.isNaN(id) || id <= 0) {
       console.log('Bad Id');
       return;
     }
@@ -258,41 +295,15 @@ export class ManualModeComponent implements OnInit {
     this.updateItem(updated);
   }
 
-  showAllWeaponsButtonClicked(): void {
-    let blocked = false;
-
-    for (let index = 0; index < this.weaponsCollection.length; index++) {
-      let url = `${this.currentUrl}${this.weaponsCollection[index].name}`;
-      console.log(url);
-      let newWindow = window.open(url, '_blank');
-
-      if (
-        !newWindow ||
-        newWindow.closed ||
-        typeof newWindow.closed === 'undefined'
-      ) {
-        blocked = true;
-      }
-    }
-
-    this.statusLabel = blocked ? 'Bad Batch!' : 'Successful Batch!';
-
-    if (blocked) {
-      alert(
-        'Pop-ups were blocked. Please enable pop-ups for this website to open all pages.'
-      );
-    }
+  resetHatsButtonClicked(): void {
+    this.currentPage = 76;
+    this.hatsBatchSize = 7;
+    this.hatStatusLabel = '';
   }
 
-  resetButtonClicked(): void {
-    if (this.isHatsSearch) {
-      this.currentPage = 76;
-      this.batchSize = 7;
-    } else {
-      this.currentPage = 1;
-      this.batchSize = 3;
-    }
-
-    this.statusLabel = '';
+  resetWeaponsButtonClicked(): void {
+    this.currentIndex = 1;
+    this.weaponsBatchSize = 3;
+    this.weaponStatusLabel = '';
   }
 }

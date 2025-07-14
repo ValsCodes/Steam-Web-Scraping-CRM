@@ -4,8 +4,6 @@ namespace SteamApp.Infrastructure.Services;
 
 public interface ISteamService
 {
-    Task<IEnumerable<string>> GetHatBatchUrls(short fromPage, short batchSize, CancellationToken cancellationToken);
-
     Task<string> GetPaintInfoFromSource(string src, CancellationToken cancellationToken);
 
     Task<IEnumerable<ListingDto>> GetDeserializedLisitngsFromUrl(short page, CancellationToken cancellationToken);

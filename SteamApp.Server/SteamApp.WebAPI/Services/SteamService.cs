@@ -15,88 +15,67 @@ namespace SteamApp.WebAPI.Services;
 
 public class SteamService() : ISteamService
 {
-    public async Task<IEnumerable<string>> GetHatBatchUrls(short fromPage, short batchSize, CancellationToken ct)
-    {
-        if (fromPage <= 0 || fromPage > 500)
-            throw new ArgumentOutOfRangeException(nameof(fromPage), "Page must be between 1 and 500.");
-
-        var baseUrl = Constants.MANUAL_HATS_URL;
-        var list = new List<string>();
-
-        var urls = await Task.Run(() =>
-        {
-            for (short page = fromPage; page < fromPage + batchSize; page++)
-            {
-                list.Add($"{baseUrl}p{page}_price_asc");
-            }
-
-            return (IEnumerable<string>)list;
-        }, ct);
-
-        return urls;
-    }
-
     public async Task<IEnumerable<ListingDto>> ScrapePage(short page, CancellationToken ct)
     {
         const short MaxPage = 500;
         if (page < 0 || page > MaxPage)
-        {
             throw new ArgumentOutOfRangeException(nameof(page), $"Page must be between 0 and {MaxPage}");
-        }
 
         var url = $"{Constants.MANUAL_HATS_URL}p{page}_price_asc";
-
         var options = new ChromeOptions();
         options.AddArgument("--headless");
         options.AddArgument("--disable-gpu");
-
         options.PageLoadStrategy = PageLoadStrategy.Eager;
 
-        return await Task.Run(() =>
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        linkedCts.CancelAfter(TimeSpan.FromSeconds(30));
+
+        return await Task.Factory.StartNew(() =>
         {
-            ct.ThrowIfCancellationRequested();
+            linkedCts.Token.ThrowIfCancellationRequested();
 
             using var driver = new ChromeDriver(options);
             try
             {
                 driver.Navigate().GoToUrl(url);
+                var resultBy = By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]");
 
-                var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
-                wait.Until(drv =>
+                var wait = new DefaultWait<IWebDriver>(driver)
                 {
-                    if (ct.IsCancellationRequested)
-                    {
-                        return true;
-                    }
+                    Timeout = TimeSpan.FromSeconds(30),
+                    PollingInterval = TimeSpan.FromMilliseconds(200)
+                };
+                wait.IgnoreExceptionTypes(typeof(NoSuchElementException));
 
-                    return drv.FindElements(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]")).Count > 0;
-                });
+                try
+                {
+                    wait.Until(drv => linkedCts.Token.IsCancellationRequested || drv.FindElements(resultBy).Count != 0);
+                    linkedCts.Token.ThrowIfCancellationRequested();
+                }
+                catch (WebDriverTimeoutException)
+                {
+                    linkedCts.Cancel();
+                    linkedCts.Token.ThrowIfCancellationRequested();
+                }
 
-                ct.ThrowIfCancellationRequested();
-
-                var anchors = driver.FindElements(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]"));
-
+                var anchors = driver.FindElements(resultBy);
                 var results = new List<ListingDto>(anchors.Count);
                 foreach (var anchor in anchors)
                 {
-                    ct.ThrowIfCancellationRequested();
+                    linkedCts.Token.ThrowIfCancellationRequested();
                     results.Add(ParseListingFromAnchor(anchor));
                 }
-
-                return (IEnumerable<ListingDto>)results;
+                return results.ToArray();
             }
             finally
             {
                 driver.Quit();
             }
-        }, ct);
+        }, linkedCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
     }
 
     public async Task<string> GetPaintInfoFromSource(string src, CancellationToken ct)
     {
-        //no color
-        //string srcImage = "https://community.fastly.steamstatic.com/economy/image/fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEDaQYVVQ7srD1Rm_fxH_OcN-wBid0wq8AE2mc7xlV4MOazZjIyJgLHWfRcBPBsoli-CnZjvZEyAtPv8ewFfl3x9NyREldD0mM";
-
         string srcImage = src.Replace("/62fx62f", string.Empty);
 
         var result = new StringBuilder();
@@ -180,7 +159,6 @@ public class SteamService() : ISteamService
         return results;
     }
 
-
     public async Task<IEnumerable<ListingDto>> GetDeserializedLisitngsFromUrl(short page, CancellationToken ct)
     {
         if (page < 0 || page > 500)
@@ -191,9 +169,7 @@ public class SteamService() : ISteamService
         var url = $"{Constants.JSON_100_LISTINGS_URL_PART_1}{page}{Constants.JSON_100_LISTINGS_URL_PART_2}";
         var filteredResult = await GetResultsFromUrl(url, ct);
 
-        return filteredResult.Where(x => x.SellPrice >= 150 && x.SellPrice <= 450)
-            .OrderBy(x => x.SellPrice)
-            .Select(x => new ListingDto { Name = x.Name, Price = x.SellPrice / 100, Quantity = x.SellListings });
+        return [.. filteredResult.OrderBy(x => x.SellPrice).Select(x => new ListingDto { Name = x.Name, Price = x.SellPrice / 100, Quantity = x.SellListings })];
     }
 
 

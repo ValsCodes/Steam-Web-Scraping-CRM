@@ -81,7 +81,12 @@
     <label><input type="checkbox" formControlName="isSold"  /> Sold</label>
   </div>
 
-  <button type="submit" [disabled]="productForm.invalid">
-    Create
-  </button>
+  <div class="flex gap-x-2">
+    <button type="submit" [disabled]="productForm.invalid">
+      Create
+    </button>
+    <button type="return" (click)="backButtonClicked()">
+      Back
+    </button>
+  </div>
 </form>

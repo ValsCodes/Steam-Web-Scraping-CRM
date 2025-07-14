@@ -1,31 +1,26 @@
-    <div class="flex flex-col rounded-md p-2 my-2">
-        <button (click)="clearAllFilter()" class="button button-small-red max-w-[9.375rem]">Clear All Filters</button>
-        <div class="flex gap-x-2 justify-start">              
-            <div class="flex">
-                <div>
+    <div class="flex flex-col sm:flex-row">
+        <div class="flex gap-x-2">
+            <div class="flex gap-x-2 items-center">
+                <div class="flex items-center gap-1">
                     <label class="mr-2">Item Name</label>
-                    <input  #searchBox type="text" [formControl]="searchControl" placeholder="Search weapons…"
-                        class="my-3 px-1 py-1 w-[19rem]"/>
+                    <input #searchBox type="text" [formControl]="searchControl" placeholder="Search weapons…"
+                        class="px-1 py-1 w-[19rem]" />
                 </div>
-                <button (click)="clearSearchFilter()" class="button button-small-red">Clear Search Filter</button>
+                <button (click)="clearSearchFilter()" class="button-small-danger">Clear Filter</button>
             </div>
-        </div>
-        <div class="flex gap-x-2">         
-            <div class="flex gap-x-4 items-center">
+            <div class="flex gap-x-2 items-center">
                 <label *ngFor="let cls of classes" class="flex items-center gap-1">
                     {{ cls.label }}
-                    <input type="checkbox" [value]="cls.id" (change)="onClassChange($event, cls.id)"
-                        onreadystatechange="" />
+                    <input type="checkbox" [value]="cls.id" (change)="onClassChange($event, cls.id)" onreadystatechange="" />
                 </label>
-                <button (click)="clearClassFilters()" class="button button-small-red">Clear Class Filters</button>
+                <button (click)="clearClassFilters()" class="button-small-danger">Clear Filters</button>
             </div>
-            
-            <div class="flex gap-x-4">
+            <div class="flex gap-x-2">
                 <label *ngFor="let slot of slots" class="flex items-center gap-1">
                     {{ slot.label }}
                     <input type="checkbox" [value]="slot.id" (change)="onSlotChange($event, slot.id)" />
                 </label>
-                <button (click)="clearSlotFilters()" class="button button-small-red">Clear Slot Filters</button>
-            </div>   
+                <button (click)="clearSlotFilters()" class="button-small-danger">Clear Filters</button>
+            </div>
         </div>
-    </div>
+        </div>

@@ -20,7 +20,12 @@ import {
   slotsMap,
 } from '../../../models/enums/slot.enum';
 import { ItemSearchComponent } from '../../../components/item-search/item-search.component';
+import { CheckboxFilterComponent } from '../../../components/checkbox.filter.component';
 import { CONSTANTS } from '../../../common/constants';
+import {
+  ActivityFilters,
+  activityFiltersCollection,
+} from '../../../models/enums/activity.filters.enum';
 
 @Component({
   selector: 'steam-items-catalog',
@@ -34,6 +39,7 @@ import { CONSTANTS } from '../../../common/constants';
     FormsModule,
     ReactiveFormsModule,
     ItemSearchComponent,
+    CheckboxFilterComponent,
   ],
   templateUrl: './items-catalog.component.html',
   styleUrl: './items-catalog.component.scss',
@@ -54,10 +60,11 @@ export class ItemsCatalogComponent implements OnInit, AfterViewInit {
     'name',
     'currentStock',
     'tradesCount',
-    'class_id',
-    'slot_id',
-    'is_active',
-    'is_weapon',
+    'rating',
+    'classId',
+    'slotId',
+    'isActive',
+    'isWeapon',
     'actions',
   ];
 
@@ -70,22 +77,19 @@ export class ItemsCatalogComponent implements OnInit, AfterViewInit {
   selectedSlots: number[] = [];
   slots = slotsCollection;
 
-  isActive: boolean = false;
-  isWeapon: boolean = false;
-  isNotWeapon: boolean = false;
-  isInactive: boolean = false;
+  activityFilters = activityFiltersCollection;
 
   constructor(private router: Router, private itemService: ItemService) {}
 
   ngOnInit() {
     this.fetchItems();
-
-    if (!this.dataSource.sort) {
-      this.dataSource.sort = this.sort;
-    }
   }
 
   ngAfterViewInit(): void {
+    if (!this.dataSource.sort) {
+      this.dataSource.sort = this.sort;
+    }
+
     if (!this.dataSource.paginator) {
       this.dataSource.paginator = this.paginator;
       this.dataSource.paginator.pageSize = 10;
@@ -127,6 +131,11 @@ export class ItemsCatalogComponent implements OnInit, AfterViewInit {
     this.fetchItems();
   }
 
+  clearActivityFilters(): void {
+    this.activityFilters.forEach((filter) => (filter.checked = false));
+    this.fetchItems();
+  }
+
   exportButtonClicked(): void {
     const dataToExport = this.dataSource.data;
 
@@ -147,6 +156,22 @@ export class ItemsCatalogComponent implements OnInit, AfterViewInit {
 
     this.router.navigate(['edit-item', id]);
   }
+
+  repeatStars = (count: number): string => {
+    if (count < 0) {
+      if (count < -5) {
+        count = -5;
+      }
+
+      return '💩'.repeat(Math.abs(count));
+    }
+
+    if (count > 5) {
+      count = 5;
+    }
+
+    return '⭐'.repeat(count);
+  };
 
   deleteButtonClicked(id: number): void {
     if (!id || id <= 0) {
@@ -169,17 +194,28 @@ export class ItemsCatalogComponent implements OnInit, AfterViewInit {
       .getItems(this.selectedClasses, this.selectedSlots, nameFilter)
       .subscribe({
         next: (items) => {
-          const filteredData = items.filter((item) => {
-            if (this.isActive && !item.isActive) return false;
-            if (this.isInactive && item.isActive) return false;
-            if (this.isWeapon && !item.isWeapon) return false;
-            if (this.isNotWeapon && item.isWeapon) return false;
-            return true;
-          });
-
+          const filteredData = this.applyFilters(items);
           this.dataSource.data = filteredData;
         },
         error: (err) => console.error('Error fetching items:', err),
       });
   };
+
+  private applyFilters(items: Item[]) {
+    return items.filter((item) => {
+      if (this.isChecked(ActivityFilters.Active) && !item.isActive)
+        return false;
+      if (this.isChecked(ActivityFilters.Inactive) && item.isActive)
+        return false;
+      if (this.isChecked(ActivityFilters.Weapon) && !item.isWeapon)
+        return false;
+      if (this.isChecked(ActivityFilters.NonWeapon) && item.isWeapon)
+        return false;
+      return true;
+    });
+  }
+
+  private isChecked(id: ActivityFilters): boolean {
+    return !!this.activityFilters.find((f) => f.id === id)?.checked;
+  }
 }

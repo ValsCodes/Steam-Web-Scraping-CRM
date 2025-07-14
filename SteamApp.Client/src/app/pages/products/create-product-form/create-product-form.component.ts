@@ -50,40 +50,10 @@ export class CreateProductFormComponent implements OnInit {
       isSold: [false],
       isStrange:[false]
     });
+  }
 
-    // this.productForm.get('isHat')!.valueChanges.subscribe(isHat => {
-    //   const sheen = this.productForm.get('sheenId')!;
-    //   const isWeapon  = this.productForm.get('isWeapon')!;
-
-    //   if (isHat) {
-    //     // enable and require your hat fields
-    //     sheen.setValue(NaN);
-    //     sheen.disable();
-    //     isWeapon.setValue(false);
-    //   } else {
-    //     sheen.enable();
-    //     isWeapon.enable();
-    //   }
-    //   sheen.updateValueAndValidity();
-    //   isWeapon.updateValueAndValidity();
-    // });
-
-    //     this.productForm.get('isWeapon')!.valueChanges.subscribe(isWeapon => {
-    //   const paint = this.productForm.get('paintId')!;
-    //   const isHat = this.productForm.get('isHat')!;
-
-    //   if (isWeapon) {
-    //     // enable and require your hat fields
-    //     paint.disable();
-    //     paint.setValue(NaN);
-    //     isHat.setValue(false);
-    //   } else {
-    //     paint.enable();
-    //     isHat.enable();
-    //   }
-    //   paint.updateValueAndValidity();
-    //   isHat.updateValueAndValidity();
-    // });
+    backButtonClicked() {
+    this.router.navigate(['products-catalog']);
   }
 
    getQualityLabel(id: Quality) {

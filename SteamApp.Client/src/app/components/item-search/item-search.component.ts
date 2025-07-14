@@ -28,21 +28,17 @@ export class ItemSearchComponent {
 
   searchControl = new FormControl<string>('', { nonNullable: true });
 
+  ngOnInit(): void {
+    this.getItems();
 
-ngOnInit(): void {
-  this.getItems();
-
-  this.searchControl.valueChanges
-    .pipe(
-      debounceTime(500),
-      distinctUntilChanged()
-    )
-    .subscribe((value: string) => {
-      this._searchByItemName = value;
-      this.searchByNameValue.emit(value);
-      this.getItems();
-    });
-}
+    this.searchControl.valueChanges
+      .pipe(debounceTime(500), distinctUntilChanged())
+      .subscribe((value: string) => {
+        this._searchByItemName = value;
+        this.searchByNameValue.emit(value);
+        this.getItems();
+      });
+  }
 
   onClassChange(evt: Event, clsId: number) {
     const checked = (evt.target as HTMLInputElement).checked;
