@@ -6,14 +6,14 @@ using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Serialization;
 using SteamApp.Infrastructure.Repositories;
 using SteamApp.Infrastructure.Services;
-using SteamApp.Models.ValueObjects;
+using SteamApp.Models.ValueObjects.Authentication;
 using SteamApp.WebAPI.Context;
 using SteamApp.WebAPI.Mapper;
 using SteamApp.WebAPI.Repositories;
 using SteamApp.WebAPI.Services;
 using System.Text;
 
-namespace SteamApp;
+namespace SteamApp.WebAPI;
 
 public class Program
 {

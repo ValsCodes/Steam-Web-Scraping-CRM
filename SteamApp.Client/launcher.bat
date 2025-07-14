@@ -1,2 +1,2 @@
-cd C:\Users\Val\Desktop\Angular Projects\SteamApp\Steam-App-Angular-Client 
+cd C:\Users\Val\Desktop\Angular Projects\SteamApp\SteamApp.Client 
 npm start 

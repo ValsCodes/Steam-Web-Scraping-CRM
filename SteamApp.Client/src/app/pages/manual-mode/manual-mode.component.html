@@ -49,6 +49,17 @@
                     <label class="my-2 py-2">{{weaponStatusLabel}}</label>
                 </div>
         </div>
+                <div class="panel panel--control w-[18.75rem]">
+            <h2>Extras</h2>
+            <ul class="list-disc list-inside ml-2 marker:text-black marker:text-lg">
+                <li>
+                    <strong> <a href="https://backpack.tf/spreadsheet">
+                            BackpackTF Prices URL
+                        </a> </strong>             
+                </li>
+            </ul>
+            <app-copy-link [textToCopy]="'Strange Part:'" [textToShow]="'< Strange Part: >'"></app-copy-link>
+        </div>
     </div>
     <steam-item-search class="mx-auto" [getItems]="loadWeapons" (selectedClasses)="onClassesChanged($event)"
         (selectedSlots)="onSlotsChanged($event)" (searchByNameValue)="onSearchByNameChange(($event))" />

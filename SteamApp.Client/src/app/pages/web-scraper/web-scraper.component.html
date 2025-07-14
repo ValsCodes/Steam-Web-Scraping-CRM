@@ -3,15 +3,15 @@
     <div class="flex flex-col justify-between mx-4">
         <div class="flex flex-col gap-x-4">
             <div class="flex items-center gap-2">
-                <button (click)="classicWebScraperButtonClicked()" class="button button-small-success"
+                <button (click)="classicWebScraperButtonClicked()" class="button-small-success"
                     title="Duration ~3sec">Web
                     Scraper</button>
-                <button (click)="scrapedPageByPixelButtonClicked()" class="button button-small-success"
+                <button (click)="scrapedPageByPixelButtonClicked()" class="button-small-success"
                     title="Duration ~7sec">Web
                     Scrape by Pixel</button>
-                <button (click)="publicApiDeserializerButtonClicked()" class="button button-small-success"
+                <button (click)="publicApiDeserializerButtonClicked()" class="button-small-success"
                     title="Duration ~1sec">Public API</button>
-                <button (click)="deepClassicWebScraperPaintsOnlyButtonClicked()" class="button button-small-warning"
+                <button (click)="deepClassicWebScraperPaintsOnlyButtonClicked()" class="button-small-warning"
                     title="Duration ~30s">Deep Web Scraper</button>
                 <!-- <button (click)="clearButtonClicked()" class="button button-small-danger" title="Clear Current Data">Clear</button> -->
             </div>
@@ -23,12 +23,12 @@
                 </div>
                 <div class="flex gap-2">
                     <button (click)="retryBatchButtonClicked()" [disabled]="this.lastUsedMode == null"
-                        class="button button-small-primary">Retry</button>
+                        class="button-small-primary">Retry</button>
                     <button (click)="startBatchButtonClicked()" [disabled]="this.lastUsedMode == null"
-                        class="button button-small-warning">Next
+                        class="button-small-warning">Next
                         Page</button>
                     <button (click)="clearButtonClicked()" [disabled]="this.lastUsedMode == null"
-                        class="button button-small-danger" title="Clear Current Data"> Reset</button>
+                        class="button-small-danger" title="Clear Current Data"> Reset</button>
                     <label class="my-2 py-2">{{statusLabel}}</label>
                 </div>
             </div>

@@ -6,6 +6,7 @@ namespace SteamApp.WebAPI.Common;
 public static class StaticCollections
 {
 
+    // TODO Turn Into Entitity
     public static readonly Paint[] GoodPaintsColorCollection =
 [
    new Paint() { Name = "Pink",  Color = Color.FromArgb(192, 255, 105, 180), IsGoodPaint = true},

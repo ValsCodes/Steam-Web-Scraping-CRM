@@ -6,26 +6,24 @@ import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import * as XLSX from 'xlsx';
-import { Item } from '../../../models/item.model';
+import { Item } from '../../../models/index';
 import { Router } from '@angular/router';
 import { ItemService } from '../../../services/item/item.service';
-import {
-  Class,
-  classesCollection,
-  classesMap,
-} from '../../../models/enums/class.enum';
 import {
   Slot,
   slotsCollection,
   slotsMap,
-} from '../../../models/enums/slot.enum';
-import { ItemSearchComponent } from '../../../components/item-search/item-search.component';
-import { CheckboxFilterComponent } from '../../../components/checkbox.filter.component';
-import { CONSTANTS } from '../../../common/constants';
-import {
+  Class,
+  classesCollection,
+  classesMap,
   ActivityFilters,
   activityFiltersCollection,
-} from '../../../models/enums/activity.filters.enum';
+} from '../../../models/enums/index';
+import {
+  CheckboxFilterComponent,
+  ItemSearchComponent,
+} from '../../../components/index';
+import { CONSTANTS } from '../../../common/constants';
 
 @Component({
   selector: 'steam-items-catalog',

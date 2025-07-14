@@ -22,12 +22,9 @@ button {
     &.#{$name}-button {
       @include btn-variant($key, map-get($button-sizes, default));
 
-      // disabled only for edit
-      @if $name == edit {
         &[disabled] {
           background-color: gray;
         }
-      }
     }
   }
 }

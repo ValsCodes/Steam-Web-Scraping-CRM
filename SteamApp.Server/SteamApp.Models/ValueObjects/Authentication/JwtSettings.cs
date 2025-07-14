@@ -1,4 +1,4 @@
-﻿namespace SteamApp.Models.ValueObjects;
+﻿namespace SteamApp.Models.ValueObjects.Authentication;
 
 public class JwtSettings
 {
