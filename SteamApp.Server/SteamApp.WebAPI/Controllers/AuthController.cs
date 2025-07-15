@@ -47,7 +47,7 @@ public class AuthController(
         );
 
         var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-        return Ok(new { token = tokenString, expiration =  });
+        return Ok(new { token = tokenString });
     }
 
     [HttpGet("token-expiration")]
