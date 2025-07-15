@@ -50,7 +50,7 @@ import { CommonModule } from '@angular/common';
 })
 export class CountdownTimerComponent implements OnDestroy, OnChanges {
   /** initial time in milliseconds (default = 1 hour) */
-  @Input() initialMs = 60 * 60 * 1000;
+  @Input() initialMs = 5 * 60 * 1000;
 
   /** whether to show start/pause/reset buttons */
   @Input() showControls = true;

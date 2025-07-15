@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using SteamApp.Models.ValueObjects.Authentication;
 using System.IdentityModel.Tokens.Jwt;
@@ -40,13 +42,35 @@ public class AuthController(
             issuer: jwtSettings.Issuer,
             audience: jwtSettings.Audience,
             claims: claims,
-            expires: DateTime.UtcNow
-                                .AddMinutes(jwtSettings.DurationMinutes),
+            expires: DateTime.Now.AddMinutes(jwtSettings.DurationMinutes),
             signingCredentials: creds
         );
 
         var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-        return Ok(new { token = tokenString });
+        return Ok(new { token = tokenString, expiration =  });
+    }
+
+    [HttpGet("token-expiration")]
+    [Authorize]
+    public IActionResult TokenExpiration(string tokenString)
+    {
+        var handler = new JwtSecurityTokenHandler();
+
+        try
+        {
+            if (handler.ReadToken(tokenString) is not JwtSecurityToken jwt)
+            {
+                return Ok(null);
+            }
+
+            DateTime expiration = jwt.ValidTo.ToLocalTime();
+
+            return Ok(expiration);
+        }
+        catch
+        {
+            return BadRequest("Bad Token");
+        }
     }
 }
 

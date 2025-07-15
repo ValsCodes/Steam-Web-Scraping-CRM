@@ -13,7 +13,7 @@
                 
                 @if(isLoggedIn())
                 {
-                <app-countdown-timer [initialMs]="60*60*1000" [showControls]="false" [startOnLoad]="true" comment="Remaining Session"></app-countdown-timer>
+                <app-countdown-timer [initialMs]="expiration" [showControls]="false" [startOnLoad]="true" comment="Remaining Session"></app-countdown-timer>
                 <span class="self-center text-green-600">Signed In ✅</span>
                 <a href="#" (click)="logout($event)">Logout</a>
                 }

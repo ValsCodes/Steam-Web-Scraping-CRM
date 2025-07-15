@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth/auth.service';
 import { CommonModule } from '@angular/common';
-import { CountdownTimerComponent } from "../countdown-timer.component";
+import { CountdownTimerComponent } from '../countdown-timer.component';
 
 @Component({
   selector: 'steam-site-header',
@@ -12,15 +12,33 @@ import { CountdownTimerComponent } from "../countdown-timer.component";
   styleUrl: './site-header.component.scss',
 })
 export class SiteHeaderComponent {
-  constructor(private auth: AuthService, private router:Router) {}
+  expiration: number = 0;
+
+  constructor(private auth: AuthService, private router: Router) {}
+
+  ngOnInit() {
+    this.getTimeUntilExpirationDate();
+  }
+
+  getTimeUntilExpirationDate(): void {
+    if (this.expiration === 0) {
+      this.expiration = this.auth.getTimeBeforeExpiration();
+    }
+  }
 
   logout(event: MouseEvent) {
-    event.preventDefault();  
-    this.auth.logout();    
-     this.router.navigate(['login']);
+    event.preventDefault();
+    this.auth.logout();
+    this.expiration = 0;
+    this.router.navigate(['login']);
   }
 
   isLoggedIn() {
-    return this.auth.isLoggedIn();
+    const isLogged = this.auth.isLoggedIn();
+    if (isLogged) {
+      this.getTimeUntilExpirationDate();
+    }
+
+    return isLogged;
   }
 }
