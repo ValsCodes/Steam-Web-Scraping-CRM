@@ -9,23 +9,15 @@ namespace SteamApp.WebAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController : ControllerBase
+public class AuthController(
+    JwtSettings jwtSettings,
+    IReadOnlyList<ClientDefinition> clients) : ControllerBase
 {
-    private readonly JwtSettings _jwtSettings;
-    private readonly IReadOnlyList<ClientDefinition> _clients;
-
-    public AuthController(
-        JwtSettings jwtSettings,
-        IReadOnlyList<ClientDefinition> clients)
-    {
-        _jwtSettings = jwtSettings;
-        _clients = clients;
-    }
 
     [HttpPost("token")]
     public IActionResult Token([FromBody] TokenRequest req)
     {
-        var client = _clients
+        var client = clients
             .SingleOrDefault(c =>
                 c.ClientId == req.ClientId &&
                 c.ClientSecret == req.ClientSecret);
@@ -40,16 +32,16 @@ public class AuthController : ControllerBase
         };
 
         var key = new SymmetricSecurityKey(
-                         Encoding.UTF8.GetBytes(_jwtSettings.Key));
+                         Encoding.UTF8.GetBytes(jwtSettings.Key));
         var creds = new SigningCredentials(
                          key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
-            issuer: _jwtSettings.Issuer,
-            audience: _jwtSettings.Audience,
+            issuer: jwtSettings.Issuer,
+            audience: jwtSettings.Audience,
             claims: claims,
             expires: DateTime.UtcNow
-                                .AddMinutes(_jwtSettings.DurationMinutes),
+                                .AddMinutes(jwtSettings.DurationMinutes),
             signingCredentials: creds
         );
 

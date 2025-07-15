@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient} from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { Observable} from 'rxjs';
+import { catchError} from 'rxjs/operators';
 import { handleError } from '../error-handler';
 import * as g from '../general-data'
 
@@ -37,7 +37,6 @@ export class SteamService {
 
   getDeepScrapePaintedOnly(page: number): Observable<any> {
     const url = `${this.steam}hat/page/${page}/painted`;
-    console.log('Request URL:', url);
     return this.http.get<any>(url).pipe(
       catchError(handleError)
     );

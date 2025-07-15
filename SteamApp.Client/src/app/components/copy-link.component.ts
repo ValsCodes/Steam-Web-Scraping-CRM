@@ -9,6 +9,7 @@ import { ClipboardModule, Clipboard } from '@angular/cdk/clipboard';
     <div class="space-y-2">
       <a
         href="#"
+        title="Click to Copy"
         (click)="copyText(); $event.preventDefault()"
         class="text-indigo-600 hover:text-indigo-800 transition-colors duration-200"
       >

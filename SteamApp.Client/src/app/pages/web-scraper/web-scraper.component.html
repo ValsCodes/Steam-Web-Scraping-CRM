@@ -1,6 +1,9 @@
-<div class="main-container ">
-    <h2 class="text-2xl font-semibold text-gray-500 my-2 flex justify-center">Web Scraper</h2>
-    <div class="flex flex-col justify-between mx-4">
+<div class="main-container p-4">
+    <div class="flex px-5">
+        <h2 class="text-2xl font-semibold text-gray-500 mb-4">Web Scraper</h2>
+
+    </div>
+    <div class="flex justify-between mx-4">
         <div class="flex flex-col gap-x-4">
             <div class="flex items-center gap-2">
                 <button (click)="classicWebScraperButtonClicked()" class="button-small-success"
@@ -11,8 +14,13 @@
                     Scrape by Pixel</button>
                 <button (click)="publicApiDeserializerButtonClicked()" class="button-small-success"
                     title="Duration ~1sec">Public API</button>
-                <button (click)="deepClassicWebScraperPaintsOnlyButtonClicked()" class="button-small-warning"
-                    title="Duration ~30s">Deep Web Scraper</button>
+                <button (click)="deepClassicWebScraperPaintsOnlyButtonClicked()" class="button-small-warning" title="Duration ~30s">Deep
+                        Web Scraper</button>
+                    @if(this.isLoading)
+                    {
+                    <button (click)="cancelAll()" class="button-small-danger"
+                        title="Clear Current Data"> Cancel</button>
+                    }
                 <!-- <button (click)="clearButtonClicked()" class="button button-small-danger" title="Clear Current Data">Clear</button> -->
             </div>
             <div class="flex items-center ml-2 gap-x-2">
@@ -28,7 +36,7 @@
                         class="button-small-warning">Next
                         Page</button>
                     <button (click)="clearButtonClicked()" [disabled]="this.lastUsedMode == null"
-                        class="button-small-danger" title="Clear Current Data"> Reset</button>
+                        class="button-small-danger" title="Clear Current Data"> Reset</button>             
                     <label class="my-2 py-2">{{statusLabel}}</label>
                 </div>
             </div>
@@ -38,6 +46,7 @@
                             <!-- <button class="button button-small-success mr-4">Import</button> -->
             <!-- </div> -->
         </div>
+        <app-stopwatch></app-stopwatch>
     </div>
     <div class="table-container">
         <table mat-table [dataSource]="dataSource" matSort class="border-2">

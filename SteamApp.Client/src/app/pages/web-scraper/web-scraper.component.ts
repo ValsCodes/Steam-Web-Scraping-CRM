@@ -1,6 +1,6 @@
-import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { SteamService } from '../../services/steam/steam.service';
-import { FormArray, FormsModule } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatTableModule } from '@angular/material/table';
@@ -8,6 +8,8 @@ import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import * as XLSX from 'xlsx';
 import { Listing } from '../../models/listing.model';
+import { finalize, Subject, takeUntil } from 'rxjs';
+import { StopwatchComponent } from "../../components";
 
 
 enum ScrapingMode {
@@ -27,14 +29,17 @@ enum ScrapingMode {
     MatSort,
     MatSortModule,
     MatPaginatorModule,
-  ],
+    StopwatchComponent
+],
   templateUrl: './web-scraper.component.html',
   styleUrl: './web-scraper.component.scss',
   providers: [SteamService],
 })
-export class WebScraperComponent implements OnInit, AfterViewInit {
+export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
+
+  private cancel$ = new Subject<void>();
 
   dataSource = new MatTableDataSource<Listing>([]);
   displayedColumns: string[] = [
@@ -49,6 +54,7 @@ export class WebScraperComponent implements OnInit, AfterViewInit {
 
   pageNumber: number = 1;
   statusLabel: string = '';
+  isLoading: boolean = false;
   lastUsedMode: number | null = null;
 
   constructor(private steamService: SteamService) {}
@@ -66,8 +72,7 @@ export class WebScraperComponent implements OnInit, AfterViewInit {
     }
   }
 
-    retryBatchButtonClicked() {
-
+  retryBatchButtonClicked() {
     switch (this.lastUsedMode) {
       case ScrapingMode.ClassicWebScraper:
         this.classicWebScraperButtonClicked();
@@ -106,107 +111,140 @@ export class WebScraperComponent implements OnInit, AfterViewInit {
   }
 
   classicWebScraperButtonClicked() {
-   this.setLoading();
-    this.steamService.getScrapedPage(this.pageNumber).subscribe({
-      next: (response) => {
-        if (response.length === 0) {
-          console.log('No results found');
-        }
-        this.dataSource.data = response;
-        console.log([response]);
-        this.statusLabel = 'Successfully scraped Listings.';
-      },
-      error: (error) => {
-        this.statusLabel = 'Failed to scrape Listings.';
-        console.error('Error fetching data:', error);
-      },
-    });
+    this.setLoading();
+    this.steamService
+      .getScrapedPage(this.pageNumber)
+      .pipe(takeUntil(this.cancel$),
+        finalize(() => {
+          this.finishLoading();
+        }))
+      .subscribe({
+        next: (response) => {
+          if (response.length === 0) {
+            console.log('No results found');
+          }
+          this.dataSource.data = response;
+          console.log([response]);
+          this.statusLabel = 'Successfully scraped Listings.';
+        },
+        error: (error) => {
+          this.statusLabel = 'Failed to scrape Listings.';
+          console.error('Error fetching data:', error);
+        },
+      });
 
     this.lastUsedMode = ScrapingMode.ClassicWebScraper;
   }
 
   scrapedPageByPixelButtonClicked() {
     this.setLoading();
-    this.steamService.getScrapedPageByPixel(this.pageNumber).subscribe({
-      next: (response) => {
-        if (response.length === 0) {
-          console.log('No results found');
-        }
+    this.steamService
+      .getScrapedPageByPixel(this.pageNumber)
+      .pipe(takeUntil(this.cancel$),
+        finalize(() => {
+          this.finishLoading();
+        }))
+      .subscribe({
+        next: (response) => {
+          if (response.length === 0) {
+            console.log('No results found');
+          }
 
-        this.dataSource.data = response;
-        this.statusLabel =
-          'Successfully scraped Listings with Paints by Pixel.';
-        console.log([response]);
-      },
-      error: (error) => {
-        this.statusLabel = 'Failed to scrape Listings with Paints by Pixel.';
-        console.error('Error fetching data:', error);
-      },
-    });
+          this.dataSource.data = response;
+          this.statusLabel =
+            'Successfully scraped Listings with Paints by Pixel.';
+          console.log([response]);
+        },
+        error: (error) => {
+          this.statusLabel = 'Failed to scrape Listings with Paints by Pixel.';
+          console.error('Error fetching data:', error);
+        },
+      });
 
     this.lastUsedMode = ScrapingMode.ClassicWebScraperPaintsOnlyByPixel;
   }
 
   publicApiDeserializerButtonClicked() {
     this.setLoading();
-    this.steamService.getBulkPage(this.pageNumber).subscribe({
-      next: (response) => {
-        if (response.length === 0) {
-          console.log('No results found');
-        }
-        this.dataSource.data = response;
-        console.table(response);
-        this.statusLabel = 'Successfully scraped by Public API.';
-      },
-      error: (error) => {
-        this.statusLabel = 'Failed to scrape by Public API.';
-        console.error('Error fetching data:', error);
-      },
-    });
+    this.steamService
+      .getBulkPage(this.pageNumber)
+      .pipe(takeUntil(this.cancel$),
+        finalize(() => {
+          this.finishLoading();
+        }))
+      .subscribe({
+        next: (response) => {
+          if (response.length === 0) {
+            console.log('No results found');
+          }
+          this.dataSource.data = response;
+          console.table(response);
+          this.statusLabel = 'Successfully scraped by Public API.';
+        },
+        error: (error) => {
+          this.statusLabel = 'Failed to scrape by Public API.';
+          console.error('Error fetching data:', error);
+        },
+      });
 
     this.lastUsedMode = ScrapingMode.PublicApiDeserializer;
   }
 
   deepClassicWebScraperPaintsOnlyButtonClicked() {
     this.setLoading();
-    this.steamService.getDeepScrapePaintedOnly(this.pageNumber).subscribe({
-      next: (response) => {
-        if (response.length === 0) {
-          console.log('No results found');
-        }
+    this.steamService
+      .getDeepScrapePaintedOnly(this.pageNumber)
+      .pipe(takeUntil(this.cancel$),
+        finalize(() => {
+          this.finishLoading();
+        }))
+      .subscribe({
+        next: (response) => {
+          if (response.length === 0) {
+            console.log('No results found');
+          }
 
-        this.dataSource.data = response;
-        this.statusLabel = 'Successfully scraped by Deep Scraping.';
-        console.log([response]);
-      },
-      error: (error) => {
-        this.statusLabel = 'Failed to scrape by Deep Scraping.';
-        console.error('Error fetching data:', error);
-      },
-    });
+          this.dataSource.data = response;
+          this.statusLabel = 'Successfully scraped by Deep Scraping.';
+          console.log([response]);
+        },
+        error: (error) => {
+          this.statusLabel = 'Failed to scrape by Deep Scraping.';
+          console.error('Error fetching data:', error);
+        },
+      });
 
     this.lastUsedMode = ScrapingMode.DeepClassicWebScraperPaintsOnly;
   }
 
   checkPaintButtonClicked(name: string, index: number) {
-    this.setLoading();
-    this.steamService.getIsHatPainted(name).subscribe({
-      next: (response) => {
-        console.log([response]);
+    this.setLoadingWithoutDataClear();
 
-        if (response.isPainted === false) {
-          this.dataSource.data[index].color = 'Not Painted';
-        } else {
-          this.dataSource.data[index].color = response.paintText;
-        }
+    this.steamService
+      .getIsHatPainted(name)
+      .pipe(
+        takeUntil(this.cancel$),
+        finalize(() => {
+          this.finishLoading();
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          console.log([response]);
 
-        this.statusLabel = 'Successfully Check Listing for Paint.';
-      },
-      error: (error) => {
-        this.statusLabel = 'Failed to Check Listing for Paint.';
-        console.error('Error fetching data:', error);
-      },
-    });
+          if (response.isPainted === false) {
+            this.dataSource.data[index].color = 'Not Painted';
+          } else {
+            this.dataSource.data[index].color = response.paintText;
+          }
+
+          this.statusLabel = 'Successfully Check Listing for Paint.';
+        },
+        error: (error) => {
+          this.statusLabel = 'Failed to Check Listing for Paint.';
+          console.error('Error fetching data:', error);
+        },
+      });
   }
 
   exportButtonClicked(): void {
@@ -223,13 +261,23 @@ export class WebScraperComponent implements OnInit, AfterViewInit {
 
   clearButtonClicked(): void {
     this.dataSource.data = [];
-
+    this.statusLabel = '';
     this.onPageNumberChange(1);
   }
 
   setLoading(): void {
     this.dataSource.data = [];
+    this.isLoading = true;
     this.statusLabel = 'Loading...';
+  }
+
+    setLoadingWithoutDataClear(): void {
+    this.isLoading = true;
+    this.statusLabel = 'Loading...';
+  }
+
+  finishLoading(): void {
+    this.isLoading = false;
   }
 
   onPageNumberChange(value: number) {
@@ -238,5 +286,20 @@ export class WebScraperComponent implements OnInit, AfterViewInit {
     } else {
       this.pageNumber = value;
     }
+  }
+
+  cancelAll() {
+    this.cancel$.next();
+
+    this.statusLabel = 'Operation Cancelled.';
+    this.finishLoading();
+
+    this.cancel$ = new Subject<void>();
+  }
+
+  ngOnDestroy() {
+    // Always complete on destroy to avoid leaks
+    this.cancel$.next();
+    this.cancel$.complete();
   }
 }

@@ -23,6 +23,10 @@ public class SteamController(ISteamService steamService/*, ILogger<SteamControll
             var result = steamService.GetPaintInfoFromSource(src, ct).GetAwaiter().GetResult();
             return Ok(result);
         }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499, "Request was canceled.");
+        }
         catch (Exception ex)
         {
             return StatusCode(500, ex.Message);
@@ -41,6 +45,10 @@ public class SteamController(ISteamService steamService/*, ILogger<SteamControll
         {
             var result = steamService.ScrapePage(page, ct).GetAwaiter().GetResult();
             return Ok(result);
+        }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499, "Request was canceled.");
         }
         catch (Exception ex)
         {
@@ -63,6 +71,10 @@ public class SteamController(ISteamService steamService/*, ILogger<SteamControll
             var result = steamService.ScrapePageWithSrcPixelPaintCheck(page, isGoodPaintsOnly, ct).GetAwaiter().GetResult();
             return Ok(result);
         }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499, "Request was canceled.");
+        }
         catch (Exception ex)
         {
             return StatusCode(500, ex.Message);
@@ -81,6 +93,10 @@ public class SteamController(ISteamService steamService/*, ILogger<SteamControll
         {
             var result = steamService.GetDeserializedLisitngsFromUrl(page, ct).GetAwaiter().GetResult();
             return Ok(result);
+        }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499, "Request was canceled.");
         }
         catch (Exception ex)
         {
@@ -106,6 +122,10 @@ public class SteamController(ISteamService steamService/*, ILogger<SteamControll
         {
             return StatusCode(400, "Error: Invalid Listing");
         }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499, "Request was canceled.");
+        }
         catch (Exception ex)
         {
             return StatusCode(500, ex.Message);
@@ -125,6 +145,10 @@ public class SteamController(ISteamService steamService/*, ILogger<SteamControll
         {
             var result = steamService.ScrapePageForPaintedListingsOnly(page, ct).GetAwaiter().GetResult();
             return Ok(result);
+        }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499, "Request was canceled.");
         }
         catch (Exception ex)
         {

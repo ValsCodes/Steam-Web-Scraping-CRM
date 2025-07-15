@@ -1,13 +1,26 @@
-<div class="flex justify-between">
-        <div class="nav-links">
+<div class="flex items-center justify-between p-4">
+        
+        @if (isLoggedIn()) {
+        <div class="nav-links flex space-x-4">
                 <a routerLink="/web-scraper" routerLinkActive="active">Web Scraper</a> <br>
                 <a routerLink="/manual-mode" routerLinkActive="active">Manual Mode</a>
                 <a routerLink="/products-catalog" routerLinkActive="active">Listings Catalog</a>
                 <!-- <a routerLink="/products-beta" routerLinkActive="active">Products Beta</a> -->
                 <a routerLink="/items-catalog" routerLinkActive="active">Items Catalog</a>
         </div>
-        <div class="nav-links">
+        }
+        <div class="nav-links flex space-x-4 items-center">
+                
+                @if(isLoggedIn())
+                {
+                <app-countdown-timer [initialMs]="60*60*1000" [showControls]="false" [startOnLoad]="true" comment="Remaining Session"></app-countdown-timer>
+                <span class="self-center text-green-600">Signed In ✅</span>
+                <a href="#" (click)="logout($event)">Logout</a>
+                }
+                @else
+                {
                 <a routerLink="/login" routerLinkActive="active">Login</a>
+                }
         </div>
 </div>
 <hr>
