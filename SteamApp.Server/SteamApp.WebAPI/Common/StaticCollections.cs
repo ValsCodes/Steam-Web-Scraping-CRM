@@ -9,18 +9,18 @@ public static class StaticCollections
     // TODO Turn Into Entitity
     public static readonly Paint[] GoodPaintsColorCollection =
 [
-   new Paint() { Name = "Pink",  Color = Color.FromArgb(192, 255, 105, 180), IsGoodPaint = true},
-    new Paint() { Name ="Green", Color = Color.FromArgb(192,  50, 205,  50), IsGoodPaint = true },
-   new Paint()  { Name ="Black", Color = Color.FromArgb(192,  20,  20,  20), IsGoodPaint = true},
-        new Paint()  { Name ="White", Color = Color.FromArgb(192,  230,  230,  230), IsGoodPaint = true},
-        new Paint()  { Name ="Bright Team Color", Color = Color.FromArgb(192,  184,  56,  59), IsGoodPaint = true},
+   new Paint() { Name = "Pink as Hell",  Color = Color.FromArgb(192, 255, 105, 180), IsGoodPaint = true},
+    new Paint() { Name ="The Bitter Taste of Defeat and Lime", Color = Color.FromArgb(192,  50, 205,  50), IsGoodPaint = true },
+   new Paint()  { Name ="A Distinctive Lack of Hue", Color = Color.FromArgb(192,  20,  20,  20), IsGoodPaint = true},
+        new Paint()  { Name ="An Extraordinary Abundance of Tinge", Color = Color.FromArgb(192,  230,  230,  230), IsGoodPaint = true},
+        new Paint()  { Name ="Team Spirit", Color = Color.FromArgb(192,  184,  56,  59), IsGoodPaint = true},
          new Paint()  { Name ="Yellow", Color = Color.FromArgb(192,  231,  181,  59)},
         new Paint()  { Name ="Mint", Color = Color.FromArgb(192,  188,  221,  179)},
         new Paint()  { Name ="Orange", Color = Color.FromArgb(192,  207,  115,  54)},
         new Paint()  { Name ="Purple", Color = Color.FromArgb(192,  125,  64,  113)}
 ];
 
-    public static readonly string[] GoodPaints =
+    public static readonly string[] GoodPaintNames =
     [
         "The Bitter Taste of Defeat and Lime", // Lime Green                                                          
         "An Extraordinary Abundance of Tinge", // White

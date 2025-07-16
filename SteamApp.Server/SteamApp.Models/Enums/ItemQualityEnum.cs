@@ -3,12 +3,11 @@
     public enum ItemQualityEnum
     {
         Unique = 1,
-        Strange = 2,
-        Mercenary = 3,
-        Commando = 4,
-        Assassin = 5,
-        Elite = 6,
-        Genuine = 7,
-        Vintage = 8
+        Mercenary = 2,
+        Commando = 3,
+        Assassin = 4,
+        Elite = 5,
+        Genuine = 6,
+        Vintage = 7,
     }
 }

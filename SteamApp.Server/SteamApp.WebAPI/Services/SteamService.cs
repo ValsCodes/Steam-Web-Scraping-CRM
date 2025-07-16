@@ -173,9 +173,8 @@ public class SteamService() : ISteamService
     }
 
 
-    public async Task<PaintedListingDto> CheckIsListingPainted(string name, CancellationToken ct)
+    public async Task<ListingDto> CheckIsListingPainted(string name, CancellationToken ct)
     {
-        // TODO check if name is in DB of item names
         name = name.Trim();
         if (string.IsNullOrEmpty(name))
         {
@@ -200,8 +199,10 @@ public class SteamService() : ISteamService
 
         var descriptions = resultAssets!.Descriptions?.Where(x => x.Value != null);
 
-        var lisitngResult = new PaintedListingDto();
-        lisitngResult.Name = resultAssets.Name;
+        var lisitngResult = new ListingDto
+        {
+            Name = resultAssets.Name
+        };
 
         if (resultAssets != null)
         {
@@ -210,21 +211,21 @@ public class SteamService() : ISteamService
             {
                 lisitngResult.IsPainted = true;
                 lisitngResult.PaintText = paint.Replace("Paint Color:", string.Empty).Trim();
-                lisitngResult.IsGoodPaint = StaticCollections.GoodPaints.Contains(lisitngResult.PaintText);
+                lisitngResult.IsGoodPaint = StaticCollections.GoodPaintNames.Contains(lisitngResult.PaintText);
             }
         }
 
         return lisitngResult;
     }
 
-    public async Task<IEnumerable<PaintedListingsDto>> ScrapePageForPaintedListingsOnly(short page, CancellationToken ct)
+    public async Task<IEnumerable<ListingDto>> ScrapePageForPaintedListingsOnly(short page, CancellationToken ct)
     {
         if (page < 0 || page > 500)
         {
             throw new ArgumentOutOfRangeException("Page is either negative or greater than 500.");
         }
 
-        var results = new List<PaintedListingsDto>();
+        var results = new List<ListingDto>();
         var listings = await ScrapePage(page, ct);
 
         foreach (var listing in listings)
@@ -232,7 +233,7 @@ public class SteamService() : ISteamService
             var isListingPaintedResult = await CheckIsListingPainted(listing.Name!, ct);
             if (isListingPaintedResult.IsPainted)
             {
-                var paintedListing = new PaintedListingsDto
+                var paintedListing = new ListingDto
                 {
                     Name = listing.Name,
                     Quantity = listing.Quantity,

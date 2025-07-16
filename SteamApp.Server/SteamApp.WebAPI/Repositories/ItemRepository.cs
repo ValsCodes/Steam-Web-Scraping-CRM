@@ -8,9 +8,9 @@ namespace SteamApp.WebAPI.Repositories
 {
     public class ItemRepository(ApplicationDbContext context) : IItemRepository
     {
-        public async Task<IEnumerable<ManualSearchItem>> GetItems(CancellationToken ct, string? name = null, IEnumerable<long>? classFilters = null, IEnumerable<long>? slotFilters = null)
+        public async Task<IEnumerable<Item>> GetItems(CancellationToken ct, string? name = null, IEnumerable<long>? classFilters = null, IEnumerable<long>? slotFilters = null)
         {
-            IQueryable<ManualSearchItem> items = context.ManualSearchItems;
+            IQueryable<Item> items = context.ManualSearchItems;
 
             if (!string.IsNullOrEmpty(name))
             {
@@ -33,7 +33,7 @@ namespace SteamApp.WebAPI.Repositories
             return await items.OrderBy(x => x.Id).ToArrayAsync(ct);
         }
 
-        public async Task<ManualSearchItem> GetItemById(long id, CancellationToken ct)
+        public async Task<Item> GetItemById(long id, CancellationToken ct)
         {
             var result = await context.ManualSearchItems.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);              
         
@@ -45,7 +45,7 @@ namespace SteamApp.WebAPI.Repositories
             return result;
         }
 
-        public async Task<IEnumerable<ManualSearchItem>> GetItemByNameAsync(string name, CancellationToken ct)
+        public async Task<IEnumerable<Item>> GetItemByNameAsync(string name, CancellationToken ct)
         {
             var formattedName = name.Trim().ToLower();
             var result = await context.ManualSearchItems.AsNoTracking().Where(x => x.Name.Trim().ToLower().Contains(formattedName)).ToArrayAsync(ct);
@@ -58,7 +58,7 @@ namespace SteamApp.WebAPI.Repositories
             return result;
         }
 
-        public async Task<long> CreateItem(ManualSearchItem item, CancellationToken ct)
+        public async Task<long> CreateItem(Item item, CancellationToken ct)
         {
             await context.AddAsync(item, ct);
             await context.SaveChangesAsync(ct);
@@ -66,7 +66,7 @@ namespace SteamApp.WebAPI.Repositories
             return item.Id;
         }
 
-        public async Task<bool> UpdateItem(ManualSearchItem item, CancellationToken ct)
+        public async Task<bool> UpdateItem(Item item, CancellationToken ct)
         {
             context.ManualSearchItems.Update(item);
             await context.SaveChangesAsync(ct);

@@ -20,10 +20,10 @@ public class MappingProfile : Profile
 
         CreateMap<UpdateProductDto, Product>().ReverseMap();     
 
-        CreateMap<ItemDto, ManualSearchItem>();
+        CreateMap<ItemDto, Item>();
 
-        CreateMap<ManualSearchItem, ItemDto>();
+        CreateMap<Item, ItemDto>();
 
-        CreateMap<CreateItemDto, ManualSearchItem>().ForMember(dest => dest.Id, opt => opt.Ignore());
+        CreateMap<CreateItemDto, Item>().ForMember(dest => dest.Id, opt => opt.Ignore());
     }
 }

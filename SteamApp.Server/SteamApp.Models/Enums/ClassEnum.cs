@@ -10,7 +10,6 @@
         Engineer = 6,
         Medic = 7,
         Sniper = 8,
-        Spy = 9,
-        Multiclass = 10
+        Spy = 9
     }
 }

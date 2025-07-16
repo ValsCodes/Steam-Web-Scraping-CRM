@@ -35,7 +35,7 @@ public class ItemService(IItemRepository itemRepository, IMapper mapper) : IItem
         if (itemDto == null)
             throw new ArgumentNullException(nameof(itemDto));
 
-        var item = mapper.Map<ManualSearchItem>(itemDto);
+        var item = mapper.Map<Item>(itemDto);
 
         var id = await itemRepository.CreateItem(item, ct);
 
@@ -52,7 +52,7 @@ public class ItemService(IItemRepository itemRepository, IMapper mapper) : IItem
         if (itemDto == null)
             throw new ArgumentNullException(nameof(itemDto));
 
-        var item = mapper.Map<ManualSearchItem>(itemDto);
+        var item = mapper.Map<Item>(itemDto);
 
         var result = await itemRepository.UpdateItem(item, ct);
 

@@ -3,7 +3,9 @@
     public class ProductDto
     {
         public long Id { get; set; }
+
         public virtual string Name { get; set; }
+
         public virtual short? QualityId { get; set; }
 
         public virtual string? Description { get; set; }
@@ -31,7 +33,9 @@
         public virtual bool? IsSold { get; set; }
 
         public virtual bool? IsStrange { get; set; }
+
         public virtual short? PaintId { get; set; }
+
         public virtual short? SheenId { get; set; }
     }
 }

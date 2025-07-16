@@ -1,9 +1,9 @@
 export enum Paint {
-  Lime = 1,
-  White = 2,
-  TeamColor = 3,
-  Black = 4,
-  Pink = 5,
+  Pink  = 1,
+  Lime  = 2,
+  Black   = 3,
+  White = 4,
+  TeamColor = 5,
   Yellow = 6,
   Mint = 7
 }

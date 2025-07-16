@@ -9,6 +9,7 @@ using SteamApp.Infrastructure.Services;
 using SteamApp.Models.ValueObjects.Authentication;
 using SteamApp.WebAPI.Context;
 using SteamApp.WebAPI.Mapper;
+using SteamApp.WebAPI.MinimalAPIs;
 using SteamApp.WebAPI.Repositories;
 using SteamApp.WebAPI.Services;
 using System.Text;
@@ -122,6 +123,17 @@ public class Program
         app.UseAuthentication();
         app.UseAuthorization();
 
+        // Minimal API endpoints
+        app.MapQualityEndpoints();
+        app.MapClassEndpoints();
+        app.MapSlotEndpoints();
+        app.MapGradeEndpoints();
+        app.MapSheenEndpoints();
+        app.MapPaintEndpoints();
+        app.MapSkinEndpoints();
+        app.MapItemSkinsEndpoints();
+
+        // Regular API controllers
         app.MapControllers();
 
         app.Run();

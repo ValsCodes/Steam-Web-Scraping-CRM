@@ -12,7 +12,7 @@ public interface ISteamService
 
     Task<IEnumerable<ListingDto>> ScrapePageWithSrcPixelPaintCheck(short page, bool isGoodPaintsOnly, CancellationToken cancellationToken);
 
-    Task<IEnumerable<PaintedListingsDto>> ScrapePageForPaintedListingsOnly(short page, CancellationToken cancellationToken);
+    Task<IEnumerable<ListingDto>> ScrapePageForPaintedListingsOnly(short page, CancellationToken cancellationToken);
 
-    Task<PaintedListingDto> CheckIsListingPainted(string name, CancellationToken cancellationToken);
+    Task<ListingDto> CheckIsListingPainted(string name, CancellationToken cancellationToken);
 }

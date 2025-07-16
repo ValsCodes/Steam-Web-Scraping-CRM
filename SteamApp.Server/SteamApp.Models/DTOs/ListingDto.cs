@@ -2,16 +2,14 @@
 {
     public class ListingDto
     {
-        public string? Name { get; set; }
-
-        public double Price { get; set; }
-
-        public string Color { get; set; }
-
-        public string? ImageUrl { get; set; }
-
-        public string ListingUrl { get; set; }
-
-        public short Quantity { get; set; }
+        public virtual string? Name { get; set; }
+        public virtual double Price { get; set; }
+        public virtual string Color { get; set; }
+        public virtual string? ImageUrl { get; set; }
+        public virtual string ListingUrl { get; set; }
+        public virtual short Quantity { get; set; }
+        public virtual bool IsPainted { get; set; }
+        public virtual string? PaintText { get; set; }
+        public virtual bool IsGoodPaint { get; set; }
     }
 }
