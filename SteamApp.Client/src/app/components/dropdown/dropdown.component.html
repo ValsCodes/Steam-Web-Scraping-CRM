@@ -1,0 +1,33 @@
+<div class="relative" (keydown.escape)="close()">
+      <button
+        type="button"
+        class="inline-flex items-center px-3 py-2 rounded hover:bg-gray-100"
+        (click)="toggle()"
+        [attr.aria-expanded]="open"
+        aria-haspopup="true"
+      >
+        {{ label }}
+        <svg class="ml-1 h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd"
+            d="M5.23 7.21a.75.75 0 011.06-.02L10 10.67l3.71-3.48a.75.75 0 111.04 1.08l-4.23 3.97a.75.75 0 01-1.04 0L5.25 8.27a.75.75 0 01-.02-1.06z"
+            clip-rule="evenodd" />
+        </svg>
+      </button>
+
+      <div
+        *ngIf="open"
+        class="absolute left-0 mt-2 w-48 bg-white border rounded shadow-md z-20"
+        role="menu"
+      >
+        <a
+          *ngFor="let l of links"
+          routerLink="{{l.route}}"
+          routerLinkActive="active"
+          (click)="close()"
+          class="block px-4 py-2 hover:bg-gray-100 whitespace-nowrap"
+          role="menuitem"
+        >
+          {{ l.label }}
+        </a>
+      </div>
+    </div>

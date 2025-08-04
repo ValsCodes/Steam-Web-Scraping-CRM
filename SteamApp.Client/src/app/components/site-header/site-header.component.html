@@ -1,19 +1,27 @@
 <div class="flex items-center justify-between p-4">
-        
         @if (isLoggedIn()) {
-        <div class="nav-links flex space-x-4">
-                <a routerLink="/web-scraper" routerLinkActive="active">Web Scraper</a> <br>
-                <a routerLink="/manual-mode" routerLinkActive="active">Manual Mode</a>
-                <a routerLink="/products-catalog" routerLinkActive="active">Listings Catalog</a>
-                <!-- <a routerLink="/products-beta" routerLinkActive="active">Products Beta</a> -->
-                <a routerLink="/items-catalog" routerLinkActive="active">Items Catalog</a>
-        </div>
-        }
-        <div class="nav-links flex space-x-4 items-center">
-                
+        <div class="flex">
+                <steam-dropdown label="Scraping"
+                        [links]="[{ label: 'Web Scraper', route: '/web-scraper' },{ label: 'Manual Scraper', route: '/manual-mode' }]"></steam-dropdown>
+                <steam-dropdown label="Catalogs"
+                        [links]="[{ label: 'Watch List Catalog', route: '/products-catalog' },{ label: 'Items Catalog', route: '/items-catalog' }]"></steam-dropdown>
+                <steam-dropdown label="Finance"
+                        [links]="[{ label: 'Invoices', route: '/invoices' }, { label: 'Finance Report', route: '/finance-report' }]"></steam-dropdown>
+                        <steam-dropdown label="General Game Data"  [links]="[    
+                        { label: 'Item Add-Ons ', route: '/item-add-ons' },                    
+                        { label: 'Item Grades', route: '/item-grades' },
+                        { label: 'Item Skins', route: '/item-skins' },
+                        { label: 'Item Qualities', route: '/qualities' },
+                        { label: 'Item Categories', route: '/categories' },
+                        { label: 'Item Slots', route: '/slots' },
+                        ]"></steam-dropdown>
+                <a routerLink="/games" routerLinkActive="active">Games</a>
+        </div>}
+        <div class="flex space-x-4 items-center">
                 @if(isLoggedIn())
                 {
-                <app-countdown-timer [initialMs]="expiration" [showControls]="false" [startOnLoad]="true" comment="Remaining Session"></app-countdown-timer>
+                <app-countdown-timer [initialMs]="expiration" [showControls]="false" [startOnLoad]="true"
+                        comment="Remaining Session"></app-countdown-timer>
                 <span class="self-center text-green-600">Signed In ✅</span>
                 <a href="#" (click)="logout($event)">Logout</a>
                 }

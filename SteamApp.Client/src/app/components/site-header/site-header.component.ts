@@ -3,11 +3,12 @@ import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth/auth.service';
 import { CommonModule } from '@angular/common';
 import { CountdownTimerComponent } from '../countdown-timer.component';
+import { DropdownComponent } from "../dropdown/dropdown.component";
 
 @Component({
   selector: 'steam-site-header',
   standalone: true,
-  imports: [CommonModule, RouterModule, CountdownTimerComponent],
+  imports: [CommonModule, RouterModule, CountdownTimerComponent, DropdownComponent],
   templateUrl: './site-header.component.html',
   styleUrl: './site-header.component.scss',
 })
