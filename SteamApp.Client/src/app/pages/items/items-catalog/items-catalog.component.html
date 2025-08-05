@@ -15,9 +15,11 @@
             <h2 class="text-2xl font-semibold text-gray-500 mb-4">Items Catalog</h2>
             <button class="create-button" (click)="createButtonClicked()">Create</button>
         </div>
-        <app-checkbox-filter [checkboxCollection]="activityFilters" (filterChange)="fetchItems()"></app-checkbox-filter>
-        <steam-item-search [getItems]="fetchItems" (selectedClasses)="onClassesChanged($event)"
-            (selectedSlots)="onSlotsChanged($event)" (searchByNameValue)="onSearchByNameChange(($event))" />
+        <app-checkbox-filter [CheckboxCollection]="activityFilters" [CheckboxCollectionLabel]="'Extra Filters'" (filterChange)="fetchItems()"></app-checkbox-filter>
+        <app-checkbox-filter [CheckboxCollection]="classFilters" [CheckboxCollectionLabel]="'Class Filters'" (filterChange)="fetchItems()"></app-checkbox-filter>
+        <app-checkbox-filter [CheckboxCollection]="slotFilters" [CheckboxCollectionLabel]="'Slot Filters'" (filterChange)="fetchItems()"></app-checkbox-filter>
+        <app-text-filter [SearchLabel]="'Item Name'" [SearchTextBind]="searchByItemNameFilter" (filterChange)="fetchItems()"> </app-text-filter>
+        <button class="button button-small-danger mr-4" (click)="ClearAllFilters()">Clear Filters</button>
     </div>
 
     <div class="table-container">

@@ -18,3 +18,13 @@ export const slotsCollection: { id: Slot; label: string }[] = [
   { id: Slot.Melle, label: slotsMap[Slot.Melle] },
   { id: Slot.Other, label: slotsMap[Slot.Other] },
 ];
+
+export const slotFiltersCollection = slotsCollection.map(({ id, label }) => ({
+  id,
+  label,
+  checked: false,
+})) as {
+  id: Slot;
+  label: string;
+  checked: boolean;
+}[];

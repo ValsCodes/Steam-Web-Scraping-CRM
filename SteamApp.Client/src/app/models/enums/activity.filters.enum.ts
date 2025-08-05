@@ -5,36 +5,20 @@ export enum ActivityFilters {
   NonWeapon = 4,
 }
 
-export const activityFiltersMap: Record<ActivityFilters, string> = {
-  [ActivityFilters.Active]:    'Active',
-  [ActivityFilters.Inactive]:   'Inactive',
-  [ActivityFilters.Weapon]: 'Weapon',
-  [ActivityFilters.NonWeapon]:  'Non Weapon',
-};
+const activityFilterIds = Object
+  .values(ActivityFilters)
+  .filter((v): v is ActivityFilters => typeof v === 'number');
 
-export const activityFiltersCollection: {
+export const activityFiltersMap = Object.fromEntries(
+  activityFilterIds.map(id => [id, ActivityFilters[id]])
+) as Record<ActivityFilters, string>;
+
+export const activityFiltersCollection = activityFilterIds.map(id => ({
+  id,
+  label: activityFiltersMap[id],
+  checked: false,
+})) as {
   id: ActivityFilters;
   label: string;
   checked: boolean;
-}[] = [
-  {
-    id: ActivityFilters.Active,
-    label: activityFiltersMap[ActivityFilters.Active],
-    checked: false,
-  },
-  {
-    id: ActivityFilters.Inactive,
-    label: activityFiltersMap[ActivityFilters.Inactive],
-    checked: false,
-  },
-  {
-    id: ActivityFilters.Weapon,
-    label: activityFiltersMap[ActivityFilters.Weapon],
-    checked: false,
-  },
-  {
-    id: ActivityFilters.NonWeapon,
-    label: activityFiltersMap[ActivityFilters.NonWeapon],
-    checked: false,
-  },
-];
+}[];

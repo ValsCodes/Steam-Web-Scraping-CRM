@@ -21,3 +21,13 @@ export const classesCollection = classIds.map(id => ({
   id,
   label: Class[id],
 }))
+
+export const classFiltersCollection = classesCollection.map(({ id, label }) => ({
+  id,
+  label,
+  checked: false,
+})) as {
+  id: Class;
+  label: string;
+  checked: boolean;
+}[];

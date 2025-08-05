@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatTableModule } from '@angular/material/table';
@@ -11,19 +11,15 @@ import { Router } from '@angular/router';
 import { ItemService } from '../../../services/item/item.service';
 import {
   Slot,
-  slotsCollection,
   slotsMap,
   Class,
-  classesCollection,
   classesMap,
   ActivityFilters,
   activityFiltersCollection,
+  classFiltersCollection, slotFiltersCollection
 } from '../../../models/enums/index';
-import {
-  CheckboxFilterComponent,
-  ItemSearchComponent,
-} from '../../../components/index';
 import { CONSTANTS } from '../../../common/constants';
+import { TextFilterComponent, CheckboxesFilterComponent } from "../../../components/index";
 
 @Component({
   selector: 'steam-items-catalog',
@@ -36,8 +32,8 @@ import { CONSTANTS } from '../../../common/constants';
     MatPaginatorModule,
     FormsModule,
     ReactiveFormsModule,
-    ItemSearchComponent,
-    CheckboxFilterComponent,
+    CheckboxesFilterComponent,
+    TextFilterComponent,
   ],
   templateUrl: './items-catalog.component.html',
   styleUrl: './items-catalog.component.scss',
@@ -45,6 +41,9 @@ import { CONSTANTS } from '../../../common/constants';
 export class ItemsCatalogComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
+
+  @ViewChildren(TextFilterComponent) textFilters!: QueryList<TextFilterComponent>;
+  @ViewChildren(CheckboxesFilterComponent) checkboxFilters!: QueryList<CheckboxesFilterComponent>;
 
   private _constants = CONSTANTS;
 
@@ -66,16 +65,15 @@ export class ItemsCatalogComponent implements OnInit, AfterViewInit {
     'actions',
   ];
 
-  searchControl = new FormControl<string>('', { nonNullable: true });
-  searchByItemName: string = '';
-
-  selectedClasses: number[] = [];
-  classes = classesCollection;
-
-  selectedSlots: number[] = [];
-  slots = slotsCollection;
-
+  searchByItemNameFilter = new FormControl<string>('', { nonNullable: true });
   activityFilters = activityFiltersCollection;
+  classFilters = classFiltersCollection;
+  slotFilters = slotFiltersCollection;
+
+  ClearAllFilters() {
+     this.textFilters.forEach(c => c.clearFilter());
+     this.checkboxFilters.forEach(c => c.clearFilters());
+  }
 
   constructor(private router: Router, private itemService: ItemService) {}
 
@@ -101,20 +99,6 @@ export class ItemsCatalogComponent implements OnInit, AfterViewInit {
 
   getSlotLabel(id: Slot) {
     return slotsMap[id];
-  }
-
-  onClassesChanged(newClasses: number[]) {
-    this.selectedClasses = newClasses;
-  }
-
-  onSlotsChanged(newSlots: number[]) {
-    this.selectedSlots = newSlots;
-  }
-
-  onSearchByNameChange(value: string) {
-    this.searchByItemName = value;
-
-    this.fetchItems();
   }
 
   createButtonClicked(): void {
@@ -187,9 +171,15 @@ export class ItemsCatalogComponent implements OnInit, AfterViewInit {
     });
   }
 
-  fetchItems = (nameFilter: string = this.searchByItemName): void => {
+  fetchItems = (
+    nameFilter: string = this.searchByItemNameFilter.value
+  ): void => {
     this.itemService
-      .getItems(this.selectedClasses, this.selectedSlots, nameFilter)
+      .getItems(
+        this.classFilters.filter((x) => x.checked === true).map((x) => x.id),
+        this.slotFilters.filter((x) => x.checked === true).map((x) => x.id),
+        nameFilter
+      )
       .subscribe({
         next: (items) => {
           const filteredData = this.applyFilters(items);

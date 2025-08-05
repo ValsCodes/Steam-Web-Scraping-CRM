@@ -1,12 +1,19 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, QueryList, ViewChildren } from '@angular/core';
 import { FormControl, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { CONSTANTS } from '../../common/constants';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ItemService } from '../../services/item/item.service';
-import { ItemSearchComponent, CopyLinkComponent } from '../../components/index';
+import {
+  CheckboxesFilterComponent,
+  CopyLinkComponent,
+  TextFilterComponent,
+} from '../../components/index';
 import { Item, UpdateItem } from '../../models/index';
+import {
+  classFiltersCollection,
+  slotFiltersCollection,
+} from '../../models/enums';
 
 @Component({
   selector: 'steam-manual-mode',
@@ -15,19 +22,25 @@ import { Item, UpdateItem } from '../../models/index';
     FormsModule,
     CommonModule,
     ReactiveFormsModule,
-    ItemSearchComponent,
-    CopyLinkComponent
+    CopyLinkComponent,
+    CheckboxesFilterComponent,
+    TextFilterComponent,
   ],
   templateUrl: './manual-mode.component.html',
   styleUrl: './manual-mode.component.scss',
 })
 export class ManualModeComponent implements OnInit {
-  searchControl = new FormControl<string>('', { nonNullable: true });
-  searchByItemName: string = '';
+  @ViewChildren(TextFilterComponent)
+  textFilters!: QueryList<TextFilterComponent>;
+  @ViewChildren(CheckboxesFilterComponent)
+  checkboxFilters!: QueryList<CheckboxesFilterComponent>;
 
-  selectedClasses: number[] = [];
+  searchByNameFilterControl = new FormControl<string>('', {
+    nonNullable: true,
+  });
 
-  selectedSlots: number[] = [];
+  classFilters = classFiltersCollection;
+  slotFilters = slotFiltersCollection;
 
   private _constants = CONSTANTS;
 
@@ -53,27 +66,6 @@ export class ManualModeComponent implements OnInit {
   constructor(private itemService: ItemService) {}
 
   ngOnInit(): void {
-    this.loadWeapons();
-
-    this.searchControl.valueChanges
-      .pipe(debounceTime(500), distinctUntilChanged())
-      .subscribe((value) => {
-        this.searchByItemName = value;
-        this.loadWeapons();
-      });
-  }
-
-  onClassesChanged(newClasses: number[]) {
-    this.selectedClasses = newClasses;
-  }
-
-  onSlotsChanged(newSlots: number[]) {
-    this.selectedSlots = newSlots;
-  }
-
-  onSearchByNameChange(value: string) {
-    this.searchByItemName = value;
-
     this.loadWeapons();
   }
 
@@ -111,7 +103,9 @@ export class ManualModeComponent implements OnInit {
     for (; this.currentIndex < toIndex; this.currentIndex++) {
       let url =
         this.weaponsCollection.length >= this.currentIndex
-          ? `${this.weaponUrlPartial}${this.weaponsCollection[this.currentIndex - 1].name}`
+          ? `${this.weaponUrlPartial}${
+              this.weaponsCollection[this.currentIndex - 1].name
+            }`
           : null;
 
       if (url == null) {
@@ -165,37 +159,15 @@ export class ManualModeComponent implements OnInit {
     }
   }
 
-  onClassCheckboxChange(event: Event, classId: number) {
-    const checkbox = event.target as HTMLInputElement;
-    if (checkbox.checked) {
-      if (!this.selectedClasses.includes(classId)) {
-        this.selectedClasses.push(classId);
-      }
-    } else {
-      this.selectedClasses = this.selectedClasses.filter(
-        (id) => id !== classId
-      );
-    }
-
-    this.loadWeapons();
-  }
-
-  onSlotCheckboxChange(event: Event, slotId: number) {
-    const checkbox = event.target as HTMLInputElement;
-    if (checkbox.checked) {
-      if (!this.selectedSlots.includes(slotId)) {
-        this.selectedSlots.push(slotId);
-      }
-    } else {
-      this.selectedSlots = this.selectedSlots.filter((id) => id !== slotId);
-    }
-
-    this.loadWeapons();
-  }
-
-  loadWeapons = (nameFilter: string = this.searchByItemName): void => {
+  loadWeapons = (
+    nameFilter: string = this.searchByNameFilterControl.value
+  ): void => {
     this.itemService
-      .getItems(this.selectedClasses, this.selectedSlots, nameFilter)
+      .getItems(
+        this.classFilters.filter((x) => x.checked).map((x) => x.id),
+        this.slotFilters.filter((x) => x.checked).map((x) => x.id),
+        nameFilter
+      )
       .subscribe({
         next: (data) => {
           const filteredData = data.filter(
@@ -306,5 +278,10 @@ export class ManualModeComponent implements OnInit {
     this.currentIndex = 1;
     this.weaponsBatchSize = 3;
     this.weaponStatusLabel = '';
+  }
+
+  ClearAllFilters() {
+    this.textFilters.forEach((c) => c.clearFilter());
+    this.checkboxFilters.forEach((c) => c.clearFilters());
   }
 }
