@@ -44,7 +44,6 @@ export class TextFilterComponent implements OnInit, OnDestroy {
     this.sub.unsubscribe();
   }
 
-  /** optional clear method if you still need it */
   clearFilter() {
     this.SearchTextBind.setValue('');
     this.filterChange.emit('');

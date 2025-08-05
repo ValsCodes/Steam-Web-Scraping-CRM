@@ -20,9 +20,6 @@ import { FormsModule } from '@angular/forms';
           (ngModelChange)="onFilterChange()"
         /> |
       </label>
-      <!-- <button (click)="clearActivityFilters()" class="button button-small-danger">
-        Clear Filter
-      </button> -->
     </div>
   `,
 })

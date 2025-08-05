@@ -1,44 +1,63 @@
-// Not done
 import { CommonModule } from '@angular/common';
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnInit,
+  OnDestroy,
+} from '@angular/core';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
+import { Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
+
+export interface RadioOption {
+  id: string;
+  label: string;
+}
 
 @Component({
   selector: 'app-radio-buttons-filter',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="flex gap-x-2 items-center">
-      <label class="mr-2">{{ SearchLabel }}</label>
-      <input
-        type="radio"
-        [formControl]="SearchTextBind"
-        (input)="onFilterChange()"
-        [placeholder]="SearchLabel + '…'"
-        class="px-1 py-1 w-[19rem]"
-      />
-      <!-- <button (click)="clearFilter()" class="button-small-danger">
-        Clear Filter
-      </button> -->
+    <div class="flex items-center gap-x-4">
+      <span class="font-medium">{{ label }}:</span>
+      <ng-container *ngFor="let opt of options; trackBy: trackById">
+        <label class="flex items-center gap-1">
+          <input type="radio" [value]="opt.id" [formControl]="control" />
+          {{ opt.label }}
+        </label>
+      </ng-container>
     </div>
   `,
 })
-export class RadioButtonsFilterComponent {
-  @Input() SearchLabel!: string;
-  @Input() SearchTextBind!: FormControl<string | null>;
+export class RadioButtonsFilterComponent implements OnInit, OnDestroy {
+  @Input() label = '';
 
-  @Output() filterChange = new EventEmitter<string>();
+  @Input() options: RadioOption[] = [];
 
-  onFilterChange() {
-    const val = this.SearchTextBind.value ?? '';
-    this.filterChange.emit(val);
+  @Input() control!: FormControl<string | null>;
+
+  @Output() selectionChange = new EventEmitter<string>();
+
+  private sub!: Subscription;
+
+  ngOnInit() {
+    this.sub = this.control.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged())
+      .subscribe((v) => this.selectionChange.emit(v ?? ''));
   }
 
-  clearFilter() {
-    // clear the FormControl
-    this.SearchTextBind.setValue('');
+  ngOnDestroy() {
+    this.sub.unsubscribe();
+  }
 
-    // emit the cleared value
-    this.filterChange.emit('');
+  clear() {
+    this.control.setValue(null);
+    this.selectionChange.emit('');
+  }
+
+  trackById(_: number, opt: RadioOption) {
+    return opt.id;
   }
 }
