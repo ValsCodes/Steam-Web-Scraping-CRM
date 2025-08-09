@@ -26,5 +26,5 @@ public class Paint
     public bool IsGoodPaint { get; set; }
 
     [JsonIgnore]
-    public virtual ICollection<Product> Products { get; set; } = [];
+    public virtual ICollection<WatchItem> Products { get; set; } = [];
 }

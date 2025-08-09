@@ -6,9 +6,6 @@ namespace SteamApp.Models.Entities;
 [Table("skin")]
 public class Skin : BaseModel
 {
-    [Column("is_war_paint")]
-    public bool IsWarPaint { get; set; }
-
     [Column("quality_id")]
     public virtual short? QualityId { get; set; }
     [ForeignKey(nameof(QualityId))]

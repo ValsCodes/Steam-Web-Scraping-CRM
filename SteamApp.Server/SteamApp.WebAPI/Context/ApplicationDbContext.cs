@@ -7,7 +7,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 {
     public DbSet<Item> ManualSearchItems { get; set; }
 
-    public DbSet<Product> Products { get; set; }
+    public DbSet<WatchItem> Products { get; set; }
 
     public DbSet<Paint> Paints { get; set; }
 
