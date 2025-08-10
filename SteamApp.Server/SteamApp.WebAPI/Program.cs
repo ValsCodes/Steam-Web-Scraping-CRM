@@ -128,10 +128,7 @@ public class Program
         app.MapClassEndpoints();
         app.MapSlotEndpoints();
         app.MapGradeEndpoints();
-        app.MapSheenEndpoints();
-        app.MapPaintEndpoints();
         app.MapSkinEndpoints();
-        app.MapItemSkinsEndpoints();
 
         // Regular API controllers
         app.MapControllers();

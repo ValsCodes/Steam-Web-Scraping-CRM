@@ -1,22 +1,20 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using SteamApp.Models.Entities.ManyToMany;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
 
 namespace SteamApp.Models.Entities;
 
 [Table("quality")]
-public class Quality
+public class Quality : BaseModel<short>
 {
-    [Column("id")]
-    [Key]
-    public short Id { get; set; }
+    [Column("game_id")]
+    public long GameId { get; set; }
+    [ForeignKey(nameof(GameId))]
+    public Game Game { get; set; }
 
-    [Column("name")]
-    public string Name { get; set; }
+    [Column("is_skin_quality")]
+    public bool IsSkinQuality { get; set; }
 
-    [JsonIgnore]
-    public virtual ICollection<WatchItem> Products { get; set; } = [];
-
-    [JsonIgnore]
-    public virtual ICollection<Skin> Skins { get; set; } = [];
+    public ICollection<WatchItem> Products { get; set; } = [];
+    public ICollection<Skin> Skins { get; set; } = [];
+    public ICollection<ItemQualities> ItemQualities { get; set; } = [];
 }

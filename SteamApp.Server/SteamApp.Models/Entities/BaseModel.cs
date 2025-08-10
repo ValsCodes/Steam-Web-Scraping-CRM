@@ -3,13 +3,18 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SteamApp.Models.Entities
 {
-    public class BaseModel
+    // Uses long as the default type for Id
+    public class BaseModel : BaseModel<long>
+    {
+    }
+
+    public abstract class BaseModel<T>
     {
         [Key]
         [Column("id")]
-        public virtual long Id { get; set; }
+        public required T Id { get; set; }
 
         [Column("name")]
-        public virtual string Name { get; set; }
+        public string Name { get; set; }
     }
 }

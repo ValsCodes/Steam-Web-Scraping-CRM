@@ -2,17 +2,17 @@
 
 namespace SteamApp.Models.Entities
 {
-    [Table("game")]
+    [Table("game_url")]
     public class GameUrl : BaseModel
     {
-        public virtual string Url { get; set; }
+        public string Url { get; set; }
 
         [Column("game_id")]
-        public virtual long GameId { get; set; }
+        public long GameId { get; set; }
 
         [ForeignKey(nameof(GameId))]
-        public virtual Game Game { get; set; }
+        public Game Game { get; set; }
 
-        public virtual ICollection<Item> Items { get; set; } = [];
+        public ICollection<Item> Items { get; set; } = [];
     }
 }

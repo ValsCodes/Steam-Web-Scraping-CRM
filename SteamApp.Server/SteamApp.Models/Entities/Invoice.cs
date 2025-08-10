@@ -8,12 +8,17 @@ namespace SteamApp.Models.Entities
     {
         [Key]
         [Column("id")]
-        public virtual string Id { get; set; }
+        public string Id { get; set; }
+
+        [Column("game_id")]
+        public long GameId { get; set; }
+        [ForeignKey(nameof(GameId))]
+        public Game Game { get; set; }
 
         [Column("transcation_date")]
-        public virtual DateTime TransactionDate { get; set; }
+        public DateTime TransactionDate { get; set; }
 
         [Column("amount")]
-        public virtual double Amount { get; set; }
+        public double Amount { get; set; }
     }
 }

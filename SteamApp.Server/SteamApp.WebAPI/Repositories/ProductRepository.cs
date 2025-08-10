@@ -10,7 +10,7 @@ public class ProductRepository(ApplicationDbContext context) : IProductRepositor
 {
     public async Task<WatchItem> GetByIdAsync(long id, CancellationToken ct = default)
     {
-        var result = await context.Products.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+        var result = await context.WatchItems.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
         if (result == null)
         {
             throw new ItemNotFoundException($"Product with ID {id} not found.");
@@ -21,7 +21,7 @@ public class ProductRepository(ApplicationDbContext context) : IProductRepositor
 
     public async Task<IEnumerable<WatchItem>> GetListAsync(CancellationToken ct = default)
     {
-        var result = await context.Products.ToListAsync();
+        var result = await context.WatchItems.ToListAsync();
         return result;
     }
 
@@ -43,7 +43,7 @@ public class ProductRepository(ApplicationDbContext context) : IProductRepositor
 
     public async Task<bool> UpdateAsync(WatchItem product, CancellationToken ct = default)
     {
-        context.Products.Update(product);
+        context.WatchItems.Update(product);
         await context.SaveChangesAsync();
 
         return true;
@@ -57,7 +57,7 @@ public class ProductRepository(ApplicationDbContext context) : IProductRepositor
 
     public async Task<bool> DeleteAsync(long id, CancellationToken ct = default)
     {
-        var existingListing = await context.Products.FindAsync(id);
+        var existingListing = await context.WatchItems.FindAsync(id);
 
         if (existingListing == null)
         {
@@ -72,13 +72,13 @@ public class ProductRepository(ApplicationDbContext context) : IProductRepositor
 
     public async Task<IEnumerable<bool>> DeleteRangeAsync(IEnumerable<long> ids, CancellationToken ct = default)
     {
-        var productsToDelete = await context.Products.Where(p => ids.Contains(p.Id)).ToListAsync(ct);
+        var productsToDelete = await context.WatchItems.Where(p => ids.Contains(p.Id)).ToListAsync(ct);
 
         var foundIds = productsToDelete.Select(p => p.Id).ToHashSet();
 
         if (productsToDelete.Any())
         {
-            context.Products.RemoveRange(productsToDelete);
+            context.WatchItems.RemoveRange(productsToDelete);
             await context.SaveChangesAsync(ct);
         }
 

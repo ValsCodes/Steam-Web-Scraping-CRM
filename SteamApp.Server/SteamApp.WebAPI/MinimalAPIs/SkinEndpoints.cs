@@ -48,7 +48,6 @@ public static class SkinEndpoints
             if (skin is null) return Results.NotFound();
 
             if (input.Name != null) skin.Name = input.Name;
-            if (input.IsWarPaint.HasValue) skin.IsWarPaint = (bool)input.IsWarPaint;
             if (input.QualityId.HasValue) skin.QualityId = input.QualityId;
             if (input.IsActive.HasValue) skin.IsActive = (bool)input.IsActive;
 

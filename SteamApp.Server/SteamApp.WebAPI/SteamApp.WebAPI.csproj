@@ -36,4 +36,8 @@
     <ProjectReference Include="..\SteamApp.Infrastructure\SteamApp.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
+
 </Project>

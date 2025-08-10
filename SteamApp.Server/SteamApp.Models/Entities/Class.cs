@@ -1,14 +1,18 @@
-﻿using SteamApp.Models.Entities.OneToOne;
+﻿using SteamApp.Models.Entities.ManyToMany;
+using SteamApp.Models.Entities.OneToOne;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
 
 namespace SteamApp.Models.Entities;
 
 [Table("class")]
 public class Class : BaseModel
 {
-    [JsonIgnore]
-    public virtual ICollection<Item> Items { get; set; } = [];
+    [Column("game_id")]
+    public long GameId { get; set; }
+    [ForeignKey(nameof(GameId))]
+    public Game Game { get; set; }
 
-    public virtual ICollection<TeamFotressItem> TeamFotressItems { get; set; } = [];
+    public  ICollection<TeamFortressItem> TeamFotressItems { get; set; } = [];
+
+    public ICollection<ItemClasses>  ItemClasses { get; set; } = [];
 }
