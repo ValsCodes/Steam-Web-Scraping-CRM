@@ -44,7 +44,7 @@ public class ProductService : IProductService
             productDto.DateBought = DateTime.UtcNow;
         }
 
-        var product = _mapper.Map<WatchItem>(productDto);
+        var product = _mapper.Map<Product>(productDto);
 
         var id = await _repository.CreateAsync(product, ct);
         return new CreateProductResult
@@ -59,7 +59,7 @@ public class ProductService : IProductService
         if (productDtos == null || !productDtos.Any())
             throw new ArgumentException("Product collection cannot be null or empty.", nameof(productDtos));
 
-        var products = productDtos.Select(_mapper.Map<WatchItem>);
+        var products = productDtos.Select(_mapper.Map<Product>);
 
         var ids = await _repository.CreateRangeAsync(products, ct);
         return ids.Select(id => new CreateProductResult
@@ -71,7 +71,7 @@ public class ProductService : IProductService
 
     public async Task<OperationResult> UpdateAsync(ProductDto productDto, CancellationToken ct = default)
     {
-        var product = _mapper.Map<WatchItem>(productDto);
+        var product = _mapper.Map<Product>(productDto);
         var success = await _repository.UpdateAsync(product, ct);
 
         return new OperationResult

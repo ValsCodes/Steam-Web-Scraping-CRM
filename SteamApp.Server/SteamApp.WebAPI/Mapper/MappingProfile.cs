@@ -10,15 +10,15 @@ public class MappingProfile : Profile
     public MappingProfile()
     {
 
-        CreateMap<WatchItem, ProductDto>();
+        CreateMap<Product, ProductDto>();
 
-        CreateMap<ProductDto, WatchItem>();
+        CreateMap<ProductDto, Product>();
 
-        CreateMap<CreateProductDto, WatchItem>().ForMember(dest => dest.Id, opt => opt.Ignore());
+        CreateMap<CreateProductDto, Product>().ForMember(dest => dest.Id, opt => opt.Ignore());
 
-        CreateMap<UpdateProductDto, WatchItem>();
+        CreateMap<UpdateProductDto, Product>();
 
-        CreateMap<UpdateProductDto, WatchItem>().ReverseMap();     
+        CreateMap<UpdateProductDto, Product>().ReverseMap();     
 
         CreateMap<ItemDto, Item>();
 

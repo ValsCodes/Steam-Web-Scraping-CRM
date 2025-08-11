@@ -15,7 +15,7 @@ public class Quality
     public string Name { get; set; }
 
     [JsonIgnore]
-    public virtual ICollection<WatchItem> Products { get; set; } = [];
+    public virtual ICollection<Product> Products { get; set; } = [];
 
     [JsonIgnore]
     public virtual ICollection<Skin> Skins { get; set; } = [];
