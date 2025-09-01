@@ -1,6 +1,6 @@
-﻿namespace SteamApp.Models.DTOs
+﻿namespace SteamApp.Models.DTOs.WatchItem
 {
-    public class ListingDto
+    public class WatchItemDto
     {
         public virtual string? Name { get; set; }
         public virtual double Price { get; set; }

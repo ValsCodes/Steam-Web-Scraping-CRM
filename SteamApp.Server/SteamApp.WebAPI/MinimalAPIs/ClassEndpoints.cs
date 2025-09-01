@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using SteamApp.Models.DTOs;
+using SteamApp.Models.DTOs.Class;
 using SteamApp.Models.Entities;
 using SteamApp.WebAPI.Context;
 
@@ -16,43 +16,50 @@ public static class ClassEndpoints
 
         // GET: /classes
         group.MapGet("/", async (ApplicationDbContext db) =>
-            await db.Classes.ToListAsync())
+            await db.Classes
+            .Select(c => c.ToDto())
+            .ToListAsync())
             .WithName("GetAllClasses")
-            .Produces<List<Class>>(StatusCodes.Status200OK);
+            .Produces<List<ClassDto>>(StatusCodes.Status200OK);
 
         // GET: /classes/{id}
         group.MapGet("/{id}", async (long id, ApplicationDbContext db) =>
             await db.Classes.FindAsync(id)
                 is Class entity
-                    ? Results.Ok(entity)
+                    ? Results.Ok(entity.ToDto())
                     : Results.NotFound())
             .WithName("GetClassById")
-            .Produces<Class>(StatusCodes.Status200OK)
+
+            .Produces<ClassDto>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
         // POST: /classes
-        group.MapPost("/", async (Class input, ApplicationDbContext db) =>
+        group.MapPost("/", async (ClassCreateDto input, ApplicationDbContext db) =>
         {
-            db.Classes.Add(input);
+            var entity = input.ToEntity();
+
+            db.Classes.Add(entity);
             await db.SaveChangesAsync();
-            return Results.Created($"/classes/{input.Id}", input);
+            return Results.Created($"/classes/{entity.Id}", input);
         })
         .WithName("CreateClass")
-        .Accepts<Class>("application/json")
-        .Produces<Class>(StatusCodes.Status201Created);
+        .Accepts<ClassCreateDto>("application/json")
+        .Produces<ClassCreateDto>(StatusCodes.Status201Created);
 
         // PUT: /classes/{id}
-        group.MapPut("/{id}", async (long id, BaseUpdateDto input, ApplicationDbContext db) =>
+        group.MapPut("/{id}", async (ClassUpdateDto input, ApplicationDbContext db) =>
         {
-            var entity = await db.Classes.FindAsync(id);
+            var entity = await db.Classes.FindAsync(input.Id);
             if (entity is null) return Results.NotFound();
 
-            entity.Name = input.Name;
+            if (input.Name != null) entity.Name = input.Name;
+            if (input.GameId != null) entity.GameId = input.GameId.Value;
+
             await db.SaveChangesAsync();
             return Results.NoContent();
         })
         .WithName("UpdateClass")
-        .Accepts<Class>("application/json")
+        .Accepts<ClassUpdateDto>("application/json")
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status404NotFound);
 
@@ -72,4 +79,20 @@ public static class ClassEndpoints
 
         return app;
     }
+}
+
+public static class ClassMappers
+{
+    public static ClassDto ToDto(this Class entity) => new ClassDto
+    {
+        Id = entity.Id,
+        Name = entity.Name,
+        GameId = entity.GameId
+    };
+
+    public static Class ToEntity(this ClassCreateDto entity) => new Class
+    {
+        Name = entity.Name,
+        GameId = entity.GameId
+    };
 }

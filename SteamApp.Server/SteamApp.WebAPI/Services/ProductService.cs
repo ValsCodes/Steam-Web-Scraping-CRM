@@ -1,9 +1,9 @@
 ﻿using AutoMapper;
-using SteamApp.Infrastructure;
 using SteamApp.Infrastructure.Repositories;
 using SteamApp.Infrastructure.Services;
 using SteamApp.Models.DTOs.Product;
 using SteamApp.Models.Entities;
+using SteamApp.Models.OperationResults;
 using SteamApp.WebAPI.Exceptions;
 
 namespace SteamApp.WebAPI.Services;
@@ -34,7 +34,7 @@ public class ProductService : IProductService
         return products.Select(p => _mapper.Map<ProductDto>(p));
     }
 
-    public async Task<CreateProductResult> CreateAsync(CreateProductDto productDto, CancellationToken ct = default)
+    public async Task<ItemCreateResult> CreateAsync(CreateProductDto productDto, CancellationToken ct = default)
     {
         if (productDto == null)
             throw new ArgumentNullException(nameof(productDto));
@@ -47,14 +47,14 @@ public class ProductService : IProductService
         var product = _mapper.Map<WatchItem>(productDto);
 
         var id = await _repository.CreateAsync(product, ct);
-        return new CreateProductResult
+        return new ItemCreateResult
         {
             Id = id,
             Message = $"Product {id} created successfully"
         };
     }
 
-    public async Task<IEnumerable<CreateProductResult>> CreateRangeAsync(IEnumerable<CreateProductDto> productDtos, CancellationToken ct = default)
+    public async Task<IEnumerable<ItemCreateResult>> CreateRangeAsync(IEnumerable<CreateProductDto> productDtos, CancellationToken ct = default)
     {
         if (productDtos == null || !productDtos.Any())
             throw new ArgumentException("Product collection cannot be null or empty.", nameof(productDtos));
@@ -62,19 +62,19 @@ public class ProductService : IProductService
         var products = productDtos.Select(_mapper.Map<WatchItem>);
 
         var ids = await _repository.CreateRangeAsync(products, ct);
-        return ids.Select(id => new CreateProductResult
+        return ids.Select(id => new ItemCreateResult
         {
             Id = id,
             Message = $"Product {id} created successfully"
         });
     }
 
-    public async Task<OperationResult> UpdateAsync(ProductDto productDto, CancellationToken ct = default)
+    public async Task<BaseOperationResult> UpdateAsync(ProductDto productDto, CancellationToken ct = default)
     {
         var product = _mapper.Map<WatchItem>(productDto);
         var success = await _repository.UpdateAsync(product, ct);
 
-        return new OperationResult
+        return new BaseOperationResult
         {
             Success = success,
             Message = success
@@ -83,7 +83,7 @@ public class ProductService : IProductService
         };
     }
 
-    public async Task<IEnumerable<OperationResult>> UpdateRangeAsync(IEnumerable<UpdateProductDto> productDtos, CancellationToken ct = default)
+    public async Task<IEnumerable<BaseOperationResult>> UpdateRangeAsync(IEnumerable<UpdateProductDto> productDtos, CancellationToken ct = default)
     {
 
         await Task.CompletedTask;
@@ -102,11 +102,11 @@ public class ProductService : IProductService
         //});
     }
 
-    public async Task<OperationResult> DeleteAsync(long id, CancellationToken ct = default)
+    public async Task<BaseOperationResult> DeleteAsync(long id, CancellationToken ct = default)
     {
         var success = await _repository.DeleteAsync(id, ct);
 
-        return new OperationResult
+        return new BaseOperationResult
         {
             Success = success,
             Message = success
@@ -115,14 +115,14 @@ public class ProductService : IProductService
         };
     }
 
-    public async Task<IEnumerable<OperationResult>> DeleteRangeAsync(IEnumerable<long> ids, CancellationToken ct = default)
+    public async Task<IEnumerable<BaseOperationResult>> DeleteRangeAsync(IEnumerable<long> ids, CancellationToken ct = default)
     {
         if (ids == null || !ids.Any())
             throw new ArgumentException("ID collection cannot be null or empty.", nameof(ids));
 
         var results = await _repository.DeleteRangeAsync(ids, ct);
 
-        return ids.Select((id, idx) => new OperationResult
+        return ids.Select((id, idx) => new BaseOperationResult
         {
             Success = results.ElementAt(idx),
             Message = results.ElementAt(idx)

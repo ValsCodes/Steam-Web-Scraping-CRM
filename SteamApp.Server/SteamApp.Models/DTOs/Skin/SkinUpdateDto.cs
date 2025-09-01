@@ -1,6 +1,6 @@
-﻿namespace SteamApp.Models.DTOs;
+﻿namespace SteamApp.Models.DTOs.Skin;
 
-public class UpdateSkinDto : BaseUpdateDto
+public class SkinUpdateDto : BaseUpdateDto
 {
     public virtual bool? IsWarPaint { get; set; }
 

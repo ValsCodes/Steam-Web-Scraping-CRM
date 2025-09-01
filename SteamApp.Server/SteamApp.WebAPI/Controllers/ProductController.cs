@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SteamApp.Infrastructure;
 using SteamApp.Infrastructure.Services;
 using SteamApp.Models.DTOs.Product;
+using SteamApp.Models.OperationResults;
 
 namespace SteamApp.WebAPI.Controllers;
 
@@ -29,7 +29,7 @@ public class ProductController(IProductService productService) : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<CreateProductResult>> Create([FromBody] CreateProductDto dto, CancellationToken ct)
+    public async Task<ActionResult<ItemCreateResult>> Create([FromBody] CreateProductDto dto, CancellationToken ct)
     {
         var result = await productService.CreateAsync(dto, ct);
         return CreatedAtAction(
@@ -39,14 +39,14 @@ public class ProductController(IProductService productService) : ControllerBase
     }
 
     [HttpPost("batch")]
-    public async Task<ActionResult<IEnumerable<CreateProductResult>>> CreateBatch([FromBody] IEnumerable<CreateProductDto> dtos, CancellationToken ct)
+    public async Task<ActionResult<IEnumerable<ItemCreateResult>>> CreateBatch([FromBody] IEnumerable<CreateProductDto> dtos, CancellationToken ct)
     {
         var results = await productService.CreateRangeAsync(dtos, ct);
         return Ok(results);
     }
 
     [HttpPatch]
-    public async Task<ActionResult<OperationResult>> Update([FromBody] UpdateProductDto dto)
+    public async Task<ActionResult<BaseOperationResult>> Update([FromBody] UpdateProductDto dto)
     {
         if (dto == null)
             return BadRequest("No data provided.");
@@ -78,14 +78,14 @@ public class ProductController(IProductService productService) : ControllerBase
     }
 
     [HttpPatch("batch")]
-    public async Task<ActionResult<IEnumerable<OperationResult>>> UpdateBatch([FromBody] IEnumerable<UpdateProductDto> dtos, CancellationToken ct)
+    public async Task<ActionResult<IEnumerable<BaseOperationResult>>> UpdateBatch([FromBody] IEnumerable<UpdateProductDto> dtos, CancellationToken ct)
     {
         var results = await productService.UpdateRangeAsync(dtos, ct);
         return Ok(results);
     }
 
     [HttpDelete("{id:long}")]
-    public async Task<ActionResult<OperationResult>> Delete(long id, CancellationToken ct)
+    public async Task<ActionResult<BaseOperationResult>> Delete(long id, CancellationToken ct)
     {
         var result = await productService.DeleteAsync(id, ct);
         if (!result.Success)
@@ -95,7 +95,7 @@ public class ProductController(IProductService productService) : ControllerBase
     }
 
     [HttpDelete("batch")]
-    public async Task<ActionResult<IEnumerable<OperationResult>>> DeleteBatch([FromBody] IEnumerable<long> ids, CancellationToken ct)
+    public async Task<ActionResult<IEnumerable<BaseOperationResult>>> DeleteBatch([FromBody] IEnumerable<long> ids, CancellationToken ct)
     {
         var results = await productService.DeleteRangeAsync(ids, ct);
         return Ok(results);

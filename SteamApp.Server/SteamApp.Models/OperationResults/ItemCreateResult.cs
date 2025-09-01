@@ -1,8 +1,8 @@
 ﻿using SteamApp.Models.DTOs.Product;
 
-namespace SteamApp.Infrastructure
+namespace SteamApp.Models.OperationResults
 {
-    public class CreateProductResult : OperationResult
+    public class ItemCreateResult : BaseOperationResult
     {
         public ProductDto? Created { get; set; }
     }

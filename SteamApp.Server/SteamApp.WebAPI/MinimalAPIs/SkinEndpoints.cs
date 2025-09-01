@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using SteamApp.Models.DTOs;
+using SteamApp.Models.DTOs.Skin;
 using SteamApp.Models.Entities;
 using SteamApp.WebAPI.Context;
 
@@ -42,7 +42,7 @@ public static class SkinEndpoints
         .Produces<Skin>(StatusCodes.Status201Created);
 
         // PUT: /skins/{id}
-        group.MapPut("/{id}", async (long id, UpdateSkinDto input, ApplicationDbContext db) =>
+        group.MapPut("/{id}", async (long id, SkinUpdateDto input, ApplicationDbContext db) =>
         {
             var skin = await db.Skins.FindAsync(id);
             if (skin is null) return Results.NotFound();

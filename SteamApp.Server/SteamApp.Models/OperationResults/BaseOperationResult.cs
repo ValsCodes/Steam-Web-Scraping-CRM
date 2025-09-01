@@ -1,6 +1,6 @@
-﻿namespace SteamApp.Infrastructure
+﻿namespace SteamApp.Models.OperationResults
 {
-    public class OperationResult
+    public class BaseOperationResult
     {
         public long Id { get; set; }
         public bool Success { get; set; }

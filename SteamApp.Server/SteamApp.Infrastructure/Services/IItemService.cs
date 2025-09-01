@@ -1,4 +1,5 @@
 ﻿using SteamApp.Models.DTOs.Item;
+using SteamApp.Models.OperationResults;
 
 namespace SteamApp.Infrastructure.Services;
 
@@ -8,8 +9,8 @@ public interface IItemService
 
     Task<IEnumerable<ItemDto>> GetItems(CancellationToken ct, string? name = null, IEnumerable<long>? classFilters = null, IEnumerable<long>? slotFilters = null);
 
-    Task<OperationResult> CreateItemAsync(CreateItemDto item, CancellationToken ct);
-    Task<OperationResult> UpdateItem(ItemDto item, CancellationToken ct);
+    Task<BaseOperationResult> CreateItemAsync(CreateItemDto item, CancellationToken ct);
+    Task<BaseOperationResult> UpdateItem(ItemDto item, CancellationToken ct);
 
-    Task<OperationResult> DeleteById(long id, CancellationToken ct);
+    Task<BaseOperationResult> DeleteById(long id, CancellationToken ct);
 }

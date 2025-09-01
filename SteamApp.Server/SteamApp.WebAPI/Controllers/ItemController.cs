@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SteamApp.Infrastructure;
 using SteamApp.Infrastructure.Services;
 using SteamApp.Models.DTOs.Item;
+using SteamApp.Models.OperationResults;
 
 namespace SteamApp.WebAPI.Controllers;
 
@@ -42,7 +42,7 @@ public class ItemController(IItemService itemService) : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<OperationResult>> CreateAsync([FromBody] CreateItemDto dto, CancellationToken ct)
+    public async Task<ActionResult<BaseOperationResult>> CreateAsync([FromBody] CreateItemDto dto, CancellationToken ct)
     {
         try
         {
@@ -56,7 +56,7 @@ public class ItemController(IItemService itemService) : ControllerBase
     }
 
     [HttpPatch]
-    public async Task<ActionResult<OperationResult>> UpdateAsync([FromBody] UpdateItemDto dto, CancellationToken ct)
+    public async Task<ActionResult<BaseOperationResult>> UpdateAsync([FromBody] UpdateItemDto dto, CancellationToken ct)
     {
         try
         {
@@ -90,7 +90,7 @@ public class ItemController(IItemService itemService) : ControllerBase
     }
 
     [HttpDelete("{id:long}")]
-    public async Task<ActionResult<OperationResult>> DeleteByIdAsync(long id, CancellationToken ct)
+    public async Task<ActionResult<BaseOperationResult>> DeleteByIdAsync(long id, CancellationToken ct)
     {
         try
         {

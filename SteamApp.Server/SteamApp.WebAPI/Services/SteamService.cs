@@ -3,7 +3,7 @@ using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using SeleniumExtras.WaitHelpers;
 using SteamApp.Infrastructure.Services;
-using SteamApp.Models.DTOs;
+using SteamApp.Models.DTOs.WatchItem;
 using SteamApp.Models.JsonObjects;
 using SteamApp.WebAPI.Common;
 using SteamApp.WebAPI.Helpers;
@@ -15,7 +15,7 @@ namespace SteamApp.WebAPI.Services;
 
 public class SteamService() : ISteamService
 {
-    public async Task<IEnumerable<ListingDto>> ScrapePage(short page, CancellationToken ct)
+    public async Task<IEnumerable<WatchItemDto>> ScrapePage(short page, CancellationToken ct)
     {
         const short MaxPage = 500;
         if (page < 0 || page > MaxPage)
@@ -59,7 +59,7 @@ public class SteamService() : ISteamService
                 }
 
                 var anchors = driver.FindElements(resultBy);
-                var results = new List<ListingDto>(anchors.Count);
+                var results = new List<WatchItemDto>(anchors.Count);
                 foreach (var anchor in anchors)
                 {
                     linkedCts.Token.ThrowIfCancellationRequested();
@@ -96,7 +96,7 @@ public class SteamService() : ISteamService
         return result.ToString();
     }
 
-    public async Task<IEnumerable<ListingDto>> ScrapePageWithSrcPixelPaintCheck(short page, bool isGoodColorOnly, CancellationToken ct)
+    public async Task<IEnumerable<WatchItemDto>> ScrapePageWithSrcPixelPaintCheck(short page, bool isGoodColorOnly, CancellationToken ct)
     {
         if (page < 0 || page > short.MaxValue)
         {
@@ -110,7 +110,7 @@ public class SteamService() : ISteamService
         options.AddArgument("--disable-gpu");
 
 
-        var results = new List<ListingDto>();
+        var results = new List<WatchItemDto>();
 
         using (IWebDriver driver = new ChromeDriver(options))
         {
@@ -159,7 +159,7 @@ public class SteamService() : ISteamService
         return results;
     }
 
-    public async Task<IEnumerable<ListingDto>> GetDeserializedLisitngsFromUrl(short page, CancellationToken ct)
+    public async Task<IEnumerable<WatchItemDto>> GetDeserializedLisitngsFromUrl(short page, CancellationToken ct)
     {
         if (page < 0 || page > 500)
         {
@@ -169,11 +169,11 @@ public class SteamService() : ISteamService
         var url = $"{Constants.JSON_100_LISTINGS_URL_PART_1}{page}{Constants.JSON_100_LISTINGS_URL_PART_2}";
         var filteredResult = await GetResultsFromUrl(url, ct);
 
-        return [.. filteredResult.OrderBy(x => x.SellPrice).Select(x => new ListingDto { Name = x.Name, Price = x.SellPrice / 100, Quantity = x.SellListings })];
+        return [.. filteredResult.OrderBy(x => x.SellPrice).Select(x => new WatchItemDto { Name = x.Name, Price = x.SellPrice / 100, Quantity = x.SellListings })];
     }
 
 
-    public async Task<ListingDto> CheckIsListingPainted(string name, CancellationToken ct)
+    public async Task<WatchItemDto> CheckIsListingPainted(string name, CancellationToken ct)
     {
         name = name.Trim();
         if (string.IsNullOrEmpty(name))
@@ -199,7 +199,7 @@ public class SteamService() : ISteamService
 
         var descriptions = resultAssets!.Descriptions?.Where(x => x.Value != null);
 
-        var lisitngResult = new ListingDto
+        var lisitngResult = new WatchItemDto
         {
             Name = resultAssets.Name
         };
@@ -218,14 +218,14 @@ public class SteamService() : ISteamService
         return lisitngResult;
     }
 
-    public async Task<IEnumerable<ListingDto>> ScrapePageForPaintedListingsOnly(short page, CancellationToken ct)
+    public async Task<IEnumerable<WatchItemDto>> ScrapePageForPaintedListingsOnly(short page, CancellationToken ct)
     {
         if (page < 0 || page > 500)
         {
             throw new ArgumentOutOfRangeException("Page is either negative or greater than 500.");
         }
 
-        var results = new List<ListingDto>();
+        var results = new List<WatchItemDto>();
         var listings = await ScrapePage(page, ct);
 
         foreach (var listing in listings)
@@ -233,7 +233,7 @@ public class SteamService() : ISteamService
             var isListingPaintedResult = await CheckIsListingPainted(listing.Name!, ct);
             if (isListingPaintedResult.IsPainted)
             {
-                var paintedListing = new ListingDto
+                var paintedListing = new WatchItemDto
                 {
                     Name = listing.Name,
                     Quantity = listing.Quantity,
@@ -253,9 +253,9 @@ public class SteamService() : ISteamService
     }
 
 
-    private static ListingDto ParseListingFromAnchor(IWebElement anchor)
+    private static WatchItemDto ParseListingFromAnchor(IWebElement anchor)
     {
-        var listing = new ListingDto
+        var listing = new WatchItemDto
         {
             ListingUrl = anchor.GetAttribute(Constants.HREF)
         };

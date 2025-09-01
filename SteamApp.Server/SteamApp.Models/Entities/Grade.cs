@@ -9,5 +9,5 @@ public class Grade : BaseModel
     public long? GameId { get; set; }
 
     [ForeignKey(nameof(GameId))]
-    public virtual Game Game { get; set; }
+    public Game Game { get; set; }
 }

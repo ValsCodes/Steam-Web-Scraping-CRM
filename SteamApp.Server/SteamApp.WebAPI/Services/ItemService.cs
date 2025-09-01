@@ -1,9 +1,9 @@
 ﻿using AutoMapper;
-using SteamApp.Infrastructure;
 using SteamApp.Infrastructure.Repositories;
 using SteamApp.Infrastructure.Services;
 using SteamApp.Models.DTOs.Item;
 using SteamApp.Models.Entities;
+using SteamApp.Models.OperationResults;
 
 namespace SteamApp.WebAPI.Services;
 
@@ -30,7 +30,7 @@ public class ItemService(IItemRepository itemRepository, IMapper mapper) : IItem
         return mapper.Map<List<ItemDto>>(items);
     }
 
-    public async Task<OperationResult> CreateItemAsync(CreateItemDto itemDto, CancellationToken ct)
+    public async Task<BaseOperationResult> CreateItemAsync(CreateItemDto itemDto, CancellationToken ct)
     {
         if (itemDto == null)
             throw new ArgumentNullException(nameof(itemDto));
@@ -39,7 +39,7 @@ public class ItemService(IItemRepository itemRepository, IMapper mapper) : IItem
 
         var id = await itemRepository.CreateItem(item, ct);
 
-        return new OperationResult
+        return new BaseOperationResult
         {
             Id = id,
             Success = id > 0,
@@ -47,7 +47,7 @@ public class ItemService(IItemRepository itemRepository, IMapper mapper) : IItem
         };
     }
 
-    public async Task<OperationResult> UpdateItem(ItemDto itemDto, CancellationToken ct)
+    public async Task<BaseOperationResult> UpdateItem(ItemDto itemDto, CancellationToken ct)
     {
         if (itemDto == null)
             throw new ArgumentNullException(nameof(itemDto));
@@ -56,7 +56,7 @@ public class ItemService(IItemRepository itemRepository, IMapper mapper) : IItem
 
         var result = await itemRepository.UpdateItem(item, ct);
 
-        return new OperationResult
+        return new BaseOperationResult
         {
             Id = item.Id,
             Success = result,
@@ -64,11 +64,11 @@ public class ItemService(IItemRepository itemRepository, IMapper mapper) : IItem
         };
     }
 
-    public async Task<OperationResult> DeleteById(long id, CancellationToken ct)
+    public async Task<BaseOperationResult> DeleteById(long id, CancellationToken ct)
     {
         var success = await itemRepository.DeleteItem(id, ct);
 
-        return new OperationResult
+        return new BaseOperationResult
         {
             Id = id,
             Success = success,

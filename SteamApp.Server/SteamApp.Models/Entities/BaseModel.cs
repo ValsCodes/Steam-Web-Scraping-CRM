@@ -12,7 +12,7 @@ namespace SteamApp.Models.Entities
     {
         [Key]
         [Column("id")]
-        public required T Id { get; set; }
+        public T Id { get; set; }
 
         [Column("name")]
         public string Name { get; set; }
