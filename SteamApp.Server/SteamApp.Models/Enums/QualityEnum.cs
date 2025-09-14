@@ -1,6 +1,6 @@
 ﻿namespace SteamApp.Models.Enums
 {
-    public enum ItemQualityEnum
+    public enum QualityEnum
     {
         Unique = 1,
         Mercenary = 2,

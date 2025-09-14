@@ -9,7 +9,6 @@ using SteamApp.Infrastructure.Services;
 using SteamApp.Models.ValueObjects.Authentication;
 using SteamApp.WebAPI.Context;
 using SteamApp.WebAPI.Mapper;
-using SteamApp.WebAPI.MinimalAPIs;
 using SteamApp.WebAPI.Repositories;
 using SteamApp.WebAPI.Services;
 using System.Text;
@@ -104,11 +103,11 @@ public class Program
 
         builder.Services.AddAutoMapper(typeof(MappingProfile));
 
-        builder.Services.AddScoped<ISteamService, SteamService>();
-        builder.Services.AddScoped<IProductService, ProductService>();
-        builder.Services.AddScoped<IProductRepository, ProductRepository>();
-        builder.Services.AddScoped<IItemService, ItemService>();
-        builder.Services.AddScoped<IItemRepository, ItemRepository>();
+        builder.Services.AddScoped<ISteamService, SteamService>()
+                        .AddScoped<IProductService, ProductService>()
+                        .AddScoped<IProductRepository, ProductRepository>()
+                        .AddScoped<IItemService, ItemService>()
+                        .AddScoped<IItemRepository, ItemRepository>();
 
         var app = builder.Build();
 
@@ -122,16 +121,6 @@ public class Program
 
         app.UseAuthentication();
         app.UseAuthorization();
-
-        // Minimal API endpoints
-        app.MapQualityEndpoints();
-        app.MapClassEndpoints();
-        app.MapSlotEndpoints();
-        app.MapGradeEndpoints();
-        app.MapSheenEndpoints();
-        app.MapPaintEndpoints();
-        app.MapSkinEndpoints();
-        app.MapItemSkinsEndpoints();
 
         // Regular API controllers
         app.MapControllers();

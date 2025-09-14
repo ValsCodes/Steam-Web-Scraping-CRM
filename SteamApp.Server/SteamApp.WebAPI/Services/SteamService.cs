@@ -136,7 +136,7 @@ public class SteamService() : ISteamService
 
                 if (isGoodColorOnly)
                 {
-                    var colorMatch = StaticCollections.GoodPaintsColorCollection.FirstOrDefault(x => x.Color.Name.Equals(c.Name) && x.IsGoodPaint);
+                    var colorMatch = StaticCollections.Paints.FirstOrDefault(x => x.Color.Name.Equals(c.Name) && x.IsGoodPaint);
                     if (colorMatch != null)
                     {
                         listing.Color = colorMatch.Name;
@@ -147,7 +147,7 @@ public class SteamService() : ISteamService
                 {
                     if (!c.Name.Equals("0"))
                     {
-                        var colorMatch = StaticCollections.GoodPaintsColorCollection.FirstOrDefault(x => x.Color.Name.Equals(c.Name));
+                        var colorMatch = StaticCollections.Paints.FirstOrDefault(x => x.Color.Name.Equals(c.Name));
 
                         listing.Color = colorMatch != null ? colorMatch!.Name : "Undiscoverred color";
                         results.Add(listing);
@@ -211,7 +211,7 @@ public class SteamService() : ISteamService
             {
                 lisitngResult.IsPainted = true;
                 lisitngResult.PaintText = paint.Replace("Paint Color:", string.Empty).Trim();
-                lisitngResult.IsGoodPaint = StaticCollections.GoodPaintNames.Contains(lisitngResult.PaintText);
+                lisitngResult.IsGoodPaint = StaticCollections.Paints.Where(x => x.IsGoodPaint).Select(x => x.Name).Contains(lisitngResult.PaintText);
             }
         }
 
