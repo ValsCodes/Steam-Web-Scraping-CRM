@@ -51,8 +51,8 @@
                 <label class="my-2 py-2">{{weaponStatusLabel}}</label>
             </div>
         </div>
-        <div class="panel panel--control w-[18.75rem]">
-            <h2>Extras</h2>
+        <div class="panel panel--control w-[18.75rem] h-auto">
+            <h2>Links</h2>
             <ul class="list-disc list-inside ml-2 marker:text-black marker:text-lg">
                 <li>
                     <strong> <a target="_blank" rel="noopener noreferrer" href="https://backpack.tf/spreadsheet"
@@ -60,7 +60,25 @@
                             BackpackTF Prices URL
                         </a> </strong>
                 </li>
+                <li>
+                    <strong> <a target="_blank" rel="noopener noreferrer"
+                            href="https://steamcommunity.com/id/_Val/inventory" class="hover:text-blue-600"
+                            title="Click to Open">
+                            Inventory
+                        </a> </strong>
+                </li>
+                <li>
+                    <strong> <a target="_blank" rel="noopener noreferrer" href="https://steamcommunity.com/market/"
+                            class="hover:text-blue-600" title="Click to Open">
+                            Community Market
+                        </a> </strong>
+                </li>
+
             </ul>
+
+        </div>
+        <div class="panel panel--control w-[18.75rem] h-auto">
+            <h2>Search</h2>
             <app-copy-link [textToCopy]="'Strange Part:'" [textToShow]="'< Strange Part: >'"></app-copy-link>
         </div>
     </div>

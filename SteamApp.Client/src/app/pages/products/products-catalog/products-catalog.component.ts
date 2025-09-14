@@ -5,6 +5,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatTooltip, MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 import * as XLSX from 'xlsx';
 import { CONSTANTS } from '../../../common/constants';
@@ -21,6 +22,7 @@ import {
   sheensCollection,
   sheensMap,
 } from '../../../models/enums/sheen.enum';
+import { qualitiesMap, Quality } from '../../../models/enums';
 
 @Component({
   selector: 'steam-sell-listings-2',
@@ -32,6 +34,7 @@ import {
     MatSortModule,
     MatPaginatorModule,
     FormsModule,
+    MatTooltip
   ],
   templateUrl: './products-catalog.component.html',
   styleUrl: './products-catalog.component.scss',
@@ -48,14 +51,17 @@ export class ProductsCatalogComponent implements OnInit, AfterViewInit {
     // 'description',
     'paintId',
     'sheenId',
+    'qualityId',
     'costPrice',
-    'dateBought',
+    // 'dateBought',
     'targetSellPrice1',
     'targetSellPrice2',
     // 'target3',
     // 'target4',
-    'dateSold',
-    'soldPrice',
+    // 'dateSold',
+    // 'soldPrice',
+    'isHat',
+    'isWeapon',
     'actions',
   ];
 
@@ -97,6 +103,10 @@ export class ProductsCatalogComponent implements OnInit, AfterViewInit {
 
   getSheenLabel(id: Sheen) {
     return sheensMap[id];
+  }
+
+    getQualityLabel(id: Quality) {
+    return qualitiesMap[id];
   }
 
   getPaintLabel(id: Paint) {

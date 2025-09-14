@@ -19,7 +19,7 @@
         <app-checkbox-filter [CheckboxCollection]="classFilters" [CheckboxCollectionLabel]="'Class Filters'" (filterChange)="fetchItems()"></app-checkbox-filter>
         <app-checkbox-filter [CheckboxCollection]="slotFilters" [CheckboxCollectionLabel]="'Slot Filters'" (filterChange)="fetchItems()"></app-checkbox-filter>
         <app-text-filter [SearchLabel]="'Item Name'" [SearchTextBind]="searchByItemNameFilter" (filterChange)="fetchItems()"> </app-text-filter>
-        <button class="button button-small-danger mr-4" (click)="ClearAllFilters()">Clear Filters</button>
+        <button class="button button-small-danger mr-4 w-[10rem]" (click)="ClearAllFilters()">Clear Filters</button>
     </div>
 
     <div class="table-container">
