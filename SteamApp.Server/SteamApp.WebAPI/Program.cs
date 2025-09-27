@@ -6,8 +6,10 @@ using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Serialization;
 using SteamApp.Infrastructure.Repositories;
 using SteamApp.Infrastructure.Services;
+using SteamApp.Models.ValueObjects;
 using SteamApp.Models.ValueObjects.Authentication;
 using SteamApp.WebAPI.Context;
+using SteamApp.WebAPI.Jobs;
 using SteamApp.WebAPI.Mapper;
 using SteamApp.WebAPI.Repositories;
 using SteamApp.WebAPI.Services;
@@ -108,6 +110,26 @@ public class Program
                         .AddScoped<IProductRepository, ProductRepository>()
                         .AddScoped<IItemService, ItemService>()
                         .AddScoped<IItemRepository, ItemRepository>();
+
+        builder.Services.AddScoped<EmailJob>();
+        builder.Services.AddScoped<WishlistCheckJob>();
+
+        // hosted workers (one per job)
+        builder.Services.AddHostedService<BackgroundWorkerService<EmailJob>>();
+        builder.Services.AddHostedService<BackgroundWorkerService<WishlistCheckJob>>();
+
+        // per-job options via named options (key = typeof(TJob).Name)
+        builder.Services.Configure<WorkerOptions>(nameof(EmailJob),
+            builder.Configuration.GetSection("Workers:Email"));
+        builder.Services.Configure<WorkerOptions>(nameof(WishlistCheckJob),
+            builder.Configuration.GetSection("Workers:WishlistCheck"));
+
+        // resilience
+        builder.Services.Configure<HostOptions>(o =>
+        {
+            o.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
+            o.ShutdownTimeout = TimeSpan.FromSeconds(15);
+        });
 
         var app = builder.Build();
 
