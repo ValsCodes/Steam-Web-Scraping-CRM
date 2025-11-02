@@ -74,6 +74,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .WithMany(i => i.ItemSlots)
                 .HasForeignKey(x => x.ItemId)
                 .OnDelete(DeleteBehavior.Cascade);
+    public DbSet<Product> Products { get; set; }
 
             e.HasOne(x => x.Slot)
                 .WithMany(c => c.ItemSlots)

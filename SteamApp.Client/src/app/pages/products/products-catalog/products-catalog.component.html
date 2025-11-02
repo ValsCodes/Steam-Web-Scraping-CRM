@@ -1,6 +1,6 @@
 <div class="p-4">
     <div class="flex justify-between px-5">
-        <h2 class="text-2xl font-semibold text-gray-500 mb-4">Listings Catalog</h2>
+        <h2 class="text-2xl font-semibold text-gray-500 mb-4">Watch List Catalog</h2>
         <button class="create-button" (click)="createButtonClicked()">Create</button>
         <!-- <button class="refresh-button mr-4" (click)="refreshButtonClicked()">Refresh</button> -->
         <!-- <button class="clear-button" (click)="clearButtonClicked()">Clear</button> -->
@@ -16,7 +16,7 @@
             <ng-container matColumnDef="name">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header> Item </th>
                 <td mat-cell *matCellDef="let product">
-                    <a href="{{Url}}{{product.name}}">
+                    <a href="{{Url}}{{product.name}}" matTooltip="{{product.description}}">
                         {{product.name}}
                     </a>
                 </td>
@@ -36,6 +36,13 @@
                 </td>
             </ng-container>
 
+                        <ng-container matColumnDef="qualityId">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Quality </th>
+                <td mat-cell *matCellDef="let product">
+                    {{ getQualityLabel(product.qualityId) }}
+                </td>
+            </ng-container>
+
             <!-- <ng-container matColumnDef="description">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Description </th>
             <td mat-cell *matCellDef="let product">
@@ -44,16 +51,16 @@
         </ng-container> -->
 
             <ng-container matColumnDef="costPrice">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header> Bought Price </th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Price </th>
                 <td mat-cell *matCellDef="let product" class="currency">{{product.costPrice | currency : "EUR"}}</td>
             </ng-container>
 
-            <ng-container matColumnDef="dateBought">
+            <!-- <ng-container matColumnDef="dateBought">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header> Date Bought </th>
                 <td mat-cell *matCellDef="let product" class="date">
                     {{ product.dateBought | date:'dd/MM/yyyy' }}
                 </td>
-            </ng-container>
+            </ng-container> -->
 
             <ng-container matColumnDef="targetSellPrice1">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header> Target 1 </th>
@@ -69,7 +76,21 @@
                 </td>
             </ng-container>
 
-            <ng-container matColumnDef="dateSold">
+             <ng-container matColumnDef="isWeapon">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Is Weapon </th>
+                <td mat-cell *matCellDef="let item">
+                    <input type="checkbox" [checked]="item.isWeapon" disabled />
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="isHat">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Is Hat </th>
+                <td mat-cell *matCellDef="let item">
+                    <input type="checkbox" [checked]="item.isHat" disabled />
+                </td>
+            </ng-container>
+
+            <!-- <ng-container matColumnDef="dateSold">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header> Date Sold </th>
                 <td mat-cell *matCellDef="let product" class="date">
                     {{product.dateSold | date:'dd/MM/yyyy'}}
@@ -81,7 +102,7 @@
                 <td mat-cell *matCellDef="let product" class="currency">
                     {{ product.soldPrice | currency : "EUR" }}
                 </td>
-            </ng-container>
+            </ng-container> -->
 
             <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef>Actions</th>
