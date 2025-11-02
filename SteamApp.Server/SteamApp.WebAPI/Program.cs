@@ -144,13 +144,6 @@ public class Program
         app.UseAuthentication();
         app.UseAuthorization();
 
-        // Minimal API endpoints
-        app.MapQualityEndpoints();
-        app.MapClassEndpoints();
-        app.MapSlotEndpoints();
-        app.MapGradeEndpoints();
-        app.MapSkinEndpoints();
-
         // Regular API controllers
         app.MapControllers();
 

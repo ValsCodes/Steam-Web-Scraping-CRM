@@ -1,4 +1,7 @@
-﻿using AutoMapper;
+﻿
+
+using AutoMapper;
+using SteamApp.Infrastructure;
 using SteamApp.Infrastructure.Repositories;
 using SteamApp.Infrastructure.Services;
 using SteamApp.Models.DTOs.Product;
@@ -8,30 +11,22 @@ using SteamApp.WebAPI.Exceptions;
 
 namespace SteamApp.WebAPI.Services;
 
-public class ProductService : IProductService
+public class ProductService(IProductRepository repository, IMapper mapper) : IProductService
 {
-    private readonly IProductRepository _repository;
-    private readonly IMapper _mapper;
-
-    public ProductService(IProductRepository repository, IMapper mapper)
-    {
-        _repository = repository;
-        _mapper = mapper;
-    }
 
     public async Task<ProductDto> GetByIdAsync(long id, CancellationToken ct = default)
     {
-        var product = await _repository.GetByIdAsync(id, ct);
+        var product = await repository.GetByIdAsync(id, ct);
         if (product == null)
             throw new ItemNotFoundException($"Product with ID {id} not found.");
 
-        return _mapper.Map<ProductDto>(product);
+        return mapper.Map<ProductDto>(product);
     }
 
     public async Task<IEnumerable<ProductDto>> GetListAsync(CancellationToken ct = default)
     {
-        var products = await _repository.GetListAsync(ct);
-        return products.Select(p => _mapper.Map<ProductDto>(p));
+        var products = await repository.GetListAsync(ct);
+        return products.Select(p => mapper.Map<ProductDto>(p));
     }
 
     public async Task<ItemCreateResult> CreateAsync(CreateProductDto productDto, CancellationToken ct = default)
@@ -44,9 +39,9 @@ public class ProductService : IProductService
             productDto.DateBought = DateTime.UtcNow;
         }
 
-        var product = _mapper.Map<Product>(productDto);
+        var product = mapper.Map<WatchItem>(productDto);
 
-        var id = await _repository.CreateAsync(product, ct);
+        var id = await repository.CreateAsync(product, ct);
         return new ItemCreateResult
         {
             Id = id,
@@ -59,9 +54,9 @@ public class ProductService : IProductService
         if (productDtos == null || !productDtos.Any())
             throw new ArgumentException("Product collection cannot be null or empty.", nameof(productDtos));
 
-        var products = productDtos.Select(_mapper.Map<Product>);
+        var products = productDtos.Select(mapper.Map<WatchItem>);
 
-        var ids = await _repository.CreateRangeAsync(products, ct);
+        var ids = await repository.CreateRangeAsync(products, ct);
         return ids.Select(id => new ItemCreateResult
         {
             Id = id,
@@ -71,8 +66,8 @@ public class ProductService : IProductService
 
     public async Task<BaseOperationResult> UpdateAsync(ProductDto productDto, CancellationToken ct = default)
     {
-        var product = _mapper.Map<Product>(productDto);
-        var success = await _repository.UpdateAsync(product, ct);
+        var product = mapper.Map<WatchItem>(productDto);
+        var success = await repository.UpdateAsync(product, ct);
 
         return new BaseOperationResult
         {
@@ -104,7 +99,7 @@ public class ProductService : IProductService
 
     public async Task<BaseOperationResult> DeleteAsync(long id, CancellationToken ct = default)
     {
-        var success = await _repository.DeleteAsync(id, ct);
+        var success = await repository.DeleteAsync(id, ct);
 
         return new BaseOperationResult
         {
@@ -120,7 +115,7 @@ public class ProductService : IProductService
         if (ids == null || !ids.Any())
             throw new ArgumentException("ID collection cannot be null or empty.", nameof(ids));
 
-        var results = await _repository.DeleteRangeAsync(ids, ct);
+        var results = await repository.DeleteRangeAsync(ids, ct);
 
         return ids.Select((id, idx) => new BaseOperationResult
         {

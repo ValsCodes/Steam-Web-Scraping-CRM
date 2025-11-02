@@ -18,5 +18,5 @@ public class Sheen
     public bool IsGoodSheen{ get; set; }
 
     [JsonIgnore]
-    public virtual ICollection<Product> Products { get; set; } = [];
+    public virtual ICollection<Item> Items { get; set; } = [];
 }

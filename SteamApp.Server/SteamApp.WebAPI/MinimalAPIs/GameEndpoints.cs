@@ -1,9 +1,13 @@
-﻿using SteamApp.Models.DTOs.Class;
+﻿using Microsoft.EntityFrameworkCore;
+using SteamApp.Models.DTOs;
+using SteamApp.Models.DTOs.Class;
 using SteamApp.Models.Entities;
 using SteamApp.WebAPI.Context;
+using SteamApp.WebAPI.Mapper;
 
 namespace SteamApp.WebAPI.MinimalAPIs
 {
+    // TODO NOT DONE: Implement Game endpoints similar to ClassEndpoints.cs
     public static class GameEndpoints
     {
         public static WebApplication MapClassEndpoints(this WebApplication app)
@@ -13,26 +17,24 @@ namespace SteamApp.WebAPI.MinimalAPIs
                            .WithTags("Classes")
                            .RequireAuthorization();
 
-            // GET: /classes
-            group.MapGet("/", async (ApplicationDbContext db) =>
-                await db.Games
-                .Select(c => c.ToDto<Game>)
-                .ToListAsync())
-                .WithName("GetAllClasses")
-                .Produces<List<ClassDto>>(StatusCodes.Status200OK);
+            // GET: /games
 
-            // GET: /classes/{id}
+            group.MapGet("/", static async (ApplicationDbContext db) => await db.Games.Select(c => c.ToDto<Game, BaseDto>()).ToListAsync())
+            .WithName("GetAllGames")
+            .Produces<List<BaseDto>>(StatusCodes.Status200OK);
+
+            // GET: /games/{id}
             group.MapGet("/{id}", async (long id, ApplicationDbContext db) =>
-                await db.Classes.FindAsync(id)
-                    is Class entity
-                        ? Results.Ok(entity.ToDto())
+                await db.Games.FindAsync(id)
+                    is Game entity
+                        ? Results.Ok(entity.ToDto<Game, BaseDto>())
                         : Results.NotFound())
-                .WithName("GetClassById")
+                .WithName("GetGameById")
 
                 .Produces<ClassDto>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status404NotFound);
 
-            // POST: /classes
+            // POST: /games
             group.MapPost("/", async (ClassCreateDto input, ApplicationDbContext db) =>
             {
                 var entity = input.ToEntity();

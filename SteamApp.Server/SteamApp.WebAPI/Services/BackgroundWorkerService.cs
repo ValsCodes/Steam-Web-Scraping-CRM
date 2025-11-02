@@ -4,7 +4,7 @@ using SteamApp.Models.ValueObjects;
 
 namespace SteamApp.WebAPI.Services
 {
-    public sealed class BackgroundWorkerService<TJob>(ILogger<BackgroundWorkerService<TJob>> logger, IServiceScopeFactory scopeFactory, IOptionsMonitor<WorkerOptions> options) : BackgroundService where TJob : class, IJob
+    public sealed class BackgroundWorkerService<TJob>(ILogger<BackgroundWorkerService<TJob>> logger, IServiceScopeFactory scopeFactory, IOptionsMonitor<WorkerOptions> options) : BackgroundService where TJob : class, IJobService
     {
         private readonly string _name = typeof(TJob).Name;
         private PeriodicTimer? _timer;

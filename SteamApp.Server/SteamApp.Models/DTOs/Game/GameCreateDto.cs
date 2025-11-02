@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SteamApp.Models.DTOs.Game
 {
-    internal class GameCreateDto
+    public class GameCreateDto
     {
     }
 }

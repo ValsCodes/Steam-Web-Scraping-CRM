@@ -1,6 +1,7 @@
 ﻿using SteamApp.Models.DTOs.Product;
+using SteamApp.Models.OperationResults;
 
-namespace SteamApp.Models.OperationResults
+namespace SteamApp.Infrastructure
 {
     public class ItemCreateResult : BaseOperationResult
     {

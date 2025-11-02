@@ -8,7 +8,7 @@ namespace SteamApp.WebAPI.Repositories;
 
 public class ProductRepository(ApplicationDbContext context) : IProductRepository
 {
-    public async Task<Product> GetByIdAsync(long id, CancellationToken ct = default)
+    public async Task<WatchItem> GetByIdAsync(long id, CancellationToken ct = default)
     {
         var result = await context.WatchItems.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
         if (result == null)
@@ -19,13 +19,13 @@ public class ProductRepository(ApplicationDbContext context) : IProductRepositor
         return result;
     }
 
-    public async Task<IEnumerable<Product>> GetListAsync(CancellationToken ct = default)
+    public async Task<IEnumerable<WatchItem>> GetListAsync(CancellationToken ct = default)
     {
         var result = await context.WatchItems.ToListAsync();
         return result;
     }
 
-    public async Task<long> CreateAsync(Product product, CancellationToken ct = default)
+    public async Task<long> CreateAsync(WatchItem product, CancellationToken ct = default)
     {
         await context.AddAsync(product);
         await context.SaveChangesAsync();
@@ -33,7 +33,7 @@ public class ProductRepository(ApplicationDbContext context) : IProductRepositor
         return product.Id;
     }
 
-    public async Task<IEnumerable<long>> CreateRangeAsync(IEnumerable<Product> products, CancellationToken ct = default)
+    public async Task<IEnumerable<long>> CreateRangeAsync(IEnumerable<WatchItem> products, CancellationToken ct = default)
     {
         await context.AddRangeAsync(products);
         await context.SaveChangesAsync();
@@ -41,7 +41,7 @@ public class ProductRepository(ApplicationDbContext context) : IProductRepositor
         return products.Select(x => x.Id);
     }
 
-    public async Task<bool> UpdateAsync(Product product, CancellationToken ct = default)
+    public async Task<bool> UpdateAsync(WatchItem product, CancellationToken ct = default)
     {
         context.WatchItems.Update(product);
         await context.SaveChangesAsync();
@@ -49,7 +49,7 @@ public class ProductRepository(ApplicationDbContext context) : IProductRepositor
         return true;
     }
 
-    public async Task<IEnumerable<bool>> UpdateRangeAsync(IEnumerable<Product> products, CancellationToken ct = default)
+    public async Task<IEnumerable<bool>> UpdateRangeAsync(IEnumerable<WatchItem> products, CancellationToken ct = default)
     {
         await Task.CompletedTask;
         throw new NotImplementedException("UpdateRangeAsync is not implemented yet.");

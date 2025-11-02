@@ -2,7 +2,7 @@
 
 namespace SteamApp.WebAPI.Jobs
 {
-    public sealed class EmailJob(ILogger<EmailJob> log) : IJob
+    public sealed class EmailJob(ILogger<EmailJob> log) : IJobService
     {
         public async Task RunAsync(CancellationToken ct)
         {

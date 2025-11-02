@@ -1,6 +1,6 @@
 ﻿namespace SteamApp.Infrastructure
 {
-    public interface IJob
+    public interface IJobService
     {
         Task RunAsync(CancellationToken ct);
     }
