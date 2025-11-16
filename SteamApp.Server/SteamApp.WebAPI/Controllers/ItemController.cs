@@ -8,6 +8,7 @@ namespace SteamApp.WebAPI.Controllers;
 
 [ApiController]
 [Route("api/items")]
+[ApiExplorerSettings(IgnoreApi = true)]
 [Authorize]
 
 //ILogger<SteamController> _logger;

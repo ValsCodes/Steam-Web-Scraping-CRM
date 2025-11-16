@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -43,13 +44,13 @@ public class Program
                 var key = Encoding.UTF8.GetBytes(jwt.Key);
                 opts.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = true,
-                    ValidIssuer = jwt.Issuer,
-                    ValidateAudience = true,
-                    ValidAudience = jwt.Audience,
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateLifetime = true,
+                    ValidateIssuer = false, // should be true
+                    //ValidIssuer = jwt.Issuer,
+                    ValidateAudience = false, // should be true
+                    //ValidAudience = jwt.Audience,
+                    ValidateIssuerSigningKey = false, // should be true
+                    //IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateLifetime = false, // should be true
                     ClockSkew = TimeSpan.FromMinutes(1)
                 };
             });
@@ -103,13 +104,13 @@ public class Program
         builder.Services.AddDbContext<ApplicationDbContext>(opts =>
             opts.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-        builder.Services.AddAutoMapper(typeof(MappingProfile));
-
         builder.Services.AddScoped<ISteamService, SteamService>()
                         .AddScoped<IProductService, ProductService>()
                         .AddScoped<IProductRepository, ProductRepository>()
                         .AddScoped<IItemService, ItemService>()
-                        .AddScoped<IItemRepository, ItemRepository>();
+                        .AddScoped<IItemRepository, ItemRepository>()
+                        .AddAutoMapper(typeof(MappingProfile))
+                        .AddHealthChecks();
 
         builder.Services.AddScoped<EmailJob>();
         builder.Services.AddScoped<WishlistCheckJob>();
@@ -146,6 +147,27 @@ public class Program
 
         // Regular API controllers
         app.MapControllers();
+
+        app.MapGet("/health-check", async (HealthCheckService hc) =>
+        {
+            var report = await hc.CheckHealthAsync();
+            return Results.Json(new
+            {
+                status = report.Status.ToString()
+            });
+        })
+        .WithTags("System")
+        .WithName("HealthCheck");
+
+        app.MapGet("/dummy-endpoint", () =>
+        {
+            return Results.Json(new
+            {
+                status = "You have access to the endpoint!"
+            });
+        })
+        .WithTags("JWT Test")
+        .RequireAuthorization();
 
         app.Run();
     }

@@ -7,6 +7,7 @@ namespace SteamApp.WebAPI.Controllers;
 
 [ApiController]
 [Route("steam")]
+[ApiExplorerSettings(IgnoreApi = true)]
 [Authorize]
 public class SteamController(ISteamService steamService/*, ILogger<SteamController> logger*/) : ControllerBase
 {

@@ -9,6 +9,7 @@ namespace SteamApp.WebAPI.Controllers;
 
 [ApiController]
 [Route("api/products")]
+[ApiExplorerSettings(IgnoreApi = true)]
 [Authorize]
 public class ProductController(IProductService productService) : ControllerBase
 {
