@@ -14,6 +14,7 @@ using SteamApp.WebAPI.Jobs;
 using SteamApp.WebAPI.Mapper;
 using SteamApp.WebAPI.Repositories;
 using SteamApp.WebAPI.Services;
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 
 namespace SteamApp.WebAPI;
@@ -37,23 +38,48 @@ public class Program
         builder.Services.AddSingleton<IReadOnlyList<ClientDefinition>>(clients);
 
         var jwt = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()!;
+        var keyBytes = Encoding.UTF8.GetBytes(jwt.Key);
+
         builder.Services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(opts =>
             {
-                var key = Encoding.UTF8.GetBytes(jwt.Key);
+                opts.RequireHttpsMetadata = false;
+                opts.SaveToken = false;
+
                 opts.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = false, // should be true
-                    //ValidIssuer = jwt.Issuer,
-                    ValidateAudience = false, // should be true
-                    //ValidAudience = jwt.Audience,
-                    ValidateIssuerSigningKey = false, // should be true
-                    //IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateLifetime = false, // should be true
-                    ClockSkew = TimeSpan.FromMinutes(1)
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateLifetime = false,
+                    ValidateIssuerSigningKey = false,
+
+                    RequireSignedTokens = false,
+
+                    SignatureValidator = (token, parameters) =>
+                        new JwtSecurityToken(token)
+                };
+
+                opts.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var header = context.Request.Headers["Authorization"].ToString();
+                        if (header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                            context.Token = header.Substring("Bearer ".Length).Trim();
+
+                        return Task.CompletedTask;
+                    },
+
+                    OnAuthenticationFailed = context =>
+                    {
+                        context.NoResult();
+                        context.Response.StatusCode = 200;
+                        return Task.CompletedTask;
+                    }
                 };
             });
+
 
         builder.Services.AddAuthorization();
 
@@ -159,15 +185,20 @@ public class Program
         .WithTags("System")
         .WithName("HealthCheck");
 
-        app.MapGet("/dummy-endpoint", () =>
-        {
-            return Results.Json(new
-            {
-                status = "You have access to the endpoint!"
-            });
-        })
-        .WithTags("JWT Test")
-        .RequireAuthorization();
+app.MapGet("/dummy-endpoint", (HttpContext ctx) =>
+{
+    var user = ctx.User;
+
+    if (!user.HasClaim("role", "manage"))
+        return Results.Unauthorized();
+
+    return Results.Json(new
+    {
+        status = "You have access to the endpoint!"
+    });
+})
+.WithTags("JWT Test")
+.RequireAuthorization();
 
         app.Run();
     }
