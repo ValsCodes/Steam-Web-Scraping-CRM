@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Serialization;
+using SteamApp.Infrastructure;
 using SteamApp.Infrastructure.Services;
 using SteamApp.Models.ValueObjects;
 using SteamApp.Models.ValueObjects.Authentication;
@@ -53,7 +54,11 @@ public class Program
                 };
             });
 
-        builder.Services.AddAuthorization();
+        builder.Services.AddAuthorization(opts =>
+        {
+            opts.AddPolicy("InternalJob", policy =>
+                policy.RequireClaim("scope", "internal"));
+        });
 
         builder.Services
             .AddControllers()
@@ -102,7 +107,17 @@ public class Program
         builder.Services.AddDbContext<ApplicationDbContext>(opts =>
             opts.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-        builder.Services.AddAutoMapper(typeof(GameMappingProfile));
+        builder.Services.AddAutoMapper(typeof(GameMappingProfile).Assembly);
+
+        builder.Services.AddHttpClient<AuthApiClient>(client =>
+        {
+            client.BaseAddress = new Uri(builder.Configuration["InternalApi:BaseUrl"]);
+        });
+
+        builder.Services.AddHttpClient<SteamApiClient>(client =>
+        {
+            client.BaseAddress = new Uri(builder.Configuration["InternalApi:BaseUrl"]);
+        });
 
         builder.Services.AddScoped<ISteamService, SteamService>();
 

@@ -11,8 +11,8 @@ namespace SteamApp.WebAPI.MinimalAPIs
         public static WebApplication MapGameEndpoints(this WebApplication app)
         {
             var group = app.MapGroup("api/games")
-                           .WithTags("Games")
-                           .RequireAuthorization();
+               .WithTags("Games")
+               .RequireAuthorization();
 
             // GET: /api/games
             group.MapGet("/", async (

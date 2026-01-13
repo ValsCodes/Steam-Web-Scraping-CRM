@@ -1,14 +1,18 @@
 ﻿using SteamApp.Infrastructure;
 
-namespace SteamApp.WebAPI.Jobs
+namespace SteamApp.WebAPI.Jobs;
+
+public class WishlistCheckJob(ILogger<WishlistCheckJob> log, SteamApiClient apiClient) : IJobService
 {
-    public class WishlistCheckJob(ILogger<WishlistCheckJob> log) : IJobService
+    public async Task RunAsync(CancellationToken ct)
     {
-        public async Task RunAsync(CancellationToken ct)
+        // purge old data, compact blobs, etc.
+        var wishList = await apiClient.GetGamesAsync(ct);
+
+        await Task.Delay(400, ct);
+        foreach (var item in wishList)
         {
-            // purge old data, compact blobs, etc.
-            await Task.Delay(400, ct);
-            log.LogInformation("WishlistCheckJob tick at {Utc}", DateTime.UtcNow);
+            log.LogInformation($"WishlistCheckJob tick at {DateTime.UtcNow}: whishlist item {item.Name}");
         }
     }
 }

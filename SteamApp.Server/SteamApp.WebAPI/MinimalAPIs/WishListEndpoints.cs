@@ -13,6 +13,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
             var group = app.MapGroup("api/wish-list")
                            .WithTags("WishList")
                            .RequireAuthorization();
+                           //.RequireAuthorization("InternalJob");
 
             // GET: /api/wish-list
             group.MapGet("/", async (
