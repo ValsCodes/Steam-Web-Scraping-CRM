@@ -21,6 +21,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
             group.MapGet("/", static async (ApplicationDbContext db) => await db.Games.Select(c => c.ToDto<Game, BaseDto>()).ToListAsync())
             .WithName("GetAllGames")
+            .WithDisplayName("Game")
             .Produces<List<BaseDto>>(StatusCodes.Status200OK);
 
             // GET: /games/{id}
