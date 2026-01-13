@@ -16,18 +16,17 @@ import {
 } from '../../models/enums';
 
 @Component({
-  selector: 'steam-manual-mode',
-  standalone: true,
-  imports: [
-    FormsModule,
-    CommonModule,
-    ReactiveFormsModule,
-    CopyLinkComponent,
-    CheckboxesFilterComponent,
-    TextFilterComponent,
-  ],
-  templateUrl: './manual-mode.component.html',
-  styleUrl: './manual-mode.component.scss',
+    selector: 'steam-manual-mode',
+    imports: [
+        FormsModule,
+        CommonModule,
+        ReactiveFormsModule,
+        CopyLinkComponent,
+        CheckboxesFilterComponent,
+        TextFilterComponent,
+    ],
+    templateUrl: './manual-mode.component.html',
+    styleUrl: './manual-mode.component.scss'
 })
 export class ManualModeComponent implements OnInit {
   @ViewChildren(TextFilterComponent)

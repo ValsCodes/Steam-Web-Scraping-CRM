@@ -10,12 +10,11 @@ import { paintsCollection, paintsMap, Paint } from '../../../models/enums/paint.
 import { Sheen, sheensCollection, sheensMap } from '../../../models/enums/sheen.enum';
 
 @Component({
-  selector: 'steam-create-product-form',
-  standalone: true,
-  imports: [ CommonModule,
-    ReactiveFormsModule,  ],
-  templateUrl: './create-product-form.component.html',
-  styleUrl: './create-product-form.component.scss'
+    selector: 'steam-create-product-form',
+    imports: [CommonModule,
+        ReactiveFormsModule,],
+    templateUrl: './create-product-form.component.html',
+    styleUrl: './create-product-form.component.scss'
 })
 export class CreateProductFormComponent implements OnInit {
   productForm!: FormGroup;

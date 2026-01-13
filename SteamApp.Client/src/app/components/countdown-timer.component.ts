@@ -11,10 +11,9 @@ import {
 import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-countdown-timer',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-countdown-timer',
+    imports: [CommonModule],
+    template: `
     <div class="countdown">
       <div class="display" [class.danger]="isTimerLow()" title="{{comment}}">
         {{ formattedTime() }}
@@ -27,8 +26,8 @@ import { CommonModule } from '@angular/common';
       </div>
     </div>
   `,
-  styles: [
-    `
+    styles: [
+        `
       .countdown {
         text-align: center;
         font-family: monospace;
@@ -46,7 +45,7 @@ import { CommonModule } from '@angular/common';
         font-size: 0.75rem;
       }
     `,
-  ],
+    ]
 })
 export class CountdownTimerComponent implements OnDestroy, OnChanges {
   /** initial time in milliseconds (default = 1 hour) */

@@ -5,10 +5,9 @@ import { Subscription }                     from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 @Component({
-  selector: 'app-text-filter',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
-  template: `
+    selector: 'app-text-filter',
+    imports: [CommonModule, ReactiveFormsModule],
+    template: `
     <div class="flex gap-x-2 items-center my-2">
       <label class="mr-2">{{ SearchLabel }}</label>
       <input
@@ -18,7 +17,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
         class="px-1 py-1 w-[19rem]"
       />
     </div>
-  `,
+  `
 })
 export class TextFilterComponent implements OnInit, OnDestroy {
   @Input() SearchLabel!: string;

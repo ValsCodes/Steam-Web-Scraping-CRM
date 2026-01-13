@@ -9,11 +9,10 @@ import { Class, classesCollection, classesMap } from '../../../models/enums/clas
 import { Slot, slotsCollection, slotsMap } from '../../../models/enums/slot.enum';
 
 @Component({
-  selector: 'steam-edit-item-form',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
-  templateUrl: './edit-item-form.component.html',
-  styleUrl: './edit-item-form.component.scss'
+    selector: 'steam-edit-item-form',
+    imports: [CommonModule, ReactiveFormsModule],
+    templateUrl: './edit-item-form.component.html',
+    styleUrl: './edit-item-form.component.scss'
 })
 export class EditItemFormComponent implements OnInit {
   itemForm!: FormGroup;

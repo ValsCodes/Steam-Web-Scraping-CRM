@@ -2,10 +2,9 @@ import { Component, Input } from '@angular/core';
 import { ClipboardModule, Clipboard } from '@angular/cdk/clipboard';
 
 @Component({
-  selector: 'app-copy-link',
-  standalone: true,
-  imports: [ClipboardModule],    // ← import the module, not the service
-  template: `
+    selector: 'app-copy-link',
+    imports: [ClipboardModule], // ← import the module, not the service
+    template: `
     <div class="space-y-2">
       <a
         href="#"
@@ -16,7 +15,7 @@ import { ClipboardModule, Clipboard } from '@angular/cdk/clipboard';
         {{ copied ? 'Copied!' : textToShow }}
       </a>
     </div>
-  `,
+  `
 })
 export class CopyLinkComponent {
   @Input() textToCopy = '';

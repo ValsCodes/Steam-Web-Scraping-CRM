@@ -5,16 +5,15 @@ import { SiteHeaderComponent } from './components/site-header/site-header.compon
 import { MatPaginatorModule } from '@angular/material/paginator';
 
 @Component({
-  selector: 'app-root',
-  standalone: true,
-  imports: [
-    RouterOutlet,
-    FormsModule,
-    SiteHeaderComponent,
-    MatPaginatorModule,
-],
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.scss',
+    selector: 'app-root',
+    imports: [
+        RouterOutlet,
+        FormsModule,
+        SiteHeaderComponent,
+        MatPaginatorModule,
+    ],
+    templateUrl: './app.component.html',
+    styleUrl: './app.component.scss'
 })
 export class AppComponent {
   title = 'steam-app-angular-client';

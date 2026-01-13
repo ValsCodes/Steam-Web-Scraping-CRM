@@ -3,10 +3,9 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 @Component({
-  selector: 'app-checkbox-filter',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  template: `
+    selector: 'app-checkbox-filter',
+    imports: [CommonModule, FormsModule],
+    template: `
     <div class="activity-filters flex gap-x-2 items-center my-2">
       <label class="mr-2">{{ CheckboxCollectionLabel }}:</label>
       <label
@@ -21,7 +20,7 @@ import { FormsModule } from '@angular/forms';
         /> |
       </label>
     </div>
-  `,
+  `
 })
 export class CheckboxesFilterComponent implements OnInit {
   @Input() CheckboxCollectionLabel!: string;

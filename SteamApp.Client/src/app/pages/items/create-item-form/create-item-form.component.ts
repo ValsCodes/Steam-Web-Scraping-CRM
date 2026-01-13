@@ -17,11 +17,10 @@ import {
 } from '../../../models/enums/slot.enum';
 
 @Component({
-  selector: 'steam-create-item-form',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
-  templateUrl: './create-item-form.component.html',
-  styleUrl: './create-item-form.component.scss',
+    selector: 'steam-create-item-form',
+    imports: [CommonModule, ReactiveFormsModule],
+    templateUrl: './create-item-form.component.html',
+    styleUrl: './create-item-form.component.scss'
 })
 export class CreateItemFormComponent implements OnInit {
   itemForm!: FormGroup;

@@ -20,20 +20,19 @@ enum ScrapingMode {
 }
 
 @Component({
-  selector: 'web-scraper',
-  standalone: true,
-  imports: [
-    FormsModule,
-    CommonModule,
-    MatTableModule,
-    MatSort,
-    MatSortModule,
-    MatPaginatorModule,
-    StopwatchComponent
-],
-  templateUrl: './web-scraper.component.html',
-  styleUrl: './web-scraper.component.scss',
-  providers: [SteamService],
+    selector: 'web-scraper',
+    imports: [
+        FormsModule,
+        CommonModule,
+        MatTableModule,
+        MatSort,
+        MatSortModule,
+        MatPaginatorModule,
+        StopwatchComponent
+    ],
+    templateUrl: './web-scraper.component.html',
+    styleUrl: './web-scraper.component.scss',
+    providers: [SteamService]
 })
 export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(MatPaginator) paginator!: MatPaginator;

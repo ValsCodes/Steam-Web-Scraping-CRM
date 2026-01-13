@@ -3,10 +3,9 @@ import { Component, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-stopwatch',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-stopwatch',
+    imports: [CommonModule],
+    template: `
     <div class="stopwatch">
       <div class="display">{{ formattedTime() }}</div>
       <div class="controls">
@@ -17,8 +16,8 @@ import { CommonModule } from '@angular/common';
       </div>
     </div>
   `,
-  styles: [
-    `
+    styles: [
+        `
       .stopwatch {
         display: inline-flex;
         flex-direction: column;
@@ -37,7 +36,7 @@ import { CommonModule } from '@angular/common';
         font-size: 0.9rem;
       }
     `,
-  ],
+    ]
 })
 export class StopwatchComponent implements OnDestroy {
   // elapsed milliseconds

@@ -25,20 +25,19 @@ import {
 import { qualitiesMap, Quality } from '../../../models/enums';
 
 @Component({
-  selector: 'steam-sell-listings-2',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatTableModule,
-    MatSort,
-    MatSortModule,
-    MatPaginatorModule,
-    FormsModule,
-    MatTooltip
-  ],
-  templateUrl: './products-catalog.component.html',
-  styleUrl: './products-catalog.component.scss',
-  providers: [ProductService],
+    selector: 'steam-sell-listings-2',
+    imports: [
+        CommonModule,
+        MatTableModule,
+        MatSort,
+        MatSortModule,
+        MatPaginatorModule,
+        FormsModule,
+        MatTooltip
+    ],
+    templateUrl: './products-catalog.component.html',
+    styleUrl: './products-catalog.component.scss',
+    providers: [ProductService]
 })
 export class ProductsCatalogComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
