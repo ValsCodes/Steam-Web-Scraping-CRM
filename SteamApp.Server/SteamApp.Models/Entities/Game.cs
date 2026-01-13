@@ -3,14 +3,19 @@
 namespace SteamApp.Models.Entities
 {
     [Table("game")]
-    public class Game : BaseModel
+    public class Game
     {
-        public ICollection<Item> Items { get; set; } = [];
+        [Column("id")]
+        public long Id { get; set; }
+
+        [Column("name")]
+        public string Name { get; set; }
+
+        [Column("base_url")]
+        public string BaseUrl { get; set; }
+
         public ICollection<GameUrl> GameUrls { get; set; } = [];
-        public ICollection<GameAddOn> GameAddOns { get; set; } = [];
-        public ICollection<Grade> Grades { get; set; } = [];
-        public ICollection<Invoice> Invoices { get; set; } = [];
-        public ICollection<Class> Classes { get; set; } = [];
-        public ICollection<Quality> Qualities { get; set; } = [];
+        public ICollection<WishListItem> WishListItems { get; set; } = [];
+        public ICollection<WatchListItem> WatchListItems { get; set; } = [];
     }
 }

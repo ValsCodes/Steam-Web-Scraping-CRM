@@ -1,8 +1,7 @@
 ﻿namespace SteamApp.Models.DTOs.Product
 {
-    public sealed class ProductDto
+    public sealed class ProductCreateDto
     {
-        public long Id { get; set; }
         public long GameUrlId { get; set; }
         public string Name { get; set; }
     }

@@ -4,14 +4,13 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Serialization;
-using SteamApp.Infrastructure.Repositories;
 using SteamApp.Infrastructure.Services;
 using SteamApp.Models.ValueObjects;
 using SteamApp.Models.ValueObjects.Authentication;
 using SteamApp.WebAPI.Context;
 using SteamApp.WebAPI.Jobs;
 using SteamApp.WebAPI.Mapper;
-using SteamApp.WebAPI.Repositories;
+using SteamApp.WebAPI.MinimalAPIs;
 using SteamApp.WebAPI.Services;
 using System.Text;
 
@@ -103,13 +102,9 @@ public class Program
         builder.Services.AddDbContext<ApplicationDbContext>(opts =>
             opts.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-        builder.Services.AddAutoMapper(typeof(MappingProfile));
+        builder.Services.AddAutoMapper(typeof(GameMappingProfile));
 
-        builder.Services.AddScoped<ISteamService, SteamService>()
-                        .AddScoped<IProductService, ProductService>()
-                        .AddScoped<IProductRepository, ProductRepository>()
-                        .AddScoped<IItemService, ItemService>()
-                        .AddScoped<IItemRepository, ItemRepository>();
+        builder.Services.AddScoped<ISteamService, SteamService>();
 
         builder.Services.AddScoped<EmailJob>();
         builder.Services.AddScoped<WishlistCheckJob>();
@@ -146,6 +141,15 @@ public class Program
 
         // Regular API controllers
         app.MapControllers();
+
+        app.MapGameEndpoints();
+        app.MapGameUrlEndpoints();
+        app.MapProductEndpoints();
+        app.MapExtraPixelEndpoints();
+        app.MapWatchListEndpoints();
+        app.MapWishListEndpoints();
+
+
 
         app.Run();
     }

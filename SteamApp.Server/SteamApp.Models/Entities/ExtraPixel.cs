@@ -2,16 +2,16 @@
 
 namespace SteamApp.Models.Entities
 {
-    [Table("product")]
-    public sealed class Product
+    [Table("extra_pixel")]
+    public sealed class ExtraPixel
     {
         [Column("id")]
-        public long Id { get;  set; }
+        public long Id { get; set; }
 
         [Column("game_url_id")]
         public long GameUrlId { get; set; }
 
-        [Column("name")]
-        public string Name { get; set; }
+        [Column("pixel_value")]
+        public long PixelValue { get; set; }
     }
 }

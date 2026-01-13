@@ -2,5 +2,6 @@
 {
     public class GameDto : BaseDto
     {
+        public string BaseUrl { get; set; }
     }
 }

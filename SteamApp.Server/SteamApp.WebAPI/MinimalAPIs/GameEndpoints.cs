@@ -1,81 +1,96 @@
-﻿using Microsoft.EntityFrameworkCore;
-using SteamApp.Models.DTOs;
-using SteamApp.Models.DTOs.Class;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using SteamApp.Models.DTOs.Game;
 using SteamApp.Models.Entities;
 using SteamApp.WebAPI.Context;
-using SteamApp.WebAPI.Mapper;
 
 namespace SteamApp.WebAPI.MinimalAPIs
 {
-    // TODO NOT DONE: Implement Game endpoints similar to ClassEndpoints.cs
     public static class GameEndpoints
     {
-        public static WebApplication MapClassEndpoints(this WebApplication app)
+        public static WebApplication MapGameEndpoints(this WebApplication app)
         {
-            // Apply authorization to all Class endpoints
-            var group = app.MapGroup("api/classes")
-                           .WithTags("Classes")
+            var group = app.MapGroup("api/games")
+                           .WithTags("Games")
                            .RequireAuthorization();
 
-            // GET: /games
-
-            group.MapGet("/", static async (ApplicationDbContext db) => await db.Games.Select(c => c.ToDto<Game, BaseDto>()).ToListAsync())
-            .WithName("GetAllGames")
-            .WithDisplayName("Game")
-            .Produces<List<BaseDto>>(StatusCodes.Status200OK);
-
-            // GET: /games/{id}
-            group.MapGet("/{id}", async (long id, ApplicationDbContext db) =>
-                await db.Games.FindAsync(id)
-                    is Game entity
-                        ? Results.Ok(entity.ToDto<Game, BaseDto>())
-                        : Results.NotFound())
-                .WithName("GetGameById")
-
-                .Produces<ClassDto>(StatusCodes.Status200OK)
-                .Produces(StatusCodes.Status404NotFound);
-
-            // POST: /games
-            group.MapPost("/", async (ClassCreateDto input, ApplicationDbContext db) =>
+            // GET: /api/games
+            group.MapGet("/", async (
+                ApplicationDbContext db,
+                IMapper mapper) =>
             {
-                var entity = input.ToEntity();
-
-                db.Classes.Add(entity);
-                await db.SaveChangesAsync();
-                return Results.Created($"/classes/{entity.Id}", input);
+                var games = await db.Games.AsNoTracking().ToListAsync();
+                return Results.Ok(mapper.Map<List<GameDto>>(games));
             })
-            .WithName("CreateClass")
-            .Accepts<ClassCreateDto>("application/json")
-            .Produces<ClassCreateDto>(StatusCodes.Status201Created);
+            .WithName("GetAllGames")
+            .Produces<List<GameDto>>(StatusCodes.Status200OK);
 
-            // PUT: /classes/{id}
-            group.MapPut("/{id}", async (ClassUpdateDto input, ApplicationDbContext db) =>
+            // GET: /api/games/{id}
+            group.MapGet("/{id:long}", async (
+                long id,
+                ApplicationDbContext db,
+                IMapper mapper) =>
             {
-                var entity = await db.Classes.FindAsync(input.Id);
-                if (entity is null) return Results.NotFound();
+                var game = await db.Games.FindAsync(id);
+                if (game is null) { return Results.NotFound(); }
 
-                if (input.Name != null) entity.Name = input.Name;
-                if (input.GameId != null) entity.GameId = input.GameId.Value;
+                return Results.Ok(mapper.Map<GameDto>(game));
+            })
+            .WithName("GetGameById")
+            .Produces<GameDto>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
+
+            // POST: /api/games
+            group.MapPost("/", async (
+                GameCreateDto input,
+                ApplicationDbContext db,
+                IMapper mapper) =>
+            {
+                var entity = mapper.Map<Game>(input);
+
+                db.Games.Add(entity);
+                await db.SaveChangesAsync();
+
+                var dto = mapper.Map<GameDto>(entity);
+                return Results.Created($"/api/games/{entity.Id}", dto);
+            })
+            .WithName("CreateGame")
+            .Accepts<GameCreateDto>("application/json")
+            .Produces<GameDto>(StatusCodes.Status201Created);
+
+            // PUT: /api/games/{id}
+            group.MapPut("/{id:long}", async (
+                long id,
+                GameUpdateDto input,
+                ApplicationDbContext db,
+                IMapper mapper) =>
+            {
+                var entity = await db.Games.FindAsync(id);
+                if (entity is null) { return Results.NotFound(); }
+
+                mapper.Map(input, entity);
 
                 await db.SaveChangesAsync();
                 return Results.NoContent();
             })
-            .WithName("UpdateClass")
-            .Accepts<ClassUpdateDto>("application/json")
+            .WithName("UpdateGame")
+            .Accepts<GameUpdateDto>("application/json")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
 
-            // DELETE: /classes/{id}
-            group.MapDelete("/{id}", async (long id, ApplicationDbContext db) =>
+            // DELETE: /api/games/{id}
+            group.MapDelete("/{id:long}", async (
+                long id,
+                ApplicationDbContext db) =>
             {
-                var entity = await db.Classes.FindAsync(id);
-                if (entity is null) return Results.NotFound();
+                var entity = await db.Games.FindAsync(id);
+                if (entity is null) { return Results.NotFound(); }
 
-                db.Classes.Remove(entity);
+                db.Games.Remove(entity);
                 await db.SaveChangesAsync();
                 return Results.NoContent();
             })
-            .WithName("DeleteClass")
+            .WithName("DeleteGame")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
 
