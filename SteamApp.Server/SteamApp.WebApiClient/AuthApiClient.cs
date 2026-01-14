@@ -1,11 +1,10 @@
-﻿using System.Net.Http.Json;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
+using System.Net.Http.Json;
 
-namespace SteamApp.Infrastructure;
+namespace SteamApp.WebApiClient;
 
-public sealed class AuthApiClient(HttpClient http, IConfiguration config)
+public class AuthApiClient(HttpClient http, IConfiguration config)
 {
-
     public async Task<string> GetTokenAsync(CancellationToken ct)
     {
         var payload = new

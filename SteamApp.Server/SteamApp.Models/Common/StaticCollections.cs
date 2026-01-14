@@ -1,7 +1,7 @@
 ﻿using SteamApp.Models.ValueObjects;
 using System.Drawing;
 
-namespace SteamApp.WebAPI.Common;
+namespace SteamApp.Models.Common;
 
 public static class StaticCollections
 {

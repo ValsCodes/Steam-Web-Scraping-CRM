@@ -4,7 +4,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Serialization;
-using SteamApp.Infrastructure;
 using SteamApp.Infrastructure.Services;
 using SteamApp.Models.ValueObjects;
 using SteamApp.Models.ValueObjects.Authentication;
@@ -13,6 +12,8 @@ using SteamApp.WebAPI.Jobs;
 using SteamApp.WebAPI.Mapper;
 using SteamApp.WebAPI.MinimalAPIs;
 using SteamApp.WebAPI.Services;
+using SteamApp.WebApiClient;
+using SteamApp.WebApiClient.Managers;
 using System.Text;
 
 namespace SteamApp.WebAPI;
@@ -114,6 +115,11 @@ public class Program
             client.BaseAddress = new Uri(builder.Configuration["InternalApi:BaseUrl"]);
         });
 
+        builder.Services.AddHttpClient<BaseApiClient>(client =>
+        {
+            client.BaseAddress = new Uri(builder.Configuration["InternalApi:BaseUrl"]);
+        });
+
         builder.Services.AddHttpClient<SteamApiClient>(client =>
         {
             client.BaseAddress = new Uri(builder.Configuration["InternalApi:BaseUrl"]);
@@ -121,6 +127,7 @@ public class Program
 
         builder.Services.AddScoped<ISteamService, SteamService>();
 
+        builder.Services.AddScoped<SteamApiClient>();
         builder.Services.AddScoped<EmailJob>();
         builder.Services.AddScoped<WishlistCheckJob>();
 
