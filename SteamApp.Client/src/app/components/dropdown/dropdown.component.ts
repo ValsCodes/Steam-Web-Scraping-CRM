@@ -3,10 +3,11 @@ import { Component, Input, HostListener, ElementRef } from '@angular/core';
 import { RouterModule } from '@angular/router';
 
 @Component({
-    selector: 'steam-dropdown',
-    imports: [RouterModule, CommonModule],
-    templateUrl: './dropdown.component.html',
-    styleUrl: './dropdown.component.scss'
+  selector: 'steam-dropdown',
+  standalone: true,
+  imports: [RouterModule, CommonModule],
+  templateUrl: './dropdown.component.html',
+  styleUrl: './dropdown.component.scss'
 })
 
 export class DropdownComponent {

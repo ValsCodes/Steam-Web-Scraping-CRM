@@ -22,20 +22,21 @@ import { CONSTANTS } from '../../../common/constants';
 import { TextFilterComponent, CheckboxesFilterComponent } from "../../../components/index";
 
 @Component({
-    selector: 'steam-items-catalog',
-    imports: [
-        CommonModule,
-        MatTableModule,
-        MatSort,
-        MatSortModule,
-        MatPaginatorModule,
-        FormsModule,
-        ReactiveFormsModule,
-        CheckboxesFilterComponent,
-        TextFilterComponent,
-    ],
-    templateUrl: './items-catalog.component.html',
-    styleUrl: './items-catalog.component.scss'
+  selector: 'steam-items-catalog',
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatTableModule,
+    MatSort,
+    MatSortModule,
+    MatPaginatorModule,
+    FormsModule,
+    ReactiveFormsModule,
+    CheckboxesFilterComponent,
+    TextFilterComponent,
+  ],
+  templateUrl: './items-catalog.component.html',
+  styleUrl: './items-catalog.component.scss',
 })
 export class ItemsCatalogComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;

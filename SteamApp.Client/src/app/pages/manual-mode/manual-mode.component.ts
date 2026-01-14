@@ -1,14 +1,25 @@
-import { Component, OnInit, QueryList, ViewChildren } from '@angular/core';
-import { FormControl, FormsModule } from '@angular/forms';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  QueryList,
+  ViewChildren,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
+
 import { CONSTANTS } from '../../common/constants';
-import { ReactiveFormsModule } from '@angular/forms';
 import { ItemService } from '../../services/item/item.service';
+import { ChangeDetectorRef } from '@angular/core';
+
 import {
   CheckboxesFilterComponent,
   CopyLinkComponent,
   TextFilterComponent,
 } from '../../components/index';
+
 import { Item, UpdateItem } from '../../models/index';
 import {
   classFiltersCollection,
@@ -16,23 +27,28 @@ import {
 } from '../../models/enums';
 
 @Component({
-    selector: 'steam-manual-mode',
-    imports: [
-        FormsModule,
-        CommonModule,
-        ReactiveFormsModule,
-        CopyLinkComponent,
-        CheckboxesFilterComponent,
-        TextFilterComponent,
-    ],
-    templateUrl: './manual-mode.component.html',
-    styleUrl: './manual-mode.component.scss'
+  selector: 'steam-manual-mode',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    CopyLinkComponent,
+    CheckboxesFilterComponent,
+    TextFilterComponent,
+  ],
+  templateUrl: './manual-mode.component.html',
+  styleUrl: './manual-mode.component.scss',
 })
-export class ManualModeComponent implements OnInit {
+
+export class ManualModeComponent implements OnInit, OnDestroy {
   @ViewChildren(TextFilterComponent)
   textFilters!: QueryList<TextFilterComponent>;
+
   @ViewChildren(CheckboxesFilterComponent)
   checkboxFilters!: QueryList<CheckboxesFilterComponent>;
+
+  private readonly destroy$ = new Subject<void>();
 
   searchByNameFilterControl = new FormControl<string>('', {
     nonNullable: true,
@@ -41,41 +57,61 @@ export class ManualModeComponent implements OnInit {
   classFilters = classFiltersCollection;
   slotFilters = slotFiltersCollection;
 
-  private _constants = CONSTANTS;
+  private readonly constants = CONSTANTS;
 
-  private readonly _hatUrlPartial: string =
-    this._constants.SEARCH_URL_PARTIAL +
-    this._constants.PRODUCT_QUERY_PARAMS_EXTENDED;
+  private readonly hatUrlPartial: string =
+    this.constants.SEARCH_URL_PARTIAL +
+    this.constants.PRODUCT_QUERY_PARAMS_EXTENDED;
 
-  public readonly weaponUrlPartial: string =
-    this._constants.LISTING_URL_PARTIAL +
-    this._constants.WEAPON_URL_QUERY_PARAMS;
+  readonly weaponUrlPartial: string =
+    this.constants.LISTING_URL_PARTIAL + this.constants.WEAPON_URL_QUERY_PARAMS;
 
-  public weaponsCollection: Item[] = [];
+  weaponsCollection: Item[] = [];
 
-  public hatsBatchSize: number = 7;
-  public weaponsBatchSize: number = 3;
+  hatsBatchSize = 7;
+  weaponsBatchSize = 3;
 
-  public currentPage: number = 76;
-  public currentIndex: number = 1;
+  currentPage = 76;
+  currentIndex = 1;
 
-  public hatStatusLabel: string = '';
-  public weaponStatusLabel: string = '';
+  hatStatusLabel = '';
+  weaponStatusLabel = '';
 
-  constructor(private itemService: ItemService) {}
+  constructor(
+    private readonly itemService: ItemService,
+    private readonly cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
-    this.loadWeapons();
+    this.loadWeaponsWithFilters(
+      this.classFilters,
+      this.slotFilters,
+      this.searchByNameFilterControl.value
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  onTextFilterChanged(value: string): void {
+    this.searchByNameFilterControl.setValue(value, { emitEvent: false });
+
+    this.loadWeaponsWithFilters(this.classFilters, this.slotFilters, value);
+  }
+
+  trackById(index: number, item: Item): number {
+    return item.id;
   }
 
   startHatsBatch(): void {
-    let toPage = this.currentPage + this.hatsBatchSize;
+    const toPage = this.currentPage + this.hatsBatchSize;
     let blocked = false;
 
     for (; this.currentPage < toPage; this.currentPage++) {
-      let url = `${this._hatUrlPartial}p${this.currentPage}_price_asc`;
-
-      let newWindow = window.open(url, '_blank');
+      const url = `${this.hatUrlPartial}p${this.currentPage}_price_asc`;
+      const newWindow = window.open(url, '_blank');
 
       if (
         !newWindow ||
@@ -89,30 +125,25 @@ export class ManualModeComponent implements OnInit {
     this.hatStatusLabel = blocked ? 'Bad Batch!' : 'Successful Batch!';
 
     if (blocked) {
-      alert(
-        'Pop-ups were blocked. Please enable pop-ups for this website to open all pages.'
-      );
+      alert('Pop-ups were blocked. Please enable pop-ups for this website.');
     }
   }
 
   startWeaponsBatch(): void {
-    let toIndex = this.currentIndex + this.weaponsBatchSize;
+    const toIndex = this.currentIndex + this.weaponsBatchSize;
     let blocked = false;
 
     for (; this.currentIndex < toIndex; this.currentIndex++) {
-      let url =
-        this.weaponsCollection.length >= this.currentIndex
-          ? `${this.weaponUrlPartial}${
-              this.weaponsCollection[this.currentIndex - 1].name
-            }`
-          : null;
-
-      if (url == null) {
+      const weapon = this.weaponsCollection[this.currentIndex - 1];
+      if (!weapon) {
         this.weaponStatusLabel = 'No More Weapons!';
         return;
       }
 
-      let newWindow = window.open(url, '_blank');
+      const newWindow = window.open(
+        `${this.weaponUrlPartial}${weapon.name}`,
+        '_blank'
+      );
 
       if (
         !newWindow ||
@@ -126,19 +157,18 @@ export class ManualModeComponent implements OnInit {
     this.weaponStatusLabel = blocked ? 'Bad Batch!' : 'Successful Batch!';
 
     if (blocked) {
-      alert(
-        'Pop-ups were blocked. Please enable pop-ups for this website to open all pages.'
-      );
+      alert('Pop-ups were blocked. Please enable pop-ups for this website.');
     }
   }
 
   showAllWeaponsButtonClicked(): void {
     let blocked = false;
 
-    for (let index = 0; index < this.weaponsCollection.length; index++) {
-      let url = `${this.weaponUrlPartial}${this.weaponsCollection[index].name}`;
-      console.log(url);
-      let newWindow = window.open(url, '_blank');
+    for (const weapon of this.weaponsCollection) {
+      const newWindow = window.open(
+        `${this.weaponUrlPartial}${weapon.name}`,
+        '_blank'
+      );
 
       if (
         !newWindow ||
@@ -152,119 +182,158 @@ export class ManualModeComponent implements OnInit {
     this.weaponStatusLabel = blocked ? 'Bad Batch!' : 'Successful Batch!';
 
     if (blocked) {
-      alert(
-        'Pop-ups were blocked. Please enable pop-ups for this website to open all pages.'
-      );
+      alert('Pop-ups were blocked. Please enable pop-ups for this website.');
     }
   }
 
-  loadWeapons = (
-    nameFilter: string = this.searchByNameFilterControl.value
-  ): void => {
+  loadWeapons(nameFilter: string = this.searchByNameFilterControl.value): void {
+    const classIds = this.classFilters
+      .filter((x) => x.checked)
+      .map((x) => x.id);
+    const slotIds = this.slotFilters.filter((x) => x.checked).map((x) => x.id);
+
     this.itemService
-      .getItems(
-        this.classFilters.filter((x) => x.checked).map((x) => x.id),
-        this.slotFilters.filter((x) => x.checked).map((x) => x.id),
-        nameFilter
-      )
+      .getItems(classIds, slotIds, nameFilter)
+      .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (data) => {
-          const filteredData = data.filter(
+          this.weaponsCollection = data.filter(
             (item) => item.isActive && item.isWeapon
           );
-
-          this.weaponsCollection.length = 0;
-          this.weaponsCollection.push(...filteredData);
         },
         error: (err) => {
-          console.log('Error Loading Items: ' + err);
+          console.error('Error Loading Items:', err);
         },
       });
-  };
-
-  addStockCount(id: number, currentStock: number | null): void {
-    if (Number.isNaN(id) || id <= 0) {
-      console.log('Bad Id');
-      return;
-    }
-
-    if (Number.isNaN(currentStock)) {
-      console.log('Bad Current Stock');
-      return;
-    }
-
-    if (currentStock === null) {
-      currentStock = 0;
-    }
-
-    currentStock++;
-
-    const updated: UpdateItem = {
-      id: id,
-      currentStock: currentStock,
-    };
-
-    this.updateItem(updated);
   }
 
-  removeStockCount(id: number, currentStock: number | null): void {
-    if (Number.isNaN(id) || id <= 0) {
-      console.log('Bad Id');
-      return;
-    }
+  private loadWeaponsWithFilters(
+    classFilters: typeof this.classFilters,
+    slotFilters: typeof this.slotFilters,
+    nameFilter: string
+  ): void {
+    const classIds = classFilters.filter((f) => f.checked).map((f) => f.id);
+    const slotIds = slotFilters.filter((f) => f.checked).map((f) => f.id);
 
-    if (Number.isNaN(currentStock)) {
-      console.log('Bad Current Stock');
-      return;
-    }
+    this.itemService
+      .getItems(classIds, slotIds, nameFilter)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => {
+          this.weaponsCollection = data
+            .filter((i) => i.isActive === true && i.isWeapon === true)
+            .map((i) => ({
+              ...i,
+              isActive: i.isActive ?? false,
+              isWeapon: i.isWeapon ?? false,
+            }));
 
-    if (currentStock === null) {
-      currentStock = 0;
-    }
-
-    currentStock--;
-
-    const updated: UpdateItem = {
-      id: id,
-      currentStock: currentStock,
-    };
-
-    this.updateItem(updated);
+          this.cdr.markForCheck();
+        },
+        error: (err) => console.error(err),
+      });
   }
 
-  updateItem = (item: UpdateItem): void => {
-    this.itemService.updateItem(item).subscribe({
-      next: () => {
-        console.log('Updated item', item);
-        this.loadWeapons();
-      },
-      error: (err) => console.error('Error updating item:', err),
+  onClassFiltersChanged(
+    next: { id: number; label: string; checked: boolean }[]
+  ): void {
+    this.classFilters = next;
+
+    this.loadWeaponsWithFilters(
+      next,
+      this.slotFilters,
+      this.searchByNameFilterControl.value
+    );
+  }
+
+  onSlotFiltersChanged(
+    next: { id: number; label: string; checked: boolean }[]
+  ): void {
+    this.slotFilters = next;
+
+    this.loadWeaponsWithFilters(
+      this.classFilters,
+      next,
+      this.searchByNameFilterControl.value
+    );
+  }
+
+addStockCount(id: number): void {
+  const item = this.weaponsCollection.find(w => w.id === id);
+  if (!item) { return; }
+
+  const nextStock = (item.currentStock ?? 0) + 1;
+
+  // ✅ optimistic UI update
+  this.weaponsCollection = this.weaponsCollection.map(w =>
+    w.id === id ? { ...w, currentStock: nextStock } : w
+  );
+
+  this.cdr.markForCheck();
+
+  // ✅ sync with server
+  this.updateItemRemote({ id, currentStock: nextStock });
+}
+removeStockCount(id: number): void {
+  const item = this.weaponsCollection.find(w => w.id === id);
+  if (!item) { return; }
+
+  const nextStock = (item.currentStock ?? 0) - 1;
+
+  this.weaponsCollection = this.weaponsCollection.map(w =>
+    w.id === id ? { ...w, currentStock: nextStock } : w
+  );
+
+  this.cdr.markForCheck();
+
+  this.updateItemRemote({ id, currentStock: nextStock });
+}
+
+addTradesCount(id: number): void {
+  const item = this.weaponsCollection.find(w => w.id === id);
+  if (!item) { return; }
+
+  const nextTrades = (item.tradesCount ?? 0) + 1;
+
+  this.weaponsCollection = this.weaponsCollection.map(w =>
+    w.id === id ? { ...w, tradesCount: nextTrades } : w
+  );
+
+  this.cdr.markForCheck();
+
+  this.updateItemRemote({ id, tradesCount: nextTrades });
+}
+
+  private updateItemRemote(update: UpdateItem): void {
+  this.itemService
+    .updateItem(update)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      error: err => {
+        console.error(err);
+        // optional rollback logic here
+      }
     });
-  };
+}
 
-  addTradesCount(id: number, tradesCount: number | null) {
-    if (Number.isNaN(id) || id <= 0) {
-      console.log('Bad Id');
+  private updateItemLocal(id: number, patch: Partial<UpdateItem>): void {
+    if (!id || id <= 0) {
       return;
     }
 
-    if (Number.isNaN(tradesCount)) {
-      console.log('Bad Trades Count');
-      return;
-    }
+    const update: UpdateItem = { id, ...patch };
 
-    if (tradesCount === null) {
-      tradesCount = 0;
-    }
-
-    tradesCount++;
-
-    const updated: UpdateItem = {
-      id: id,
-      tradesCount: tradesCount,
-    };
-
-    this.updateItem(updated);
+    this.itemService
+      .updateItem({ id, ...patch })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.weaponsCollection = this.weaponsCollection.map((item) =>
+            item.id === id ? { ...item, ...patch } : item
+          );
+        },
+        error: (err) => console.error('Error updating item:', err),
+      });
   }
 
   resetHatsButtonClicked(): void {
@@ -279,7 +348,7 @@ export class ManualModeComponent implements OnInit {
     this.weaponStatusLabel = '';
   }
 
-  ClearAllFilters() {
+  ClearAllFilters(): void {
     this.textFilters.forEach((c) => c.clearFilter());
     this.checkboxFilters.forEach((c) => c.clearFilters());
   }

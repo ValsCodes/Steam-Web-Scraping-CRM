@@ -5,10 +5,11 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
 @Component({
-    selector: 'steam-login',
-    imports: [FormsModule, CommonModule],
-    templateUrl: './login.component.html',
-    styleUrl: './login.component.scss'
+  selector: 'steam-login',
+  standalone: true,
+  imports: [FormsModule, CommonModule],
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.scss'
 })
 
 export class LoginComponent {

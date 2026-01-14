@@ -16,9 +16,10 @@ export interface RadioOption {
 }
 
 @Component({
-    selector: 'app-radio-buttons-filter',
-    imports: [CommonModule, ReactiveFormsModule],
-    template: `
+  selector: 'app-radio-buttons-filter',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  template: `
     <div class="flex items-center gap-x-4">
       <span class="font-medium">{{ label }}:</span>
       <ng-container *ngFor="let opt of options; trackBy: trackById">
@@ -28,7 +29,7 @@ export interface RadioOption {
         </label>
       </ng-container>
     </div>
-  `
+  `,
 })
 export class RadioButtonsFilterComponent implements OnInit, OnDestroy {
   @Input() label = '';

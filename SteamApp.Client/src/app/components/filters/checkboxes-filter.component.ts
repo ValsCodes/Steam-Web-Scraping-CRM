@@ -1,49 +1,67 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 
 @Component({
-    selector: 'app-checkbox-filter',
-    imports: [CommonModule, FormsModule],
-    template: `
+  selector: 'app-checkbox-filter',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule],
+  template: `
     <div class="activity-filters flex gap-x-2 items-center my-2">
       <label class="mr-2">{{ CheckboxCollectionLabel }}:</label>
+
       <label
-        *ngFor="let filter of CheckboxCollection"
+        *ngFor="let filter of CheckboxCollection; trackBy: trackById"
         class="flex items-center gap-1"
       >
         {{ filter.label }}
         <input
           type="checkbox"
-          [(ngModel)]="filter.checked"
-          (ngModelChange)="onFilterChange()"
-        /> |
+          [checked]="filter.checked"
+          (change)="toggle(filter.id, $event.target.checked)"
+        />
+        |
       </label>
     </div>
-  `
+  `,
 })
-export class CheckboxesFilterComponent implements OnInit {
-  @Input() CheckboxCollectionLabel!: string;
+export class CheckboxesFilterComponent {
   @Input() CheckboxCollection!: {
     id: number;
     label: string;
     checked: boolean;
   }[];
 
+  @Input() CheckboxCollectionLabel!: string;
+
   @Output() filterChange = new EventEmitter<
-    { label: string; checked: boolean }[]
+    { id: number; label: string; checked: boolean }[]
   >();
 
-  ngOnInit(): void {
-    this.filterChange.emit(this.CheckboxCollection);
+  trackById(_: number, item: { id: number }): number {
+    return item.id;
   }
 
-  onFilterChange(): void {
-    this.filterChange.emit(this.CheckboxCollection);
+  toggle(id: number, checked: boolean): void {
+    const next = this.CheckboxCollection.map(f =>
+      f.id === id ? { ...f, checked } : f
+    );
+
+    this.filterChange.emit(next);
   }
 
   clearFilters(): void {
-    this.CheckboxCollection.forEach((f) => (f.checked = false));
-    this.filterChange.emit(this.CheckboxCollection);
+    const cleared = this.CheckboxCollection.map(f => ({
+      ...f,
+      checked: false,
+    }));
+
+    this.filterChange.emit(cleared);
   }
 }

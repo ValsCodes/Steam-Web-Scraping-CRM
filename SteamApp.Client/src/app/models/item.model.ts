@@ -2,8 +2,8 @@
 export interface Item {
   id: number;
   name: string;
-  isWeapon: boolean;
-  isActive: boolean;
+  isWeapon: boolean | null;
+  isActive: boolean | null;
   classId: number | null;
   slotId: number | null;
   currentStock: number | null;

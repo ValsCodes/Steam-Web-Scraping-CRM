@@ -14,10 +14,11 @@ import { paintsCollection, paintsMap, Paint } from '../../../models/enums/paint.
 import { Sheen, sheensCollection, sheensMap } from '../../../models/enums/sheen.enum';
 
 @Component({
-    selector: 'steam-edit-product-form',
-    imports: [CommonModule, ReactiveFormsModule],
-    templateUrl: './edit-product-form.component.html',
-    styleUrl: './edit-product-form.component.scss'
+  selector: 'steam-edit-product-form',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  templateUrl: './edit-product-form.component.html',
+  styleUrl: './edit-product-form.component.scss',
 })
 export class EditProductFormComponent implements OnInit {
   productForm!: FormGroup;
