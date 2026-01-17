@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { EditItemFormComponent } from './edit-item-form.component';
+import { GameForm } from './game-form';
 
-describe('EditItemFormComponent', () => {
-  let component: EditItemFormComponent;
-  let fixture: ComponentFixture<EditItemFormComponent>;
+describe('GameForm', () => {
+  let component: GameForm;
+  let fixture: ComponentFixture<GameForm>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [EditItemFormComponent]
+      imports: [GameForm]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(EditItemFormComponent);
+    fixture = TestBed.createComponent(GameForm);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
