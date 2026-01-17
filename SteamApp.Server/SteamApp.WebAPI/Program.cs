@@ -125,19 +125,20 @@ public class Program
             client.BaseAddress = new Uri(builder.Configuration["InternalApi:BaseUrl"]);
         });
 
+        builder.Services.Configure<EmailOptions>(
+    builder.Configuration.GetSection("Email")
+);
+
         builder.Services.AddScoped<ISteamService, SteamService>();
 
         builder.Services.AddScoped<SteamApiClient>();
-        builder.Services.AddScoped<EmailJob>();
+        builder.Services.AddScoped<IEmailService, EmailService>();
         builder.Services.AddScoped<WishlistCheckJob>();
 
         // hosted workers (one per job)
-        builder.Services.AddHostedService<BackgroundWorkerService<EmailJob>>();
         builder.Services.AddHostedService<BackgroundWorkerService<WishlistCheckJob>>();
 
         // per-job options via named options (key = typeof(TJob).Name)
-        builder.Services.Configure<WorkerOptions>(nameof(EmailJob),
-            builder.Configuration.GetSection("Workers:Email"));
         builder.Services.Configure<WorkerOptions>(nameof(WishlistCheckJob),
             builder.Configuration.GetSection("Workers:WishlistCheck"));
 
