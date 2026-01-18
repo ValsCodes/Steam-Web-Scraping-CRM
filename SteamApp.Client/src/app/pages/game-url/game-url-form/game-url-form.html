@@ -1,0 +1,58 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form">
+  <h2>{{ isEditMode ? 'Edit Game URL' : 'Create Game URL' }}</h2>
+
+  <div class="form-group">
+    <label>Game Id *</label>
+    <input
+      type="number"
+      formControlName="gameId"
+      class="px-2 py-1"
+      placeholder="Game Id" />
+  </div>
+
+  <div class="form-group">
+    <label>Partial URL</label>
+    <input
+      formControlName="partialUrl"
+      class="px-2 py-1"
+      placeholder="/market/listings/..." />
+  </div>
+
+  <div class="form-group checkbox-group">
+    <label>
+      <input type="checkbox" formControlName="isBatchUrl" />
+      Batch URL
+    </label>
+
+    <label>
+      <input type="checkbox" formControlName="isPixelScrape" />
+      Pixel Scrape
+    </label>
+  </div>
+
+  <div class="form-group">
+    <label>Start Page</label>
+    <input
+      type="number"
+      formControlName="startPage"
+      class="px-2 py-1" />
+  </div>
+
+  <div class="form-group">
+    <label>End Page</label>
+    <input
+      type="number"
+      formControlName="endPage"
+      class="px-2 py-1" />
+  </div>
+
+  <div class="flex gap-x-2">
+    <button type="submit" [disabled]="form.invalid">
+      {{ isEditMode ? 'Save' : 'Create' }}
+    </button>
+
+    <button type="button" (click)="cancel()">
+      Back
+    </button>
+  </div>
+</form>

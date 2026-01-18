@@ -19,13 +19,13 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var entities = await db.WatchListItems
+                var entities = await db.WatchList
                     .AsNoTracking()
                     .ToListAsync();
 
                 return Results.Ok(mapper.Map<List<WatchListDto>>(entities));
             })
-            .WithName("GetAllWatchListItems")
+            .WithName("GetAllWatchList")
             .Produces<List<WatchListDto>>(StatusCodes.Status200OK);
 
             // GET: /api/watch-list/{id}
@@ -34,7 +34,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var entity = await db.WatchListItems.FindAsync(id);
+                var entity = await db.WatchList.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
                 return Results.Ok(mapper.Map<WatchListDto>(entity));
@@ -73,9 +73,9 @@ namespace SteamApp.WebAPI.MinimalAPIs
                     if (!gameUrlExists) { return Results.BadRequest("Invalid GameUrlId"); }
                 }
 
-                var entity = mapper.Map<WatchListItem>(input);
+                var entity = mapper.Map<WatchList>(input);
 
-                db.WatchListItems.Add(entity);
+                db.WatchList.Add(entity);
                 await db.SaveChangesAsync();
 
                 var dto = mapper.Map<WatchListDto>(entity);
@@ -93,7 +93,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var entity = await db.WatchListItems.FindAsync(id);
+                var entity = await db.WatchList.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
                 mapper.Map(input, entity);
@@ -111,14 +111,14 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 long id,
                 ApplicationDbContext db) =>
             {
-                var entity = await db.WatchListItems.FindAsync(id);
+                var entity = await db.WatchList.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
-                db.WatchListItems.Remove(entity);
+                db.WatchList.Remove(entity);
                 await db.SaveChangesAsync();
                 return Results.NoContent();
             })
-            .WithName("DeleteWatchListItem")
+            .WithName("DeleteWatchList")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
 

@@ -8,12 +8,12 @@ namespace SteamApp.WebAPI.Mapper
     {
         public WishListMappingProfile()
         {
-            CreateMap<WishListItem, WishListDto>();
+            CreateMap<WishList, WishListDto>();
 
-            CreateMap<WishListCreateDto, WishListItem>()
+            CreateMap<WishListCreateDto, WishList>()
                 .ForMember(d => d.Id, o => o.Ignore());
 
-            CreateMap<WishListUpdateDto, WishListItem>()
+            CreateMap<WishListUpdateDto, WishList>()
                 .ForMember(d => d.Id, o => o.Ignore())
                 .ForMember(d => d.GameId, o => o.Ignore());
         }

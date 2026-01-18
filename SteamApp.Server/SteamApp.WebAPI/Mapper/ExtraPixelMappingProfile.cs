@@ -8,12 +8,12 @@ namespace SteamApp.WebAPI.Mapper
     {
         public ExtraPixelMappingProfile()
         {
-            CreateMap<ExtraPixel, ExtraPixelDto>();
+            CreateMap<Pixel, PixelDto>();
 
-            CreateMap<ExtraPixelCreateDto, ExtraPixel>()
+            CreateMap<PixelCreateDto, Pixel>()
                 .ForMember(d => d.Id, o => o.Ignore());
 
-            CreateMap<ExtraPixelUpdateDto, ExtraPixel>()
+            CreateMap<PixelUpdateDto, Pixel>()
                 .ForMember(d => d.Id, o => o.Ignore())
                 .ForMember(d => d.GameUrlId, o => o.Ignore());
         }

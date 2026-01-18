@@ -2,19 +2,17 @@
         @if (isLoggedIn()) {
         <div class="flex">
                 <steam-dropdown label="Scraping"
-                        [links]="[{ label: 'Web Scraper', route: '/web-scraper' },{ label: 'Manual Scraper', route: '/manual-mode' }]"></steam-dropdown>
-                <!-- <steam-dropdown label="Finance"
-                        [links]="[{ label: 'Invoices', route: '/invoices' }, { label: 'Finance Report', route: '/finance-report' }]"></steam-dropdown>
-                        <steam-dropdown label="General Game Data"  [links]="[    
-                        { label: 'Item Add-Ons ', route: '/item-add-ons' },                    
-                        { label: 'Item Grades', route: '/item-grades' },
-                        { label: 'Item Skins', route: '/item-skins' },
-                        { label: 'Item Qualities', route: '/qualities' },
-                        { label: 'Item Categories', route: '/categories' },
-                        { label: 'Item Slots', route: '/slots' },
-                        ]"></steam-dropdown> 
-                <a routerLink="/games" routerLinkActive="active">Games</a>-->
-                <a routerLink="/games" routerLinkActive="active">Games</a>
+                        [links]="[{ label: 'Web Scraper', route: '/web-scraper' },
+                        { label: 'Manual Scraper', route: '/manual-mode' }]"></steam-dropdown>
+                        
+                <steam-dropdown label="Games"
+                        [links]="[{ label: 'Games', route: '/games' }, 
+                        { label: 'Game URLs', route: '/game-urls' }]"></steam-dropdown> 
+
+                <a routerLink="/products" routerLinkActive="active">Products</a>
+                <a routerLink="/pixels" routerLinkActive="active">Pixels</a>
+                <a routerLink="/wishlist" routerLinkActive="active">Wishlist</a>
+                <a routerLink="/watch-list" routerLinkActive="active">WatchList</a>
         </div>}
         <div class="flex space-x-4 items-center">
                 @if(isLoggedIn())

@@ -6,46 +6,46 @@ using SteamApp.WebAPI.Context;
 
 namespace SteamApp.WebAPI.MinimalAPIs
 {
-    public static class ExtraPixelEndpoints
+    public static class PixelEndpoints
     {
         public static WebApplication MapExtraPixelEndpoints(this WebApplication app)
         {
-            var group = app.MapGroup("api/extra-pixels")
+            var group = app.MapGroup("api/pixels")
                            .WithTags("ExtraPixels")
                            .RequireAuthorization();
 
-            // GET: /api/extra-pixels
+            // GET: /api/pixels
             group.MapGet("/", async (
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var entities = await db.ExtraPixels
+                var entities = await db.Pixels
                     .AsNoTracking()
                     .ToListAsync();
 
-                return Results.Ok(mapper.Map<List<ExtraPixelDto>>(entities));
+                return Results.Ok(mapper.Map<List<PixelDto>>(entities));
             })
-            .WithName("GetAllExtraPixels")
-            .Produces<List<ExtraPixelDto>>(StatusCodes.Status200OK);
+            .WithName("GetAllPixels")
+            .Produces<List<PixelDto>>(StatusCodes.Status200OK);
 
-            // GET: /api/extra-pixels/{id}
+            // GET: /api/pixels/{id}
             group.MapGet("/{id:long}", async (
                 long id,
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var entity = await db.ExtraPixels.FindAsync(id);
+                var entity = await db.Pixels.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
-                return Results.Ok(mapper.Map<ExtraPixelDto>(entity));
+                return Results.Ok(mapper.Map<PixelDto>(entity));
             })
-            .WithName("GetExtraPixelById")
-            .Produces<ExtraPixelDto>(StatusCodes.Status200OK)
+            .WithName("GetPixelById")
+            .Produces<PixelDto>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
-            // POST: /api/extra-pixels
+            // POST: /api/pixels
             group.MapPost("/", async (
-                ExtraPixelCreateDto input,
+                PixelCreateDto input,
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
@@ -58,27 +58,27 @@ namespace SteamApp.WebAPI.MinimalAPIs
                     return Results.BadRequest("Invalid GameUrlId");
                 }
 
-                var entity = mapper.Map<ExtraPixel>(input);
+                var entity = mapper.Map<Pixel>(input);
 
-                db.ExtraPixels.Add(entity);
+                db.Pixels.Add(entity);
                 await db.SaveChangesAsync();
 
-                var dto = mapper.Map<ExtraPixelDto>(entity);
+                var dto = mapper.Map<PixelDto>(entity);
                 return Results.Created($"/api/extra-pixels/{entity.Id}", dto);
             })
-            .WithName("CreateExtraPixel")
-            .Accepts<ExtraPixelCreateDto>("application/json")
-            .Produces<ExtraPixelDto>(StatusCodes.Status201Created)
+            .WithName("CreatePixel")
+            .Accepts<PixelCreateDto>("application/json")
+            .Produces<PixelDto>(StatusCodes.Status201Created)
             .Produces(StatusCodes.Status400BadRequest);
 
-            // PUT: /api/extra-pixels/{id}
+            // PUT: /api/pixels/{id}
             group.MapPut("/{id:long}", async (
                 long id,
-                ExtraPixelUpdateDto input,
+                PixelUpdateDto input,
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var entity = await db.ExtraPixels.FindAsync(id);
+                var entity = await db.Pixels.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
                 mapper.Map(input, entity);
@@ -86,24 +86,24 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 await db.SaveChangesAsync();
                 return Results.NoContent();
             })
-            .WithName("UpdateExtraPixel")
-            .Accepts<ExtraPixelUpdateDto>("application/json")
+            .WithName("UpdatePixel")
+            .Accepts<PixelUpdateDto>("application/json")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
 
-            // DELETE: /api/extra-pixels/{id}
+            // DELETE: /api/pixels/{id}
             group.MapDelete("/{id:long}", async (
                 long id,
                 ApplicationDbContext db) =>
             {
-                var entity = await db.ExtraPixels.FindAsync(id);
+                var entity = await db.Pixels.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
-                db.ExtraPixels.Remove(entity);
+                db.Pixels.Remove(entity);
                 await db.SaveChangesAsync();
                 return Results.NoContent();
             })
-            .WithName("DeleteExtraPixel")
+            .WithName("DeletePixel")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
 

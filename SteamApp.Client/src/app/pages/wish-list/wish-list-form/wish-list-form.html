@@ -1,0 +1,38 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form">
+  <h2>{{ isEditMode ? 'Edit Wish List Item' : 'Create Wish List Item' }}</h2>
+
+  <div class="form-group">
+    <label>Game Id *</label>
+    <input
+      type="number"
+      formControlName="gameId"
+      class="px-2 py-1"
+      placeholder="Game Id" />
+  </div>
+
+  <div class="form-group">
+    <label>Target Price</label>
+    <input
+      type="number"
+      formControlName="price"
+      class="px-2 py-1"
+      placeholder="Price (optional)" />
+  </div>
+
+  <div class="form-group checkbox-group">
+    <label>
+      <input type="checkbox" formControlName="isActive" />
+      Active
+    </label>
+  </div>
+
+  <div class="flex gap-x-2">
+    <button type="submit" [disabled]="form.invalid">
+      {{ isEditMode ? 'Save' : 'Create' }}
+    </button>
+
+    <button type="button" (click)="cancel()">
+      Back
+    </button>
+  </div>
+</form>

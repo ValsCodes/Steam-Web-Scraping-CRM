@@ -8,9 +8,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Game> Games { get; set; }
     public DbSet<GameUrl> GameUrls { get; set; }
     public DbSet<Product> Products { get; set; }
-    public DbSet<ExtraPixel> ExtraPixels { get; set; }
-    public DbSet<WatchListItem> WatchListItems { get; set; }
-    public DbSet<WishListItem> WishListItems { get; set; }
+    public DbSet<Pixel> Pixels { get; set; }
+    public DbSet<WatchList> WatchList { get; set; }
+    public DbSet<WishList> WishList { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -19,8 +19,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<Game>();
         modelBuilder.Entity<GameUrl>();
         modelBuilder.Entity<Product>();
-        modelBuilder.Entity<ExtraPixel>();
-        modelBuilder.Entity<WatchListItem>();
-        modelBuilder.Entity<WishListItem>();
+        modelBuilder.Entity<Pixel>();
+        modelBuilder.Entity<WatchList>();
+        modelBuilder.Entity<WishList>();
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace SteamApp.Models.DTOs.ExtraPixel
 {
-    public sealed class ExtraPixelUpdateDto
+    public sealed class PixelUpdateDto
     {
         public long Id { get; set; }
         public long? PixelValue { get; set; }

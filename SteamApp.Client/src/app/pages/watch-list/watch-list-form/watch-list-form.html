@@ -1,0 +1,73 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form">
+  <h2>{{ isEditMode ? 'Edit Watch List Item' : 'Create Watch List Item' }}</h2>
+
+  <div class="form-group">
+    <label>Game Id</label>
+    <input
+      type="number"
+      formControlName="gameId"
+      class="px-2 py-1"
+      placeholder="Game Id (optional)" />
+  </div>
+
+  <div class="form-group">
+    <label>Game URL Id</label>
+    <input
+      type="number"
+      formControlName="gameUrlId"
+      class="px-2 py-1"
+      placeholder="Game URL Id (optional)" />
+  </div>
+
+  <div class="form-group">
+    <label>Rating</label>
+    <input
+      type="number"
+      formControlName="rating"
+      class="px-2 py-1"
+      placeholder="Rating" />
+  </div>
+
+  <div class="form-group">
+    <label>Batch URL</label>
+    <input
+      formControlName="batchUrl"
+      class="px-2 py-1"
+      placeholder="Batch URL" />
+  </div>
+
+  <div class="form-group">
+    <label>Name</label>
+    <input
+      formControlName="name"
+      class="px-2 py-1"
+      placeholder="Name" />
+  </div>
+
+  <div class="form-group">
+    <label>Release Date *</label>
+    <input
+      type="date"
+      formControlName="releaseDate"
+      class="px-2 py-1" />
+  </div>
+
+  <div class="form-group">
+    <label>Description</label>
+    <textarea
+      formControlName="description"
+      rows="3"
+      class="px-2 py-1">
+    </textarea>
+  </div>
+
+  <div class="flex gap-x-2">
+    <button type="submit" [disabled]="form.invalid">
+      {{ isEditMode ? 'Save' : 'Create' }}
+    </button>
+
+    <button type="button" (click)="cancel()">
+      Back
+    </button>
+  </div>
+</form>

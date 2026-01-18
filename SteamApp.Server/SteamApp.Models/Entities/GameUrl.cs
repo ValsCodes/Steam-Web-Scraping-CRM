@@ -2,17 +2,20 @@
 
 namespace SteamApp.Models.Entities
 {
-    [Table("game_urls")]
+    [Table("game_url")]
     public sealed class GameUrl
     {
         [Column("id")]
         public long Id { get; set; }
 
         [Column("game_id")]
+        [ForeignKey(nameof(Game))]
         public long GameId { get; set; }
+        [InverseProperty(nameof(Game.GameUrls))]
+        public Game Game { get; set; }
 
         [Column("partial_url")]
-        public string PartialUrl { get; set; }
+        public string? PartialUrl { get; set; }
 
         [Column("is_batch_url")]
         public bool IsBatchUrl { get; set; }
@@ -27,6 +30,9 @@ namespace SteamApp.Models.Entities
         public bool IsPixelScrape { get; set; }
 
         public ICollection<Product> Products { get; set; } = [];
-        public ICollection<ExtraPixel> ExtraPixels { get; set; } = [];
+
+        public ICollection<Pixel> Pixels { get; set; } = [];
+
+        public ICollection<WatchList> WatchLists { get; set; } = [];
     }
 }

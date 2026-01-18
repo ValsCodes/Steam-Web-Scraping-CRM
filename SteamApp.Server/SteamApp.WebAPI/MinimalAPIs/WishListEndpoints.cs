@@ -20,13 +20,13 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var entities = await db.WishListItems
+                var entities = await db.WishList
                     .AsNoTracking()
                     .ToListAsync();
 
                 return Results.Ok(mapper.Map<List<WishListDto>>(entities));
             })
-            .WithName("GetAllWishListItems")
+            .WithName("GetAllWishList")
             .Produces<List<WishListDto>>(StatusCodes.Status200OK);
 
             // GET: /api/wish-list/{id}
@@ -35,12 +35,12 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var entity = await db.WishListItems.FindAsync(id);
+                var entity = await db.WishList.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
                 return Results.Ok(mapper.Map<WishListDto>(entity));
             })
-            .WithName("GetWishListItemById")
+            .WithName("GetWishListById")
             .Produces<WishListDto>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
@@ -59,9 +59,9 @@ namespace SteamApp.WebAPI.MinimalAPIs
                     return Results.BadRequest("Invalid GameId");
                 }
 
-                var entity = mapper.Map<WishListItem>(input);
+                var entity = mapper.Map<WishList>(input);
 
-                db.WishListItems.Add(entity);
+                db.WishList.Add(entity);
                 await db.SaveChangesAsync();
 
                 var dto = mapper.Map<WishListDto>(entity);
@@ -79,7 +79,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var entity = await db.WishListItems.FindAsync(id);
+                var entity = await db.WishList.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
                 mapper.Map(input, entity);
@@ -97,14 +97,14 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 long id,
                 ApplicationDbContext db) =>
             {
-                var entity = await db.WishListItems.FindAsync(id);
+                var entity = await db.WishList.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
-                db.WishListItems.Remove(entity);
+                db.WishList.Remove(entity);
                 await db.SaveChangesAsync();
                 return Results.NoContent();
             })
-            .WithName("DeleteWishListItem")
+            .WithName("DeleteWishList")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
 

@@ -9,13 +9,13 @@ namespace SteamApp.Models.Entities
         public long Id { get; set; }
 
         [Column("name")]
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
         [Column("base_url")]
-        public string BaseUrl { get; set; }
+        public string? BaseUrl { get; set; }
 
         public ICollection<GameUrl> GameUrls { get; set; } = [];
-        public ICollection<WishListItem> WishListItems { get; set; } = [];
-        public ICollection<WatchListItem> WatchListItems { get; set; } = [];
+        public ICollection<WishList> WishLists{ get; set; } = [];
+        public ICollection<WatchList> WatchLists { get; set; } = [];
     }
 }
