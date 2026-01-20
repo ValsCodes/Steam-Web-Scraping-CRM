@@ -2,10 +2,10 @@
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using SeleniumExtras.WaitHelpers;
+using SteamApp.Application.DTOs.WatchItem;
+using SteamApp.Application.JsonObjects;
 using SteamApp.Infrastructure.Services;
 using SteamApp.Models.Common;
-using SteamApp.Models.DTOs.WatchItem;
-using SteamApp.Models.JsonObjects;
 using SteamApp.WebAPI.Helpers;
 using System.Collections.ObjectModel;
 using System.Drawing;

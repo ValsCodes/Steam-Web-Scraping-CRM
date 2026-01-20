@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SteamApp.Application\SteamApp.Application.csproj" />
     <ProjectReference Include="..\SteamApp.Models\SteamApp.Models.csproj" />
   </ItemGroup>
 

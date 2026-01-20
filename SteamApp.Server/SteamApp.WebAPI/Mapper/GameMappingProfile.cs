@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using SteamApp.Models.DTOs.Game;
+using SteamApp.Application.DTOs.Game;
 using SteamApp.Models.Entities;
 
 namespace SteamApp.WebAPI.Mapper;

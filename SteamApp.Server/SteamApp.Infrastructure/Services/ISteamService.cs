@@ -1,4 +1,4 @@
-﻿using SteamApp.Models.DTOs.WatchItem;
+﻿using SteamApp.Application.DTOs.WatchItem;
 
 namespace SteamApp.Infrastructure.Services;
 

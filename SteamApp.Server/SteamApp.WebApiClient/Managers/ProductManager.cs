@@ -1,4 +1,4 @@
-﻿using SteamApp.Models.DTOs.Product;
+﻿using SteamApp.Application.DTOs.Product;
 
 namespace SteamApp.WebApiClient.Managers
 {

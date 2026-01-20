@@ -1,4 +1,4 @@
-﻿using SteamApp.Models.DTOs.ExtraPixel;
+﻿using SteamApp.Application.DTOs.Pixel;
 
 namespace SteamApp.WebApiClient.Managers
 {

@@ -1,4 +1,4 @@
-﻿using SteamApp.Models.DTOs.WishList;
+﻿using SteamApp.Application.DTOs.WishListItem;
 
 namespace SteamApp.WebApiClient.Managers
 {

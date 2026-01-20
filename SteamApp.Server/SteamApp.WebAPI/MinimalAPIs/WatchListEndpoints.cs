@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using SteamApp.Models.DTOs.WatchList;
+using SteamApp.Application.DTOs.WatchList;
+using SteamApp.Application.DTOs.WatchListItem;
 using SteamApp.Models.Entities;
 using SteamApp.WebAPI.Context;
 

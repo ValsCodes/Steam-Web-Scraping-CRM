@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using SteamApp.Models.DTOs.WishList;
+using SteamApp.Application.DTOs.WishListItem;
 using SteamApp.Models.Entities;
 
 namespace SteamApp.WebAPI.Mapper

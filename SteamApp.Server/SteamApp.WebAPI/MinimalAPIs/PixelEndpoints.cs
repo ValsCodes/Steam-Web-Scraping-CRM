@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using SteamApp.Models.DTOs.ExtraPixel;
+using SteamApp.Application.DTOs.Pixel;
 using SteamApp.Models.Entities;
 using SteamApp.WebAPI.Context;
 

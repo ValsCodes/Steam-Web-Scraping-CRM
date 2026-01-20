@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using SteamApp.Models.DTOs.Product;
+using SteamApp.Application.DTOs.Product;
 using SteamApp.Models.Entities;
 
 namespace SteamApp.WebAPI.Mapper

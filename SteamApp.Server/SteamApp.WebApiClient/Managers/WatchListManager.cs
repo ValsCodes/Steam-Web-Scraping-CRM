@@ -1,4 +1,5 @@
-﻿using SteamApp.Models.DTOs.WatchList;
+﻿using SteamApp.Application.DTOs.WatchList;
+using SteamApp.Application.DTOs.WatchListItem;
 
 namespace SteamApp.WebApiClient.Managers
 {

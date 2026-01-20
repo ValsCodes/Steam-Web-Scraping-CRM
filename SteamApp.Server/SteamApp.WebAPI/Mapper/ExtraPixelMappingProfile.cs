@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using SteamApp.Models.DTOs.ExtraPixel;
+using SteamApp.Application.DTOs.Pixel;
 using SteamApp.Models.Entities;
 
 namespace SteamApp.WebAPI.Mapper

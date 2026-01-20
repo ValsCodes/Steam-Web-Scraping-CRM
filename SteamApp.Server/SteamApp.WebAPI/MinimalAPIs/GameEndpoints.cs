@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using SteamApp.Models.DTOs.Game;
+using SteamApp.Application.DTOs.Game;
 using SteamApp.Models.Entities;
 using SteamApp.WebAPI.Context;
 
