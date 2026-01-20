@@ -4,110 +4,116 @@ using SteamApp.Application.DTOs.Product;
 using SteamApp.Models.Entities;
 using SteamApp.WebAPI.Context;
 
-namespace SteamApp.WebAPI.MinimalAPIs
+namespace SteamApp.WebAPI.MinimalAPIs;
+
+public static class ProductEndpoints
 {
-    public static class ProductEndpoints
+    public static WebApplication MapProductEndpoints(this WebApplication app)
     {
-        public static WebApplication MapProductEndpoints(this WebApplication app)
+        var group = app.MapGroup("api/products")
+                       .WithTags("Products")
+                       .RequireAuthorization();
+
+        // GET: /api/products
+        group.MapGet("/", async (
+            ApplicationDbContext db,
+            IMapper mapper) =>
         {
-            var group = app.MapGroup("api/products")
-                           .WithTags("Products")
-                           .RequireAuthorization();
-
-            // GET: /api/products
-            group.MapGet("/", async (
-                ApplicationDbContext db,
-                IMapper mapper) =>
-            {
-                var entities = await db.Products
-                    .AsNoTracking()
-                    .ToListAsync();
-
-                return Results.Ok(mapper.Map<List<ProductDto>>(entities));
-            })
-            .WithName("GetAllProducts")
-            .Produces<List<ProductDto>>(StatusCodes.Status200OK);
-
-            // GET: /api/products/{id}
-            group.MapGet("/{id:long}", async (
-                long id,
-                ApplicationDbContext db,
-                IMapper mapper) =>
-            {
-                var entity = await db.Products.FindAsync(id);
-                if (entity is null) { return Results.NotFound(); }
-
-                return Results.Ok(mapper.Map<ProductDto>(entity));
-            })
-            .WithName("GetProductById")
-            .Produces<ProductDto>(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status404NotFound);
-
-            // POST: /api/products
-            group.MapPost("/", async (
-                ProductCreateDto input,
-                ApplicationDbContext db,
-                IMapper mapper) =>
-            {
-                var gameUrlExists = await db.GameUrls
-                    .AsNoTracking()
-                    .AnyAsync(g => g.Id == input.GameUrlId);
-
-                if (!gameUrlExists)
+            var entities = await db.Products
+                .AsNoTracking()
+                .Select(x => new ProductDto
                 {
-                    return Results.BadRequest("Invalid GameUrlId");
-                }
+                    Id = x.Id,
+                    GameUrlId = x.GameUrlId,
+                    Name = x.Name,
+                    FullUrl = $"{x.GameUrl.Game.BaseUrl}/{x.GameUrl.PartialUrl}"
+                })
+                .ToListAsync();
 
-                var entity = mapper.Map<Product>(input);
+            return Results.Ok(entities);
+        })
+        .WithName("GetAllProducts")
+        .Produces<List<ProductDto>>(StatusCodes.Status200OK);
 
-                db.Products.Add(entity);
-                await db.SaveChangesAsync();
+        // GET: /api/products/{id}
+        group.MapGet("/{id:long}", async (
+            long id,
+            ApplicationDbContext db,
+            IMapper mapper) =>
+        {
+            var entity = await db.Products.FindAsync(id);
+            if (entity is null) { return Results.NotFound(); }
 
-                var dto = mapper.Map<ProductDto>(entity);
-                return Results.Created($"/api/products/{entity.Id}", dto);
-            })
-            .WithName("CreateProduct")
-            .Accepts<ProductCreateDto>("application/json")
-            .Produces<ProductDto>(StatusCodes.Status201Created)
-            .Produces(StatusCodes.Status400BadRequest);
+            return Results.Ok(mapper.Map<ProductDto>(entity));
+        })
+        .WithName("GetProductById")
+        .Produces<ProductDto>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound);
 
-            // PUT: /api/products/{id}
-            group.MapPut("/{id:long}", async (
-                long id,
-                ProductUpdateDto input,
-                ApplicationDbContext db,
-                IMapper mapper) =>
+        // POST: /api/products
+        group.MapPost("/", async (
+            ProductCreateDto input,
+            ApplicationDbContext db,
+            IMapper mapper) =>
+        {
+            var gameUrlExists = await db.GameUrls
+                .AsNoTracking()
+                .AnyAsync(g => g.Id == input.GameUrlId);
+
+            if (!gameUrlExists)
             {
-                var entity = await db.Products.FindAsync(id);
-                if (entity is null) { return Results.NotFound(); }
+                return Results.BadRequest("Invalid GameUrlId");
+            }
 
-                mapper.Map(input, entity);
+            var entity = mapper.Map<Product>(input);
 
-                await db.SaveChangesAsync();
-                return Results.NoContent();
-            })
-            .WithName("UpdateProduct")
-            .Accepts<ProductUpdateDto>("application/json")
-            .Produces(StatusCodes.Status204NoContent)
-            .Produces(StatusCodes.Status404NotFound);
+            db.Products.Add(entity);
+            await db.SaveChangesAsync();
 
-            // DELETE: /api/products/{id}
-            group.MapDelete("/{id:long}", async (
-                long id,
-                ApplicationDbContext db) =>
-            {
-                var entity = await db.Products.FindAsync(id);
-                if (entity is null) { return Results.NotFound(); }
+            var dto = mapper.Map<ProductDto>(entity);
+            return Results.Created($"/api/products/{entity.Id}", dto);
+        })
+        .WithName("CreateProduct")
+        .Accepts<ProductCreateDto>("application/json")
+        .Produces<ProductDto>(StatusCodes.Status201Created)
+        .Produces(StatusCodes.Status400BadRequest);
 
-                db.Products.Remove(entity);
-                await db.SaveChangesAsync();
-                return Results.NoContent();
-            })
-            .WithName("DeleteProduct")
-            .Produces(StatusCodes.Status204NoContent)
-            .Produces(StatusCodes.Status404NotFound);
+        // PUT: /api/products/{id}
+        group.MapPut("/{id:long}", async (
+            long id,
+            ProductUpdateDto input,
+            ApplicationDbContext db,
+            IMapper mapper) =>
+        {
+            var entity = await db.Products.FindAsync(id);
+            if (entity is null) { return Results.NotFound(); }
 
-            return app;
-        }
+            mapper.Map(input, entity);
+
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        })
+        .WithName("UpdateProduct")
+        .Accepts<ProductUpdateDto>("application/json")
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status404NotFound);
+
+        // DELETE: /api/products/{id}
+        group.MapDelete("/{id:long}", async (
+            long id,
+            ApplicationDbContext db) =>
+        {
+            var entity = await db.Products.FindAsync(id);
+            if (entity is null) { return Results.NotFound(); }
+
+            db.Products.Remove(entity);
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        })
+        .WithName("DeleteProduct")
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status404NotFound);
+
+        return app;
     }
 }

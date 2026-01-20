@@ -1,5 +1,6 @@
 export interface GameUrl {
   id: number;
+  name?: string | null;
   gameId: number;
   partialUrl?: string | null;
   isBatchUrl: boolean;
@@ -10,6 +11,7 @@ export interface GameUrl {
 
 export interface CreateGameUrl {
   gameId: number;
+  name?: string | null;
   partialUrl?: string | null;
   isBatchUrl: boolean;
   startPage?: number | null;
@@ -19,6 +21,7 @@ export interface CreateGameUrl {
 
 export interface UpdateGameUrl {
   partialUrl?: string | null;
+  name?: string | null;
   isBatchUrl: boolean;
   startPage?: number | null;
   endPage?: number | null;

@@ -13,15 +13,25 @@
     <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z8">
 
       <!-- Id -->
-      <ng-container matColumnDef="id">
+      <!-- <ng-container matColumnDef="id">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Id</th>
         <td mat-cell *matCellDef="let row">{{ row.id }}</td>
-      </ng-container>
+      </ng-container> -->
 
       <!-- Game Id -->
       <ng-container matColumnDef="gameId">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Game</th>
-        <td mat-cell *matCellDef="let row">{{ row.gameId }}</td>
+        <td mat-cell *matCellDef="let row">
+          {{ gameNameById.get(row.gameId) ?? '—' }}
+        </td>
+      </ng-container>
+
+      <!-- Name -->
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Name</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.name || '—' }}
+        </td>
       </ng-container>
 
       <!-- Partial Url -->

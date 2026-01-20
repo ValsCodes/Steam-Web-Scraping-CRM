@@ -83,7 +83,7 @@ public class Program
             c.SwaggerDoc("v1", new OpenApiInfo
             {
                 Title = "SteamApp API",
-                Version = "v1"
+                Version = "v2"
             });
             c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
@@ -126,8 +126,7 @@ public class Program
         });
 
         builder.Services.Configure<EmailOptions>(
-    builder.Configuration.GetSection("Email")
-);
+        builder.Configuration.GetSection("Email"));
 
         builder.Services.AddScoped<ISteamService, SteamService>();
 

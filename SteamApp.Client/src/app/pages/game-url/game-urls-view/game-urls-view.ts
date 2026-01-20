@@ -8,6 +8,8 @@ import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { GameUrlService } from '../../../services/game-url/game-url.service';
 import { GameUrl } from '../../../models/game-url.model';
+import { Game } from '../../../models';
+import { GameService } from '../../../services/game/game.service';
 
 @Component({
   selector: 'steam-game-urls-grid',
@@ -23,8 +25,9 @@ import { GameUrl } from '../../../models/game-url.model';
 })
 export class GameUrlsView implements OnInit {
   displayedColumns: string[] = [
-    'id',
+    //'id',
     'gameId',
+    'name',
     'partialUrl',
     'isBatchUrl',
     'startPage',
@@ -33,6 +36,9 @@ export class GameUrlsView implements OnInit {
     'actions'
   ];
 
+games: Game[] = [];
+gameNameById = new Map<number, string>();
+
   dataSource = new MatTableDataSource<GameUrl>([]);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -40,10 +46,13 @@ export class GameUrlsView implements OnInit {
 
   constructor(
     private gameUrlService: GameUrlService,
+    private gameService: GameService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
+
+    this.loadGames();
     this.fetchGameUrls();
   }
 
@@ -62,6 +71,21 @@ export class GameUrlsView implements OnInit {
   editButtonClicked(id: number): void {
     this.router.navigate(['/game-urls/edit', id]);
   }
+
+private loadGames(): void
+{
+    this.gameService.getAll().subscribe({
+        next: games =>
+        {
+            this.games = games;
+
+            this.gameNameById.clear();
+            for (const game of games) {
+                this.gameNameById.set(game.id, game.name);
+            }
+        }
+    });
+}
 
   deleteButtonClicked(id: number): void {
     if (!confirm('Delete this Game URL?')) {

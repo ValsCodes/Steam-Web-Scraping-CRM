@@ -3,6 +3,7 @@
     public sealed class GameUrlDto
     {
         public long Id { get; set; }
+        public string Name { get; set; }
         public long GameId { get; set; }
         public string PartialUrl { get; set; }
         public bool IsBatchUrl { get; set; }

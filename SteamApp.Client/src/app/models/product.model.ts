@@ -2,6 +2,7 @@ export interface Product {
   id: number;
   gameUrlId: number;
   name?: string | null;
+  fullUrl?: string | null;
 }
 
 export interface CreateProduct {

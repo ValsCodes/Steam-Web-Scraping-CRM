@@ -8,6 +8,9 @@ namespace SteamApp.Models.Entities
         [Column("id")]
         public long Id { get; set; }
 
+        [Column("name")]
+        public string? Name { get; set; }
+
         [Column("game_id")]
         [ForeignKey(nameof(Game))]
         public long GameId { get; set; }

@@ -8,6 +8,7 @@ namespace SteamApp.Application.DTOs.GameUrl
 {
     public sealed class GameUrlCreateDto
     {
+        public string? Name { get; set; }
         public long GameId { get; set; }
         public string PartialUrl { get; set; }
         public bool IsBatchUrl { get; set; }

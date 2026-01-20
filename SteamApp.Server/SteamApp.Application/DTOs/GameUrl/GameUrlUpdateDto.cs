@@ -3,6 +3,7 @@
     public sealed class GameUrlUpdateDto
     {
         public long Id { get; set; }
+        public string? Name { get; set; }
         public string? PartialUrl { get; set; }
         public bool? IsBatchUrl { get; set; }
         public int? StartPage { get; set; }
