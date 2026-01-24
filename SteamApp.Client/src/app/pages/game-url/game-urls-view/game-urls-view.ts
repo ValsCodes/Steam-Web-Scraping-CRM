@@ -26,7 +26,8 @@ import { GameService } from '../../../services/game/game.service';
 export class GameUrlsView implements OnInit {
   displayedColumns: string[] = [
     //'id',
-    'gameId',
+    //'gameId',
+    'gameName',
     'name',
     'partialUrl',
     'isBatchUrl',

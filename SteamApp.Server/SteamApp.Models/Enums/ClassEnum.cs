@@ -1,4 +1,4 @@
-﻿namespace SteamApp.Models.Enums
+﻿namespace SteamApp.Domain.Enums
 {
     public enum ClassEnum
     {

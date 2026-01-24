@@ -1,30 +1,32 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace SteamApp.Models.Entities
+namespace SteamApp.Domain.Entities
 {
     [Table("watch_list")]
     public sealed class WatchList
     {
+        [Key]
         [Column("id")]
         public long Id { get; set; }
 
-        [Column("game_id")]
-        [ForeignKey(nameof(Game))]
-        public long? GameId { get; set; }
-        [InverseProperty(nameof(Game.WatchLists))]
-        public Game Game { get; set; }
+        [Column("product_id")]
+        [ForeignKey(nameof(Product))]
+        public long ProductId { get; set; }
+        [InverseProperty(nameof(Product.WatchLists))]
+        public Product Product { get; set; }
 
         [Column("game_url_id")]
         [ForeignKey(nameof(GameUrl))]
-        public long? GameUrlId { get; set; }
+        public long GameUrlId { get; set; }
         [InverseProperty(nameof(GameUrl.WatchLists))]
         public GameUrl GameUrl { get; set; }
 
         [Column("rating")]
         public int? Rating { get; set; }
 
-        [Column("batch_url")]
-        public string? BatchUrl { get; set; }
+        [Column("batch_number")]
+        public long? BatchNumber { get; set; }
 
         [Column("name")]
         public string? Name { get; set; }

@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using SteamApp.Application.DTOs.WatchList;
 using SteamApp.Application.DTOs.WatchListItem;
-using SteamApp.Models.Entities;
+using SteamApp.Domain.Entities;
 
 namespace SteamApp.WebAPI.Mapper
 {
@@ -16,7 +16,6 @@ namespace SteamApp.WebAPI.Mapper
 
             CreateMap<WatchListUpdateDto, WatchList>()
                 .ForMember(d => d.Id, o => o.Ignore())
-                .ForMember(d => d.GameId, o => o.Ignore())
                 .ForMember(d => d.GameUrlId, o => o.Ignore());
         }
     }

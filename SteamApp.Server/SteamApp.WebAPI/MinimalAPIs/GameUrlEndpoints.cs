@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using SteamApp.Application.DTOs.GameUrl;
-using SteamApp.Models.Entities;
+using SteamApp.Domain.Entities;
 using SteamApp.WebAPI.Context;
 
 namespace SteamApp.WebAPI.MinimalAPIs
@@ -15,18 +15,28 @@ namespace SteamApp.WebAPI.MinimalAPIs
                            .RequireAuthorization();
 
             // GET: /api/game-urls
-            group.MapGet("/", async (
-                ApplicationDbContext db,
-                IMapper mapper) =>
+            group.MapGet("/", async (ApplicationDbContext db) =>
             {
                 var entities = await db.GameUrls
                     .AsNoTracking()
+                    .Select(x => new
+                    {
+                        Id = x.Id,
+                        Name = x.Name,
+                        GameId = x.GameId,
+                        GameName = x.Game.Name,
+                        PartialUrl = x.PartialUrl,
+                        IsBatchUrl = x.IsBatchUrl,
+                        StartPage = x.StartPage,
+                        EndPage = x.EndPage,
+                        IsPixelScrape = x.IsPixelScrape
+                    })
                     .ToListAsync();
 
-                return Results.Ok(mapper.Map<List<GameUrlDto>>(entities));
+                return Results.Ok(entities);
             })
             .WithName("GetAllGameUrls")
-            .Produces<List<GameUrlDto>>(StatusCodes.Status200OK);
+            .Produces<List<object>>(StatusCodes.Status200OK);
 
             // GET: /api/game-urls/{id}
             group.MapGet("/{id:long}", async (

@@ -2,7 +2,7 @@
 {
     public sealed class ProductCreateDto
     {
-        public long GameUrlId { get; set; }
+        public long GameId { get; set; }
         public string Name { get; set; }
     }
 }

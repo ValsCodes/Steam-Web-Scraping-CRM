@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using SteamApp.Application.DTOs.WishListItem;
-using SteamApp.Models.Entities;
+using SteamApp.Domain.Entities;
 using SteamApp.WebAPI.Context;
 
 namespace SteamApp.WebAPI.MinimalAPIs

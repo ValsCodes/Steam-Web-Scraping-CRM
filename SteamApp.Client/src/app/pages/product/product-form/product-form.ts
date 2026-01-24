@@ -2,13 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { GameService, ProductService } from '../../../services';
+import { CreateProduct, Game, UpdateProduct } from '../../../models';
 
-import { CreateProduct, UpdateProduct } from '../../../models/product.model';
-import { ProductService } from '../../../services/product/product.service';
-import { GameUrlService } from '../../../services/game-url/game-url.service';
-import { GameService } from '../../../services/game/game.service';
-import { GameUrl } from '../../../models/game-url.model';
-import { Game } from '../../../models';
+
 
 @Component({
   selector: 'steam-product-form',
@@ -22,8 +19,7 @@ export class ProductForm implements OnInit {
   productId?: number;
 
   form = this.fb.nonNullable.group({
-    gameId: [null],
-    gameUrlId: [0, Validators.required],
+    gameId: [0],
     name: [''],
   });
 
@@ -32,7 +28,6 @@ export class ProductForm implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private productService: ProductService,
-    private gameUrlService: GameUrlService,
     private gameService: GameService,
   ) {}
 
@@ -40,7 +35,6 @@ export class ProductForm implements OnInit {
     const idParam = this.route.snapshot.paramMap.get('id');
 
     this.loadGames();
-    this.loadGameUrls();
 
     if (idParam) {
       this.isEditMode = true;
@@ -50,29 +44,18 @@ export class ProductForm implements OnInit {
 
     this.form.controls.gameId.valueChanges.subscribe((value) => {
       const gameId = Number(value);
-
-      if (Number.isNaN(gameId)) {
-        this.filteredGameUrls = [];
-        this.form.controls.gameUrlId.reset();
-        return;
-      }
-
-      this.filteredGameUrls = this.gameUrls.filter((x) => x.gameId === gameId);
-      this.form.controls.gameUrlId.reset();
     });
   }
 
-  filteredGameUrls: GameUrl[] = [];
 
   private loadProduct(id: number): void {
     this.productService.getById(id).subscribe((product) => {
       this.form.patchValue({
-        gameUrlId: product.gameUrlId,
+        gameId: product.gameId,
         name: product.name ?? '',
       });
 
-      // GameUrlId is immutable after creation
-      this.form.controls.gameUrlId.disable();
+      this.form.controls.gameId.disable();
     });
   }
 
@@ -88,18 +71,6 @@ export class ProductForm implements OnInit {
         for (const game of games) {
           this.gameNameById.set(game.id, game.name);
         }
-      },
-    });
-  }
-
-  gameUrls: GameUrl[] = [];
-  gameUrlNameById = new Map<number, string>();
-
-  private loadGameUrls(): void {
-    this.gameUrlService.getAll().subscribe({
-      next: (urls) => {
-        this.gameUrls = urls;
-        this.filteredGameUrls = [];
       },
     });
   }

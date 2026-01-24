@@ -1,6 +1,8 @@
 export interface WishList {
   id: number;
   gameId: number;
+  gameName: string;
+  pageUrl: string;
   price?: number | null;
   isActive: boolean;
 }

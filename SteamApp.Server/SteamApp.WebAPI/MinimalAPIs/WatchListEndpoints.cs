@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using SteamApp.Application.DTOs.WatchList;
 using SteamApp.Application.DTOs.WatchListItem;
-using SteamApp.Models.Entities;
+using SteamApp.Domain.Entities;
 using SteamApp.WebAPI.Context;
 
 namespace SteamApp.WebAPI.MinimalAPIs

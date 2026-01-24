@@ -11,7 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{23836989
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamApp.Tests", "..\SteamApp.Tests\SteamApp.Tests.csproj", "{4AA67631-44D7-47C2-96DE-4C5697348CC7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamApp.Models", "..\SteamApp.Models\SteamApp.Models.csproj", "{07F3FDBD-871A-47AD-8912-6083BD3D4082}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamApp.Domain", "..\SteamApp.Models\SteamApp.Domain.csproj", "{07F3FDBD-871A-47AD-8912-6083BD3D4082}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamApp.WebApiClient", "..\SteamApp.WebApiClient\SteamApp.WebApiClient.csproj", "{2BE861C8-13D6-452D-93B1-943121BBD9AC}"
 EndProject

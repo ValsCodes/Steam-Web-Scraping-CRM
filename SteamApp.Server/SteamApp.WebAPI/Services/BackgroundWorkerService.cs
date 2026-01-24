@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using SteamApp.Infrastructure;
-using SteamApp.Models.ValueObjects;
+using SteamApp.Domain.ValueObjects;
 
 namespace SteamApp.WebAPI.Services
 {

@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SteamApp.Domain.Entities
 {
-    [Table("wish_list")]
-    public sealed class WishList
+    [Table("game_add_on")]
+    public class GameAddOn
     {
         [Key]
         [Column("id")]
@@ -16,13 +16,10 @@ namespace SteamApp.Domain.Entities
         [Column("game_id")]
         [ForeignKey(nameof(Game))]
         public long GameId { get; set; }
-        [InverseProperty(nameof(Game.WishLists))]
+        [InverseProperty(nameof(Game.GameAddOns))]
         public Game Game { get; set; }
 
         [Column("price")]
         public double? Price { get; set; }
-
-        [Column("is_active")]
-        public bool IsActive { get; set; }
     }
 }

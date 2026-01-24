@@ -1,12 +1,12 @@
 export interface Product {
   id: number;
-  gameUrlId: number;
+  gameId: number;
+  gameName: string;
   name?: string | null;
-  fullUrl?: string | null;
 }
 
 export interface CreateProduct {
-  gameUrlId: number;
+  gameId: number;
   name?: string | null;
 }
 

@@ -1,10 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace SteamApp.Models.Entities
+namespace SteamApp.Domain.Entities
 {
     [Table("game_url")]
     public sealed class GameUrl
     {
+        [Key]
         [Column("id")]
         public long Id { get; set; }
 
@@ -32,10 +34,10 @@ namespace SteamApp.Models.Entities
         [Column("is_pixel_scrape")]
         public bool IsPixelScrape { get; set; }
 
-        public ICollection<Product> Products { get; set; } = [];
-
-        public ICollection<Pixel> Pixels { get; set; } = [];
+        public ICollection<GameUrlPixels> GameUrlsPixels { get; set; } = [];
 
         public ICollection<WatchList> WatchLists { get; set; } = [];
+
+        public ICollection<GameUrlProducts> GameUrlsProducts { get; set; } = [];
     }
 }

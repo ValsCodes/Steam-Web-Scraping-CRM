@@ -71,27 +71,27 @@ export const routes: Routes = [
     component: PixelForm,
   },
   {
-  path: 'wishlist',
-  component: WishListsView
-},
-{
-  path: 'wishlist/create',
-  component: WishListForm
-},
-{
-  path: 'wishlist/edit/:id',
-  component: WishListForm
-},
-{
-  path: 'watch-list',
-  component: WatchListsView
-},
-{
-  path: 'watch-list/create',
-  component: WatchListForm
-},
-{
-  path: 'watch-list/edit/:id',
-  component: WatchListForm
-}
+    path: 'wishlist',
+    component: WishListsView,
+  },
+  {
+    path: 'wishlist/create',
+    component: WishListForm,
+  },
+  {
+    path: 'wishlist/edit/:id',
+    component: WishListForm,
+  },
+  {
+    path: 'watch-list',
+    component: WatchListsView,
+  },
+  {
+    path: 'watch-list/create',
+    component: WatchListForm,
+  },
+  {
+    path: 'watch-list/edit/:id',
+    component: WatchListForm,
+  },
 ];

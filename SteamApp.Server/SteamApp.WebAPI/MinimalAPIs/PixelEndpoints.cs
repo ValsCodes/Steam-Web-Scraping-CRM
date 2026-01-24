@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using SteamApp.Application.DTOs.Pixel;
-using SteamApp.Models.Entities;
+using SteamApp.Domain.Entities;
 using SteamApp.WebAPI.Context;
 
 namespace SteamApp.WebAPI.MinimalAPIs
@@ -21,9 +21,19 @@ namespace SteamApp.WebAPI.MinimalAPIs
             {
                 var entities = await db.Pixels
                     .AsNoTracking()
+                    .Select(e => new
+                    {
+                        e.Id,
+                        e.Name,
+                        e.RedValue,
+                        e.GreenValue,
+                        e.BlueValue,
+                        e.GameId,
+                        GameName = e.Game.Name,
+                    })
                     .ToListAsync();
 
-                return Results.Ok(mapper.Map<List<PixelDto>>(entities));
+                return Results.Ok(mapper.Map<List<object>>(entities));
             })
             .WithName("GetAllPixels")
             .Produces<List<PixelDto>>(StatusCodes.Status200OK);

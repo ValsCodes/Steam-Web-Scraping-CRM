@@ -1,20 +1,26 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace SteamApp.Models.Entities
+namespace SteamApp.Domain.Entities
 {
     [Table("product")]
     public sealed class Product
     {
+        [Key]
         [Column("id")]
         public long Id { get;  set; }
 
-        [Column("game_url_id")]
-        [ForeignKey(nameof(GameUrl))]
-        public long GameUrlId { get; set; }
-        [InverseProperty(nameof(GameUrl.Products))] 
-        public GameUrl GameUrl { get; set; }
+        [Column("game_id")]
+        [ForeignKey(nameof(Game))]
+        public long GameId { get; set; }
+        [InverseProperty(nameof(Game.Products))] 
+        public Game Game { get; set; }
 
         [Column("name")]
         public string? Name { get; set; }
+
+        public ICollection<GameUrlProducts> GameUrlsProducts { get; set; } = [];
+
+        public ICollection<WatchList> WatchLists { get; set; } = [];
     }
 }

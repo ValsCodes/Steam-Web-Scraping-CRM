@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using SteamApp.Application.DTOs.Pixel;
-using SteamApp.Models.Entities;
+using SteamApp.Domain.Entities;
 
 namespace SteamApp.WebAPI.Mapper
 {
@@ -14,8 +14,7 @@ namespace SteamApp.WebAPI.Mapper
                 .ForMember(d => d.Id, o => o.Ignore());
 
             CreateMap<PixelUpdateDto, Pixel>()
-                .ForMember(d => d.Id, o => o.Ignore())
-                .ForMember(d => d.GameUrlId, o => o.Ignore());
+                .ForMember(d => d.Id, o => o.Ignore());
         }
     }
 }

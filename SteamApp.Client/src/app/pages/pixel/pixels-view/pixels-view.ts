@@ -5,9 +5,9 @@ import { Router } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+import { Pixel } from '../../../models';
+import { PixelService } from '../../../services';
 
-import { Pixel } from '../../../models/pixel.model';
-import { PixelService } from '../../../services/pixel/pixel.service';
 
 @Component({
   selector: 'steam-pixels-grid',
@@ -24,7 +24,9 @@ import { PixelService } from '../../../services/pixel/pixel.service';
 export class PixelsView implements OnInit {
   displayedColumns: string[] = [
     'id',
-    'gameUrlId',
+    'gameName',
+    'gameUrlName',
+    'name',
     'value',
     'actions'
   ];

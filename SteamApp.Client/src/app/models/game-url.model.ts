@@ -2,6 +2,7 @@ export interface GameUrl {
   id: number;
   name?: string | null;
   gameId: number;
+  gameName: string;
   partialUrl?: string | null;
   isBatchUrl: boolean;
   startPage?: number | null;

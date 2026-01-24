@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using SteamApp.Application.DTOs.Product;
-using SteamApp.Models.Entities;
+using SteamApp.Domain.Entities;
 using SteamApp.WebAPI.Context;
 
 namespace SteamApp.WebAPI.MinimalAPIs;
@@ -21,19 +21,19 @@ public static class ProductEndpoints
         {
             var entities = await db.Products
                 .AsNoTracking()
-                .Select(x => new ProductDto
+                .Select(x => new
                 {
                     Id = x.Id,
-                    GameUrlId = x.GameUrlId,
                     Name = x.Name,
-                    FullUrl = $"{x.GameUrl.Game.BaseUrl}/{x.GameUrl.PartialUrl}"
+                    GameId = x.GameId,
+                    GameName = x.Game.Name,
                 })
                 .ToListAsync();
 
             return Results.Ok(entities);
         })
         .WithName("GetAllProducts")
-        .Produces<List<ProductDto>>(StatusCodes.Status200OK);
+        .Produces<List<object>>(StatusCodes.Status200OK);
 
         // GET: /api/products/{id}
         group.MapGet("/{id:long}", async (
@@ -56,13 +56,13 @@ public static class ProductEndpoints
             ApplicationDbContext db,
             IMapper mapper) =>
         {
-            var gameUrlExists = await db.GameUrls
+            var productExists = await db.Products
                 .AsNoTracking()
-                .AnyAsync(g => g.Id == input.GameUrlId);
+                .AnyAsync(g => g.Name.Trim().ToLower() == input.Name.Trim().ToLower());
 
-            if (!gameUrlExists)
+            if (productExists)
             {
-                return Results.BadRequest("Invalid GameUrlId");
+                return Results.BadRequest("Product Exists");
             }
 
             var entity = mapper.Map<Product>(input);

@@ -1,29 +1,33 @@
 export interface WatchList {
   id: number;
   gameId?: number | null;
-  gameUrlId?: number | null;
+  gameName: string;
+  gameUrlId: number;
+  gameUrlName: string;
+  productId?: number | null;
+  productName?: string | null;
   rating?: number | null;
-  batchUrl?: string | null;
+  batchNumber?: number | null;
   name?: string | null;
   releaseDate: string; // ISO string from API
   description?: string | null;
 }
 
 export interface CreateWatchList {
-  gameId?: number | null;
   gameUrlId?: number | null;
+  productId?: number | null;
   rating?: number | null;
-  batchUrl?: string | null;
+  batchNumber?: number | null;
   name?: string | null;
   releaseDate: string;
   description?: string | null;
 }
 
 export interface UpdateWatchList {
-  gameId?: number | null;
   gameUrlId?: number | null;
+  productId?: number | null;
   rating?: number | null;
-  batchUrl?: string | null;
+  batchNumber?: number | null;
   name?: string | null;
   releaseDate: string;
   description?: string | null;

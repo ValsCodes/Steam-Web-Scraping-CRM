@@ -1,4 +1,4 @@
-﻿namespace SteamApp.Models.ValueObjects.Authentication;
+﻿namespace SteamApp.Domain.ValueObjects.Authentication;
 
 public class TokenRequest
 {

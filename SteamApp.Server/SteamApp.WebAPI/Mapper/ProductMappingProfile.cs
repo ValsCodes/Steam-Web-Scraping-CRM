@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using SteamApp.Application.DTOs.Product;
-using SteamApp.Models.Entities;
+using SteamApp.Domain.Entities;
 
 namespace SteamApp.WebAPI.Mapper
 {
@@ -14,8 +14,7 @@ namespace SteamApp.WebAPI.Mapper
                 .ForMember(d => d.Id, o => o.Ignore());
 
             CreateMap<ProductUpdateDto, Product>()
-                .ForMember(d => d.Id, o => o.Ignore())
-                .ForMember(d => d.GameUrlId, o => o.Ignore());
+                .ForMember(d => d.Id, o => o.Ignore());
         }
     }
 }

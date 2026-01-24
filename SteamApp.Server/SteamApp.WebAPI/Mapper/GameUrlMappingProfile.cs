@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using SteamApp.Application.DTOs.GameUrl;
-using SteamApp.Models.Entities;
+using SteamApp.Domain.Entities;
 
 namespace SteamApp.WebAPI.Mapper
 {

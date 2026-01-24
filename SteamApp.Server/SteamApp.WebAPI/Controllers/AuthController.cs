@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using SteamApp.Models.ValueObjects.Authentication;
+using SteamApp.Domain.ValueObjects.Authentication;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;

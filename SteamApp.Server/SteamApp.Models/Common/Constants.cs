@@ -1,4 +1,4 @@
-﻿namespace SteamApp.Models.Common;
+﻿namespace SteamApp.Domain.Common;
 
 public class Constants
 {

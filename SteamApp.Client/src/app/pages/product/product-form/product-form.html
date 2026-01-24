@@ -11,16 +11,6 @@
   </select>
 </div>
 
-<div class="form-group">
-  <label>Game URL *</label>
-  <select formControlName="gameUrlId" class="px-2 py-1">
-    <option value="" disabled>Select a game URL</option>
-    <option *ngFor="let gameUrl of filteredGameUrls" [value]="gameUrl.id">
-      {{ gameUrl.name }}
-    </option>
-  </select>
-</div>
-
   <div class="form-group">
     <label>Name</label>
     <input formControlName="name" class="px-2 py-1" placeholder="Product name" />

@@ -4,9 +4,9 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Serialization;
+using SteamApp.Domain.ValueObjects;
+using SteamApp.Domain.ValueObjects.Authentication;
 using SteamApp.Infrastructure.Services;
-using SteamApp.Models.ValueObjects;
-using SteamApp.Models.ValueObjects.Authentication;
 using SteamApp.WebAPI.Context;
 using SteamApp.WebAPI.Jobs;
 using SteamApp.WebAPI.Mapper;
@@ -170,8 +170,7 @@ public class Program
         app.MapExtraPixelEndpoints();
         app.MapWatchListEndpoints();
         app.MapWishListEndpoints();
-
-
+        app.MapGameUrlProductsEndpoints();
 
         app.Run();
     }

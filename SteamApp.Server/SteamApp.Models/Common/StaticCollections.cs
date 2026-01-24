@@ -1,7 +1,7 @@
-﻿using SteamApp.Models.ValueObjects;
+﻿using SteamApp.Domain.ValueObjects;
 using System.Drawing;
 
-namespace SteamApp.Models.Common;
+namespace SteamApp.Domain.Common;
 
 public static class StaticCollections
 {
