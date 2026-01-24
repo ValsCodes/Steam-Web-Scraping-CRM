@@ -2,21 +2,23 @@
   <h2>{{ isEditMode ? 'Edit Wish List Item' : 'Create Wish List Item' }}</h2>
 
   <div class="form-group">
-    <label>Game Id *</label>
-    <input
-      type="number"
-      formControlName="gameId"
-      class="px-2 py-1"
-      placeholder="Game Id" />
+    <label>Game *</label>
+    <select formControlName="gameId" class="px-2 py-1">
+      <option value="" disabled>Select a game</option>
+      <option *ngFor="let game of games" [value]="game.id">
+        {{ game.name }}
+      </option>
+    </select>
+  </div>
+
+    <div class="form-group">
+    <label>Name *</label>
+    <input formControlName="name" class="px-2 py-1 w-1/2" placeholder="name" />
   </div>
 
   <div class="form-group">
     <label>Target Price</label>
-    <input
-      type="number"
-      formControlName="price"
-      class="px-2 py-1"
-      placeholder="Price (optional)" />
+    <input type="number" formControlName="price" class="px-2 py-1" placeholder="Price (optional)" />
   </div>
 
   <div class="form-group checkbox-group">

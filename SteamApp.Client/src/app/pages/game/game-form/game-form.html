@@ -4,7 +4,7 @@
   <div class="form-group">
     <label>Name *</label>
     <input
-      class="px-2 py-1"
+      class="px-2 py-1 w-1/2"
       formControlName="name"
       placeholder="Game name"
     />
@@ -19,13 +19,28 @@
   <div class="form-group">
     <label>Base URL *</label>
     <input
-      class="px-2 py-1"
+      class="px-2 py-1 w-full"
       formControlName="baseUrl"
       placeholder="https://example.com"
     />
     <div
       class="error"
       *ngIf="gameForm.get('baseUrl')?.touched && gameForm.get('baseUrl')?.invalid"
+    >
+      Valid URL is required.
+    </div>
+  </div>
+
+    <div class="form-group">
+    <label>Page URL</label>
+    <input
+      class="px-2 py-1 w-full"
+      formControlName="pageUrl"
+      placeholder="https://example.com"
+    />
+    <div
+      class="error"
+      *ngIf="gameForm.get('pageUrl')?.touched && gameForm.get('pageUrl')?.invalid"
     >
       Valid URL is required.
     </div>

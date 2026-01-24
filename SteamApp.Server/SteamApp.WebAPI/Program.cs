@@ -167,7 +167,7 @@ public class Program
         app.MapGameEndpoints();
         app.MapGameUrlEndpoints();
         app.MapProductEndpoints();
-        app.MapExtraPixelEndpoints();
+        app.MapPixelEndpoints();
         app.MapWatchListEndpoints();
         app.MapWishListEndpoints();
         app.MapGameUrlProductsEndpoints();

@@ -23,12 +23,13 @@ import { WatchListService } from '../../../services/watch-list/watch-list.servic
 })
 export class WatchListsView implements OnInit {
   displayedColumns: string[] = [
-    'id',
-    'gameId',
-    'gameUrlId',
+    'gameName',
+    'gameUrlName',
     'name',
     'rating',
     'releaseDate',
+    'description',
+    'isActive',
     'actions'
   ];
 

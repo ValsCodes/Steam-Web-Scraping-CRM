@@ -2,9 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-
-import { CreateWatchList, UpdateWatchList } from '../../../models/watch-list.model';
-import { WatchListService } from '../../../services/watch-list/watch-list.service';
+import { GameService, GameUrlService, ProductService, WatchListService } from '../../../services';
+import { CreateWatchList, Game, GameUrl, Product, UpdateWatchList } from '../../../models';
 
 @Component({
   selector: 'steam-watch-list-form',
@@ -21,24 +20,32 @@ export class WatchListForm implements OnInit {
   watchListId?: number;
 
   form = this.fb.nonNullable.group({
-    gameId: [null as number | null],
+    gameId: [0],
     gameUrlId: [null as number | null],
     rating: [null as number | null],
-    batchUrl: [''],
+    batchNumber: [null as number | null],
     name: [''],
+    productId: [null as number | null],
     releaseDate: ['', Validators.required],
-    description: ['']
+    description: [''],
+    isActive: [true]
   });
 
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
-    private watchListService: WatchListService
+    private watchListService: WatchListService,
+    private gameService: GameService,
+    private gameUrlService: GameUrlService,
+    private productService: ProductService,
   ) {}
 
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');
+    this.loadGames();
+    this.loadGameUrls();
+    this.loadProducts();
 
     if (idParam) {
       this.isEditMode = true;
@@ -50,14 +57,67 @@ export class WatchListForm implements OnInit {
   private loadWatchList(id: number): void {
     this.watchListService.getById(id).subscribe(item => {
       this.form.patchValue({
-        gameId: item.gameId ?? null,
+        gameId: item.gameId ?? 0,
         gameUrlId: item.gameUrlId ?? null,
+        productId: item.productId ?? null,
         rating: item.rating ?? null,
-        batchUrl: item.batchUrl ?? '',
+        batchNumber: item.batchNumber ?? null,
         name: item.name ?? '',
-        releaseDate: item.releaseDate,
-        description: item.description ?? ''
+        releaseDate: item.releaseDate ?? new Date().toISOString().substring(0, 10),
+        description: item.description ?? '',
+        isActive: item.isActive
       });
+    });
+  }
+
+  games: Game[] = [];
+  gameNameById = new Map<number, string>();
+
+  private loadGames(): void
+{
+    this.gameService.getAll().subscribe({
+        next: games =>
+        {
+            this.games = games;
+
+            this.gameNameById.clear();
+            for (const game of games) {
+                this.gameNameById.set(game.id, game.name);
+            }
+        }
+    });
+}
+
+  gameUrls: GameUrl[] = [];
+  gameUrlNameById = new Map<number, string>();
+
+  private loadGameUrls(): void
+{
+    this.gameUrlService.getAll().subscribe({
+        next: gameUrls =>
+        {
+            this.gameUrls = gameUrls;
+
+            this.gameUrlNameById.clear();
+            for (const gameUrl of gameUrls) {
+                this.gameUrlNameById.set(gameUrl.id, gameUrl.name ?? '-');
+            }
+        }
+    });
+}
+
+  products: Product[] = [];
+  productNameById = new Map<number, string>();
+
+  private loadProducts(): void {
+    this.productService.getAll().subscribe({
+        next: products => {
+            this.products = products;
+
+            this.productNameById.clear();
+            for (const product of products) {
+                this.productNameById.set(product.id, product.name ?? '-');}
+        }
     });
   }
 

@@ -22,12 +22,28 @@ namespace SteamApp.WebAPI.MinimalAPIs
             {
                 var entities = await db.WatchList
                     .AsNoTracking()
+                    .Select(x => new
+                    {
+                        x.Id,
+                        x.ProductId,
+                        ProductName = x.Product.Name,
+                        x.GameUrlId,
+                        GameUrlName = x.GameUrl.Name,
+                        GameName = x.GameUrl.Game.Name,
+                        FullUrl = x.GameUrl.Game.BaseUrl + x.GameUrl.PartialUrl + Uri.EscapeDataString(x.Product.Name),
+                        x.Name,
+                        x.Description,
+                        x.BatchNumber,
+                        x.Rating,
+                        x.ReleaseDate,
+                        x.IsActive,
+                    })
                     .ToListAsync();
 
-                return Results.Ok(mapper.Map<List<WatchListDto>>(entities));
+                return Results.Ok(entities);
             })
             .WithName("GetAllWatchList")
-            .Produces<List<WatchListDto>>(StatusCodes.Status200OK);
+            .Produces<List<object>>(StatusCodes.Status200OK);
 
             // GET: /api/watch-list/{id}
             group.MapGet("/{id:long}", async (
@@ -50,19 +66,14 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                // Rule: at least one FK required
-                if (input.GameId is null && input.GameUrlId is null)
-                {
-                    return Results.BadRequest("Either GameId or GameUrlId must be provided");
-                }
 
-                if (input.GameId.HasValue)
+                if (input.ProductId.HasValue)
                 {
-                    var gameExists = await db.Games
+                    var productExists = await db.Products
                         .AsNoTracking()
-                        .AnyAsync(g => g.Id == input.GameId.Value);
+                        .AnyAsync(g => g.Id == input.ProductId.Value);
 
-                    if (!gameExists) { return Results.BadRequest("Invalid GameId"); }
+                    if (!productExists) { return Results.BadRequest("Invalid ProductId"); }
                 }
 
                 if (input.GameUrlId.HasValue)

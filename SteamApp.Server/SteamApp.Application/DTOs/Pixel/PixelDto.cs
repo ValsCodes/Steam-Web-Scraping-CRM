@@ -3,7 +3,10 @@
     public sealed class PixelDto
     {
         public long Id { get; set; }
-        public long GameUrlId { get; set; }
-        public long Value { get; set; }
+        public string Name { get; set; }
+        public long RedValue { get; set; }
+        public long GreenValue { get; set; }
+        public long BlueValue { get; set; }
+        public long GameId { get; set; }
     }
 }

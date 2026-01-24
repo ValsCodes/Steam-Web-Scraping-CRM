@@ -22,7 +22,9 @@ import { GameService } from '../../../services/game/game.service';
 export class GamesView implements OnInit {
   displayedColumns: string[] = [
     //'id', 
-    'name', 'baseUrl', 'actions'];
+    'name', 'baseUrl',
+    'pageUrl',
+     'actions'];
   dataSource = new MatTableDataSource<Game>([]);
 
   searchByName = new FormControl<string | null>('');

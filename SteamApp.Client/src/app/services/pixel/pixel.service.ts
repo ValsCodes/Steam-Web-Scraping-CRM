@@ -5,6 +5,7 @@ import { catchError } from 'rxjs/operators';
 
 import {
   Pixel,
+  PixelListItem,
   CreatePixel,
   UpdatePixel
 } from '../../models/pixel.model';
@@ -12,18 +13,16 @@ import {
 import { handleError } from '../error-handler';
 import * as g from '../general-data';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class PixelService {
   private readonly controller = 'api/pixels';
   private readonly baseUrl = `${g.localHost}${this.controller}`;
 
   constructor(private http: HttpClient) {}
 
-  getAll(): Observable<Pixel[]> {
+  getAll(): Observable<PixelListItem[]> {
     return this.http
-      .get<Pixel[]>(this.baseUrl)
+      .get<PixelListItem[]>(this.baseUrl)
       .pipe(catchError(handleError));
   }
 

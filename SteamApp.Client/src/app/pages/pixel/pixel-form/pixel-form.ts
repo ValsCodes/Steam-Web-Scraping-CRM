@@ -1,9 +1,9 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { GameService, GameUrlService, PixelService } from '../../../services';
-import { CreatePixel, Game, GameUrl, UpdatePixel } from '../../../models';
+import { GameService, PixelService } from '../../../services';
+import { CreatePixel, UpdatePixel, Game } from '../../../models';
 
 @Component({
   selector: 'steam-pixel-form',
@@ -16,10 +16,14 @@ export class PixelForm implements OnInit {
   isEditMode = false;
   pixelId?: number;
 
+  games: Game[] = [];
+
   form = this.fb.nonNullable.group({
-    gameId: [0],
-    gameUrlId: [0, Validators.required],
-    value: [0, Validators.required],
+    name: ['', Validators.required],
+    gameId: [0, Validators.required],
+    redValue: [0, [Validators.required, Validators.min(0), Validators.max(255)]],
+    greenValue: [0, [Validators.required, Validators.min(0), Validators.max(255)]],
+    blueValue: [0, [Validators.required, Validators.min(0), Validators.max(255)]],
   });
 
   constructor(
@@ -27,16 +31,13 @@ export class PixelForm implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private pixelService: PixelService,
-    private gameUrlService: GameUrlService,
-    private gameService: GameService,
-    private cdr: ChangeDetectorRef,
+    private gameService: GameService
   ) {}
 
   ngOnInit(): void {
-    const idParam = this.route.snapshot.paramMap.get('id');
     this.loadGames();
-    this.loadGameUrls();
 
+    const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.isEditMode = true;
       this.pixelId = Number(idParam);
@@ -44,37 +45,21 @@ export class PixelForm implements OnInit {
     }
   }
 
-  games: Game[] = [];
-
-  gameUrls: GameUrl[] = [];
-
-  private loadGameUrls(): void {
-    this.gameUrlService.getAll().subscribe({
-      next: (gameUrls) => {
-        this.gameUrls = gameUrls;
-        this.cdr.detectChanges();
-      },
-    });
-  }
-
   private loadGames(): void {
-    this.gameService.getAll().subscribe({
-      next: (games) => {
-        this.games = games;
-        this.cdr.detectChanges();
-      },
+    this.gameService.getAll().subscribe(games => {
+      this.games = games;
     });
   }
 
   private loadPixel(id: number): void {
-    this.pixelService.getById(id).subscribe((pixel) => {
+    this.pixelService.getById(id).subscribe(pixel => {
       this.form.patchValue({
-        gameUrlId: pixel.gameUrlId,
-        value: pixel.value,
+        name: pixel.name,
+        gameId: pixel.gameId,
+        redValue: pixel.redValue,
+        greenValue: pixel.greenValue,
+        blueValue: pixel.blueValue,
       });
-
-      // GameUrlId is immutable after creation
-      this.form.controls.gameUrlId.disable();
     });
   }
 
@@ -84,16 +69,12 @@ export class PixelForm implements OnInit {
     }
 
     if (this.isEditMode && this.pixelId) {
-      const update: UpdatePixel = {
-        value: this.form.controls.value.value,
-      };
-
+      const update: UpdatePixel = this.form.getRawValue();
       this.pixelService.update(this.pixelId, update).subscribe(() => {
         this.router.navigate(['/pixels']);
       });
     } else {
       const create: CreatePixel = this.form.getRawValue();
-
       this.pixelService.create(create).subscribe(() => {
         this.router.navigate(['/pixels']);
       });

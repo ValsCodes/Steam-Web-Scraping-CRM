@@ -1,39 +1,63 @@
-<div class="form-group">
-  <label>Game Search</label>
-  <select
-    formControlName="gameId"
-    class="px-2 py-1">
-    <option value="" disabled>Select a game</option>
-    <option *ngFor="let game of games" [value]="game.id">
-      {{ game.name }}
-    </option>
-  </select>
-</div>
-
 <form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form">
   <h2>{{ isEditMode ? 'Edit Pixel' : 'Create Pixel' }}</h2>
 
-<div class="form-group">
-  <label>Game URL*</label>
-  <select
-    formControlName="gameId"
-    class="px-2 py-1">
-    <option value="" disabled>Select a game</option>
-    <option *ngFor="let gameUrl of gameUrls" [value]="gameUrl.id">
-      {{ gameUrl.name }}
-    </option>
-  </select>
-</div>
-
+  <!-- Game -->
   <div class="form-group">
-    <label>Pixel Value *</label>
-    <input
-      type="number"
-      formControlName="value"
-      class="px-2 py-1"
-      placeholder="Pixel value" />
+    <label>Game *</label>
+    <select formControlName="gameId" class="px-2 py-1">
+      <option value="" disabled>Select a game</option>
+      <ng-container *ngFor="let game of games">
+        <option [value]="game.id">
+          {{ game.name }}
+        </option>
+      </ng-container>
+    </select>
   </div>
 
+  <!-- Name -->
+  <div class="form-group">
+    <label>Name *</label>
+    <input
+      type="text"
+      formControlName="name"
+      class="px-2 py-1"
+      placeholder="Pixel name" />
+  </div>
+
+  <!-- Red -->
+  <div class="form-group">
+    <label>Red (0–255) *</label>
+    <input
+      type="number"
+      formControlName="redValue"
+      class="px-2 py-1"
+      min="0"
+      max="255" />
+  </div>
+
+  <!-- Green -->
+  <div class="form-group">
+    <label>Green (0–255) *</label>
+    <input
+      type="number"
+      formControlName="greenValue"
+      class="px-2 py-1"
+      min="0"
+      max="255" />
+  </div>
+
+  <!-- Blue -->
+  <div class="form-group">
+    <label>Blue (0–255) *</label>
+    <input
+      type="number"
+      formControlName="blueValue"
+      class="px-2 py-1"
+      min="0"
+      max="255" />
+  </div>
+
+  <!-- Actions -->
   <div class="flex gap-x-2">
     <button type="submit" [disabled]="form.invalid">
       {{ isEditMode ? 'Save' : 'Create' }}

@@ -1,23 +1,44 @@
 <form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form">
   <h2>{{ isEditMode ? 'Edit Watch List Item' : 'Create Watch List Item' }}</h2>
 
+  <!-- Game -->
   <div class="form-group">
-    <label>Game Id</label>
-    <input
-      type="number"
-      formControlName="gameId"
-      class="px-2 py-1"
-      placeholder="Game Id (optional)" />
+    <label>Game *</label>
+    <select formControlName="gameId" class="px-2 py-1">
+      <option value="" disabled>Select a game</option>
+      <ng-container *ngFor="let game of games">
+        <option [value]="game.id">
+          {{ game.name }}
+        </option>
+      </ng-container>
+    </select>
   </div>
 
+  <!-- Game URL -->
   <div class="form-group">
-    <label>Game URL Id</label>
-    <input
-      type="number"
-      formControlName="gameUrlId"
-      class="px-2 py-1"
-      placeholder="Game URL Id (optional)" />
+    <label>Game URL *</label>
+    <select formControlName="gameUrlId" class="px-2 py-1">
+      <option value="" disabled>Select a game URL</option>
+      <ng-container *ngFor="let gameUrl of gameUrls">
+        <option [value]="gameUrl.id">
+          {{ gameUrl.name }}
+        </option>
+      </ng-container>
+    </select>
   </div>
+
+    <!-- Product -->
+  <div class="form-group">
+    <label>Product *</label>
+    <select formControlName="productId" class="px-2 py-1">
+      <option value="" disabled>Select a product</option>
+      <ng-container *ngFor="let product of products">
+        <option [value]="product.id">
+          {{ product.name }}
+        </option>
+      </ng-container>
+    </select>
+  </div>  
 
   <div class="form-group">
     <label>Rating</label>
@@ -29,11 +50,11 @@
   </div>
 
   <div class="form-group">
-    <label>Batch URL</label>
+    <label>Batch Number</label>
     <input
-      formControlName="batchUrl"
+      formControlName="batchNumber"
       class="px-2 py-1"
-      placeholder="Batch URL" />
+      placeholder="Batch Number" />
   </div>
 
   <div class="form-group">
@@ -59,6 +80,13 @@
       rows="3"
       class="px-2 py-1">
     </textarea>
+  </div>
+
+    <div class="form-group checkbox-group">
+    <label>
+      <input type="checkbox" formControlName="isActive" />
+      Active
+    </label>
   </div>
 
   <div class="flex gap-x-2">

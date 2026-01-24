@@ -11,6 +11,7 @@ export interface WatchList {
   name?: string | null;
   releaseDate: string; // ISO string from API
   description?: string | null;
+  isActive: boolean;
 }
 
 export interface CreateWatchList {
@@ -21,6 +22,7 @@ export interface CreateWatchList {
   name?: string | null;
   releaseDate: string;
   description?: string | null;
+  isActive?: boolean | null;
 }
 
 export interface UpdateWatchList {
@@ -31,4 +33,5 @@ export interface UpdateWatchList {
   name?: string | null;
   releaseDate: string;
   description?: string | null;
+  isActive?: boolean | null;
 }

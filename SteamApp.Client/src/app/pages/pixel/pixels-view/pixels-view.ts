@@ -5,9 +5,9 @@ import { Router } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
-import { Pixel } from '../../../models';
-import { PixelService } from '../../../services';
 
+import { PixelListItem } from '../../../models';
+import { PixelService } from '../../../services';
 
 @Component({
   selector: 'steam-pixels-grid',
@@ -23,15 +23,14 @@ import { PixelService } from '../../../services';
 })
 export class PixelsView implements OnInit {
   displayedColumns: string[] = [
-    'id',
+    //'id',
     'gameName',
-    'gameUrlName',
     'name',
-    'value',
+    'rgb',
     'actions'
   ];
 
-  dataSource = new MatTableDataSource<Pixel>([]);
+  dataSource = new MatTableDataSource<PixelListItem>([]);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -69,5 +68,9 @@ export class PixelsView implements OnInit {
     this.pixelService.delete(id).subscribe(() => {
       this.fetchPixels();
     });
+  }
+
+  rgb(pixel: PixelListItem): string {
+    return `rgb(${pixel.redValue}, ${pixel.greenValue}, ${pixel.blueValue})`;
   }
 }

@@ -1,21 +1,28 @@
 export interface Pixel {
   id: number;
-  gameId: number;
-  gameName: string;
-  gameUrlId: number;
-  gameUrlName: string;
   name: string;
-  value: number;
+  redValue: number;
+  greenValue: number;
+  blueValue: number;
+  gameId: number;
+}
+
+export interface PixelListItem extends Pixel {
+  gameName: string;
 }
 
 export interface CreatePixel {
-  gameUrlId: number;
   name: string;
-  value: number;
+  redValue: number;
+  greenValue: number;
+  blueValue: number;
+  gameId: number;
 }
 
 export interface UpdatePixel {
-  gameUrlId?: number;
-  name?: string | null;
-  value?: number | null;
+  name: string;
+  redValue: number;
+  greenValue: number;
+  blueValue: number;
+  gameId: number;
 }

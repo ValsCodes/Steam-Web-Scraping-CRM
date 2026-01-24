@@ -23,8 +23,10 @@ import { WishListService } from '../../../services/wish-list/wish-list.service';
 })
 export class WishListsView implements OnInit {
   displayedColumns: string[] = [
-    'id',
-    'gameId',
+    //'id',
+    'gameName',
+    'name',
+    'pageUrl',
     'price',
     'isActive',
     'actions'

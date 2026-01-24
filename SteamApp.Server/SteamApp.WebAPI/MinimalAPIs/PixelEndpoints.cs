@@ -8,16 +8,14 @@ namespace SteamApp.WebAPI.MinimalAPIs
 {
     public static class PixelEndpoints
     {
-        public static WebApplication MapExtraPixelEndpoints(this WebApplication app)
+        public static WebApplication MapPixelEndpoints(this WebApplication app)
         {
             var group = app.MapGroup("api/pixels")
-                           .WithTags("ExtraPixels")
+                           .WithTags("Pixels")
                            .RequireAuthorization();
 
             // GET: /api/pixels
-            group.MapGet("/", async (
-                ApplicationDbContext db,
-                IMapper mapper) =>
+            group.MapGet("/", async (ApplicationDbContext db) =>
             {
                 var entities = await db.Pixels
                     .AsNoTracking()
@@ -29,14 +27,14 @@ namespace SteamApp.WebAPI.MinimalAPIs
                         e.GreenValue,
                         e.BlueValue,
                         e.GameId,
-                        GameName = e.Game.Name,
+                        GameName = e.Game.Name
                     })
                     .ToListAsync();
 
-                return Results.Ok(mapper.Map<List<object>>(entities));
+                return Results.Ok(entities);
             })
             .WithName("GetAllPixels")
-            .Produces<List<PixelDto>>(StatusCodes.Status200OK);
+            .Produces<List<object>>(StatusCodes.Status200OK);
 
             // GET: /api/pixels/{id}
             group.MapGet("/{id:long}", async (
@@ -44,7 +42,10 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var entity = await db.Pixels.FindAsync(id);
+                var entity = await db.Pixels
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == id);
+
                 if (entity is null) { return Results.NotFound(); }
 
                 return Results.Ok(mapper.Map<PixelDto>(entity));
@@ -59,13 +60,13 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var gameUrlExists = await db.GameUrls
+                var gameExists = await db.Games
                     .AsNoTracking()
-                    .AnyAsync(g => g.Id == input.GameUrlId);
+                    .AnyAsync(g => g.Id == input.GameId);
 
-                if (!gameUrlExists)
+                if (!gameExists)
                 {
-                    return Results.BadRequest("Invalid GameUrlId");
+                    return Results.BadRequest("Invalid GameId");
                 }
 
                 var entity = mapper.Map<Pixel>(input);
@@ -74,7 +75,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 await db.SaveChangesAsync();
 
                 var dto = mapper.Map<PixelDto>(entity);
-                return Results.Created($"/api/extra-pixels/{entity.Id}", dto);
+                return Results.Created($"/api/pixels/{entity.Id}", dto);
             })
             .WithName("CreatePixel")
             .Accepts<PixelCreateDto>("application/json")
@@ -92,8 +93,8 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 if (entity is null) { return Results.NotFound(); }
 
                 mapper.Map(input, entity);
-
                 await db.SaveChangesAsync();
+
                 return Results.NoContent();
             })
             .WithName("UpdatePixel")
@@ -111,6 +112,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                 db.Pixels.Remove(entity);
                 await db.SaveChangesAsync();
+
                 return Results.NoContent();
             })
             .WithName("DeletePixel")

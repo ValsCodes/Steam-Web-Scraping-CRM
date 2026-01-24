@@ -2,7 +2,7 @@
   <h2>{{ isEditMode ? 'Edit Game URL' : 'Create Game URL' }}</h2>
 
 <div class="form-group">
-  <label>Game Id *</label>
+  <label>Game *</label>
   <select
     formControlName="gameId"
     class="px-2 py-1">
@@ -14,10 +14,10 @@
 </div>
   
   <div class="form-group">
-    <label>Name</label>
+    <label>Name *</label>
     <input
       formControlName="name"
-      class="px-2 py-1"
+      class="px-2 py-1 w-1/2"
       placeholder="Special Item" />
   </div>
 
@@ -25,7 +25,7 @@
     <label>Partial URL</label>
     <input
       formControlName="partialUrl"
-      class="px-2 py-1"
+      class="px-2 py-1 w-full"
       placeholder="/market/listings/..." />
   </div>
 
@@ -41,21 +41,18 @@
     </label>
   </div>
 
+  @if(form.get('isBatchUrl')?.value === true)
+  {
   <div class="form-group">
     <label>Start Page</label>
-    <input
-      type="number"
-      formControlName="startPage"
-      class="px-2 py-1" />
+    <input type="number" formControlName="startPage" class="px-2 py-1" />
   </div>
-
+  
   <div class="form-group">
     <label>End Page</label>
-    <input
-      type="number"
-      formControlName="endPage"
-      class="px-2 py-1" />
+    <input type="number" formControlName="endPage" class="px-2 py-1" />
   </div>
+  }
 
   <div class="flex gap-x-2">
     <button type="submit" [disabled]="form.invalid">

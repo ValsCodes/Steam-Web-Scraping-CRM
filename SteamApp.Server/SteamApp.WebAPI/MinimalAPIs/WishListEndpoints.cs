@@ -22,9 +22,19 @@ namespace SteamApp.WebAPI.MinimalAPIs
             {
                 var entities = await db.WishList
                     .AsNoTracking()
+                    .Select(x=> new
+                    {
+                        Id = x.Id,
+                        GameName = x.Game.Name,
+                        x.Name,
+                        x.GameId,
+                        x.Game.PageUrl,
+                        x.Price,
+                        x.IsActive
+                    })
                     .ToListAsync();
 
-                return Results.Ok(mapper.Map<List<WishListDto>>(entities));
+                return Results.Ok(entities);
             })
             .WithName("GetAllWishList")
             .Produces<List<WishListDto>>(StatusCodes.Status200OK);
