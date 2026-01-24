@@ -26,7 +26,9 @@ export class ProductsView implements OnInit {
     //'id',
     //'gameId',
     'gameName',
+    'fullUrl',
     'name',
+    'isActive',
     'actions'
   ];
 
@@ -37,7 +39,6 @@ export class ProductsView implements OnInit {
 
   constructor(
     private productService: ProductService,
-    private gameService: GameService,
     private router: Router
   ) {}
 

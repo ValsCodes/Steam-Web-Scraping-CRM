@@ -1,0 +1,81 @@
+<div class="container p-4">
+  <div class="flex px-5">
+    <h2 class="text-2xl font-semibold text-gray-500">Manual Mode</h2>
+  </div>
+
+    <!-- Control Panel -->
+  <div class="flex gap-x-10 m-auto w-full justify-start">
+    <div class="flex flex-col p-4 bg-orange-200 w-1/3 rounded-md">
+      <h2>Control Panel</h2>
+
+      <!-- Game -->
+      <div class="flex py-2 gap-2 w-full justify-between">
+        <label>Game:</label>
+        <select [formControl]="gameIdControl" formControlName="gameId" class="px-2 py-1 w-full">
+          <option value="" disabled>Select a game</option>
+          <ng-container *ngFor="let game of games">
+            <option [value]="game.id">
+              {{ game.name }}
+            </option>
+          </ng-container>
+        </select>
+      </div>
+
+      <!-- Game URL -->
+      <div class="flex py-2 gap-2 w-full justify-between">
+        <label>Game URL:</label>
+        <select [formControl]="gameUrlIdControl" formControlName="gameUrlId" class="px-1 py-1 w-[75%]">
+          <option value="" disabled>Select a game URL</option>
+          <ng-container *ngFor="let gameUrl of gameUrls">
+            <option [value]="gameUrl.id">
+              {{ gameUrl.name }}
+            </option>
+          </ng-container>
+        </select>
+      </div>
+
+      <div class="flex gap-2 mt-4">
+        <button (click)="startBatchButtonClicked()" class="button button-small-success">
+          Start Batch
+        </button>
+        <button (click)="resetButtonClicked()" class="button button-small-danger">
+          Reset
+        </button>
+        <button (click)="showAllButtonClicked()" class="button button-small-primary">
+          Show All
+        </button>
+      </div>
+
+      <div class="flex gap-x-2">
+        <div class="py-2">
+          <label>Current Item:</label>
+          <input class="w-[5rem] ml-2 pl-2 rounded-md" type="number" min="1" max="500" [value]="currentIndex"
+            (input)="currentIndex = $any($event.target).valueAsNumber">
+        </div>
+
+        <div class="py-2">
+          <label>Batch Size:</label>
+          <input class="w-[5rem] ml-2 pl-2 rounded-md" type="number" min="1" max="500" [value]="weaponsBatchSize"
+            (input)="weaponsBatchSize = $any($event.target).valueAsNumber">
+        </div>
+      </div>
+
+      <div>
+        <label class="my-2 py-2">{{ weaponStatusLabel }}</label>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- List -->
+  <div class="panel panel--weapon-list">
+    <div class="grid-item flex flex-col justify-between h-full" *ngFor="let product of productsCollection; let i = index">
+      <strong>
+        {{ i + 1 }}.
+        <a [href]="product.fullUrl">
+          {{ product.productName }}
+        </a>
+      </strong>
+    </div>
+  </div>
+</div>

@@ -23,7 +23,8 @@ public static class GameUrlProductsEndpoints
                     x.ProductId,
                     ProductName = x.Product.Name,
                     x.GameUrlId,
-                    GameUrlName = x.GameUrl.Name
+                    GameUrlName = x.GameUrl.Name,
+                    FullUrl = x.GameUrl.Game.BaseUrl + x.GameUrl.PartialUrl + Uri.EscapeDataString(x.Product.Name)
                 })
                 .ToListAsync();
 
@@ -45,6 +46,27 @@ public static class GameUrlProductsEndpoints
             return exists
                 ? Results.Ok()
                 : Results.NotFound();
+        });
+
+        // GET: /api/game-url-products/{gameUrlId}
+        group.MapGet("{gameUrlId:long}", async (
+            long gameUrlId,
+            ApplicationDbContext db) =>
+        {
+            var exists = await db.GameUrlsProducts
+                .AsNoTracking()
+                .Where(x => x.GameUrlId == gameUrlId)
+                .Select(x => new
+                {
+                    x.ProductId,
+                    ProductName = x.Product.Name,
+                    x.GameUrlId,
+                    GameUrlName = x.GameUrl.Name,
+                    FullUrl = x.GameUrl.PartialUrl + Uri.EscapeDataString(x.Product.Name)
+                })
+                .ToListAsync();
+
+            return  Results.Ok(exists);
         });
 
         // POST: /api/game-url-products

@@ -26,6 +26,7 @@ export class WatchListsView implements OnInit {
     'gameName',
     'gameUrlName',
     'name',
+    'fullUrl',
     'rating',
     'releaseDate',
     'description',

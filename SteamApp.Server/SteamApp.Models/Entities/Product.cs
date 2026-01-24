@@ -19,6 +19,9 @@ namespace SteamApp.Domain.Entities
         [Column("name")]
         public string? Name { get; set; }
 
+        [Column("is_active")]
+        public bool IsActive { get; set; }
+
         public ICollection<GameUrlProducts> GameUrlsProducts { get; set; } = [];
 
         public ICollection<WatchList> WatchLists { get; set; } = [];

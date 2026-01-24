@@ -6,10 +6,8 @@ import { MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
-import { GameUrlService } from '../../../services/game-url/game-url.service';
-import { GameUrl } from '../../../models/game-url.model';
-import { Game } from '../../../models';
-import { GameService } from '../../../services/game/game.service';
+import { Game, GameUrl } from '../../../models';
+import { GameService, GameUrlService } from '../../../services';
 
 @Component({
   selector: 'steam-game-urls-grid',

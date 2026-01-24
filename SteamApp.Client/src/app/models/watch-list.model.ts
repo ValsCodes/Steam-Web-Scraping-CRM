@@ -6,6 +6,7 @@ export interface WatchList {
   gameUrlName: string;
   productId?: number | null;
   productName?: string | null;
+  fullUrl?: string | null;
   rating?: number | null;
   batchNumber?: number | null;
   name?: string | null;

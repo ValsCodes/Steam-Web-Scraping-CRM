@@ -21,6 +21,7 @@ export class ProductForm implements OnInit {
   form = this.fb.nonNullable.group({
     gameId: [0],
     name: [''],
+    isActive: [true],
   });
 
   constructor(
@@ -41,10 +42,6 @@ export class ProductForm implements OnInit {
       this.productId = Number(idParam);
       this.loadProduct(this.productId);
     }
-
-    this.form.controls.gameId.valueChanges.subscribe((value) => {
-      const gameId = Number(value);
-    });
   }
 
 
@@ -53,6 +50,7 @@ export class ProductForm implements OnInit {
       this.form.patchValue({
         gameId: product.gameId,
         name: product.name ?? '',
+        isActive: product.isActive ?? false,
       });
 
       this.form.controls.gameId.disable();
@@ -83,6 +81,7 @@ export class ProductForm implements OnInit {
     if (this.isEditMode && this.productId) {
       const update: UpdateProduct = {
         name: this.form.controls.name.value,
+        isActive: this.form.controls.isActive.value,
       };
 
       this.productService.update(this.productId, update).subscribe(() => {

@@ -55,6 +55,8 @@ export class WishListForm implements OnInit {
         name: item.name,  
       });
     });
+
+    this.form.controls.gameId.disable();
   }
 
     games: Game[] = [];
@@ -71,8 +73,6 @@ export class WishListForm implements OnInit {
           }
         },
       });
-
-      this.form.controls.gameId.disable();
     }
 
   onSubmit(): void {

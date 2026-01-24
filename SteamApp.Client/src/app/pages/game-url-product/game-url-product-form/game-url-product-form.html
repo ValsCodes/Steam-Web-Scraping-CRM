@@ -1,0 +1,33 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form">
+  <h2>{{ isEditMode ? 'Edit Game URL Product' : 'Create Game URL Product' }}</h2>
+
+  <div class="form-group">
+    <label>Game URL *</label>
+    <select formControlName="gameUrlId" class="px-2 py-1">
+      <option value="" disabled>Select a game URL</option>
+      <option *ngFor="let url of gameUrls" [value]="url.id">
+        {{ url.name }}
+      </option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Product *</label>
+    <select formControlName="productId" class="px-2 py-1">
+      <option value="" disabled>Select a product</option>
+      <option *ngFor="let product of products" [value]="product.id">
+        {{ product.name }}
+      </option>
+    </select>
+  </div>
+
+  <div class="flex gap-x-2">
+    <button type="submit" [disabled]="form.invalid">
+      {{ isEditMode ? 'Save' : 'Create' }}
+    </button>
+
+    <button type="button" (click)="cancel()">
+      Back
+    </button>
+  </div>
+</form>

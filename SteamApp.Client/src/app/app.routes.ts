@@ -1,20 +1,7 @@
 import { Routes } from '@angular/router';
-import { WebScraperComponent } from './pages/web-scraper/web-scraper.component';
-import { ManualModeComponent } from './pages/manual-mode/manual-mode.component';
-import { LoginComponent } from './pages/login/login.component';
+import { GameForm, GamesView, GameUrlForm, GameUrlProductForm, GameUrlProductsView, GameUrlsView, LoginComponent, ManualModeComponent, ManualModeV2, PixelForm, PixelsView, ProductForm, ProductsView, WatchListForm, WatchListsView, WebScraperComponent, WishListForm, WishListsView } from './pages';
 import { AuthGuard } from './services/auth/auth.guard';
-import { GamesView } from './pages/game/games-view/games-view';
-import { GameForm } from './pages/game/game-form/game-form';
-import { GameUrlForm } from './pages/game-url/game-url-form/game-url-form';
-import { GameUrlsView } from './pages/game-url/game-urls-view/game-urls-view';
-import { ProductForm } from './pages/product/product-form/product-form';
-import { ProductsView } from './pages/product/products-view/products-view';
-import { PixelForm } from './pages/pixel/pixel-form/pixel-form';
-import { PixelsView } from './pages/pixel/pixels-view/pixels-view';
-import { WishListForm } from './pages/wish-list/wish-list-form/wish-list-form';
-import { WishListsView } from './pages/wish-list/wish-lists-view/wish-lists-view';
-import { WatchListForm } from './pages/watch-list/watch-list-form/watch-list-form';
-import { WatchListsView } from './pages/watch-list/watch-lists-view/watch-lists-view';
+
 
 export const routes: Routes = [
   {
@@ -94,4 +81,20 @@ export const routes: Routes = [
     path: 'watch-list/edit/:id',
     component: WatchListForm,
   },
+  {
+    path: 'game-url-products',
+    component: GameUrlProductsView,
+  },
+  {
+    path: 'game-url-products/create',
+    component: GameUrlProductForm,
+  },
+  {
+    path: 'game-url-products/edit/:productId/:gameUrlId',
+    component: GameUrlProductForm,
+  } ,
+  {
+    path: 'manual-mode-v2',
+    component: ManualModeV2,
+  }
 ];

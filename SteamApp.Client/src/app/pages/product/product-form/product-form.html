@@ -16,6 +16,13 @@
     <input formControlName="name" class="px-2 py-1 w-1/2" placeholder="Product name" />
   </div>
 
+    <div class="form-group checkbox-group">
+    <label>
+      <input type="checkbox" formControlName="isActive" />
+      Active
+    </label>
+  </div>
+
   <div class="flex gap-x-2">
     <button type="submit" [disabled]="form.invalid">
       {{ isEditMode ? 'Save' : 'Create' }}
