@@ -19,6 +19,7 @@ export class GameUrlProductsView implements AfterViewInit {
     'productName',
     'gameUrlName',
     'fullUrl',
+    'isBatchUrl',
     'actions',
   ];
 

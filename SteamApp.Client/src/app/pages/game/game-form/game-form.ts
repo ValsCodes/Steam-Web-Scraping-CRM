@@ -29,7 +29,7 @@ export class GameForm implements OnInit {
   ngOnInit(): void {
     this.gameForm = this.fb.group({
       name: ['', Validators.required],
-      baseUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\//)]],
+      //baseUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\//)]],
       pageUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\//)]]
     });
 
@@ -46,7 +46,7 @@ export class GameForm implements OnInit {
     this.gameService.getById(id).subscribe(game => {
       this.gameForm.patchValue({
         name: game.name,
-        baseUrl: game.baseUrl,  
+        //baseUrl: game.baseUrl,  
         pageUrl: game.pageUrl
       });
     });

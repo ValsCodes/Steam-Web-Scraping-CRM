@@ -1,33 +1,57 @@
-import { Component } from '@angular/core';
-import { AuthService } from '../../services/auth/auth.service';
-import { Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+import { CommonModule } from "@angular/common";
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component } from "@angular/core";
+import { FormControl, FormGroup, ReactiveFormsModule } from "@angular/forms";
+import { AuthService } from "../../services";
+import { Router } from "@angular/router";
+import { finalize } from "rxjs";
 
 @Component({
   selector: 'steam-login',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './login.component.html',
-  styleUrl: './login.component.scss'
 })
-
 export class LoginComponent {
-  clientId = '';
-  clientSecret = '';
-  error?: string;
-  success?: string;
+  loginForm = new FormGroup({
+    clientId: new FormControl('', { nonNullable: true }),
+    clientSecret: new FormControl('', { nonNullable: true }),
+  });
+
+  isSubmitting = false;
+  error: string | null = null;
 
   constructor(
-    private auth: AuthService,
-    private router: Router
+    private readonly auth: AuthService,
+    private readonly router: Router,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
-  onSubmit() {
-    this.auth.login(this.clientId, this.clientSecret)
-      .subscribe({
-        next: () => this.success = 'Successfully Authenticated!',
-        error:  () => this.error = 'Login failed'
-      });
+  onSubmit(): void {
+  if (this.isSubmitting || this.loginForm.invalid) {
+    return;
   }
+
+  this.isSubmitting = true;
+  this.error = null;
+  this.cdr.markForCheck();
+
+  const { clientId, clientSecret } = this.loginForm.getRawValue();
+
+  this.auth.login(clientId, clientSecret)
+    .pipe(
+      finalize(() => {
+        this.isSubmitting = false;
+        this.cdr.markForCheck();
+      })
+    )
+    .subscribe({
+      next: () => {
+        this.router.navigateByUrl('/games', { replaceUrl: true });
+      },
+      error: () => {
+        this.error = 'Login failed';
+      }
+    });
+}
 }

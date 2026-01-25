@@ -1,45 +1,54 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
-import { AuthService } from '../../services/auth/auth.service';
 import { CommonModule } from '@angular/common';
+import { Subject, takeUntil } from 'rxjs';
+
+import { AuthService } from '../../services/auth/auth.service';
 import { CountdownTimerComponent } from '../countdown-timer.component';
-import { DropdownComponent } from "../dropdown/dropdown.component";
+import { DropdownComponent } from '../dropdown/dropdown.component';
 
 @Component({
   selector: 'steam-site-header',
   standalone: true,
-  imports: [CommonModule, RouterModule, CountdownTimerComponent, DropdownComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    CountdownTimerComponent,
+    DropdownComponent,
+  ],
   templateUrl: './site-header.component.html',
   styleUrl: './site-header.component.scss',
 })
-export class SiteHeaderComponent {
-  expiration: number = 0;
+export class SiteHeaderComponent implements OnInit, OnDestroy {
+  private readonly destroy$ = new Subject<void>();
 
-  constructor(private auth: AuthService, private router: Router) {}
+  isLoggedIn = false;
+  expiration = 0;
 
-  ngOnInit() {
-    this.getTimeUntilExpirationDate();
+  constructor(
+    private readonly auth: AuthService,
+    private readonly router: Router,
+  ) {}
+
+  ngOnInit(): void {
+    this.auth.loggedIn$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((loggedIn) => {
+        this.isLoggedIn = loggedIn;
+        this.expiration = loggedIn
+          ? this.auth.getTimeBeforeExpiration()
+          : 0;
+      });
   }
 
-  getTimeUntilExpirationDate(): void {
-    if (this.expiration === 0) {
-      this.expiration = this.auth.getTimeBeforeExpiration();
-    }
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
-  logout(event: MouseEvent) {
+  logout(event: MouseEvent): void {
     event.preventDefault();
     this.auth.logout();
-    this.expiration = 0;
     this.router.navigate(['login']);
-  }
-
-  isLoggedIn() {
-    const isLogged = this.auth.isLoggedIn();
-    if (isLogged) {
-      this.getTimeUntilExpirationDate();
-    }
-
-    return isLogged;
   }
 }

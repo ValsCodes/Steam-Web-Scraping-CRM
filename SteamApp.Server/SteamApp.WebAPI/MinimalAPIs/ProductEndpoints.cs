@@ -26,7 +26,6 @@ public static class ProductEndpoints
                     Id = x.Id,
                     Name = x.Name,
                     GameId = x.GameId,
-                    FullUrl = x.Game.BaseUrl + Uri.EscapeDataString(x.Name),
                     GameName = x.Game.Name,
                     x.IsActive,
                 })

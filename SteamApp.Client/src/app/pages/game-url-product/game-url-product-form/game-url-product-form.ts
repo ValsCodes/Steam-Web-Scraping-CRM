@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators, FormControl } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CreateGameUrlProduct, GameUrl, Product } from '../../../models';
-import { GameUrlProductService, GameUrlService, ProductService } from '../../../services';
+import { CreateGameUrlProduct, Game, GameUrl, Product } from '../../../models';
+import { GameService, GameUrlProductService, GameUrlService, ProductService } from '../../../services';
+import { Subject, takeUntil } from 'rxjs';
 @Component({
   selector: 'steam-game-url-product-form',
   standalone: true,
@@ -11,19 +12,20 @@ import { GameUrlProductService, GameUrlService, ProductService } from '../../../
   templateUrl: './game-url-product-form.html',
   styleUrl: './game-url-product-form.scss'
 })
-export class GameUrlProductForm implements OnInit {
+export class GameUrlProductForm implements OnInit,OnDestroy {
+
+
   isEditMode = false;
 
   originalProductId?: number;
   originalGameUrlId?: number;
 
-  gameUrls: GameUrl[] = [];
-  products: Product[] = [];
-
   form = this.fb.nonNullable.group({
     productId: [0, Validators.required],
     gameUrlId: [0, Validators.required]
   });
+
+    private readonly destroy$ = new Subject<void>();
 
   constructor(
     private fb: FormBuilder,
@@ -31,10 +33,29 @@ export class GameUrlProductForm implements OnInit {
     private router: Router,
     private service: GameUrlProductService,
     private gameUrlService: GameUrlService,
-    private productService: ProductService
+    private productService: ProductService,
+    private gameService: GameService,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  games: Game[] = [];
+  gameIdControl = new FormControl<number | null>(null);
+
+  gameUrlsAll: GameUrl[] = [];
+  gameUrlsFiltered: GameUrl[] = [];
+  gameUrlIdControl = new FormControl<number | null>(null);
+
+  productsAll: Product[] = [];
+  productsFiltered: Product[] = [];
+  productIdControl = new FormControl<number | null>(null);
+
   ngOnInit(): void {
+    this.loadGames();
     this.loadGameUrls();
     this.loadProducts();
 
@@ -55,19 +76,71 @@ export class GameUrlProductForm implements OnInit {
       this.form.controls.productId.disable();
       this.form.controls.gameUrlId.disable();
     }
+
+    this.bindGameSelection();
+  }
+      private loadGames(): void {
+    this.gameService
+      .getAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((games) => {
+        this.games = games;
+        this.cdr.markForCheck();
+      });
   }
 
+
   private loadGameUrls(): void {
-    this.gameUrlService.getAll().subscribe(urls => {
-      this.gameUrls = urls;
+    this.gameUrlService.getAll()
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(urls => {
+      this.gameUrlsAll = urls;
+      this.applyGameFilter(this.gameIdControl.value);
     });
   }
 
   private loadProducts(): void {
-    this.productService.getAll().subscribe(products => {
-      this.products = products;
+    this.productService.getAll()
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(products => {  
+      this.productsAll = products;
+      this.applyGameFilter(this.gameIdControl.value);
     });
   }
+
+    private bindGameSelection(): void {
+      this.gameIdControl.valueChanges
+        .subscribe((gameId) => {
+          this.applyGameFilter(gameId);
+        });
+    }
+  
+    private applyGameFilter(gameId: number | null): void {
+      if (gameId === null) {
+        this.gameUrlsFiltered = [];
+        this.gameUrlIdControl.reset();
+
+        this.productsFiltered = [];
+        this.productIdControl.reset();
+
+        this.cdr.markForCheck();
+        return;
+      }
+  
+      this.gameUrlsFiltered = this.gameUrlsAll.filter(
+        (url) => url.gameId === gameId,
+      );
+
+          this.productsFiltered = this.productsAll.filter(
+        (product) => product.gameId === gameId,
+      );
+  
+      this.gameUrlIdControl.reset();
+      this.productIdControl.reset();
+      this.cdr.markForCheck();
+    }
+
+  
 
   onSubmit(): void {
     if (this.form.invalid) {

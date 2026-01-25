@@ -1,6 +1,6 @@
 export interface WatchList {
   id: number;
-  gameId?: number | null;
+  gameId: number;
   gameName: string;
   gameUrlId: number;
   gameUrlName: string;
@@ -34,5 +34,5 @@ export interface UpdateWatchList {
   name?: string | null;
   releaseDate: string;
   description?: string | null;
-  isActive?: boolean | null;
+  isActive: boolean;
 }

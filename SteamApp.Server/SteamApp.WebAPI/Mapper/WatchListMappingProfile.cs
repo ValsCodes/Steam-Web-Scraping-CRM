@@ -9,7 +9,8 @@ namespace SteamApp.WebAPI.Mapper
     {
         public WatchListMappingProfile()
         {
-            CreateMap<WatchList, WatchListDto>();
+            CreateMap<WatchList, WatchListDto>()
+                .ForMember(dest => dest.GameId, opt => opt.MapFrom(src => src.GameUrl.GameId));
 
             CreateMap<WatchListCreateDto, WatchList>()
                 .ForMember(d => d.Id, o => o.Ignore());

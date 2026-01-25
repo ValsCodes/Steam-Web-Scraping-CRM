@@ -26,7 +26,7 @@ export class ProductsView implements OnInit {
     //'id',
     //'gameId',
     'gameName',
-    'fullUrl',
+    //'fullUrl',
     'name',
     'isActive',
     'actions'

@@ -4,6 +4,7 @@
     {
         public long Id { get; set; }
         public long? ProductId { get; set; }
+        public long? GameId { get; set; }
         public long? GameUrlId { get; set; }
         public int? Rating { get; set; }
         public long? BatchNumber { get; set; }

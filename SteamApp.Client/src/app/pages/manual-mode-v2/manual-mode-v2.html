@@ -1,78 +1,111 @@
-<div class="container p-4">
+<div class="container p-4 gap-2">
   <div class="flex px-5">
     <h2 class="text-2xl font-semibold text-gray-500">Manual Mode</h2>
   </div>
 
-    <!-- Control Panel -->
-  <div class="flex gap-x-10 m-auto w-full justify-start">
-    <div class="flex flex-col p-4 bg-orange-200 w-1/3 rounded-md">
-      <h2>Control Panel</h2>
+  <div class="flex gap-x-5 m-auto w-full justify-start">
+     <!-- Control Panel -->
+    <div class="flex flex-col p-4 bg-orange-200 rounded-md min-w-[400px]">
+      <h2 class="mb-4 font-semibold">Control Panel</h2>
 
       <!-- Game -->
-      <div class="flex py-2 gap-2 w-full justify-between">
-        <label>Game:</label>
-        <select [formControl]="gameIdControl" formControlName="gameId" class="px-2 py-1 w-full">
-          <option value="" disabled>Select a game</option>
-          <ng-container *ngFor="let game of games">
-            <option [value]="game.id">
-              {{ game.name }}
-            </option>
-          </ng-container>
+      <div class="flex py-2 gap-2 items-center">
+        <label class="w-24">Game</label>
+        <select class="px-2 py-1 w-full" [formControl]="gameIdControl">
+          <option [ngValue]="null" disabled>Select a game</option>
+          <option *ngFor="let game of games" [ngValue]="game.id">
+            {{ game.name }}
+          </option>
         </select>
       </div>
 
       <!-- Game URL -->
-      <div class="flex py-2 gap-2 w-full justify-between">
-        <label>Game URL:</label>
-        <select [formControl]="gameUrlIdControl" formControlName="gameUrlId" class="px-1 py-1 w-[75%]">
-          <option value="" disabled>Select a game URL</option>
-          <ng-container *ngFor="let gameUrl of gameUrls">
-            <option [value]="gameUrl.id">
-              {{ gameUrl.name }}
-            </option>
-          </ng-container>
+      <div class="flex py-2 gap-2 items-center">
+        <label class="w-24">Game URL</label>
+        <select class="px-2 py-1 w-full" [formControl]="gameUrlIdControl" [disabled]="gameUrlsFiltered.length === 0">
+          <option [ngValue]="null" disabled>Select a game URL</option>
+          <option *ngFor="let gameUrl of gameUrlsFiltered" [ngValue]="gameUrl.id">
+            {{ gameUrl.name }}
+          </option>
         </select>
       </div>
 
+      <!-- Actions -->
       <div class="flex gap-2 mt-4">
-        <button (click)="startBatchButtonClicked()" class="button button-small-success">
-          Start Batch
-        </button>
-        <button (click)="resetButtonClicked()" class="button button-small-danger">
-          Reset
-        </button>
-        <button (click)="showAllButtonClicked()" class="button button-small-primary">
+        <button class="button button-small-primary" (click)="showAllButtonClicked()"
+          [disabled]="gameUrlIdControl.value === null">
           Show All
         </button>
-      </div>
-
-      <div class="flex gap-x-2">
-        <div class="py-2">
-          <label>Current Item:</label>
-          <input class="w-[5rem] ml-2 pl-2 rounded-md" type="number" min="1" max="500" [value]="currentIndex"
-            (input)="currentIndex = $any($event.target).valueAsNumber">
-        </div>
-
-        <div class="py-2">
-          <label>Batch Size:</label>
-          <input class="w-[5rem] ml-2 pl-2 rounded-md" type="number" min="1" max="500" [value]="weaponsBatchSize"
-            (input)="weaponsBatchSize = $any($event.target).valueAsNumber">
-        </div>
-      </div>
-
-      <div>
-        <label class="my-2 py-2">{{ weaponStatusLabel }}</label>
+        <button (click)="clearButtonClicked()" class="button button-small-danger"> Clear </button>
       </div>
     </div>
 
+    <!-- Batch Settings -->
+    <div class="flex flex-col p-4 bg-orange-200 rounded-md min-w-[400px]">
+      <h2 class="mb-4 font-semibold">Batch Panel</h2>
+      <div class="flex flex-col h-full justify-between">
+        
+        <div class="flex gap-x-2 justify-between">
+          <div class="py-2"> <label>Current Item:</label> <input class="w-[5rem] ml-2 pl-2 rounded-md" type="number"
+              min="1" max="500" [value]="currentIndex" (input)="currentIndex = $any($event.target).valueAsNumber">
+          </div>
+          <div class="py-2"> <label>Batch Size:</label> <input class="w-[5rem] ml-2 pl-2 rounded-md" type="number"
+              min="1" max="500" [value]="batchSize" (input)="batchSize = $any($event.target).valueAsNumber"> </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-2 mt-4">
+          <button (click)="startBatchButtonClicked()" class="button button-small-success"> Start Batch </button>
+          <button (click)="resetButtonClicked()" class="button button-small-danger"> Reset </button>
+          <button (click)="openAllButtonClicked()" class="button button-small-primary"> Open All </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Links -->
+    <div class="flex flex-col p-4 bg-orange-200 rounded-md min-w-[300px]">
+      <h2 class="mb-4 font-semibold">Links</h2>
+      <ul class="list-disc list-inside ml-2 marker:text-black marker:text-lg">
+        <li>
+          <strong>
+            <a href="https://backpack.tf/spreadsheet" target="_blank" rel="noopener noreferrer"
+              class="hover:text-blue-600">
+              BackpackTF Prices URL
+            </a>
+          </strong>
+        </li>
+        <li>
+          <strong>
+            <a href="https://steamcommunity.com/id/_Val/inventory" target="_blank" rel="noopener noreferrer"
+              class="hover:text-blue-600">
+              Inventory
+            </a>
+          </strong>
+        </li>
+        <li>
+          <strong>
+            <a href="https://steamcommunity.com/market/" target="_blank" rel="noopener noreferrer"
+              class="hover:text-blue-600">
+              Community Market
+            </a>
+          </strong>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Search -->
+    <div class="flex flex-col p-4 bg-orange-200 rounded-md min-w-[300px]">
+      <h2 class="mb-4 font-semibold">Word List</h2>
+      <app-copy-link [textToCopy]="'Strange Part:'" [textToShow]="'< Strange Part: >'">
+      </app-copy-link>
+    </div>
   </div>
 
-  <!-- List -->
-  <div class="panel panel--weapon-list">
-    <div class="grid-item flex flex-col justify-between h-full" *ngFor="let product of productsCollection; let i = index">
-      <strong>
-        {{ i + 1 }}.
-        <a [href]="product.fullUrl">
+  <!-- Products -->
+  <div class="panel panel--weapon-list mt-6">
+    <div class="grid-item flex flex-col" *ngFor="let product of products; trackBy: trackByProductId let i = index">
+      <strong> {{ i + 1 }}.
+        <a [href]="product.fullUrl" target="_blank" rel="noopener">
           {{ product.productName }}
         </a>
       </strong>

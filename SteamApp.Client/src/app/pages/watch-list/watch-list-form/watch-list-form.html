@@ -2,87 +2,68 @@
   <h2>{{ isEditMode ? 'Edit Watch List Item' : 'Create Watch List Item' }}</h2>
 
   <!-- Game -->
-  <div class="form-group">
-    <label>Game *</label>
-    <select formControlName="gameId" class="px-2 py-1">
-      <option value="" disabled>Select a game</option>
-      <ng-container *ngFor="let game of games">
-        <option [value]="game.id">
-          {{ game.name }}
-        </option>
-      </ng-container>
+  <div class="flex py-2 gap-2 items-center">
+    <label class="w-24">Game</label>
+    <select formControlName="gameId"  class="px-2 py-1 w-full">
+      <option [ngValue]="null" disabled>Select a game</option>
+      <option *ngFor="let game of games" [ngValue]="game.id">
+        {{ game.name }}
+      </option>
     </select>
   </div>
 
   <!-- Game URL -->
-  <div class="form-group">
-    <label>Game URL *</label>
-    <select formControlName="gameUrlId" class="px-2 py-1">
-      <option value="" disabled>Select a game URL</option>
-      <ng-container *ngFor="let gameUrl of gameUrls">
-        <option [value]="gameUrl.id">
-          {{ gameUrl.name }}
-        </option>
-      </ng-container>
+  <div class="flex py-2 gap-2 items-center">
+    <label class="w-24">Game URL *</label>
+    <select formControlName="gameUrlId" class="px-2 py-1 w-full" [disabled]="gameUrlsFiltered.length === 0">
+      <option [ngValue]="null" disabled>Select a game URL</option>
+      <option *ngFor="let gameUrl of gameUrlsFiltered" [ngValue]="gameUrl.id">
+        {{ gameUrl.name }}
+      </option>
     </select>
   </div>
 
-    <!-- Product -->
-  <div class="form-group">
-    <label>Product *</label>
-    <select formControlName="productId" class="px-2 py-1">
-      <option value="" disabled>Select a product</option>
-      <ng-container *ngFor="let product of products">
-        <option [value]="product.id">
-          {{ product.name }}
-        </option>
-      </ng-container>
+  <!-- Product -->
+  <div class="flex py-2 gap-2 items-center">
+    <label class="w-24">Product *</label>
+    <select formControlName="productId" class="px-2 py-1 w-full" [disabled]="productsFiltered.length === 0">
+      <option [ngValue]="null" disabled>Select a product</option>
+      <option *ngFor="let product of productsFiltered" [ngValue]="product.id">
+        {{ product.name }}
+      </option>
     </select>
-  </div>  
+  </div>
 
   <div class="form-group">
     <label>Rating</label>
-    <input
-      type="number"
-      formControlName="rating"
-      class="px-2 py-1"
-      placeholder="Rating" />
+    <input type="number" formControlName="rating" class="px-2 py-1" placeholder="Rating" />
   </div>
 
+  @if(isBatchSelected === true)
+  {
   <div class="form-group">
     <label>Batch Number</label>
-    <input
-      formControlName="batchNumber"
-      class="px-2 py-1"
-      placeholder="Batch Number" />
+    <input formControlName="batchNumber" class="px-2 py-1" placeholder="Batch Number" />
   </div>
+  }
 
   <div class="form-group">
     <label>Name</label>
-    <input
-      formControlName="name"
-      class="px-2 py-1"
-      placeholder="Name" />
+    <input formControlName="name" class="px-2 py-1" placeholder="Name" />
   </div>
 
   <div class="form-group">
     <label>Release Date *</label>
-    <input
-      type="date"
-      formControlName="releaseDate"
-      class="px-2 py-1" />
+    <input type="date" formControlName="releaseDate" class="px-2 py-1" />
   </div>
 
   <div class="form-group">
     <label>Description</label>
-    <textarea
-      formControlName="description"
-      rows="3"
-      class="px-2 py-1">
+    <textarea formControlName="description" rows="3" class="px-2 py-1">
     </textarea>
   </div>
 
-    <div class="form-group checkbox-group">
+  <div class="form-group checkbox-group">
     <label>
       <input type="checkbox" formControlName="isActive" />
       Active

@@ -22,7 +22,8 @@ import { GameService } from '../../../services/game/game.service';
 export class GamesView implements OnInit {
   displayedColumns: string[] = [
     //'id', 
-    'name', 'baseUrl',
+    'name', 
+    //'baseUrl',
     'pageUrl',
      'actions'];
   dataSource = new MatTableDataSource<Game>([]);

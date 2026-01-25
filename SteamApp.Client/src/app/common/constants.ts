@@ -14,4 +14,5 @@ export const CONSTANTS = {
   PRODUCT_QUERY_PARAMS_SHORT:
     '?q=&category_440_Collection%5B%5D=any&category_440_Type%5B%5D=tag_misc&category_440_Quality%5B%5D=tag_Unique&category_440_Quality%5B%5D=tag_strange&appid=440#',
 
+    PAGE: '#p2_popular_desc',
 };

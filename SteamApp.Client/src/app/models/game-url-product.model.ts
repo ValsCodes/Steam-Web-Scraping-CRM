@@ -3,6 +3,7 @@ export interface GameUrlProduct {
   productName: string;
   gameUrlId: number;
   gameUrlName: string;
+  isBatchUrl: boolean;
   fullUrl: string;
 }
 

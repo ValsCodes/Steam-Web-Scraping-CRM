@@ -30,7 +30,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                         x.GameUrlId,
                         GameUrlName = x.GameUrl.Name,
                         GameName = x.GameUrl.Game.Name,
-                        FullUrl = x.GameUrl.Game.BaseUrl + x.GameUrl.PartialUrl + Uri.EscapeDataString(x.Product.Name),
+                        FullUrl = x.GameUrl.PartialUrl + Uri.EscapeDataString(x.Product.Name),
                         x.Name,
                         x.Description,
                         x.BatchNumber,
@@ -51,7 +51,10 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var entity = await db.WatchList.FindAsync(id);
+                var entity = await db.WatchList
+                    .Include(w => w.GameUrl)
+                    .FirstAsync(w => w.Id == id);
+
                 if (entity is null) { return Results.NotFound(); }
 
                 return Results.Ok(mapper.Map<WatchListDto>(entity));

@@ -1,5 +1,5 @@
 <div class="flex items-center justify-between p-4">
-        @if (isLoggedIn()) {
+        @if (isLoggedIn) {
         <div class="flex">
                 <steam-dropdown label="Scraping"
                         [links]="[{ label: 'Web Scraper', route: '/web-scraper' },
@@ -17,7 +17,7 @@
                 <a routerLink="/watch-list" routerLinkActive="active">WatchList</a>
         </div>}
         <div class="flex space-x-4 items-center">
-                @if(isLoggedIn())
+                @if(isLoggedIn)
                 {
                 <app-countdown-timer [initialMs]="expiration" [showControls]="false" [startOnLoad]="true"
                         comment="Remaining Session"></app-countdown-timer>

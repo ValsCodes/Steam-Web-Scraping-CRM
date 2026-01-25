@@ -1,21 +1,36 @@
 <form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form">
   <h2>{{ isEditMode ? 'Edit Game URL Product' : 'Create Game URL Product' }}</h2>
 
-  <div class="form-group">
-    <label>Game URL *</label>
-    <select formControlName="gameUrlId" class="px-2 py-1">
-      <option value="" disabled>Select a game URL</option>
-      <option *ngFor="let url of gameUrls" [value]="url.id">
-        {{ url.name }}
+  <!-- Game -->
+  <div class="flex py-2 gap-2 items-center">
+    <label class="w-24">Game</label>
+    <select class="px-2 py-1 w-full" [formControl]="gameIdControl">
+      <option [ngValue]="null" disabled>Select a game</option>
+      <option *ngFor="let game of games" [ngValue]="game.id">
+        {{ game.name }}
       </option>
     </select>
   </div>
 
-  <div class="form-group">
-    <label>Product *</label>
-    <select formControlName="productId" class="px-2 py-1">
-      <option value="" disabled>Select a product</option>
-      <option *ngFor="let product of products" [value]="product.id">
+  <!-- Game URL -->
+  <div class="flex py-2 gap-2 items-center">
+    <label class="w-24">Game URL *</label>
+    <select formControlName="gameUrlId" class="px-2 py-1 w-full"
+      [disabled]="gameUrlsFiltered.length === 0">
+      <option [ngValue]="null" disabled>Select a game URL</option>
+      <option *ngFor="let gameUrl of gameUrlsFiltered" [ngValue]="gameUrl.id">
+        {{ gameUrl.name }}
+      </option>
+    </select>
+  </div>
+
+  <!-- Product -->
+  <div class="flex py-2 gap-2 items-center">
+    <label class="w-24">Product *</label>
+    <select formControlName="productId" class="px-2 py-1 w-full"
+      [disabled]="productsFiltered.length === 0">
+      <option [ngValue]="null" disabled>Select a product</option>
+      <option *ngFor="let product of productsFiltered" [ngValue]="product.id">
         {{ product.name }}
       </option>
     </select>

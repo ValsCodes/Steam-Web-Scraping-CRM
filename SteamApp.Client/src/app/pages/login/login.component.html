@@ -1,14 +1,28 @@
-
-<form (ngSubmit)="onSubmit()" class="general-form w-[20rem]">
-   <h2>Login</h2>
+<form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="general-form w-[20rem]">
+  <h2>Login</h2>
 
   <div class="form-group">
-    <input class="px-2 py-1" [(ngModel)]="clientId" name="clientId" placeholder="Client ID" required>
+    <input
+      class="px-2 py-1"
+      formControlName="clientId"
+      required
+      placeholder="Client ID">
   </div>
+
   <div class="form-group">
-    <input class="px-2 py-1" [(ngModel)]="clientSecret" name="clientSecret" placeholder="Client Secret" required>
+    <input
+      class="px-2 py-1"
+      type="password"
+      formControlName="clientSecret"
+      required
+      placeholder="Client Secret">
   </div>
-  <button type="submit" class="">Log In</button>
-  <p *ngIf="error">{{error}}</p>
-<p *ngIf="success">{{success}}</p>
+
+  <button type="submit" [disabled]="isSubmitting">
+    Log In
+  </button>
+
+  @if (error) {
+    <p>{{ error }}</p>
+  }
 </form>
