@@ -24,6 +24,11 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        if (builder.Environment.IsDevelopment())
+        {
+            builder.Configuration.AddUserSecrets<Program>();
+        }
+
         builder.Services.Configure<JwtSettings>(
             builder.Configuration.GetSection("JwtSettings"));
 
@@ -58,7 +63,9 @@ public class Program
         builder.Services.AddAuthorization(opts =>
         {
             opts.AddPolicy("InternalJob", policy =>
-                policy.RequireClaim("scope", "internal"));
+            {
+                policy.RequireClaim("scope", "internal");
+            });
         });
 
         builder.Services
@@ -71,10 +78,12 @@ public class Program
 
         builder.Services.AddCors(opts =>
         {
-            opts.AddPolicy("AllowAllOrigins",
-                policy => policy.AllowAnyOrigin()
-                                .AllowAnyMethod()
-                                .AllowAnyHeader());
+            opts.AddPolicy("AllowAllOrigins", policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
         });
 
         builder.Services.AddEndpointsApiExplorer();
@@ -96,55 +105,64 @@ public class Program
             });
             c.AddSecurityRequirement(new OpenApiSecurityRequirement
             {
-                [new OpenApiSecurityScheme
-                {
-                    Reference = new OpenApiReference
-                    { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-                }
+                [
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    }
                 ] = Array.Empty<string>()
             });
         });
 
         builder.Services.AddDbContext<ApplicationDbContext>(opts =>
-            opts.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+        {
+            opts.UseSqlServer(
+                builder.Configuration.GetConnectionString("DefaultConnection"));
+        });
 
         builder.Services.AddAutoMapper(typeof(GameMappingProfile).Assembly);
 
         builder.Services.AddHttpClient<AuthApiClient>(client =>
         {
-            client.BaseAddress = new Uri(builder.Configuration["InternalApi:BaseUrl"]);
+            client.BaseAddress =
+                new Uri(builder.Configuration["InternalApi:BaseUrl"]);
         });
 
         builder.Services.AddHttpClient<BaseApiClient>(client =>
         {
-            client.BaseAddress = new Uri(builder.Configuration["InternalApi:BaseUrl"]);
+            client.BaseAddress =
+                new Uri(builder.Configuration["InternalApi:BaseUrl"]);
         });
 
         builder.Services.AddHttpClient<SteamApiClient>(client =>
         {
-            client.BaseAddress = new Uri(builder.Configuration["InternalApi:BaseUrl"]);
+            client.BaseAddress =
+                new Uri(builder.Configuration["InternalApi:BaseUrl"]);
         });
 
         builder.Services.Configure<EmailOptions>(
-        builder.Configuration.GetSection("Email"));
+            builder.Configuration.GetSection("Email"));
 
         builder.Services.AddScoped<ISteamService, SteamService>();
-
         builder.Services.AddScoped<SteamApiClient>();
         builder.Services.AddScoped<IEmailService, EmailService>();
         builder.Services.AddScoped<WishlistCheckJob>();
 
-        // hosted workers (one per job)
-        builder.Services.AddHostedService<BackgroundWorkerService<WishlistCheckJob>>();
+        builder.Services.AddHostedService<
+            BackgroundWorkerService<WishlistCheckJob>>();
 
-        // per-job options via named options (key = typeof(TJob).Name)
-        builder.Services.Configure<WorkerOptions>(nameof(WishlistCheckJob),
+        builder.Services.Configure<WorkerOptions>(
+            nameof(WishlistCheckJob),
             builder.Configuration.GetSection("Workers:WishlistCheck"));
 
-        // resilience
         builder.Services.Configure<HostOptions>(o =>
         {
-            o.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
+            o.BackgroundServiceExceptionBehavior =
+                BackgroundServiceExceptionBehavior.Ignore;
             o.ShutdownTimeout = TimeSpan.FromSeconds(15);
         });
 
@@ -152,16 +170,17 @@ public class Program
 
         app.UseSwagger();
         app.UseSwaggerUI(c =>
-            c.SwaggerEndpoint("/swagger/v1/swagger.json", "SteamApp API v1"));
+        {
+            c.SwaggerEndpoint(
+                "/swagger/v1/swagger.json",
+                "SteamApp API v1");
+        });
 
         app.UseHttpsRedirection();
-
         app.UseCors("AllowAllOrigins");
-
         app.UseAuthentication();
         app.UseAuthorization();
 
-        // Regular API controllers
         app.MapControllers();
 
         app.MapGameEndpoints();
