@@ -22,9 +22,6 @@ namespace SteamApp.Domain.Entities
         [InverseProperty(nameof(GameUrl.WatchLists))]
         public GameUrl GameUrl { get; set; }
 
-        [Column("rating")]
-        public int? Rating { get; set; }
-
         [Column("batch_number")]
         public long? BatchNumber { get; set; }
 

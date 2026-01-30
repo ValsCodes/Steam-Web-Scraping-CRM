@@ -8,7 +8,8 @@ namespace SteamApp.WebAPI.Mapper
     {
         public ProductMappingProfile()
         {
-            CreateMap<Product, ProductDto>();
+            CreateMap<Product, ProductDto>()
+                .ForMember(dest => dest.GameName, opt => opt.MapFrom(src => src.Game.Name)); ;
 
             CreateMap<ProductCreateDto, Product>()
                 .ForMember(d => d.Id, o => o.Ignore());

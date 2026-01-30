@@ -25,7 +25,10 @@ public static class GameUrlProductsEndpoints
                     x.GameUrlId,
                     GameUrlName = x.GameUrl.Name,
                     x.GameUrl.IsBatchUrl,
-                    FullUrl = x.GameUrl.Game.BaseUrl + x.GameUrl.PartialUrl + Uri.EscapeDataString(x.Product.Name)
+                    FullUrl = x.GameUrl.Game.BaseUrl + x.GameUrl.PartialUrl + Uri.EscapeDataString(x.Product.Name
+                    .Replace("’", "'")
+                    .Replace("'", "%27")
+            )
                 })
                 .ToListAsync();
 

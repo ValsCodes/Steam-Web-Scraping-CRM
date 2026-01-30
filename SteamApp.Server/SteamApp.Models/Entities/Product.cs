@@ -19,6 +19,9 @@ namespace SteamApp.Domain.Entities
         [Column("name")]
         public string? Name { get; set; }
 
+        [Column("rating")]
+        public int? Rating { get; set; }
+
         [Column("is_active")]
         public bool IsActive { get; set; }
 

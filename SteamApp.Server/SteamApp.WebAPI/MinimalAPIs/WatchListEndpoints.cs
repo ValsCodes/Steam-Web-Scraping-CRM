@@ -34,7 +34,6 @@ namespace SteamApp.WebAPI.MinimalAPIs
                         x.Name,
                         x.Description,
                         x.BatchNumber,
-                        x.Rating,
                         x.ReleaseDate,
                         x.IsActive,
                     })
