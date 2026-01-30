@@ -45,7 +45,7 @@ namespace SteamApp.WebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("game");
+                    b.ToTable("game", (string)null);
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.GameAddOn", b =>
@@ -73,7 +73,7 @@ namespace SteamApp.WebAPI.Migrations
 
                     b.HasIndex("GameId");
 
-                    b.ToTable("game_add_on");
+                    b.ToTable("game_add_on", (string)null);
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.GameUrl", b =>
@@ -117,7 +117,7 @@ namespace SteamApp.WebAPI.Migrations
 
                     b.HasIndex("GameId");
 
-                    b.ToTable("game_url");
+                    b.ToTable("game_url", (string)null);
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.GameUrlPixels", b =>
@@ -134,7 +134,7 @@ namespace SteamApp.WebAPI.Migrations
 
                     b.HasIndex("GameUrlId");
 
-                    b.ToTable("game_url_pixels");
+                    b.ToTable("game_url_pixels", (string)null);
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.GameUrlProducts", b =>
@@ -151,7 +151,7 @@ namespace SteamApp.WebAPI.Migrations
 
                     b.HasIndex("GameUrlId");
 
-                    b.ToTable("game_url_products");
+                    b.ToTable("game_url_products", (string)null);
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.Pixel", b =>
@@ -188,7 +188,7 @@ namespace SteamApp.WebAPI.Migrations
 
                     b.HasIndex("GameId");
 
-                    b.ToTable("pixel");
+                    b.ToTable("pixel", (string)null);
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.Product", b =>
@@ -216,7 +216,7 @@ namespace SteamApp.WebAPI.Migrations
 
                     b.HasIndex("GameId");
 
-                    b.ToTable("product");
+                    b.ToTable("product", (string)null);
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.WatchList", b =>
@@ -266,7 +266,7 @@ namespace SteamApp.WebAPI.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("watch_list");
+                    b.ToTable("watch_list", (string)null);
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.WishList", b =>
@@ -298,7 +298,7 @@ namespace SteamApp.WebAPI.Migrations
 
                     b.HasIndex("GameId");
 
-                    b.ToTable("wish_list");
+                    b.ToTable("wish_list", (string)null);
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.GameAddOn", b =>

@@ -24,9 +24,33 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        builder.Configuration.Sources.Clear();
+
+        builder.Configuration
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
+            .AddEnvironmentVariables();
+
         if (builder.Environment.IsDevelopment())
         {
             builder.Configuration.AddUserSecrets<Program>();
+        }
+
+        string[] required =
+        {
+            "ConnectionStrings:DefaultConnection",
+            "JwtSettings:Key",
+            "JwtSettings:Issuer",
+            "JwtSettings:Audience",
+            "InternalClient:ClientSecret"
+        };
+
+        foreach (var key in required)
+        {
+            if (string.IsNullOrWhiteSpace(builder.Configuration[key]))
+            {
+                throw new InvalidOperationException($"Missing required configuration: {key}");
+            }
         }
 
         builder.Services.Configure<JwtSettings>(
@@ -35,26 +59,33 @@ public class Program
         builder.Services.AddSingleton(sp =>
             sp.GetRequiredService<IOptions<JwtSettings>>().Value);
 
+        var jwt = builder.Configuration
+            .GetSection("JwtSettings")
+            .Get<JwtSettings>()!;
+
         var clients = builder.Configuration
             .GetSection("Clients")
             .Get<List<ClientDefinition>>() ?? new List<ClientDefinition>();
 
         builder.Services.AddSingleton<IReadOnlyList<ClientDefinition>>(clients);
 
-        var jwt = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()!;
         builder.Services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(opts =>
             {
                 var key = Encoding.UTF8.GetBytes(jwt.Key);
+
                 opts.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
                     ValidIssuer = jwt.Issuer,
+
                     ValidateAudience = true,
                     ValidAudience = jwt.Audience,
+
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(key),
+
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.FromMinutes(1)
                 };
@@ -94,15 +125,16 @@ public class Program
                 Title = "SteamApp API",
                 Version = "v2"
             });
+
             c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
                 Name = "Authorization",
                 Type = SecuritySchemeType.Http,
                 Scheme = "bearer",
                 BearerFormat = "JWT",
-                In = ParameterLocation.Header,
-                Description = "JWT Authorization header using the Bearer scheme"
+                In = ParameterLocation.Header
             });
+
             c.AddSecurityRequirement(new OpenApiSecurityRequirement
             {
                 [
