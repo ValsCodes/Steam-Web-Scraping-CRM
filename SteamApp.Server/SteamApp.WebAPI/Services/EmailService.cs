@@ -1,48 +1,38 @@
-﻿using MailKit.Net.Smtp;
-using MailKit.Security;
+﻿using Mailtrap;
+using Mailtrap.Emails.Requests;
+using Mailtrap.Emails.Responses;
 using Microsoft.Extensions.Options;
-using MimeKit;
 using SteamApp.Infrastructure.Services;
 
-namespace SteamApp.WebAPI.Services
+namespace SteamApp.WebAPI.Services;
+
+public class EmailService(IOptions<EmailOptions> options) : IEmailService
 {
-    public class EmailService(IOptions<EmailOptions> options) : IEmailService
+    public async Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
     {
-        private readonly EmailOptions _options = options.Value;
-
-        public async Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
+        try
         {
-            var email = new MimeMessage();
+            var apiToken = options.Value.ApiToken;
+            var sandboxId = int.Parse(options.Value.SandboxID);
 
-            email.From.Add(MailboxAddress.Parse(message.From ?? _options.DefaultFrom));
-            email.To.Add(MailboxAddress.Parse(message.To));
-            email.Subject = message.Subject;
+            using var mailtrapClientFactory = new MailtrapClientFactory(apiToken);
 
-            var bodyBuilder = new BodyBuilder
-            {
-                HtmlBody = message.HtmlBody,
-                TextBody = message.PlainTextBody
-            };
+            IMailtrapClient mailtrapClient = mailtrapClientFactory.CreateClient();
 
-            email.Body = bodyBuilder.ToMessageBody();
-
-            using var client = new SmtpClient();
-
-            await client.ConnectAsync(
-                _options.SmtpHost,
-                _options.SmtpPort,
-                _options.UseSsl ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls,
-                cancellationToken
-            );
-
-            await client.AuthenticateAsync(
-                _options.Username,
-                _options.Password,
-                cancellationToken
-            );
-
-            await client.SendAsync(email, cancellationToken);
-            await client.DisconnectAsync(true, cancellationToken);
+            SendEmailRequest request = SendEmailRequest
+                .Create()
+                .From("hello@example.com", "Mailtrap Test")
+                .To("ivailo1224@gmail.com")
+                .Subject("You are awesome!")
+                .Category("Integration Test")
+                .Text("Test Email");
+            SendEmailResponse? response = await mailtrapClient
+                .Test(sandboxId)
+                .Send(request);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("An error occurred while sending email: {0}", ex);
         }
     }
 }

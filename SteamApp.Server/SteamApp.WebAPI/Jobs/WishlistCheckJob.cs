@@ -8,6 +8,17 @@ public class WishlistCheckJob(ILogger<WishlistCheckJob> log, SteamApiClient apiC
 {
     public async Task RunAsync(CancellationToken ct)
     {
+
+        await emailSerivce.SendAsync(new EmailMessage(To: "ivailo1224@gmail.com",
+                Subject: "Welcome",
+                HtmlBody: "<h1>Welcome</h1><p>Your account is active.</p>",
+                PlainTextBody: "Welcome. Your account is active."), ct);
+
+        log.LogInformation($"WishlistCheckJob tick at {DateTime.UtcNow}: whishlist item Test");
+
+        return;
+
+
         // purge old data, compact blobs, etc.
         var wishList = await apiClient.Games.GetAllAsync(ct);
 
@@ -15,12 +26,12 @@ public class WishlistCheckJob(ILogger<WishlistCheckJob> log, SteamApiClient apiC
         foreach (var item in wishList)
         {
 
-            //var emailMessage = new EmailMessage(To: "ivailo1224@gmail.com", 
-            //    Subject: "Welcome", 
-            //    HtmlBody: "<h1>Welcome</h1><p>Your account is active.</p>", 
-            //    PlainTextBody: "Welcome. Your account is active.");
+            var emailMessage = new EmailMessage(To: "ivailo1224@gmail.com",
+                Subject: "Welcome",
+                HtmlBody: "<h1>Welcome</h1><p>Your account is active.</p>",
+                PlainTextBody: "Welcome. Your account is active.");
 
-            //await emailSerivce.SendAsync(emailMessage, ct);
+            await emailSerivce.SendAsync(emailMessage, ct);
 
             log.LogInformation($"WishlistCheckJob tick at {DateTime.UtcNow}: whishlist item {item.Name}");
         }

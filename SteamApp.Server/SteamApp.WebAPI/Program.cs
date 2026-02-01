@@ -177,7 +177,7 @@ public class Program
         });
 
         builder.Services.Configure<EmailOptions>(
-            builder.Configuration.GetSection("Email"));
+            builder.Configuration.GetSection("Mailstrap"));
 
         builder.Services.AddScoped<ISteamService, SteamService>();
         builder.Services.AddScoped<SteamApiClient>();
