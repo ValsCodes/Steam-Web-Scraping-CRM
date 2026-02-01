@@ -222,6 +222,8 @@ public class Program
         app.MapWatchListEndpoints();
         app.MapWishListEndpoints();
         app.MapGameUrlProductsEndpoints();
+        app.MapTagsEndpoints();
+        app.MapProductTagsEndpoints();  
 
         app.Run();
     }

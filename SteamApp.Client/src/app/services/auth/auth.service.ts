@@ -24,6 +24,8 @@ export class AuthService {
   login(clientId: string, clientSecret: string) {
     const url = `${this.endpoint}token`;
 
+    console.log(url)
+
     return this.http.post<TokenResponse>(url, { clientId, clientSecret }).pipe(
       tap(res => {
         localStorage.setItem(this.tokenKey, res.token);

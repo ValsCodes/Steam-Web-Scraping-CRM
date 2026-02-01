@@ -1,0 +1,46 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form">
+  <h2>{{ isEditMode ? 'Edit Product Tag' : 'Create Product Tag' }}</h2>
+
+  <!-- Game -->
+  <div class="flex py-2 gap-2 items-center">
+    <label class="w-24">Game</label>
+    <select class="px-2 py-1 w-full" [formControl]="gameIdControl">
+      <option [ngValue]="null" disabled>Select a game</option>
+      <option *ngFor="let game of games" [ngValue]="game.id">
+        {{ game.name }}
+      </option>
+    </select>
+  </div>
+
+  <!-- Tag -->
+  <div class="flex py-2 gap-2 items-center">
+    <label class="w-24">Tag *</label>
+    <select formControlName="tagId" class="px-2 py-1 w-full" [disabled]="tagsFiltered.length === 0">
+      <option [ngValue]="null" disabled>Select a tag</option>
+      <option *ngFor="let tag of tagsFiltered" [ngValue]="tag.id">
+        {{ tag.name }}
+      </option>
+    </select>
+  </div>
+
+  <!-- Product -->
+  <div class="flex py-2 gap-2 items-center">
+    <label class="w-24">Product *</label>
+    <select formControlName="productId" class="px-2 py-1 w-full" [disabled]="productsFiltered.length === 0">
+      <option [ngValue]="null" disabled>Select a product</option>
+      <option *ngFor="let product of productsFiltered" [ngValue]="product.id">
+        {{ product.name }}
+      </option>
+    </select>
+  </div>
+
+  <div class="flex gap-x-2">
+    <button type="submit" [disabled]="form.invalid">
+      {{ isEditMode ? 'Save' : 'Create' }}
+    </button>
+
+    <button type="button" (click)="cancel()">
+      Back
+    </button>
+  </div>
+</form>

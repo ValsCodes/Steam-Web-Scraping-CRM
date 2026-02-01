@@ -223,6 +223,47 @@ namespace SteamApp.WebAPI.Migrations
                     b.ToTable("product");
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.ProductTags", b =>
+                {
+                    b.Property<long>("ProductId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("product_id");
+
+                    b.Property<long>("TagId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tag_id");
+
+                    b.HasKey("ProductId", "TagId");
+
+                    b.HasIndex("TagId");
+
+                    b.ToTable("product_tags");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.Tag", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("GameId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("game_id");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId");
+
+                    b.ToTable("tag");
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.WatchList", b =>
                 {
                     b.Property<long>("Id")
@@ -383,6 +424,36 @@ namespace SteamApp.WebAPI.Migrations
                     b.Navigation("Game");
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.ProductTags", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.Product", "Product")
+                        .WithMany("ProductTags")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SteamApp.Domain.Entities.Tag", "Tag")
+                        .WithMany("ProductTags")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.Tag", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.Game", "Game")
+                        .WithMany("Tags")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.WatchList", b =>
                 {
                     b.HasOne("SteamApp.Domain.Entities.GameUrl", "GameUrl")
@@ -423,6 +494,8 @@ namespace SteamApp.WebAPI.Migrations
 
                     b.Navigation("Products");
 
+                    b.Navigation("Tags");
+
                     b.Navigation("WishLists");
                 });
 
@@ -444,7 +517,14 @@ namespace SteamApp.WebAPI.Migrations
                 {
                     b.Navigation("GameUrlsProducts");
 
+                    b.Navigation("ProductTags");
+
                     b.Navigation("WatchLists");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.Tag", b =>
+                {
+                    b.Navigation("ProductTags");
                 });
 #pragma warning restore 612, 618
         }

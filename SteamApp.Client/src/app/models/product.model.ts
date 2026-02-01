@@ -5,6 +5,7 @@ export interface Product {
   fullUrl?: string | null;
   name?: string | null;
   isActive: boolean;
+  tags: string[];
 }
 
 export interface CreateProduct {

@@ -2,11 +2,14 @@
 using SteamApp.Application.DTOs.GameUrlProduct;
 using SteamApp.Domain.Entities;
 using SteamApp.WebAPI.Context;
+using SteamApp.WebAPI.Helpers;
 
 namespace SteamApp.WebAPI.MinimalAPIs;
 
 public static class GameUrlProductsEndpoints
 {
+    public static IEnumerable<string> Tags { get; private set; }
+
     public static WebApplication MapGameUrlProductsEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("api/game-url-products")
@@ -25,10 +28,8 @@ public static class GameUrlProductsEndpoints
                     x.GameUrlId,
                     GameUrlName = x.GameUrl.Name,
                     x.GameUrl.IsBatchUrl,
-                    FullUrl = x.GameUrl.Game.BaseUrl + x.GameUrl.PartialUrl + Uri.EscapeDataString(x.Product.Name
-                    .Replace("’", "'")
-                    .Replace("'", "%27")
-            )
+                    Tags = x.Product.ProductTags.Select(y => y.Tag.Name),
+                    FullUrl = x.GameUrl.PartialUrl + UrlUtilities.UrlEncode(x.Product.Name),       
                 })
                 .ToListAsync();
 
@@ -66,7 +67,9 @@ public static class GameUrlProductsEndpoints
                     ProductName = x.Product.Name,
                     x.GameUrlId,
                     GameUrlName = x.GameUrl.Name,
-                    FullUrl = x.GameUrl.PartialUrl + Uri.EscapeDataString(x.Product.Name)
+                    Tags = x.Product.ProductTags.Select(y => y.Tag.Name),
+                    FullUrl = x.GameUrl.PartialUrl + UrlUtilities.UrlEncode(x.Product.Name)
+
                 })
                 .ToListAsync();
 

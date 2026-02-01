@@ -31,3 +31,12 @@ export { WatchListForm } from './watch-list/watch-list-form/watch-list-form';
 // Game URL Products
 export { GameUrlProductsView } from './game-url-product/game-url-products-view/game-url-products-view';
 export { GameUrlProductForm } from './game-url-product/game-url-product-form/game-url-product-form';
+
+// Tags
+export { TagsView } from './tag/tags-view/tags-view';
+export { TagForm } from './tag/tag-form/tag-form';
+
+// Product Tags
+export { ProductTagForm } from './product-tag/product-tag-form/product-tag-form';
+export { ProductTagsView } from './product-tag/product-tags-view/product-tags-view';
+

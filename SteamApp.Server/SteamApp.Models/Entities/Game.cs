@@ -24,5 +24,6 @@ namespace SteamApp.Domain.Entities
         public ICollection<Product> Products { get; set; } = [];
         public ICollection<Pixel> Pixels { get; set; } = [];
         public ICollection<GameAddOn> GameAddOns { get; set; } = [];
+        public ICollection<Tag> Tags { get; set; } = [];
     }
 }

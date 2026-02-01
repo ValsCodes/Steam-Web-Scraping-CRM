@@ -14,7 +14,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<GameUrlProducts> GameUrlsProducts { get; set; }
     public DbSet<GameUrlPixels> GameUrlsPixels { get; set; }
     public DbSet<GameAddOn> GameAddOns { get; set; }
-    
+    public DbSet<Tag> Tags { get; set; }
+    public DbSet<ProductTags> ProductTags { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -79,5 +81,27 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   .OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<ProductTags>(entity =>
+        {
+            entity.HasKey(e => new { e.ProductId, e.TagId });
+
+            entity.HasOne(e => e.Product)
+                  .WithMany(p => p.ProductTags)
+                  .HasForeignKey(e => e.ProductId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Tag)
+                  .WithMany(g => g.ProductTags)
+                  .HasForeignKey(e => e.TagId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Tag>(entity =>
+        {
+            entity.HasOne(p => p.Game)
+                  .WithMany(g => g.Tags)
+                  .HasForeignKey(p => p.GameId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }

@@ -5,6 +5,7 @@ export interface GameUrlProduct {
   gameUrlName: string;
   isBatchUrl: boolean;
   fullUrl: string;
+  tags: string[];
 }
 
 export interface CreateGameUrlProduct {

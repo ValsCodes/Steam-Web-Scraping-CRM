@@ -4,9 +4,9 @@ using SteamApp.Domain.Entities;
 
 namespace SteamApp.WebAPI.Mapper
 {
-    public sealed class ExtraPixelMappingProfile : Profile
+    public sealed class PixelMappingProfile : Profile
     {
-        public ExtraPixelMappingProfile()
+        public PixelMappingProfile()
         {
             CreateMap<Pixel, PixelDto>();
 

@@ -8,18 +8,15 @@ import { MatSort, MatSortModule } from '@angular/material/sort'
 import { GameService, GameUrlService, ProductService } from '../../../services';
 import { Game, Product } from '../../../models';
 import { encode } from '../../../common';
+import { FormControl } from '@angular/forms';
+import { TextFilterComponent } from "../../../components";
 
 @Component({
   selector: 'steam-products-grid',
   standalone: true,
-  imports: [
-    CommonModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatSortModule
-  ],
+  imports: [CommonModule, MatTableModule, MatPaginatorModule, MatSortModule, TextFilterComponent],
   templateUrl: './products-view.html',
-  styleUrl: './products-view.scss'
+  styleUrl: './products-view.scss',
 })
 export class ProductsView implements OnInit {
   displayedColumns: string[] = [
@@ -28,18 +25,22 @@ export class ProductsView implements OnInit {
     'gameName',
     //'fullUrl',
     'name',
+    'tags',
     'isActive',
-    'actions'
+    'actions',
   ];
 
   dataSource = new MatTableDataSource<Product>([]);
+
+  products: Product[] = [];
+  productsFiltered: Product[] = [];
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
   constructor(
     private productService: ProductService,
-    private router: Router
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -47,18 +48,21 @@ export class ProductsView implements OnInit {
   }
 
   fetchProducts(): void {
-    this.productService.getAll().subscribe(products => {
+    this.productService.getAll().subscribe((products) => {
       this.dataSource.data = products;
       this.dataSource.paginator = this.paginator;
       this.dataSource.sort = this.sort;
+
+      this.products = products;
+      this.productsFiltered = products;
     });
   }
-  
+
   createButtonClicked(): void {
     this.router.navigate(['/products/create']);
   }
 
-    encodeText(value:string): string {
+  encodeText(value: string): string {
     return encode(value);
   }
 
@@ -74,5 +78,35 @@ export class ProductsView implements OnInit {
     this.productService.delete(id).subscribe(() => {
       this.fetchProducts();
     });
+  }
+
+  searchByNameFilterControl = new FormControl<string>('', {
+    nonNullable: true,
+  });
+
+  onNameFilterChanged(filter: string): void {
+    this.searchByNameFilterControl.setValue(filter, { emitEvent: false });
+    this.loadFilteredProducts();
+  }
+
+  private loadFilteredProducts(): void {
+
+    const nameFilter =
+      this.searchByNameFilterControl.value?.toLowerCase() ?? '';
+      
+    this.productsFiltered = this.products.filter((product) => {
+      const matchesName =
+        !nameFilter || product.name?.toLowerCase().includes(nameFilter);
+
+      return matchesName;
+    });
+
+    this.dataSource.data = this.productsFiltered;
+  }
+
+    clearFiltersButtonClicked(): void {
+    this.searchByNameFilterControl.setValue('', { emitEvent: false });
+
+    this.loadFilteredProducts();
   }
 }

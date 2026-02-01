@@ -3,7 +3,6 @@
         <div class="flex">
                 <steam-dropdown label="Scraping"
                         [links]="[{ label: 'Web Scraper', route: '/web-scraper' },
-                        { label: 'Manual Scraper TF2', route: '/manual-mode' },
                         { label: 'Manual Scraper V2', route: '/manual-mode-v2' }]"></steam-dropdown>
                         
                 <steam-dropdown label="Games"
@@ -11,7 +10,10 @@
                         { label: 'Game URLs', route: '/game-urls' },
                         { label: 'Game URL Products', route: '/game-url-products' }]"></steam-dropdown> 
 
-                <a routerLink="/products" routerLinkActive="active">Products</a>
+                                        <steam-dropdown label="Products" [links]="[{ label: 'Products', route: '/products' }, 
+                                                                { label: 'Tags', route: '/tags' },
+                                                                { label: 'Product Tags', route: '/product-tags' }]"></steam-dropdown>
+
                 <a routerLink="/pixels" routerLinkActive="active">Pixels</a>
                 <a routerLink="/wishlist" routerLinkActive="active">Wishlist</a>
                 <a routerLink="/watch-list" routerLinkActive="active">WatchList</a>

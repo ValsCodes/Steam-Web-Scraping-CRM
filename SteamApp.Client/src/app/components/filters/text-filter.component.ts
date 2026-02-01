@@ -30,11 +30,8 @@ export class TextFilterComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.sub = this.SearchTextBind.valueChanges
-      .pipe(
-        debounceTime(500),
-        distinctUntilChanged()
-      )
-      .subscribe(val => {
+      .pipe(debounceTime(500), distinctUntilChanged())
+      .subscribe((val) => {
         const s = val ?? '';
         this.filterChange.emit(s);
       });

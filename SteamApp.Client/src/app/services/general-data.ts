@@ -1,4 +1,3 @@
- 
-   export const localHost = "https://localhost:7273/";
- // export const localHost = 'https://localhost:44347/';
- 
+import { environment } from '../../environment/environment';
+
+export const localHost = environment.apiBaseUrl;

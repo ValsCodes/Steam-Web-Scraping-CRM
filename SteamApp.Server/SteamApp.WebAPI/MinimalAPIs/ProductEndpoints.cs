@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using MathNet.Numerics.Statistics.Mcmc;
 using Microsoft.EntityFrameworkCore;
 using SteamApp.Application.DTOs.Product;
 using SteamApp.Domain.Entities;
@@ -21,7 +20,9 @@ public static class ProductEndpoints
             IMapper mapper) =>
         {
             var entities = await db.Products
-            .Include(x => x.Game)
+                .Include(x => x.Game)
+                .Include(x => x.ProductTags)
+                .ThenInclude(x => x.Tag)
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -36,7 +37,11 @@ public static class ProductEndpoints
             ApplicationDbContext db,
             IMapper mapper) =>
         {
-            var entity = await db.Products.FindAsync(id);
+            var entity = await db.Products
+                .Include(x => x.Game)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id);
+
             if (entity is null) { return Results.NotFound(); }
 
             return Results.Ok(mapper.Map<ProductDto>(entity));

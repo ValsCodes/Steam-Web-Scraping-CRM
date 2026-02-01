@@ -4,7 +4,7 @@
   </div>
 
   <div class="flex gap-x-5 m-auto w-full justify-start">
-     <!-- Control Panel -->
+    <!-- Control Panel -->
     <div class="flex flex-col p-4 bg-orange-200 rounded-md min-w-[400px]">
       <h2 class="mb-4 font-semibold">Control Panel</h2>
 
@@ -44,7 +44,7 @@
     <div class="flex flex-col p-4 bg-orange-200 rounded-md min-w-[400px]">
       <h2 class="mb-4 font-semibold">Batch Panel</h2>
       <div class="flex flex-col h-full justify-between">
-        
+
         <div class="flex gap-x-2 justify-between">
           <div class="py-2"> <label>Current Item:</label> <input class="w-[5rem] ml-2 pl-2 rounded-md" type="number"
               min="1" max="500" [value]="currentIndex" (input)="currentIndex = $any($event.target).valueAsNumber">
@@ -56,7 +56,7 @@
         <!-- Actions -->
         <div class="flex gap-2 mt-4">
           <button (click)="startBatchButtonClicked()" class="button button-small-success"> Start Batch </button>
-          <button (click)="resetButtonClicked()" class="button button-small-danger"> Reset </button>
+          <button (click)="clearBatchButtonClicked()" class="button button-small-danger"> Clear </button>
           <button (click)="openAllButtonClicked()" class="button button-small-primary"> Open All </button>
         </div>
       </div>
@@ -101,9 +101,32 @@
     </div>
   </div>
 
+  <div class="flex gap-x-5">
+    <app-text-filter [SearchLabel]="'Product Name'" [SearchTextBind]="searchByNameFilterControl"
+      (filterChange)="onNameFilterChanged($event)">
+    </app-text-filter>
+
+    <div class="flex gap-x-2">
+      <label>Tags</label>
+      <select [formControl]="tagSelectControl" (change)="onTagSelected()" class="px-2 py-2 w-[15rem] ml-2 rounded-md border border-black focus:border-gray-600 focus:outline-none">
+        <option [ngValue]="null">-- select tag --</option>
+        <option *ngFor="let tag of gameTagsFilter" [ngValue]="tag">
+          {{ tag.name }}
+        </option>
+      </select>
+      <div *ngFor="let f of tagsFilter">
+        {{ f }}
+        <button (click)="removeFilter(f)">×</button>
+      </div>
+    </div>
+
+    <button (click)="clearFiltersButtonClicked()" class="button button-small-danger"> Clear </button>
+  </div>
+
   <!-- Products -->
   <div class="panel panel--weapon-list mt-6">
-    <div class="grid-item flex flex-col" *ngFor="let product of products; trackBy: trackByProductId let i = index">
+    <div class="grid-item flex flex-col"
+      *ngFor="let product of productsFiltered; trackBy: trackByProductId let i = index">
       <strong> {{ i + 1 }}.
         <a [href]="product.fullUrl" target="_blank" rel="noopener">
           {{ product.productName }}
