@@ -8,6 +8,17 @@
     </button>
   </div>
 
+      <div class="flex gap-x-5">
+    <app-text-filter [SearchLabel]="'Game Url'" [SearchTextBind]="searchByGameUrlNameFilterControl"
+      (filterChange)="onGameUrlNameFilterChanged($event)">
+    </app-text-filter>
+        <app-text-filter [SearchLabel]="'Product Name'" [SearchTextBind]="searchByProductNameFilterControl"
+      (filterChange)="onProductNameFilterChanged($event)">
+    </app-text-filter>
+
+    <button (click)="clearFiltersButtonClicked()" class="button button-small-danger"> Clear </button>
+  </div>
+
   <div class="table-container">
     <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z8">
 
@@ -41,7 +52,7 @@
 
       <!-- Batch -->
       <ng-container matColumnDef="isBatchUrl">
-        <th mat-header-cell *matHeaderCellDef>Batch</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Batch</th>
         <td mat-cell *matCellDef="let row">
           <input type="checkbox" [checked]="row.isBatchUrl" disabled />
         </td>

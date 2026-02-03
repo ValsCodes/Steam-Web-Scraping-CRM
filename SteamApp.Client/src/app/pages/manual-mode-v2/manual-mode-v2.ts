@@ -18,6 +18,7 @@ import {
   TagService,
 } from '../../services';
 import { CopyLinkComponent, TextFilterComponent } from '../../components';
+import { ComboBoxComponent } from "../../components/combo-box.component";
 
 @Component({
   selector: 'steam-manual-mode-v2',
@@ -27,8 +28,8 @@ import { CopyLinkComponent, TextFilterComponent } from '../../components';
     CommonModule,
     ReactiveFormsModule,
     CopyLinkComponent,
-    TextFilterComponent,
-  ],
+    TextFilterComponent
+],
   templateUrl: './manual-mode-v2.html',
   styleUrl: './manual-mode-v2.scss',
 })

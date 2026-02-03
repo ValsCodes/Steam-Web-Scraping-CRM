@@ -29,7 +29,8 @@ public static class GameUrlProductsEndpoints
                     GameUrlName = x.GameUrl.Name,
                     x.GameUrl.IsBatchUrl,
                     Tags = x.Product.ProductTags.Select(y => y.Tag.Name),
-                    FullUrl = x.GameUrl.PartialUrl + UrlUtilities.UrlEncode(x.Product.Name),       
+                    FullUrl = x.GameUrl.PartialUrl + UrlUtilities.UrlEncode(x.Product.Name),   
+                    x.Product.Rating,
                 })
                 .ToListAsync();
 
@@ -68,7 +69,8 @@ public static class GameUrlProductsEndpoints
                     x.GameUrlId,
                     GameUrlName = x.GameUrl.Name,
                     Tags = x.Product.ProductTags.Select(y => y.Tag.Name),
-                    FullUrl = x.GameUrl.PartialUrl + UrlUtilities.UrlEncode(x.Product.Name)
+                    FullUrl = x.GameUrl.PartialUrl + UrlUtilities.UrlEncode(x.Product.Name),
+                    x.Product.Rating,
 
                 })
                 .ToListAsync();

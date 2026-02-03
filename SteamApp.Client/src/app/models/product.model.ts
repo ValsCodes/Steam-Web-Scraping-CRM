@@ -6,15 +6,18 @@ export interface Product {
   name?: string | null;
   isActive: boolean;
   tags: string[];
+  rating?: number | null;
 }
 
 export interface CreateProduct {
   gameId: number;
   name?: string | null;
   isActive?: boolean | null;
+  rating?: number | null;
 }
 
 export interface UpdateProduct {
   name?: string | null;
   isActive?: boolean | null;
+  rating?: number | null;
 }

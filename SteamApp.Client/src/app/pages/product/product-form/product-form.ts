@@ -21,6 +21,7 @@ export class ProductForm implements OnInit {
   form = this.fb.nonNullable.group({
     gameId: [0],
     name: [''],
+    rating: [null],
     isActive: [true],
   });
 
@@ -82,6 +83,7 @@ export class ProductForm implements OnInit {
       const update: UpdateProduct = {
         name: this.form.controls.name.value,
         isActive: this.form.controls.isActive.value,
+        rating: this.form.controls.rating.value,
       };
 
       this.productService.update(this.productId, update).subscribe(() => {

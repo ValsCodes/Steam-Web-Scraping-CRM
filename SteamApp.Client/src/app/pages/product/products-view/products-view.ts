@@ -10,11 +10,12 @@ import { Game, Product } from '../../../models';
 import { encode } from '../../../common';
 import { FormControl } from '@angular/forms';
 import { TextFilterComponent } from "../../../components";
+import { NumberFilterComponent } from "../../../components/filters/number-filter.component";
 
 @Component({
   selector: 'steam-products-grid',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatPaginatorModule, MatSortModule, TextFilterComponent],
+  imports: [CommonModule, MatTableModule, MatPaginatorModule, MatSortModule, TextFilterComponent, NumberFilterComponent],
   templateUrl: './products-view.html',
   styleUrl: './products-view.scss',
 })
@@ -26,6 +27,7 @@ export class ProductsView implements OnInit {
     //'fullUrl',
     'name',
     'tags',
+    'rating',
     'isActive',
     'actions',
   ];
@@ -84,19 +86,29 @@ export class ProductsView implements OnInit {
     nonNullable: true,
   });
 
+  searchByRatingFilterControl = new FormControl<number | null>(null, {
+    nonNullable: true,
+  });
+
   onNameFilterChanged(filter: string): void {
     this.searchByNameFilterControl.setValue(filter, { emitEvent: false });
     this.loadFilteredProducts();
   }
 
+   onRatingFilterChanged(filter: number): void {
+    this.searchByRatingFilterControl.setValue(filter, { emitEvent: false });
+    this.loadFilteredProducts();
+  }
+
   private loadFilteredProducts(): void {
 
-    const nameFilter =
-      this.searchByNameFilterControl.value?.toLowerCase() ?? '';
+    const nameFilter = this.searchByNameFilterControl.value?.toLowerCase() ?? '';
+
+      const ratingFilter = this.searchByRatingFilterControl.value;
       
     this.productsFiltered = this.products.filter((product) => {
-      const matchesName =
-        !nameFilter || product.name?.toLowerCase().includes(nameFilter);
+      const matchesName = (!nameFilter || product.name?.toLowerCase().includes(nameFilter)) && 
+      (!ratingFilter || product.rating == ratingFilter);
 
       return matchesName;
     });
@@ -106,6 +118,7 @@ export class ProductsView implements OnInit {
 
     clearFiltersButtonClicked(): void {
     this.searchByNameFilterControl.setValue('', { emitEvent: false });
+    this.searchByRatingFilterControl.setValue(null, { emitEvent: false });
 
     this.loadFilteredProducts();
   }

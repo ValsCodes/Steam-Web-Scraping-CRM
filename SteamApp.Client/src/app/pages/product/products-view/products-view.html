@@ -13,6 +13,10 @@
       (filterChange)="onNameFilterChanged($event)">
     </app-text-filter>
 
+    <app-number-filter [SearchLabel]="'Rating'" [SearchNumberBind]="searchByRatingFilterControl"
+      (filterChange)="onRatingFilterChanged($event)">
+    </app-number-filter>
+
     <button (click)="clearFiltersButtonClicked()" class="button button-small-danger"> Clear </button>
   </div>
 
@@ -42,6 +46,14 @@
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Tags</th>
         <td mat-cell *matCellDef="let row">
           {{ row.tags?.join(', ') || '—' }}
+        </td>
+      </ng-container>
+
+            <!-- Rating -->
+      <ng-container matColumnDef="rating">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Rating</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.rating  || '—' }}
         </td>
       </ng-container>
 
