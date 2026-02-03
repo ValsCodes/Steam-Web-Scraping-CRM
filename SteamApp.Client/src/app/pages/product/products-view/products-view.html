@@ -9,13 +9,23 @@
     </button>
   </div>
     <div class="flex gap-x-5">
+      
+      <!-- Game -->
+      <app-combo-box label="Game" [control]="gameIdControl" [items$]="games$" idKey="id" labelKey="name" [bind$]="bindToExternal$"></app-combo-box>
+      
+      <!-- Product Name -->
     <app-text-filter [SearchLabel]="'Product Name'" [SearchTextBind]="searchByNameFilterControl"
       (filterChange)="onNameFilterChanged($event)">
     </app-text-filter>
 
+    <!-- Rating -->
     <app-number-filter [SearchLabel]="'Rating'" [SearchNumberBind]="searchByRatingFilterControl"
       (filterChange)="onRatingFilterChanged($event)">
     </app-number-filter>
+
+     <!-- Tags -->
+    <app-tag-filter-select label="Tags" [control]="tagSelectControl" [options]="gameTagsFilter" [filters]="tagsFilter"
+      (tagSelected)="onTagSelectedFromComponent($event)" (removeClicked)="removeFilter($event)"></app-tag-filter-select>
 
     <button (click)="clearFiltersButtonClicked()" class="button button-small-danger"> Clear </button>
   </div>

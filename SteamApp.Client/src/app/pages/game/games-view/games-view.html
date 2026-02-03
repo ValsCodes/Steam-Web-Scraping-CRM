@@ -10,17 +10,15 @@
       </button>
     </div>
 
-    <app-text-filter
-      [SearchLabel]="'Game Name'"
-      [SearchTextBind]="searchByName"
-      (filterChange)="fetchGames()">
-    </app-text-filter>
+    <div class="flex gap-x-2">
+      <app-text-filter [SearchLabel]="'Product Name'" [SearchTextBind]="searchByName"
+        (filterChange)="onNameFilterChanged($event)">
+      </app-text-filter>
 
-    <button
-      class="button button-small-danger w-[10rem]"
-      (click)="clearFilters()">
-      Clear Filters
-    </button>
+      <button class="button button-small-danger w-[10rem]" (click)="clearFilters()">
+        Clear Filters
+      </button>
+    </div>
   </div>
 
   <div class="table-container mt-4">
@@ -46,7 +44,9 @@
       <ng-container matColumnDef="pageUrl">
         <th mat-header-cell *matHeaderCellDef>Page URL</th>
         <td mat-cell *matCellDef="let game">
-          <a [href]="game.pageUrl " [title]="game.pageUrl" target="_blank" rel="noopener noreferrer"><p><b>&lt;-- Link --&gt;</b></p></a>
+          <a [href]="game.pageUrl " [title]="game.pageUrl" target="_blank" rel="noopener noreferrer">
+            <p><b>&lt;-- Link --&gt;</b></p>
+          </a>
         </td>
       </ng-container>
 
@@ -54,15 +54,11 @@
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef>Actions</th>
         <td mat-cell *matCellDef="let game" class="flex justify-center gap-x-2 py-2">
-          <button
-            class="edit-button"
-            (click)="editButtonClicked(game.id)">
+          <button class="edit-button" (click)="editButtonClicked(game.id)">
             Edit
           </button>
 
-          <button
-            class="delete-button"
-            (click)="deleteButtonClicked(game.id)">
+          <button class="delete-button" (click)="deleteButtonClicked(game.id)">
             Delete
           </button>
         </td>

@@ -9,35 +9,22 @@
       <h2 class="mb-4 font-semibold">Control Panel</h2>
 
       <!-- Game -->
-      <div class="flex py-2 gap-2 items-center">
-        <label class="w-24">Game</label>
-        <select class="px-2 py-1 w-full" [formControl]="gameIdControl">
-          <option [ngValue]="null" disabled>Select a game</option>
-          <option *ngFor="let game of games" [ngValue]="game.id">
-            {{ game.name }}
-          </option>
-        </select>
-      </div>
+      <app-combo-box label="Game" [control]="gameIdControl" [items$]="games$" idKey="id" labelKey="name"
+        [bind$]="bindToExternal$"></app-combo-box>
 
       <!-- Game URL -->
-      <div class="flex py-2 gap-2 items-center">
-        <label class="w-24">Game URL</label>
-        <select class="px-2 py-1 w-full" [formControl]="gameUrlIdControl" [disabled]="gameUrlsFiltered.length === 0">
-          <option [ngValue]="null" disabled>Select a game URL</option>
-          <option *ngFor="let gameUrl of gameUrlsFiltered" [ngValue]="gameUrl.id">
-            {{ gameUrl.name }}
-          </option>
-        </select>
-      </div>
+      <app-combo-box label="Game URL" placeholder="Select a game URL" [control]="gameUrlIdControl"
+        [items$]="gameUrlsFiltered$" idKey="id" labelKey="name" [bind$]="bindGameUrlToExternal$"></app-combo-box>
 
       <!-- Actions -->
       <div class="flex gap-2 mt-4">
         <button class="button button-small-primary" (click)="showAllButtonClicked()"
-          [disabled]="gameUrlIdControl.value === null">
+          [hidden]="this.selectedGameUrl?.isBatchUrl" [disabled]="gameUrlIdControl.value === null">
           Show All
         </button>
         <button (click)="clearButtonClicked()" class="button button-small-danger"> Clear </button>
       </div>
+
     </div>
 
     <!-- Batch Settings -->
@@ -57,7 +44,8 @@
         <div class="flex gap-2 mt-4">
           <button (click)="startBatchButtonClicked()" class="button button-small-success"> Start Batch </button>
           <button (click)="clearBatchButtonClicked()" class="button button-small-danger"> Clear </button>
-          <button (click)="openAllButtonClicked()" class="button button-small-primary"> Open All </button>
+          <button (click)="openAllButtonClicked()" class="button button-small-primary"
+            [hidden]="this.selectedGameUrl?.isBatchUrl === true"> Open All </button>
         </div>
       </div>
     </div>
@@ -101,24 +89,22 @@
     </div>
   </div>
 
+  @if(this.selectedGameUrl?.isBatchUrl !== true)
+  {
   <div class="flex gap-x-5">
+    <!-- Product Name -->
     <app-text-filter [SearchLabel]="'Product Name'" [SearchTextBind]="searchByNameFilterControl"
       (filterChange)="onNameFilterChanged($event)">
     </app-text-filter>
 
-    <div class="flex gap-x-2">
-      <label>Tags</label>
-      <select [formControl]="tagSelectControl" (change)="onTagSelected()" class="px-2 py-2 w-[15rem] ml-2 rounded-md border border-black focus:border-gray-600 focus:outline-none">
-        <option [ngValue]="null">-- select tag --</option>
-        <option *ngFor="let tag of gameTagsFilter" [ngValue]="tag">
-          {{ tag.name }}
-        </option>
-      </select>
-      <div *ngFor="let f of tagsFilter">
-        {{ f }}
-        <button (click)="removeFilter(f)">×</button>
-      </div>
-    </div>
+    <!-- Rating -->
+    <app-number-filter [SearchLabel]="'Rating'" [SearchNumberBind]="searchByRatingFilterControl"
+      (filterChange)="onRatingFilterChanged($event)">
+    </app-number-filter>
+
+    <!-- Tags -->
+    <app-tag-filter-select label="Tags" [control]="tagSelectControl" [options]="gameTagsFilter" [filters]="tagsFilter"
+      (tagSelected)="onTagSelectedFromComponent($event)" (removeClicked)="removeFilter($event)"></app-tag-filter-select>
 
     <button (click)="clearFiltersButtonClicked()" class="button button-small-danger"> Clear </button>
   </div>
@@ -133,10 +119,10 @@
         </a>
         @if(product.rating !== null)
         {
-          Rating: {{product.rating}} ⭐ 
+        Rating: {{product.rating}} ⭐
         }
-        
       </strong>
     </div>
   </div>
+  }
 </div>

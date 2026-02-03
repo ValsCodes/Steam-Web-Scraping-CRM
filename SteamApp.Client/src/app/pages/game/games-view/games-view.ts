@@ -11,21 +11,27 @@ import { GameService } from '../../../services/game/game.service';
 
 @Component({
   selector: 'steam-games-view',
-  imports: [TextFilterComponent, 
+  imports: [
+    TextFilterComponent,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
-  CommonModule],
+    CommonModule,
+  ],
   templateUrl: './games-view.html',
   styleUrl: './games-view.scss',
 })
 export class GamesView implements OnInit {
   displayedColumns: string[] = [
-    //'id', 
-    'name', 
+    //'id',
+    'name',
     //'baseUrl',
     'pageUrl',
-     'actions'];
+    'actions',
+  ];
+
+  games: Game[] = [];
+  gamesFiltered: Game[] = [];
   dataSource = new MatTableDataSource<Game>([]);
 
   searchByName = new FormControl<string | null>('');
@@ -35,20 +41,41 @@ export class GamesView implements OnInit {
 
   constructor(
     private gameService: GameService,
-    private router: Router
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
     this.fetchGames();
   }
 
+  onNameFilterChanged(filter: string): void {
+    this.searchByName.setValue(filter, { emitEvent: false });
+    this.loadFilteredGames();
+  }
+
+  loadFilteredGames(): void {
+    const nameFilter = this.searchByName.value?.toLowerCase() ?? '';
+
+    this.gamesFiltered = this.games.filter((game) => {
+      const matchesName =
+        !nameFilter || game.name.toLowerCase().includes(nameFilter);
+
+      return matchesName;
+    });
+
+    this.dataSource.data = this.gamesFiltered;
+  }
+
   fetchGames(): void {
     this.gameService.getAll().subscribe({
-      next: games => {
+      next: (games) => {
         this.dataSource.data = games;
+        this.games = games;
+        this.gamesFiltered = games;
+
         this.dataSource.paginator = this.paginator;
         this.dataSource.sort = this.sort;
-      }
+      },
     });
   }
 
@@ -71,7 +98,7 @@ export class GamesView implements OnInit {
     // }
 
     this.gameService.delete(id).subscribe({
-      next: () => this.fetchGames()
+      next: () => this.fetchGames(),
     });
   }
 }

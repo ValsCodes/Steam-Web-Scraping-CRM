@@ -1,15 +1,21 @@
 import {
-  Component,
-  OnInit,
-  OnDestroy,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  Component,
+  OnDestroy,
+  OnInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { merge, Subject, takeUntil } from 'rxjs';
+import {
+  BehaviorSubject,
+  merge,
+  startWith,
+  Subject,
+  takeUntil,
+  tap,
+} from 'rxjs';
 
-import { CONSTANTS } from '../../common/constants';
 import { Game, GameUrl, GameUrlProduct, Tag } from '../../models';
 import {
   GameService,
@@ -18,7 +24,10 @@ import {
   TagService,
 } from '../../services';
 import { CopyLinkComponent, TextFilterComponent } from '../../components';
-import { ComboBoxComponent } from "../../components/combo-box.component";
+import { ComboBoxComponent } from '../../components/filters/combo-box.component';
+import { TagFilterSelectComponent } from '../../components/filters/tag-filter.component';
+import { CONSTANTS } from '../../common';
+import { NumberFilterComponent } from "../../components/filters/number-filter.component";
 
 @Component({
   selector: 'steam-manual-mode-v2',
@@ -28,8 +37,11 @@ import { ComboBoxComponent } from "../../components/combo-box.component";
     CommonModule,
     ReactiveFormsModule,
     CopyLinkComponent,
-    TextFilterComponent
-],
+    TextFilterComponent,
+    ComboBoxComponent,
+    TagFilterSelectComponent,
+    NumberFilterComponent,
+  ],
   templateUrl: './manual-mode-v2.html',
   styleUrl: './manual-mode-v2.scss',
 })
@@ -37,38 +49,77 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   currentIndex: number | null = null;
   batchSize: number | null = null;
 
-  games: Game[] = [];
-  gameUrlsAll: GameUrl[] = [];
-  gameUrlsFiltered: GameUrl[] = [];
+  readonly games$ = new BehaviorSubject<readonly Game[]>([]);
+  readonly gameUrlsFiltered$ = new BehaviorSubject<readonly GameUrl[]>([]);
+
   selectedGameUrl: GameUrl | null = null;
 
   products: GameUrlProduct[] = [];
   productsFiltered: GameUrlProduct[] = [];
 
-  tagSelectControl = new FormControl<Tag | null>({
+  readonly gameIdControl = new FormControl<number | null>(null);
+  readonly gameUrlIdControl = new FormControl<number | null>(null);
+
+  readonly searchByNameFilterControl = new FormControl<string>('', {
+    nonNullable: true,
+  });
+
+  readonly searchByRatingFilterControl = new FormControl<number | null>(null, {
+    nonNullable: true,
+  });
+
+  readonly tagSelectControl = new FormControl<Tag | null>({
     value: null,
     disabled: true,
   });
 
-  gameTags: Tag[] = [];
   gameTagsFilter: Tag[] = [];
   tagsFilter: string[] = [];
 
-  gameIdControl = new FormControl<number | null>(null);
-  gameUrlIdControl = new FormControl<number | null>(null);
+  readonly bindToExternal$ = this.gameIdControl.valueChanges.pipe(
+    startWith(this.gameIdControl.value),
+    tap((gameId) => {
+      this.applyGameFilter(gameId);
+    }),
+  );
 
-  searchByNameFilterControl = new FormControl<string>('', {
-    nonNullable: true,
-  });
+  readonly bindGameUrlToExternal$ = this.gameUrlIdControl.valueChanges.pipe(
+    startWith(this.gameUrlIdControl.value),
+    tap((gameUrlId) => {
+      if (gameUrlId === null) {
+        this.selectedGameUrl = null;
+        this.products = [];
+        this.productsFiltered = [];
+        this.cdr.markForCheck();
+        return;
+      }
+
+      this.selectedGameUrl =
+        this.gameUrlsFiltered$.value.find((u) => u.id === gameUrlId) ?? null;
+
+      this.clearBatchButtonClicked();
+
+      if (this.selectedGameUrl?.isBatchUrl) {
+        this.currentIndex = this.selectedGameUrl.startPage ?? null;
+        this.batchSize = this.currentIndex === null ? null : 5;
+      }
+
+      this.cdr.markForCheck();
+    }),
+  );
 
   private readonly destroy$ = new Subject<void>();
+
+  private games: Game[] = [];
+  private gameUrlsAll: GameUrl[] = [];
+  private gameTagsAll: Tag[] = [];
 
   constructor(
     private readonly gameService: GameService,
     private readonly gameUrlService: GameUrlService,
     private readonly gameUrlProductService: GameUrlProductService,
-    private readonly cdr: ChangeDetectorRef,
     private readonly tagsService: TagService,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -76,12 +127,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.loadGameUrls();
     this.loadGameTags();
 
-    this.bindGameSelection();
-    this.bindGameUrlSelection();
-
-    merge(
-      this.searchByNameFilterControl.valueChanges,
-    )
+    merge(this.searchByNameFilterControl.valueChanges)
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.loadFilteredProducts());
   }
@@ -95,6 +141,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     const v = value.trim().toLowerCase();
     if (v && !this.tagsFilter.includes(v)) {
       this.tagsFilter.push(v);
+
       this.loadFilteredProducts();
     }
   }
@@ -102,7 +149,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   removeFilter(value: string): void {
     this.tagsFilter = this.tagsFilter.filter((f) => f !== value);
 
-    const restored = this.gameTags.find(
+    const restored = this.gameTagsAll.find(
       (t) =>
         t.gameId === this.gameIdControl.value &&
         t.name !== null &&
@@ -111,6 +158,9 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
     if (restored && !this.gameTagsFilter.some((t) => t.id === restored.id)) {
       this.gameTagsFilter.push(restored);
+      this.gameTagsFilter.sort((a, b) =>
+        (a.name ?? '').localeCompare(b.name ?? ''),
+      );
     }
 
     this.loadFilteredProducts();
@@ -121,19 +171,30 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.loadFilteredProducts();
   }
 
+  onRatingFilterChanged(filter: number): void {
+    this.searchByRatingFilterControl.setValue(filter, { emitEvent: false });
+
+    this.loadFilteredProducts();
+  }
+
   clearFiltersButtonClicked(): void {
     this.searchByNameFilterControl.setValue('', { emitEvent: false });
+    this.searchByRatingFilterControl.setValue(null, { emitEvent: false });
+
     this.tagsFilter = [];
 
-    // restore all available tags for current game
     const gameId = this.gameIdControl.value;
     this.gameTagsFilter =
-      gameId === null ? [] : this.gameTags.filter((t) => t.gameId === gameId);
+      gameId === null
+        ? []
+        : this.gameTagsAll.filter((t) => t.gameId === gameId);
 
     this.tagSelectControl.setValue(null);
-    this.gameTagsFilter.length
-      ? this.tagSelectControl.enable()
-      : this.tagSelectControl.disable();
+    if (this.gameTagsFilter.length) {
+      this.tagSelectControl.enable();
+    } else {
+      this.tagSelectControl.disable();
+    }
 
     this.loadFilteredProducts();
   }
@@ -166,12 +227,12 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   openAllButtonClicked(): void {
     let blocked = false;
 
-    this.productsFiltered.forEach((product) => {
+    for (const product of this.productsFiltered) {
       const newWindow = window.open(product.fullUrl, '_blank');
       if (!newWindow || newWindow.closed) {
         blocked = true;
       }
-    });
+    }
 
     if (blocked) {
       alert('Pop-ups were blocked. Please enable pop-ups for this website.');
@@ -183,20 +244,43 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     const batchSize = this.batchSize ?? 0;
     const toPage = currentIndex + batchSize;
 
+    console.log(this.selectedGameUrl?.isBatchUrl);
+
     let blocked = false;
+    if (this.selectedGameUrl?.isBatchUrl === true) {
+      for (; currentIndex < toPage; currentIndex++) {
+        if (currentIndex - 1 > toPage || currentIndex < 0) {
+          break;
+        }
 
-    for (; currentIndex < toPage; currentIndex++) {
-      if (currentIndex - 1 > this.products.length || currentIndex < 0) {
-        break;
+        let url =
+          (this.selectedGameUrl.partialUrl ?? '') +
+          'p' +
+          currentIndex +
+          CONSTANTS.PAGE_PARTIAL;
+
+        console.log(url);
+
+        const newWindow = window.open(url, '_blank');
+
+        if (!newWindow || newWindow.closed) {
+          blocked = true;
+        }
       }
+    } else {
+      for (; currentIndex < toPage; currentIndex++) {
+        if (currentIndex - 1 > this.products.length || currentIndex < 0) {
+          break;
+        }
 
-      const newWindow = window.open(
-        this.products[currentIndex - 1].fullUrl,
-        '_blank',
-      );
+        const newWindow = window.open(
+          this.products[currentIndex - 1].fullUrl,
+          '_blank',
+        );
 
-      if (!newWindow || newWindow.closed) {
-        blocked = true;
+        if (!newWindow || newWindow.closed) {
+          blocked = true;
+        }
       }
     }
 
@@ -212,12 +296,37 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.batchSize = null;
   }
 
+  onTagSelectedFromComponent(tag: Tag): void {
+    if (!tag.name) {
+      return;
+    }
+
+    const tagName = tag.name.toLowerCase();
+    if (!this.tagsFilter.includes(tagName)) {
+      this.tagsFilter.push(tagName);
+    }
+
+    this.gameTagsFilter = this.gameTagsFilter.filter((t) => t.id !== tag.id);
+    if (this.gameTagsFilter.length) {
+      this.tagSelectControl.enable();
+    } else {
+      this.tagSelectControl.disable();
+    }
+
+    this.loadFilteredProducts();
+  }
+
+  trackByProductId(_: number, product: GameUrlProduct): number {
+    return product.productId;
+  }
+
   private loadGames(): void {
     this.gameService
       .getAll()
       .pipe(takeUntil(this.destroy$))
       .subscribe((games) => {
         this.games = games;
+        this.games$.next(games);
         this.cdr.markForCheck();
       });
   }
@@ -227,7 +336,16 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       .getAll()
       .pipe(takeUntil(this.destroy$))
       .subscribe((urls) => {
-        this.gameUrlsAll = urls;
+        this.gameUrlsAll = urls.map((url) => {
+          if (url.isBatchUrl === true) {
+            return {
+              ...url,
+              name: `${url.name} - [ Batch ]`,
+            };
+          }
+          return url;
+        });
+
         this.applyGameFilter(this.gameIdControl.value);
       });
   }
@@ -237,54 +355,8 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       .getAll()
       .pipe(takeUntil(this.destroy$))
       .subscribe((tags) => {
-        this.gameTags = tags;
+        this.gameTagsAll = tags;
         this.applyGameFilter(this.gameIdControl.value);
-      });
-  }
-
-  onTagSelected(): void {
-    const tag = this.tagSelectControl.value;
-    if (!tag || tag.name === null) {
-      return;
-    }
-
-    const tagName = tag.name.toLowerCase();
-
-    if (!this.tagsFilter.includes(tagName)) {
-      this.tagsFilter.push(tagName);
-    }
-
-    this.gameTagsFilter = this.gameTagsFilter.filter((t) => t.id !== tag.id);
-
-    this.tagSelectControl.setValue(null);
-    this.gameTagsFilter.length
-      ? this.tagSelectControl.enable()
-      : this.tagSelectControl.disable();
-
-    this.loadFilteredProducts();
-  }
-
-  private bindGameSelection(): void {
-    this.gameIdControl.valueChanges
-    .pipe(takeUntil(this.destroy$))
-    .subscribe(gameId => this.applyGameFilter(gameId));
-  }
-
-  private bindGameUrlSelection(): void {
-    this.gameUrlIdControl.valueChanges
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((gameUrlId) => {
-        if (gameUrlId === null) {
-          this.selectedGameUrl = null;
-          this.products = [];
-          this.cdr.markForCheck();
-          return;
-        }
-
-        this.selectedGameUrl =
-          this.gameUrlsFiltered.find((u) => u.id === gameUrlId) ?? null;
-
-        this.cdr.markForCheck();
       });
   }
 
@@ -293,39 +365,45 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.tagSelectControl.setValue(null);
 
     if (gameId === null) {
-      this.gameUrlsFiltered = [];
+      this.gameUrlsFiltered$.next([]);
       this.gameTagsFilter = [];
       this.tagSelectControl.disable();
+
       this.gameUrlIdControl.reset();
       this.selectedGameUrl = null;
+
       this.cdr.markForCheck();
       return;
     }
 
-    this.gameUrlsFiltered = this.gameUrlsAll.filter(
-      (url) => url.gameId === gameId,
+    const urls = this.gameUrlsAll.filter((url) => url.gameId === gameId);
+    this.gameUrlsFiltered$.next(urls);
+
+    this.gameTagsFilter = this.gameTagsAll.filter(
+      (tag) => tag.gameId === gameId,
     );
-
-    this.gameTagsFilter = this.gameTags.filter((tag) => tag.gameId === gameId);
-
-    this.gameTagsFilter.length
-      ? this.tagSelectControl.enable()
-      : this.tagSelectControl.disable();
+    if (this.gameTagsFilter.length) {
+      this.tagSelectControl.enable();
+    } else {
+      this.tagSelectControl.disable();
+    }
 
     this.gameUrlIdControl.reset();
     this.selectedGameUrl = null;
+
     this.cdr.markForCheck();
   }
 
   private loadFilteredProducts(): void {
-    const nameFilter =
-      this.searchByNameFilterControl.value?.toLowerCase() ?? '';
-
+    const nameFilter = this.searchByNameFilterControl.value.toLowerCase();
     const tagFilters = this.tagsFilter.map((t) => t.toLowerCase());
+    const ratingFilter = this.searchByRatingFilterControl.value;
 
     this.productsFiltered = this.products.filter((product) => {
       const matchesName =
-        !nameFilter || product.productName.toLowerCase().includes(nameFilter);
+        (!nameFilter ||
+          product.productName.toLowerCase().includes(nameFilter)) &&
+        (!ratingFilter || product.rating == ratingFilter);
 
       const matchesTags =
         tagFilters.length === 0 ||
@@ -335,9 +413,5 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
       return matchesName && matchesTags;
     });
-  }
-
-  trackByProductId(_: number, product: GameUrlProduct): number {
-    return product.productId;
   }
 }
