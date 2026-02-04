@@ -9,6 +9,19 @@
     </button>
   </div>
 
+        <div class="flex gap-x-5">
+      
+      <!-- Game -->
+      <app-combo-box label="Game" [control]="gameIdControl" [items$]="games$" idKey="id" labelKey="name" [bind$]="bindToExternal$"></app-combo-box>
+      
+      <!-- Name -->
+    <app-text-filter [SearchLabel]="'Name'" [SearchTextBind]="searchByNameFilterControl"
+      (filterChange)="onNameFilterChanged($event)">
+    </app-text-filter>
+
+    <button (click)="clearFiltersButtonClicked()" class="button button-small-danger"> Clear </button>
+  </div>
+
   <div class="table-container">
     <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z8">
 

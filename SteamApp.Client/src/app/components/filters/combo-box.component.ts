@@ -17,10 +17,10 @@ type KeyOf<T> = Extract<keyof T, string>;
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="flex py-2 gap-2 items-center">
+    <div class="flex py-2 gap-2 items-center ">
       <label class="w-24">{{ label }}</label>
 
-      <select class="px-2 py-1 w-full" [formControl]="control">
+      <select class="px-2 py-1 w-full  border border-black" [formControl]="control">
         <option [ngValue]="null" disabled>{{ placeholder }}</option>
 
         <option

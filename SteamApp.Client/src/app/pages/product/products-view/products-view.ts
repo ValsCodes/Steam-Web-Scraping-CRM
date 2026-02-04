@@ -51,15 +51,16 @@ export class ProductsView implements OnInit {
 
   private readonly destroy$ = new Subject<void>();
 
+  readonly gameIdControl = new FormControl<number | null>(null);
   private games: Game[] = [];
-
   readonly games$ = new BehaviorSubject<readonly Game[]>([]);
+  
   dataSource = new MatTableDataSource<Product>([]);
 
   products: Product[] = [];
   productsFiltered: Product[] = [];
 
-  readonly gameIdControl = new FormControl<number | null>(null);
+
 
   private gameTagsAll: Tag[] = [];
   gameTagsFilter: Tag[] = [];
@@ -279,4 +280,8 @@ export class ProductsView implements OnInit {
 
     this.loadFilteredProducts();
   }
+
+  openInNewTab(id: number): void {
+  window.open(`products/edit/${id}`, '_blank');
+}
 }

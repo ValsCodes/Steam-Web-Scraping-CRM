@@ -1,6 +1,6 @@
-import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { SteamService } from '../../services/steam/steam.service';
-import { FormsModule } from '@angular/forms';
+import { FormControl, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatTableModule } from '@angular/material/table';
@@ -8,8 +8,11 @@ import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import * as XLSX from 'xlsx';
 import { Listing } from '../../models/listing.model';
-import { finalize, Subject, takeUntil } from 'rxjs';
+import { BehaviorSubject, finalize, startWith, Subject, takeUntil, tap } from 'rxjs';
 import { StopwatchComponent } from "../../components";
+import { ComboBoxComponent } from "../../components/filters/combo-box.component";
+import { Game, GameUrl } from '../../models';
+import { GameService, GameUrlService } from '../../services';
 
 
 enum ScrapingMode {
@@ -29,7 +32,8 @@ enum ScrapingMode {
     MatSort,
     MatSortModule,
     MatPaginatorModule,
-    StopwatchComponent
+    StopwatchComponent,
+    ComboBoxComponent
 ],
   templateUrl: './web-scraper.component.html',
   styleUrl: './web-scraper.component.scss',
@@ -39,7 +43,17 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
+  private readonly destroy$ = new Subject<void>();
   private cancel$ = new Subject<void>();
+  readonly gameIdControl = new FormControl<number | null>(null);
+  readonly gameUrlIdControl = new FormControl<number | null>(null);
+
+    readonly games$ = new BehaviorSubject<readonly Game[]>([]);
+    readonly gameUrlsFiltered$ = new BehaviorSubject<readonly GameUrl[]>([]);
+      selectedGameUrl: GameUrl | null = null;
+
+   private games: Game[] = [];
+  private gameUrlsAll: GameUrl[] = [];
 
   dataSource = new MatTableDataSource<Listing>([]);
   displayedColumns: string[] = [
@@ -57,11 +71,18 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
   isLoading: boolean = false;
   lastUsedMode: number | null = null;
 
-  constructor(private steamService: SteamService) {}
+  constructor(private steamService: SteamService,
+    private readonly cdr: ChangeDetectorRef,
+        private readonly gameService: GameService,
+        private readonly gameUrlService: GameUrlService,
+  ) {}
 
   ngOnInit(): void {}
 
   ngAfterViewInit(): void {
+    this.loadGames();
+    this.loadGameUrls();
+
     if (!this.dataSource.paginator) {
       this.dataSource.paginator = this.paginator;
       this.dataSource.paginator.pageSize = 10;
@@ -70,6 +91,42 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.dataSource.sort) {
       this.dataSource.sort = this.sort;
     }
+  }
+
+    private loadGames(): void {
+    this.gameService
+      .getAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((games) => {
+        this.games = games;
+        this.games$.next(games);
+        this.cdr.markForCheck();
+      });
+  }
+
+    private loadGameUrls(): void {
+    this.gameUrlService
+      .getAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((urls) => {
+
+        let filtered = urls.filter(x=> x.isBatchUrl)
+
+        this.gameUrlsAll = filtered.map((url) => {
+          if (url.isBatchUrl === true) {
+
+            url.name += ' [ Batch ]'       
+          }
+          if (url.isPixelScrape === true) {
+
+            url.name += ' [ Pixel ]'       
+          }
+
+          return url;
+        });
+
+        this.applyGameFilter(this.gameIdControl.value);
+      });
   }
 
   retryBatchButtonClicked() {
@@ -262,6 +319,10 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
   clearButtonClicked(): void {
     this.dataSource.data = [];
     this.statusLabel = '';
+
+    this.gameIdControl.setValue(null);
+    this.gameUrlIdControl.setValue(null);
+
     this.onPageNumberChange(1);
   }
 
@@ -295,6 +356,61 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
     this.finishLoading();
 
     this.cancel$ = new Subject<void>();
+  }
+
+    readonly bindGameUrlToExternal$ = this.gameUrlIdControl.valueChanges.pipe(
+    startWith(this.gameUrlIdControl.value),
+    tap((gameUrlId) => {
+      if (gameUrlId === null) {
+        this.selectedGameUrl = null;
+        this.cdr.markForCheck();
+        return;
+      }
+
+      this.selectedGameUrl =
+        this.gameUrlsFiltered$.value.find((u) => u.id === gameUrlId) ?? null;
+
+      this.clearBatchButtonClicked();
+
+      // if (this.selectedGameUrl?.isBatchUrl) {
+      //   this.currentIndex = this.selectedGameUrl.startPage ?? null;
+      //   this.batchSize = this.currentIndex === null ? null : 5;
+      // }
+
+      this.cdr.markForCheck();
+    }),
+  );
+
+   clearBatchButtonClicked(): void {
+    // this.currentIndex = null;
+    // this.batchSize = null;
+  }
+  
+
+    readonly bindToExternal$ = this.gameIdControl.valueChanges.pipe(
+      startWith(this.gameIdControl.value),
+      tap((gameId) => {
+        this.applyGameFilter(gameId);
+      }),
+    );
+
+  private applyGameFilter(gameId: number | null): void {
+    if (gameId === null) {
+      this.gameUrlsFiltered$.next([]);
+      this.gameUrlIdControl.reset();
+      this.selectedGameUrl = null;
+
+      this.cdr.markForCheck();
+      return;
+    }
+
+    const urls = this.gameUrlsAll.filter((url) => url.gameId === gameId);
+    this.gameUrlsFiltered$.next(urls);
+
+    this.gameUrlIdControl.reset();
+    this.selectedGameUrl = null;
+
+    this.cdr.markForCheck();
   }
 
   ngOnDestroy() {

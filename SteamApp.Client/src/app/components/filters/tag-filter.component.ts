@@ -20,7 +20,7 @@ type NamedTag = { name: string | null };
       <label class="pt-2">{{ label() }}</label>
 
       <select
-        class="px-2 py-2 w-[15rem] ml-2 rounded-md border border-black focus:border-gray-600 focus:outline-none"
+        class="px-2 py-2 w-[15rem] ml-2 rounded-md border border-black"
         [formControl]="control()"
         [disabled]="disabled() ?? (options()?.length ?? 0) === 0"
         (change)="onSelectChanged()"
@@ -35,7 +35,7 @@ type NamedTag = { name: string | null };
       <div class="flex flex-wrap gap-2 ml-2">
         <div
           *ngFor="let f of filters()"
-          class="flex items-center gap-1 px-2 py-1 rounded-md border border-black"
+          class="flex items-center gap-1 px-2 py-1 rounded-md"
         >
           <span>{{ f }}</span>
           <button type="button" (click)="removeClicked.emit(f)">×</button>

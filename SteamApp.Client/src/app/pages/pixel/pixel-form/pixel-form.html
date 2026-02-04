@@ -57,6 +57,14 @@
       max="255" />
   </div>
 
+<div class="flex justify-self-end border-black border-[0.3px]" 
+title="Pixel Color"
+[style.backgroundColor]="'rgb(' +
+    form.get('redValue')?.value + ',' +
+    form.get('greenValue')?.value + ',' +
+    form.get('blueValue')?.value + ')'" style="width: 120px; height: 30px; line-height: 30px; margin-top: 8px;">
+</div>
+
   <!-- Actions -->
   <div class="flex gap-x-2">
     <button type="submit" [disabled]="form.invalid">

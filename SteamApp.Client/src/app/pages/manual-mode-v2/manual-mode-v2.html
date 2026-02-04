@@ -24,7 +24,6 @@
         </button>
         <button (click)="clearButtonClicked()" class="button button-small-danger"> Clear </button>
       </div>
-
     </div>
 
     <!-- Batch Settings -->
@@ -91,7 +90,9 @@
 
   @if(this.selectedGameUrl?.isBatchUrl !== true)
   {
-  <div class="flex gap-x-5">
+  <div class="flex justify-between">
+    <div class="flex gap-x-5">
+
     <!-- Product Name -->
     <app-text-filter [SearchLabel]="'Product Name'" [SearchTextBind]="searchByNameFilterControl"
       (filterChange)="onNameFilterChanged($event)">
@@ -107,6 +108,12 @@
       (tagSelected)="onTagSelectedFromComponent($event)" (removeClicked)="removeFilter($event)"></app-tag-filter-select>
 
     <button (click)="clearFiltersButtonClicked()" class="button button-small-danger"> Clear </button>
+    </div>
+
+        <div class="flex justify-end mr-4">
+        <button (click)="exportButtonClicked()" class="justify-end button button-small-primary"
+            title="Export current data to Excel">Export</button>
+    </div>
   </div>
 
   <!-- Products -->

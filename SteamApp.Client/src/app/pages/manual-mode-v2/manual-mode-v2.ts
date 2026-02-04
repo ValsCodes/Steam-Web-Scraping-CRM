@@ -15,6 +15,7 @@ import {
   takeUntil,
   tap,
 } from 'rxjs';
+import * as XLSX from 'xlsx';
 
 import { Game, GameUrl, GameUrlProduct, Tag } from '../../models';
 import {
@@ -27,7 +28,7 @@ import { CopyLinkComponent, TextFilterComponent } from '../../components';
 import { ComboBoxComponent } from '../../components/filters/combo-box.component';
 import { TagFilterSelectComponent } from '../../components/filters/tag-filter.component';
 import { CONSTANTS } from '../../common';
-import { NumberFilterComponent } from "../../components/filters/number-filter.component";
+import { NumberFilterComponent } from '../../components/filters/number-filter.component';
 
 @Component({
   selector: 'steam-manual-mode-v2',
@@ -175,6 +176,18 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.searchByRatingFilterControl.setValue(filter, { emitEvent: false });
 
     this.loadFilteredProducts();
+  }
+
+  exportButtonClicked(): void {
+    const dataToExport = this.productsFiltered;
+
+    const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
+
+    const workbook: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
+
+    const today = new Date();
+    XLSX.writeFile(workbook, `Export_${today.toDateString()}_Products.xlsx`);
   }
 
   clearFiltersButtonClicked(): void {
