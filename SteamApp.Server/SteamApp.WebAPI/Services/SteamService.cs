@@ -8,6 +8,7 @@ using SteamApp.Domain.Common;
 using SteamApp.Infrastructure.Repositories;
 using SteamApp.Infrastructure.Services;
 using SteamApp.WebAPI.Helpers;
+using SteamApp.WebAPI.Utilities;
 using System.Collections.ObjectModel;
 using System.Drawing;
 using System.Text;
@@ -171,6 +172,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         return results;
     }
 
+    // TODO Too Many request to URL
     public async Task<WatchItemDto> ScrapeProductPixels(long gameId, string productName)
     {
         productName = productName.Trim();
@@ -212,7 +214,6 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
             Name = resultAssets.Name
         };
 
-        // TODO 
         if (resultAssets != null)
         {
             var pixel = descriptions!.FirstOrDefault(x => x.Value.StartsWith("Paint Color:"))?.Value;

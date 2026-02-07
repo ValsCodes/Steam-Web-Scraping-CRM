@@ -187,6 +187,8 @@ public class Program
         builder.Services.AddScoped<SteamApiClient>();
         builder.Services.AddScoped<WishlistCheckJob>();
 
+        builder.Services.AddMemoryCache();
+
         builder.Services.AddHostedService<BackgroundWorkerService<WishlistCheckJob>>();
 
         builder.Services.Configure<WorkerOptions>(nameof(WishlistCheckJob),builder.Configuration.GetSection("Workers:WishlistCheck"));

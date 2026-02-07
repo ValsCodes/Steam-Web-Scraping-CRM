@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
+using SteamApp.Application.Caching;
 using SteamApp.Infrastructure.Services;
 
 namespace SteamApp.WebAPI.Controllers;
@@ -8,25 +10,33 @@ namespace SteamApp.WebAPI.Controllers;
 [ApiController]
 [Route("steam")]
 [Authorize]
-public class SteamController(ISteamService steamService, ILogger<SteamController> logger) : ControllerBase
+public class SteamController(
+    ISteamService steamService,
+    ILogger<SteamController> logger,
+    IMemoryCache cache) : ControllerBase
 {
     [HttpGet("scrape-page/gameUrl/{gamerUrlId}/page/{page}")]
     public async Task<IActionResult> ScrapePageAsync(long gamerUrlId, short page)
     {
         using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(ScrapePageAsync)))
         {
-            logger.LogInformation("Request started. GamerUrlId={GamerUrlId}, Page={Page}", gamerUrlId, page);
-
             try
             {
                 if (page < 0 || page > short.MaxValue)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(page), "Page is out of range.");
+                    throw new ArgumentOutOfRangeException(nameof(page));
+                }
+
+                var cacheKey = string.Format(CacheKeys.ScrapePage, gamerUrlId, page);
+
+                if (cache.TryGetValue(cacheKey, out object cached))
+                {
+                    return Ok(cached);
                 }
 
                 var result = await steamService.ScrapePage(gamerUrlId, page);
 
-                logger.LogInformation("Request completed successfully.");
+                cache.Set(cacheKey, result, TimeSpan.FromMinutes(5));
                 return Ok(result);
             }
             catch (Exception ex)
@@ -42,13 +52,18 @@ public class SteamController(ISteamService steamService, ILogger<SteamController
     {
         using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(ScrapeFromPublicApi)))
         {
-            logger.LogInformation("Request started. GameUrlId={GameUrlId}, Page={Page}", gameUrlId, page);
-
             try
             {
+                var cacheKey = string.Format(CacheKeys.ScrapePublic, gameUrlId, page);
+
+                if (cache.TryGetValue(cacheKey, out object cached))
+                {
+                    return Ok(cached);
+                }
+
                 var result = await steamService.ScrapeFromPublicApi(gameUrlId, page);
 
-                logger.LogInformation("Request completed successfully.");
+                cache.Set(cacheKey, result, TimeSpan.FromMinutes(5));
                 return Ok(result);
             }
             catch (Exception ex)
@@ -64,19 +79,23 @@ public class SteamController(ISteamService steamService, ILogger<SteamController
     {
         using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(GetPixelInfoFromSourceAsync)))
         {
-            logger.LogInformation("Request started. GameUrlId={GameUrlId}, SrcUrl={SrcUrl}", gameUrlId, srcUrl);
-
             try
             {
-                if (gameUrlId <= 0 || string.IsNullOrEmpty(srcUrl))
+                if (gameUrlId <= 0 || string.IsNullOrWhiteSpace(srcUrl))
                 {
-                    logger.LogWarning("Validation failed.");
                     return BadRequest("Invalid parameters.");
+                }
+
+                var cacheKey = string.Format(CacheKeys.PixelInfo, gameUrlId, srcUrl);
+
+                if (cache.TryGetValue(cacheKey, out object cached))
+                {
+                    return Ok(cached);
                 }
 
                 var result = await steamService.GetPixelInfoFromSource(gameUrlId, srcUrl);
 
-                logger.LogInformation("Request completed successfully.");
+                cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
                 return Ok(result);
             }
             catch (Exception ex)
@@ -92,13 +111,18 @@ public class SteamController(ISteamService steamService, ILogger<SteamController
     {
         using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(ScrapeForPixelsAsync)))
         {
-            logger.LogInformation("Request started. GameUrlId={GameUrlId}, Page={Page}", gameUrlId, page);
-
             try
             {
+                var cacheKey = string.Format(CacheKeys.ScrapePixels, gameUrlId, page);
+
+                if (cache.TryGetValue(cacheKey, out object cached))
+                {
+                    return Ok(cached);
+                }
+
                 var result = await steamService.ScrapeForPixels(gameUrlId, page);
 
-                logger.LogInformation("Request completed successfully.");
+                cache.Set(cacheKey, result, TimeSpan.FromMinutes(5));
                 return Ok(result);
             }
             catch (JsonSerializationException ex)
@@ -119,13 +143,18 @@ public class SteamController(ISteamService steamService, ILogger<SteamController
     {
         using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(ScrapeProductPixelsAsync)))
         {
-            logger.LogInformation("Request started. GameId={GameId}, ProductName={ProductName}", gameId, productName);
-
             try
             {
+                var cacheKey = string.Format(CacheKeys.ProductPixels, gameId, productName);
+
+                if (cache.TryGetValue(cacheKey, out object cached))
+                {
+                    return Ok(cached);
+                }
+
                 var result = await steamService.ScrapeProductPixels(gameId, productName);
 
-                logger.LogInformation("Request completed successfully.");
+                cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
                 return Ok(result);
             }
             catch (Exception ex)
@@ -136,4 +165,3 @@ public class SteamController(ISteamService steamService, ILogger<SteamController
         }
     }
 }
-

@@ -416,7 +416,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       const matchesName =
         (!nameFilter ||
           product.productName.toLowerCase().includes(nameFilter)) &&
-        (!ratingFilter || product.rating == ratingFilter);
+        (!ratingFilter || product.rating! >= ratingFilter);
 
       const matchesTags =
         tagFilters.length === 0 ||

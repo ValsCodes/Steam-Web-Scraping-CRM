@@ -1,4 +1,4 @@
-﻿namespace SteamApp.WebAPI.Helpers;
+﻿namespace SteamApp.WebAPI.Utilities;
 
 public static class HttpUtilities
 {
@@ -9,7 +9,7 @@ public static class HttpUtilities
 
         var response = await httpClient.GetAsync(url, ct).ConfigureAwait(false);
 
-        response.EnsureSuccessStatusCode();
+        // response.EnsureSuccessStatusCode();
 
         string responseContent = await response.Content.ReadAsStringAsync(ct);
 
