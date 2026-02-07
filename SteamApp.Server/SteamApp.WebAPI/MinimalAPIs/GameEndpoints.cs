@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.Game;
 using SteamApp.Domain.Entities;
 using SteamApp.WebAPI.Context;
@@ -63,12 +65,16 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 long id,
                 GameUpdateDto input,
                 ApplicationDbContext db,
-                IMapper mapper) =>
+                IMapper mapper, IMemoryCache cache) =>
             {
                 var entity = await db.Games.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
                 mapper.Map(input, entity);
+
+
+                var cacheKey = string.Format(CacheKeys.Game, id);
+                cache.Remove(cacheKey);
 
                 await db.SaveChangesAsync();
                 return Results.NoContent();
@@ -81,13 +87,17 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // DELETE: /api/games/{id}
             group.MapDelete("/{id:long}", async (
                 long id,
-                ApplicationDbContext db) =>
+                ApplicationDbContext db, IMemoryCache cache) =>
             {
                 var entity = await db.Games.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
                 db.Games.Remove(entity);
                 await db.SaveChangesAsync();
+
+                var cacheKey = string.Format(CacheKeys.Game, id);
+                cache.Remove(cacheKey);
+
                 return Results.NoContent();
             })
             .WithName("DeleteGame")

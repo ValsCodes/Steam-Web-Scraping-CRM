@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.Pixel;
 using SteamApp.Domain.Entities;
 using SteamApp.WebAPI.Context;
@@ -58,7 +60,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
             group.MapPost("/", async (
                 PixelCreateDto input,
                 ApplicationDbContext db,
-                IMapper mapper) =>
+                IMapper mapper, IMemoryCache cache) =>
             {
                 var gameExists = await db.Games
                     .AsNoTracking()
@@ -74,6 +76,9 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 db.Pixels.Add(entity);
                 await db.SaveChangesAsync();
 
+                var cacheKey = string.Format(CacheKeys.Game, entity.Id);
+                cache.Remove(cacheKey);
+
                 var dto = mapper.Map<PixelDto>(entity);
                 return Results.Created($"/api/pixels/{entity.Id}", dto);
             })
@@ -87,13 +92,16 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 long id,
                 PixelUpdateDto input,
                 ApplicationDbContext db,
-                IMapper mapper) =>
+                IMapper mapper, IMemoryCache cache) =>
             {
                 var entity = await db.Pixels.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
                 mapper.Map(input, entity);
                 await db.SaveChangesAsync();
+
+                var cacheKey = string.Format(CacheKeys.Game, entity.GameId);
+                cache.Remove(cacheKey);
 
                 return Results.NoContent();
             })
@@ -105,13 +113,16 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // DELETE: /api/pixels/{id}
             group.MapDelete("/{id:long}", async (
                 long id,
-                ApplicationDbContext db) =>
+                ApplicationDbContext db, IMemoryCache cache) =>
             {
                 var entity = await db.Pixels.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
                 db.Pixels.Remove(entity);
                 await db.SaveChangesAsync();
+
+                var cacheKey = string.Format(CacheKeys.Game, entity.GameId);
+                cache.Remove(cacheKey);
 
                 return Results.NoContent();
             })
