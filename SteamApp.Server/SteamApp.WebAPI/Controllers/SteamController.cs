@@ -138,24 +138,29 @@ public class SteamController(
         }
     }
 
-    [HttpGet("scrape-product-page/{gameId}/pixels")]
-    public async Task<IActionResult> ScrapeProductPixelsAsync(long gameId, string productName)
+    [HttpGet("check-wishlist/{wishlistId}")]
+    public async Task<IActionResult> CheckWithlistItem(long wishlistId)
     {
-        using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(ScrapeProductPixelsAsync)))
+        using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(CheckWithlistItem)))
         {
             try
             {
-                var cacheKey = string.Format(CacheKeys.ProductPixels, gameId, productName);
+                var cacheKey = string.Format(CacheKeys.WishListItem, wishlistId);
 
                 if (cache.TryGetValue(cacheKey, out object cached))
                 {
                     return Ok(cached);
                 }
 
-                var result = await steamService.ScrapeProductPixels(gameId, productName);
+                var result = await steamService.CheckWishlistItem(wishlistId);
 
-                cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
+                cache.Set(cacheKey, result, TimeSpan.FromMinutes(5));
                 return Ok(result);
+            }
+            catch (JsonSerializationException ex)
+            {
+                logger.LogWarning(ex, "Invalid listing.");
+                return StatusCode(400, "Error: Invalid Wishlisting");
             }
             catch (Exception ex)
             {
@@ -164,4 +169,31 @@ public class SteamController(
             }
         }
     }
+
+    //[HttpGet("scrape-product-page/{gameId}/pixels")]
+    //public async Task<IActionResult> ScrapeProductPixelsAsync(long gameId, string productName)
+    //{
+    //    using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(ScrapeProductPixelsAsync)))
+    //    {
+    //        try
+    //        {
+    //            var cacheKey = string.Format(CacheKeys.ProductPixels, gameId, productName);
+
+    //            if (cache.TryGetValue(cacheKey, out object cached))
+    //            {
+    //                return Ok(cached);
+    //            }
+
+    //            var result = await steamService.ScrapeProductPixels(gameId, productName);
+
+    //            cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
+    //            return Ok(result);
+    //        }
+    //        catch (Exception ex)
+    //        {
+    //            logger.LogError(ex, "Request failed.");
+    //            return StatusCode(500, ex.Message);
+    //        }
+    //    }
+    //}
 }

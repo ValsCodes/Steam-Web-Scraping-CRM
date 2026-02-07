@@ -8,32 +8,34 @@ public class WishlistCheckJob(ILogger<WishlistCheckJob> log, SteamApiClient apiC
 {
     public async Task RunAsync(CancellationToken ct)
     {
-
-        await emailSerivce.SendAsync(new EmailMessage(To: "ivailo1224@gmail.com",
-                Subject: "Welcome",
-                HtmlBody: "<h1>Welcome</h1><p>Your account is active.</p>",
-                PlainTextBody: "Welcome. Your account is active."), ct);
-
-        log.LogInformation($"WishlistCheckJob tick at {DateTime.UtcNow}: whishlist item Test");
-
-        return;
-
-
-        // purge old data, compact blobs, etc.
-        var wishList = await apiClient.Games.GetAllAsync(ct);
+        var wishList = await apiClient.WishList.GetAllAsync(ct);
 
         await Task.Delay(400, ct);
-        foreach (var item in wishList)
+
+        foreach (var item in wishList.Where(x => x.IsActive))
         {
+            try
+            {
+                var result = await apiClient.Steam.CheckWishlistItem(item.Id);
 
-            var emailMessage = new EmailMessage(To: "ivailo1224@gmail.com",
-                Subject: "Welcome",
-                HtmlBody: "<h1>Welcome</h1><p>Your account is active.</p>",
-                PlainTextBody: "Welcome. Your account is active.");
+                if (result != null && result.IsPriceReached)
+                {
+                    await emailSerivce.SendAsync(new EmailMessage(To: "ivailo1224@gmail.com",
+                                     Subject: $"Wishlist item {result.GameName} Price has been reached!",
+                                     Body: $"{result.GameName} is currently at {result.CurrentPrice} EUR"), ct);
 
-            await emailSerivce.SendAsync(emailMessage, ct);
+                    log.LogInformation($"WishlistCheckJob tick at {DateTime.UtcNow}: whishlist item has reached a price point. Email sent.");
+                }
 
-            log.LogInformation($"WishlistCheckJob tick at {DateTime.UtcNow}: whishlist item {item.Name}");
+                log.LogInformation($"WishlistCheckJob tick at {DateTime.UtcNow}: whishlist item {item.Name}");
+            }
+            catch (Exception ex)
+            {
+                log.LogError($"WishlistCheckJob had tick at {DateTime.UtcNow}: There was an Error: {ex.Message}");
+            }
+
+            // Wait 15 secs between each item check to avoid hitting API limits and to be more polite to the API server.
+            await Task.Delay(15000, ct);
         }
     }
 }

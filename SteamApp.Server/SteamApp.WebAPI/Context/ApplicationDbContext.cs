@@ -10,7 +10,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Product> Products { get; set; }
     public DbSet<Pixel> Pixels { get; set; }
     public DbSet<WatchList> WatchList { get; set; }
-    public DbSet<WishList> WishList { get; set; }
+    public DbSet<WishList> WishLists { get; set; }
     public DbSet<GameUrlProducts> GameUrlsProducts { get; set; }
     public DbSet<GameUrlPixels> GameUrlsPixels { get; set; }
     public DbSet<GameAddOn> GameAddOns { get; set; }

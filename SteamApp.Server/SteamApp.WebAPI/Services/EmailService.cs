@@ -21,11 +21,11 @@ public class EmailService(IOptions<EmailOptions> options) : IEmailService
 
             SendEmailRequest request = SendEmailRequest
                 .Create()
-                .From("hello@example.com", "Mailtrap Test")
-                .To("ivailo1224@gmail.com")
-                .Subject("You are awesome!")
+                .From("steam-app@example.com")
+                .To(message.To)
+                .Subject(message.Subject)
                 .Category("Integration Test")
-                .Text("Test Email");
+                .Text(message.Body);
             SendEmailResponse? response = await mailtrapClient
                 .Test(sandboxId)
                 .Send(request);

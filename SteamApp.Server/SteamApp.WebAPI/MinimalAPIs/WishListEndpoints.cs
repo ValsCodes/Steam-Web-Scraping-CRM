@@ -20,7 +20,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var entities = await db.WishList
+                var entities = await db.WishLists
                     .AsNoTracking()
                     .Select(x=> new
                     {
@@ -45,7 +45,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var entity = await db.WishList.FindAsync(id);
+                var entity = await db.WishLists.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
                 return Results.Ok(mapper.Map<WishListDto>(entity));
@@ -71,7 +71,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                 var entity = mapper.Map<WishList>(input);
 
-                db.WishList.Add(entity);
+                db.WishLists.Add(entity);
                 await db.SaveChangesAsync();
 
                 var dto = mapper.Map<WishListDto>(entity);
@@ -89,7 +89,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var entity = await db.WishList.FindAsync(id);
+                var entity = await db.WishLists.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
                 mapper.Map(input, entity);
@@ -107,10 +107,10 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 long id,
                 ApplicationDbContext db) =>
             {
-                var entity = await db.WishList.FindAsync(id);
+                var entity = await db.WishLists.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
-                db.WishList.Remove(entity);
+                db.WishLists.Remove(entity);
                 await db.SaveChangesAsync();
                 return Results.NoContent();
             })

@@ -7,5 +7,7 @@ namespace SteamApp.Infrastructure.Repositories
         Task<GameUrl> GetGameUrl(long gameUrlId);
 
         Task<Game> GetGame(long gameId);
+
+        Task<WishList> GetWishListItem(long wishListId);
     }
 }

@@ -60,4 +60,28 @@ public class SteamRepository(ApplicationDbContext dbContext, IMemoryCache cache)
 
         return game;
     }
+
+    public async Task<WishList> GetWishListItem(long wishListId)
+    {
+        var cacheKey = string.Format(CacheKeys.WishListItem, wishListId);
+
+        if (cache.TryGetValue(cacheKey, out object cached))
+        {
+            return (WishList)cached;
+        }
+
+        var wishList = await dbContext.WishLists.AsNoTracking()
+            .Include(x => x.Game)
+            .FirstOrDefaultAsync(g => g.Id == wishListId);
+
+        if (wishList is null)
+        {
+            throw new Exception($"WishList with id {wishList} not found.");
+
+        }
+
+        cache.Set(cacheKey, wishList, TimeSpan.FromMinutes(1));
+
+        return wishList;
+    }
 }

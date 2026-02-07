@@ -3,8 +3,10 @@ using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using SeleniumExtras.WaitHelpers;
 using SteamApp.Application.DTOs.WatchItem;
+using SteamApp.Application.DTOs.WishListItem;
 using SteamApp.Application.JsonObjects;
 using SteamApp.Domain.Common;
+using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Repositories;
 using SteamApp.Infrastructure.Services;
 using SteamApp.WebAPI.Helpers;
@@ -226,6 +228,61 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         }
 
         return listingResult;
+    }
+
+    public async Task<WhishListResponse?> CheckWishlistItem(long wishListId)
+    {
+        var wishList = await steamRepository.GetWishListItem(wishListId);
+
+        if (wishList == null)
+        {
+            throw new Exception("Wishlist not found.");
+        }
+
+        var url = wishList.Game.PageUrl;
+
+        if (string.IsNullOrEmpty(url))
+        {
+            throw new Exception("Game URL is null or empty.");
+        }
+
+        var options = new ChromeOptions();
+
+        options.AddArgument("--headless");
+        options.AddArgument("--disable-gpu");
+
+        using IWebDriver driver = new ChromeDriver(options);
+        driver.Navigate().GoToUrl(url);
+
+        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
+        wait.Until(ExpectedConditions.ElementExists(By.XPath($"//div[starts-with(@id, 'appHubAppName')]")));
+
+        IWebElement gamePrice = driver.FindElement(By.XPath($"//div[starts-with(@class, 'game_purchase_price price')]"));
+        IWebElement discountPrice = driver.FindElement(By.XPath($"//div[starts-with(@class, 'discount_final_price')]"));
+
+        if (gamePrice != null)
+        {
+            var priceText = gamePrice.Text.Replace("Free To Play", "0").Trim();
+            if (double.TryParse(priceText, out double price))
+            {
+                if (discountPrice != null)
+                {
+                    var discountPriceText = discountPrice.Text.Replace("Free To Play", "0").Trim();
+                    if (double.TryParse(discountPriceText, out double discountPriceValue))
+                    {
+                        price = discountPriceValue;
+                    }
+                }
+                return new WhishListResponse
+                {
+                    IsPriceReached = price <= wishList.Price,
+                    CurrentPrice = price,
+                    GameName = wishList.Game.Name,
+                };
+            }
+        }
+
+        throw new Exception("No Price element Was Found.");
     }
 
     #region Private Methods

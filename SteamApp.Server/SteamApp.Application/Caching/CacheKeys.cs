@@ -17,5 +17,7 @@
         public const string GameUrl = "game-url:{0}";
 
         public const string Game = "game:{0}";
+
+        public const string WishListItem = "wish-list-item:{0}";
     }
 }

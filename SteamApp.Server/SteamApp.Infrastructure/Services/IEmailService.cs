@@ -5,7 +5,7 @@
         Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default);
     }
 
-    public sealed record EmailMessage(string To, string Subject, string HtmlBody, string? PlainTextBody = null, string? From = null);
+    public sealed record EmailMessage(string To, string Subject, string Body);
 
     public sealed class EmailOptions
     {

@@ -1,6 +1,6 @@
 ﻿namespace SteamApp.Application.DTOs.WishListItem
 {
-    public sealed class WishListDto
+    public class WishListDto
     {
         public long Id { get; set; }
         public long? GameId { get; set; }
