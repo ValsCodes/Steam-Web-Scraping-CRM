@@ -5,6 +5,7 @@ using SeleniumExtras.WaitHelpers;
 using SteamApp.Application.DTOs.WatchItem;
 using SteamApp.Application.JsonObjects;
 using SteamApp.Domain.Common;
+using SteamApp.Infrastructure.Repositories;
 using SteamApp.Infrastructure.Services;
 using SteamApp.WebAPI.Helpers;
 using System.Collections.ObjectModel;
@@ -13,17 +14,228 @@ using System.Text;
 
 namespace SteamApp.WebAPI.Services;
 
-public class SteamService() : ISteamService
+public class SteamService(ISteamRepository steamRepository) : ISteamService
 {
-    public async Task<IEnumerable<WatchItemDto>> ScrapePage(short page, CancellationToken ct)
+    // TODO Test
+    public async Task<string> GetPixelInfoFromSource(long gamerUrlId, string srcUrl)
     {
-        const short MaxPage = 500;
-        if (page < 0 || page > MaxPage)
-            throw new ArgumentOutOfRangeException(nameof(page), $"Page must be between 0 and {MaxPage}");
+        // TODO get Pixel Location from game URL 450, 50
+        var gameUrl = await steamRepository.GetGameUrl(gamerUrlId);
 
-        var url = $"{Constants.MANUAL_HATS_URL}p{page}_price_asc";
+        if (gameUrl == null || !gameUrl.IsPixelScrape || gameUrl.PixelX == null || gameUrl.PixelY == null)
+        {
+            throw new Exception("Game URL is not configured for pixel scrape or pixel coordinates are missing.");
+        }
+
+        if (gameUrl.PixelImageWidth == null || gameUrl.PixelImageHeight == null)
+        {
+            gameUrl.PixelImageWidth = 62; // default values, can be updated later if needed
+            gameUrl.PixelImageHeight = 62; // default values, can be updated later if needed
+        }
+
+        string srcImage = srcUrl.Replace($"/{gameUrl.PixelImageWidth}fx{gameUrl.PixelImageHeight}f", string.Empty);
+
+        var result = new StringBuilder();
+
+        using (HttpClient client = new())
+        {
+            byte[] bytes = await client.GetByteArrayAsync(srcImage);
+
+            using var ms = new MemoryStream(bytes);
+            using Bitmap bmp = new(ms);
+
+
+            Color c = bmp.GetPixel(gameUrl.PixelX.Value, gameUrl.PixelY.Value);
+
+
+            result.AppendLine(c.Name);
+            result.AppendLine($"R - {c.R}, G - {c.G}, B - {c.B}");
+        }
+
+        return result.ToString();
+    }
+
+    // TODO Test
+    public async Task<IEnumerable<WatchItemDto>> ScrapePage(long gamerUrlId, short page)
+    {
+        var gameUrl = await steamRepository.GetGameUrl(gamerUrlId);
+
+        if (gameUrl == null || !gameUrl.IsBatchUrl)
+        {
+            throw new Exception("Game URL is missing or not configured for Batch Scraping.");
+        }
+
+        if (gameUrl.PartialUrl == null || !gameUrl.PartialUrl.Contains("{0}"))
+        {
+            throw new Exception("Game URL Partial URL is missing or does not contain a placeholder for page number.");
+        }
+
+        var url = string.Format(gameUrl.PartialUrl, page);
+
+        var result = await ScrapePageFromUrl(url);
+
+        return result.OrderBy(x => x.Price);
+    }
+
+
+    // TODO Test
+    public async Task<IEnumerable<WatchItemDto>> ScrapeFromPublicApi(long gameUrlId, short page)
+    {
+        if (page < 0 || page > 500)
+        {
+            throw new ArgumentOutOfRangeException("Page is either negative or greater than 500.");
+        }
+
+        var gameUrl = await steamRepository.GetGameUrl(gameUrlId);
+
+        if (gameUrl == null || !gameUrl.IsPublicApi)
+        {
+            throw new Exception("Game URL is not configured for public API Scrape.");
+        }
+
+        // TODO add url to Game Urls
+        //var url = $"{Constants.JSON_100_LISTINGS_URL_PART_1}{page}{Constants.JSON_100_LISTINGS_URL_PART_2}";
+
+        var url = string.Format($"{gameUrl.PartialUrl}", page);
+        var filteredResult = await GetResultsFromUrl(url);
+
+        return [.. filteredResult.OrderBy(x => x.SellPrice).Select(x => new WatchItemDto { Name = x.Name, Price = x.SellPrice / 100, Quantity = x.SellListings })];
+    }
+
+    public async Task<IEnumerable<WatchItemDto>> ScrapeForPixels(long gameUrlId, short page)
+    {
+        if (page < 0 || page > 500)
+        {
+            throw new ArgumentOutOfRangeException("Page is either negative or greater than 500.");
+        }
+
+        var gameUrl = await steamRepository.GetGameUrl(gameUrlId);
+
+        if (gameUrl == null || !gameUrl.IsPublicApi)
+        {
+            throw new Exception("Game URL is not configured for public API Scrape.");
+        }
+
+        if (gameUrl.PixelImageWidth == null || gameUrl.PixelImageHeight == null)
+        {
+            gameUrl.PixelImageWidth = 62; // default values, can be updated later if needed
+            gameUrl.PixelImageHeight = 62; // default values, can be updated later if needed
+        }
+
+        var url = string.Format($"{gameUrl.PartialUrl}", page);
+
         var options = new ChromeOptions();
-        options.AddArgument("--headless");
+
+        //TODO Enable when testing is done
+        //options.AddArgument("--headless");
+
+        options.AddArgument("--disable-gpu");
+
+
+        var results = new List<WatchItemDto>();
+
+        using (IWebDriver driver = new ChromeDriver(options))
+        {
+            driver.Navigate().GoToUrl(url);
+
+            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
+            wait.Until(ExpectedConditions.ElementExists(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]")));
+
+            ReadOnlyCollection<IWebElement> listingAnchors =
+                driver.FindElements(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]"));
+
+            foreach (var anchor in listingAnchors)
+            {
+                var listing = ParseListingFromAnchor(anchor);
+
+                string srcImage = listing.ImageUrl!.Replace($"/{gameUrl.PixelImageWidth}fx{gameUrl.PixelImageHeight}f", string.Empty);
+
+                using HttpClient client = new HttpClient();
+                byte[] bytes = await client.GetByteArrayAsync(srcImage);
+
+                using var ms = new MemoryStream(bytes);
+                using Bitmap bmp = new(ms);
+
+                Color pixelValue = bmp.GetPixel(gameUrl.PixelX.Value, gameUrl.PixelY.Value);
+
+
+                var colorMatch = gameUrl.GameUrlsPixels.FirstOrDefault(x => string.Equals(x.Pixel.Name, pixelValue.Name, StringComparison.OrdinalIgnoreCase));
+                if (colorMatch != null)
+                {
+                    listing.PixelName = colorMatch.Pixel.Name;
+                    results.Add(listing);
+                }
+            }
+        }
+
+        return results;
+    }
+
+    public async Task<WatchItemDto> ScrapeProductPixels(long gameId, string productName)
+    {
+        productName = productName.Trim();
+        if (string.IsNullOrEmpty(productName))
+        {
+            throw new ArgumentNullException("Product Name is null or empty.");
+        }
+
+        if (productName.Length > 200)
+        {
+            throw new ArgumentOutOfRangeException("Name is too long.");
+        }
+
+        var game = await steamRepository.GetGame(gameId);
+
+        if (game == null)
+        {
+            throw new Exception("Game not found.");
+        }
+
+        var encodedProductName = UrlUtilities.UrlEncode(productName);
+
+        //var url = $"{Constants.FIRST_PAGE_URL_PART_1}{encodedProductName}{Constants.FIRST_PAGE_URL_PART_2}";
+
+        var url = string.Format(Constants.STEAM_GAME_LISTING_URL, game.InternalId, encodedProductName);
+
+        var jsonResponse = await HttpUtilities.GetHttpResposeAsync(url);
+
+        var jsonString = JsonUtilities.FormatJsonStringForDeserialization(jsonResponse);
+
+        var result = JsonUtilities.DeserializeFormattedJsonString<Listing>(jsonString);
+
+        var resultAssets = result?.Assets?.FirstOrDefault().Value?.FirstOrDefault().Value?.FirstOrDefault().Value; // assets/440/2/ first
+
+        var descriptions = resultAssets!.Descriptions?.Where(x => x.Value != null);
+
+        var listingResult = new WatchItemDto
+        {
+            Name = resultAssets.Name
+        };
+
+        // TODO 
+        if (resultAssets != null)
+        {
+            var pixel = descriptions!.FirstOrDefault(x => x.Value.StartsWith("Paint Color:"))?.Value;
+            if (pixel != null)
+            {
+                listingResult.IsPainted = true;
+                listingResult.PaintText = pixel.Replace("Paint Color:", string.Empty).Trim();
+                listingResult.IsGoodPaint = game.Pixels.Any(x => string.Equals(x.Name, listingResult.PaintText, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
+        return listingResult;
+    }
+
+    #region Private Methods
+    private static async Task<IEnumerable<WatchItemDto>> ScrapePageFromUrl(string url)
+    {
+        var ct = new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token;
+        var options = new ChromeOptions();
+
+        // TODO Enable when testing is done
+        //options.AddArgument("--headless");
+
         options.AddArgument("--disable-gpu");
         options.PageLoadStrategy = PageLoadStrategy.Eager;
 
@@ -74,185 +286,6 @@ public class SteamService() : ISteamService
         }, linkedCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
     }
 
-    public async Task<string> GetPaintInfoFromSource(string src, CancellationToken ct)
-    {
-        string srcImage = src.Replace("/62fx62f", string.Empty);
-
-        var result = new StringBuilder();
-
-        using (HttpClient client = new())
-        {
-            byte[] bytes = await client.GetByteArrayAsync(srcImage, ct);
-
-            using var ms = new MemoryStream(bytes);
-            using Bitmap bmp = new(ms);
-
-            Color c = bmp.GetPixel(450, 50);
-
-            result.AppendLine(c.Name);
-            result.AppendLine($"R - {c.R}, G - {c.G}, B - {c.B}");
-        }
-
-        return result.ToString();
-    }
-
-    public async Task<IEnumerable<WatchItemDto>> ScrapePageWithSrcPixelPaintCheck(short page, bool isGoodColorOnly, CancellationToken ct)
-    {
-        if (page < 0 || page > short.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException("Page is either negative or greater than 500.");
-        }
-
-        var url = Constants.MANUAL_HATS_URL + $"p{page}_price_asc";
-
-        var options = new ChromeOptions();
-        options.AddArgument("--headless");
-        options.AddArgument("--disable-gpu");
-
-
-        var results = new List<WatchItemDto>();
-
-        using (IWebDriver driver = new ChromeDriver(options))
-        {
-            driver.Navigate().GoToUrl(url);
-
-            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
-            wait.Until(ExpectedConditions.ElementExists(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]")));
-
-            ReadOnlyCollection<IWebElement> listingAnchors =
-                driver.FindElements(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]"));
-
-            foreach (var anchor in listingAnchors)
-            {
-                var listing = ParseListingFromAnchor(anchor);
-
-                string srcImage = listing.ImageUrl!.Replace("/62fx62f", string.Empty);
-                using HttpClient client = new HttpClient();
-                byte[] bytes = await client.GetByteArrayAsync(srcImage, ct);
-
-                using var ms = new MemoryStream(bytes);
-                using Bitmap bmp = new Bitmap(ms);
-                Color c = bmp.GetPixel(x: 450, y: 50);
-
-                if (isGoodColorOnly)
-                {
-                    var colorMatch = StaticCollections.Paints.FirstOrDefault(x => x.Color.Name.Equals(c.Name) && x.IsGoodPaint);
-                    if (colorMatch != null)
-                    {
-                        listing.Color = colorMatch.Name;
-                        results.Add(listing);
-                    }
-                }
-                else
-                {
-                    if (!c.Name.Equals("0"))
-                    {
-                        var colorMatch = StaticCollections.Paints.FirstOrDefault(x => x.Color.Name.Equals(c.Name));
-
-                        listing.Color = colorMatch != null ? colorMatch!.Name : "Undiscoverred color";
-                        results.Add(listing);
-                    }
-                }
-            }
-        }
-
-        return results;
-    }
-
-    public async Task<IEnumerable<WatchItemDto>> GetDeserializedLisitngsFromUrl(short page, CancellationToken ct)
-    {
-        if (page < 0 || page > 500)
-        {
-            throw new ArgumentOutOfRangeException("Page is either negative or greater than 500.");
-        }
-
-        var url = $"{Constants.JSON_100_LISTINGS_URL_PART_1}{page}{Constants.JSON_100_LISTINGS_URL_PART_2}";
-        var filteredResult = await GetResultsFromUrl(url, ct);
-
-        return [.. filteredResult.OrderBy(x => x.SellPrice).Select(x => new WatchItemDto { Name = x.Name, Price = x.SellPrice / 100, Quantity = x.SellListings })];
-    }
-
-
-    public async Task<WatchItemDto> CheckIsListingPainted(string name, CancellationToken ct)
-    {
-        name = name.Trim();
-        if (string.IsNullOrEmpty(name))
-        {
-            throw new ArgumentNullException("Name is null or empty.");
-        }
-
-        if (name.Length > 200)
-        {
-            throw new ArgumentOutOfRangeException("Name is too long.");
-        }
-
-        var formattedName = UrlUtilities.UrlEncode(name);
-        var url = $"{Constants.FIRST_PAGE_URL_PART_1}{formattedName}{Constants.FIRST_PAGE_URL_PART_2}";
-
-        var jsonResponse = await HttpUtilities.GetHttpResposeAsync(url, ct);
-
-        var jsonString = JsonUtilities.FormatJsonStringForDeserialization(jsonResponse);
-
-        var result = JsonUtilities.DeserializeFormattedJsonString<Listing>(jsonString);
-
-        var resultAssets = result?.Assets?.FirstOrDefault().Value?.FirstOrDefault().Value?.FirstOrDefault().Value; // assets/440/2/ first
-
-        var descriptions = resultAssets!.Descriptions?.Where(x => x.Value != null);
-
-        var lisitngResult = new WatchItemDto
-        {
-            Name = resultAssets.Name
-        };
-
-        if (resultAssets != null)
-        {
-            var paint = descriptions!.FirstOrDefault(x => x.Value.StartsWith("Paint Color:"))?.Value;
-            if (paint != null)
-            {
-                lisitngResult.IsPainted = true;
-                lisitngResult.PaintText = paint.Replace("Paint Color:", string.Empty).Trim();
-                lisitngResult.IsGoodPaint = StaticCollections.Paints.Where(x => x.IsGoodPaint).Select(x => x.Name).Contains(lisitngResult.PaintText);
-            }
-        }
-
-        return lisitngResult;
-    }
-
-    public async Task<IEnumerable<WatchItemDto>> ScrapePageForPaintedListingsOnly(short page, CancellationToken ct)
-    {
-        if (page < 0 || page > 500)
-        {
-            throw new ArgumentOutOfRangeException("Page is either negative or greater than 500.");
-        }
-
-        var results = new List<WatchItemDto>();
-        var listings = await ScrapePage(page, ct);
-
-        foreach (var listing in listings)
-        {
-            var isListingPaintedResult = await CheckIsListingPainted(listing.Name!, ct);
-            if (isListingPaintedResult.IsPainted)
-            {
-                var paintedListing = new WatchItemDto
-                {
-                    Name = listing.Name,
-                    Quantity = listing.Quantity,
-                    Price = listing.Price,
-                    ImageUrl = listing.ImageUrl,
-                    ListingUrl = listing.ListingUrl,
-                    IsPainted = isListingPaintedResult.IsPainted,
-                    PaintText = isListingPaintedResult.PaintText,
-                    IsGoodPaint = isListingPaintedResult.IsGoodPaint
-                };
-
-                results.Add(paintedListing);
-            }
-        }
-
-        return results.OrderBy(x => x.Name);
-    }
-
-
     private static WatchItemDto ParseListingFromAnchor(IWebElement anchor)
     {
         var listing = new WatchItemDto
@@ -288,9 +321,9 @@ public class SteamService() : ISteamService
         return listing;
     }
 
-    private static async Task<IEnumerable<Result>> GetResultsFromUrl(string url, CancellationToken ct)
+    private static async Task<IEnumerable<Result>> GetResultsFromUrl(string url)
     {
-        var jsonResponse = await HttpUtilities.GetHttpResposeAsync(url, ct);
+        var jsonResponse = await HttpUtilities.GetHttpResposeAsync(url);
         if (string.IsNullOrEmpty(jsonResponse))
         {
             throw new Exception("No JSON received or request failed.");
@@ -305,4 +338,6 @@ public class SteamService() : ISteamService
 
         return result.Results!;
     }
+
+    #endregion
 }

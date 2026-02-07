@@ -8,151 +8,132 @@ namespace SteamApp.WebAPI.Controllers;
 [ApiController]
 [Route("steam")]
 [Authorize]
-public class SteamController(ISteamService steamService/*, ILogger<SteamController> logger*/) : ControllerBase
+public class SteamController(ISteamService steamService, ILogger<SteamController> logger) : ControllerBase
 {
-    /// <summary>
-    /// Returns the RGB values found on a specific pixel of an item src image
-    /// </summary>
-    /// <param name="src"></param>
-    /// <returns></returns>
-    [HttpGet("hat/paint-info-source")]
-    public IActionResult GetPaintInfoFromSourceAsync(string src, CancellationToken ct = default)
+    [HttpGet("scrape-page/gameUrl/{gamerUrlId}/page/{page}")]
+    public async Task<IActionResult> ScrapePageAsync(long gamerUrlId, short page)
     {
-        try
+        using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(ScrapePageAsync)))
         {
-            var result = steamService.GetPaintInfoFromSource(src, ct).GetAwaiter().GetResult();
-            return Ok(result);
-        }
-        catch (OperationCanceledException)
-        {
-            return StatusCode(499, "Request was canceled.");
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ex.Message);
+            logger.LogInformation("Request started. GamerUrlId={GamerUrlId}, Page={Page}", gamerUrlId, page);
+
+            try
+            {
+                if (page < 0 || page > short.MaxValue)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(page), "Page is out of range.");
+                }
+
+                var result = await steamService.ScrapePage(gamerUrlId, page);
+
+                logger.LogInformation("Request completed successfully.");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Request failed.");
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 
-    /// <summary>
-    /// Web scrapes content from a page of the Steam Community Market
-    /// </summary>
-    /// <param name="page"></param>
-    /// <returns></returns>
-    [HttpGet("hat/page/{page}")]
-    public IActionResult ScrapePageAsync(short page, CancellationToken ct = default)
+    [HttpGet("scrape-public-api/gameUrl/{gamerUrlId}/page/{page}")]
+    public async Task<IActionResult> ScrapeFromPublicApi(long gameUrlId, short page)
     {
-        try
+        using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(ScrapeFromPublicApi)))
         {
-            var result = steamService.ScrapePage(page, ct).GetAwaiter().GetResult();
-            return Ok(result);
-        }
-        catch (OperationCanceledException)
-        {
-            return StatusCode(499, "Request was canceled.");
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ex.Message);
+            logger.LogInformation("Request started. GameUrlId={GameUrlId}, Page={Page}", gameUrlId, page);
+
+            try
+            {
+                var result = await steamService.ScrapeFromPublicApi(gameUrlId, page);
+
+                logger.LogInformation("Request completed successfully.");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Request failed.");
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 
-    /// <summary>
-    /// ScrapePageAsync() + Checks the src images of the scraped listings if they contain a pixel at a specific location 
-    /// matching a desirable paint color
-    /// </summary>
-    /// <param name="page"></param>
-    /// <param name="isGoodPaintsOnly"></param>
-    /// <returns></returns>
-    [HttpGet("hat/check-paint-by-pixel/{page}")]
-    public IActionResult ScrapePageWithSrcPixelPaintCheckAsync(short page, bool isGoodPaintsOnly = true, CancellationToken ct = default)
+    [HttpGet("pixel-info/gameUrl/{gameUrlId}")]
+    public async Task<IActionResult> GetPixelInfoFromSourceAsync(long gameUrlId, string srcUrl)
     {
-        try
+        using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(GetPixelInfoFromSourceAsync)))
         {
-            var result = steamService.ScrapePageWithSrcPixelPaintCheck(page, isGoodPaintsOnly, ct).GetAwaiter().GetResult();
-            return Ok(result);
-        }
-        catch (OperationCanceledException)
-        {
-            return StatusCode(499, "Request was canceled.");
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ex.Message);
+            logger.LogInformation("Request started. GameUrlId={GameUrlId}, SrcUrl={SrcUrl}", gameUrlId, srcUrl);
+
+            try
+            {
+                if (gameUrlId <= 0 || string.IsNullOrEmpty(srcUrl))
+                {
+                    logger.LogWarning("Validation failed.");
+                    return BadRequest("Invalid parameters.");
+                }
+
+                var result = await steamService.GetPixelInfoFromSource(gameUrlId, srcUrl);
+
+                logger.LogInformation("Request completed successfully.");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Request failed.");
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 
-    /// <summary>
-    /// Returns a Deserialized, filtered json result for 100 listings
-    /// </summary>
-    /// <param name="page"></param>
-    /// <returns></returns>
-    [HttpGet("hat/page/{page}/bulk")]
-    public IActionResult GetDeserializedLisitngsFromUrlAsync(short page, CancellationToken ct = default)
+    [HttpGet("scrape-pixels/gameUrl/{gamerUrlId}/page/{page}")]
+    public async Task<IActionResult> ScrapeForPixelsAsync(long gameUrlId, short page)
     {
-        try
+        using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(ScrapeForPixelsAsync)))
         {
-            var result = steamService.GetDeserializedLisitngsFromUrl(page, ct).GetAwaiter().GetResult();
-            return Ok(result);
-        }
-        catch (OperationCanceledException)
-        {
-            return StatusCode(499, "Request was canceled.");
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ex.Message);
+            logger.LogInformation("Request started. GameUrlId={GameUrlId}, Page={Page}", gameUrlId, page);
+
+            try
+            {
+                var result = await steamService.ScrapeForPixels(gameUrlId, page);
+
+                logger.LogInformation("Request completed successfully.");
+                return Ok(result);
+            }
+            catch (JsonSerializationException ex)
+            {
+                logger.LogWarning(ex, "Invalid listing.");
+                return StatusCode(400, "Error: Invalid Listing");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Request failed.");
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 
-    /// <summary>
-    /// Checks if the First listing with this name in the steam marketplace has a paint.
-    /// Extracts the data from a json responce.
-    /// </summary>
-    /// <param name="name"></param>
-    /// <returns></returns>
-    [HttpGet("hat/name/{name}/is-painted")]
-    public IActionResult CheckIsListingPaintedAsync(string name, CancellationToken ct = default)
+    [HttpGet("scrape-product-page/{gameId}/pixels")]
+    public async Task<IActionResult> ScrapeProductPixelsAsync(long gameId, string productName)
     {
-        try
+        using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(ScrapeProductPixelsAsync)))
         {
-            var result = steamService.CheckIsListingPainted(name, ct).GetAwaiter().GetResult();
-            return Ok(result);
-        }
-        catch (JsonSerializationException)
-        {
-            return StatusCode(400, "Error: Invalid Listing");
-        }
-        catch (OperationCanceledException)
-        {
-            return StatusCode(499, "Request was canceled.");
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ex.Message);
-        }
-    }
+            logger.LogInformation("Request started. GameId={GameId}, ProductName={ProductName}", gameId, productName);
 
-    /// <summary>
-    /// ScrapePageAsync + CheckIsListingPaintedAsync.
-    /// Currently the most brute force way to make the check.
-    /// </summary>
-    /// <param name="page"></param>
-    /// <returns></returns>
-    [HttpGet("hat/page/{page}/painted")]
-    public IActionResult ScrapePageForPaintedListingsOnlyAsync(short page, CancellationToken ct = default)
-    {
-        try
-        {
-            var result = steamService.ScrapePageForPaintedListingsOnly(page, ct).GetAwaiter().GetResult();
-            return Ok(result);
-        }
-        catch (OperationCanceledException)
-        {
-            return StatusCode(499, "Request was canceled.");
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ex.Message);
+            try
+            {
+                var result = await steamService.ScrapeProductPixels(gameId, productName);
+
+                logger.LogInformation("Request completed successfully.");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Request failed.");
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 }
+

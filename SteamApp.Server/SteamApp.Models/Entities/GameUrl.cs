@@ -34,6 +34,21 @@ namespace SteamApp.Domain.Entities
         [Column("is_pixel_scrape")]
         public bool IsPixelScrape { get; set; }
 
+        [Column("pixel_x")]
+        public int? PixelX { get; set; }
+
+        [Column("pixel_y")]
+        public int? PixelY { get; set; }
+
+        [Column("pixel_image_width")]
+        public int? PixelImageWidth { get; set; }
+
+        [Column("pixel_image_height")]
+        public int? PixelImageHeight{ get; set; }
+
+        [Column("is_public_api")]
+        public bool IsPublicApi { get; set; }
+
         public ICollection<GameUrlPixels> GameUrlsPixels { get; set; } = [];
 
         public ICollection<WatchList> WatchLists { get; set; } = [];

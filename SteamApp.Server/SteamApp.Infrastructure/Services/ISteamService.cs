@@ -4,15 +4,15 @@ namespace SteamApp.Infrastructure.Services;
 
 public interface ISteamService
 {
-    Task<string> GetPaintInfoFromSource(string src, CancellationToken cancellationToken);
+    Task<string> GetPixelInfoFromSource(long gamerUrlId, string srcUrl);
 
-    Task<IEnumerable<WatchItemDto>> GetDeserializedLisitngsFromUrl(short page, CancellationToken cancellationToken);
+    Task<IEnumerable<WatchItemDto>> ScrapePage(long gamerUrlId, short page);
 
-    Task<IEnumerable<WatchItemDto>> ScrapePage(short page, CancellationToken cancellationToken);
+    Task<IEnumerable<WatchItemDto>> ScrapeFromPublicApi(long gameUrlId, short page);
 
-    Task<IEnumerable<WatchItemDto>> ScrapePageWithSrcPixelPaintCheck(short page, bool isGoodPaintsOnly, CancellationToken cancellationToken);
+    Task<IEnumerable<WatchItemDto>> ScrapeForPixels(long gameUrlId, short page);
 
-    Task<IEnumerable<WatchItemDto>> ScrapePageForPaintedListingsOnly(short page, CancellationToken cancellationToken);
 
-    Task<WatchItemDto> CheckIsListingPainted(string name, CancellationToken cancellationToken);
+    // Not Done
+    Task<WatchItemDto> ScrapeProductPixels(long gameId, string prodtucName);
 }

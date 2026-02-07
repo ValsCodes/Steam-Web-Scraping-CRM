@@ -2,7 +2,7 @@
 
 public static class HttpUtilities
 {
-    public static async Task<string> GetHttpResposeAsync(string url, CancellationToken ct)
+    public static async Task<string> GetHttpResposeAsync(string url, CancellationToken ct = default)
     {
         using HttpClient httpClient = new();
         httpClient.Timeout = TimeSpan.FromSeconds(30);

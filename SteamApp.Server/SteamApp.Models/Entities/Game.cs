@@ -19,6 +19,9 @@ namespace SteamApp.Domain.Entities
         [Column("page_url")]
         public string? PageUrl { get; set; }
 
+        [Column("internal_id")]
+        public long? InternalId { get; set; }
+
         public ICollection<GameUrl> GameUrls { get; set; } = [];
         public ICollection<WishList> WishLists{ get; set; } = [];
         public ICollection<Product> Products { get; set; } = [];

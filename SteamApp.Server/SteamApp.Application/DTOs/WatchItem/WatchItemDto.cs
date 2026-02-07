@@ -4,7 +4,7 @@
     {
         public virtual string? Name { get; set; }
         public virtual double Price { get; set; }
-        public virtual string Color { get; set; }
+        public virtual string PixelName { get; set; }
         public virtual string? ImageUrl { get; set; }
         public virtual string ListingUrl { get; set; }
         public virtual short Quantity { get; set; }

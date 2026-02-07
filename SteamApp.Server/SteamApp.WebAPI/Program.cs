@@ -6,11 +6,13 @@ using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Serialization;
 using SteamApp.Domain.ValueObjects;
 using SteamApp.Domain.ValueObjects.Authentication;
+using SteamApp.Infrastructure.Repositories;
 using SteamApp.Infrastructure.Services;
 using SteamApp.WebAPI.Context;
 using SteamApp.WebAPI.Jobs;
 using SteamApp.WebAPI.Mapper;
 using SteamApp.WebAPI.MinimalAPIs;
+using SteamApp.WebAPI.Repositories;
 using SteamApp.WebAPI.Services;
 using SteamApp.WebApiClient;
 using SteamApp.WebApiClient.Managers;
@@ -179,17 +181,15 @@ public class Program
         builder.Services.Configure<EmailOptions>(
             builder.Configuration.GetSection("Mailstrap"));
 
+        builder.Services.AddScoped<ISteamRepository, SteamRepository>();
         builder.Services.AddScoped<ISteamService, SteamService>();
-        builder.Services.AddScoped<SteamApiClient>();
         builder.Services.AddScoped<IEmailService, EmailService>();
+        builder.Services.AddScoped<SteamApiClient>();
         builder.Services.AddScoped<WishlistCheckJob>();
 
-        builder.Services.AddHostedService<
-            BackgroundWorkerService<WishlistCheckJob>>();
+        builder.Services.AddHostedService<BackgroundWorkerService<WishlistCheckJob>>();
 
-        builder.Services.Configure<WorkerOptions>(
-            nameof(WishlistCheckJob),
-            builder.Configuration.GetSection("Workers:WishlistCheck"));
+        builder.Services.Configure<WorkerOptions>(nameof(WishlistCheckJob),builder.Configuration.GetSection("Workers:WishlistCheck"));
 
         builder.Services.Configure<HostOptions>(o =>
         {

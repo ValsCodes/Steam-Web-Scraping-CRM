@@ -9,6 +9,9 @@ public class Constants
     public const string FIRST_PAGE_URL_PART_1 = "https://steamcommunity.com/market/listings/440/";
     public const string FIRST_PAGE_URL_PART_2 = "/render/?query=&start=0&count=10&country=BG&language=english&currency=3";
 
+    // 0 - gameId, 1 - itemName
+    public const string STEAM_GAME_LISTING_URL= "https://steamcommunity.com/market/listings/{0}/{1}/render/?query=&start=0&count=10&country=BG&language=english&currency=3";
+
     //Add Start between, 20 calls per minute 
     public const string JSON_100_LISTINGS_URL_PART_1 = "https://steamcommunity.com/market/search/render?norender=1&start=2";
     public const string JSON_100_LISTINGS_URL_PART_2 = "&count=100&q=&category_440_Collection%5B%5D=any&category_440_Type%5B%5D=tag_misc&category_440_Quality%5B%5D=tag_Unique&category_440_Quality%5B%5D=tag_strange&appid=440\\";
