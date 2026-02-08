@@ -21,49 +21,51 @@
                 <div class="flex gap-2 mt-4">
 
                     <div class="flex items-center gap-2">
-                        <button (click)="classicWebScraperButtonClicked()" class="button-small-success"
-                            title="Duration ~3sec">Web
-                            Scraper</button>
-                        <button (click)="scrapedPageByPixelButtonClicked()" class="button-small-success"
+                        <button (click)="scrapeButtonClicked()" class="button-small-success" title="Duration ~3sec">Web
+                            Scrape</button>
+                        <!-- <button (click)="scrapedPageByPixelButtonClicked()" class="button-small-success"
                             title="Duration ~7sec">Web
-                            Scrape by Pixel</button>
-                        <button (click)="publicApiDeserializerButtonClicked()" class="button-small-success"
+                            Scrape by Pixel</button> -->
+                        <button (click)="publicApiScrapeButtonClicked()" class="button-small-success"
                             title="Duration ~1sec">Public API</button>
-                        <button (click)="deepClassicWebScraperPaintsOnlyButtonClicked()" class="button-small-success"
-                            title="Duration ~30s">Deep
-                            Web Scraper</button>
+                        <button (click)="pixelScrapeButtonClicked()" class="button-small-success"
+                            title="Duration ~30s">Pixel Scrape</button>
 
                         <button (click)="clearButtonClicked()" class="button button-small-danger"> Clear </button>
                     </div>
-
                 </div>
-                
+                Current Mode: {{this.selectedMode?.name ?? 'Not Selected'}} <br><br>
                 <div class="flex items-center ml-2 gap-x-2">
-                    <div>
-                        <label for="page-number">Page Number : </label>
+                    <div class="flex items-center gap-2">
+                        <label for="page-number" class="whitespace-nowrap">
+                            Page Number :
+                        </label>
                         <input [(ngModel)]="pageNumber" (ngModelChange)="onPageNumberChange($event)" class="input-style"
-                            type="number" min="1" step="1" title="Enter a positive number">
+                            type="number" min="1" step="1" title="Enter a positive number" />
                     </div>
-                    <div class="flex gap-2">
-                        <button (click)="retryBatchButtonClicked()" [disabled]="this.lastUsedMode == null"
-                            class="button-small-primary">Retry</button>
-                        <button (click)="startBatchButtonClicked()" [disabled]="this.lastUsedMode == null"
-                            class="button-small-warning">Next
-                            Page</button>
-                        <button (click)="clearButtonClicked()" [disabled]="this.lastUsedMode == null"
-                            class="button-small-danger" title="Clear Current Data"> Reset</button>
-                        @if(this.isLoading)
-                        {
-                        <button (click)="cancelAll()" class="button-small-danger" title="Clear Current Data">
-                            Cancel</button>
-                        }                      
-                    </div>            
-                </div>
 
+                    <div class="flex items-center gap-2">
+                        <button (click)="retryBatchButtonClicked()" [disabled]="this.selectedMode == null"
+                            class="button-small-primary">
+                            Retry
+                        </button>
+
+                        <button (click)="startBatchButtonClicked()" [disabled]="this.selectedMode == null"
+                            class="button-small-warning">
+                            Next Page
+                        </button>
+
+                        @if(this.isLoading) {
+                        <button (click)="cancelAll()" class="button-small-danger" title="Clear Current Data">
+                            Cancel
+                        </button>
+                        }
+                    </div>
+                </div>
                 <label class="my-2 py-2">{{statusLabel}}</label>
             </div>
         </div>
-            <app-stopwatch></app-stopwatch>
+        <app-stopwatch></app-stopwatch>
     </div>
 
     <div class="flex justify-end mr-4">
@@ -103,8 +105,8 @@
             <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef>Actions</th>
                 <td mat-cell *matCellDef="let element; let i = index">
-                    <button type="button" class="button button-small-primary"
-                        (click)="checkPaintButtonClicked(element.name, i)">Check For Paint</button>
+                    <!-- <button type="button" class="button button-small-primary"
+                        (click)="checkPaintButtonClicked(element.name, i)">Check For Paint</button> -->
                     <!-- <button type="button" class="delete-button ml-2" (click)="deleteButtonClicked(i)">Delete</button> -->
                 </td>
             </ng-container>

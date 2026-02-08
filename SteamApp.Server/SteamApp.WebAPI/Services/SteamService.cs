@@ -6,7 +6,6 @@ using SteamApp.Application.DTOs.WatchItem;
 using SteamApp.Application.DTOs.WishListItem;
 using SteamApp.Application.JsonObjects;
 using SteamApp.Domain.Common;
-using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Repositories;
 using SteamApp.Infrastructure.Services;
 using SteamApp.WebAPI.Helpers;
@@ -96,7 +95,6 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
             throw new Exception("Game URL is not configured for public API Scrape.");
         }
 
-        // TODO add url to Game Urls
         //var url = $"{Constants.JSON_100_LISTINGS_URL_PART_1}{page}{Constants.JSON_100_LISTINGS_URL_PART_2}";
 
         var url = string.Format($"{gameUrl.PartialUrl}", page);

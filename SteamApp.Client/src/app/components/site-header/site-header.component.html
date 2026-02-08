@@ -3,7 +3,7 @@
         <div class="flex">
                 <steam-dropdown label="Scraping"
                         [links]="[{ label: 'Web Scraper', route: '/web-scraper' },
-                        { label: 'Manual Scraper V2', route: '/manual-mode-v2' }]"></steam-dropdown>
+                        { label: 'Manual Scraper', route: '/manual-mode-v2' }]"></steam-dropdown>
                         
                 <steam-dropdown label="Games"
                         [links]="[{ label: 'Games', route: '/games' }, 
@@ -16,7 +16,7 @@
 
                 <a routerLink="/pixels" routerLinkActive="active">Pixels</a>
                 <a routerLink="/wishlist" routerLinkActive="active">Wishlist</a>
-                <a routerLink="/watch-list" routerLinkActive="active">WatchList</a>
+                <a routerLink="/watch-list" routerLinkActive="active">Custom Watch List</a>
         </div>}
         <div class="flex space-x-4 items-center">
                 @if(isLoggedIn)

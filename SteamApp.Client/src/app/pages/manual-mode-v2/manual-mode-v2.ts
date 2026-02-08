@@ -25,10 +25,10 @@ import {
   TagService,
 } from '../../services';
 import { CopyLinkComponent, TextFilterComponent } from '../../components';
-import { ComboBoxComponent } from '../../components/filters/combo-box.component';
-import { TagFilterSelectComponent } from '../../components/filters/tag-filter.component';
+import { ComboBoxComponent } from '../../components/filter-components/combo-box-filter.component';
+import { TagFilterSelectComponent } from '../../components/filter-components/tag-filter.component';
 import { CONSTANTS } from '../../common';
-import { NumberFilterComponent } from '../../components/filters/number-filter.component';
+import { NumberFilterComponent } from '../../components/filter-components/number-filter.component';
 
 @Component({
   selector: 'steam-manual-mode-v2',
@@ -266,13 +266,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
           break;
         }
 
-        let url =
-          (this.selectedGameUrl.partialUrl ?? '') +
-          'p' +
-          currentIndex +
-          CONSTANTS.PAGE_PARTIAL;
-
-        console.log(url);
+        let url = (this.selectedGameUrl.partialUrl ?? '').replace('{0}', String(currentIndex));
 
         const newWindow = window.open(url, '_blank');
 

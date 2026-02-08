@@ -7,7 +7,6 @@ import {
   GameUrlProductsView,
   GameUrlsView,
   LoginComponent,
-  ManualModeComponent,
   ManualModeV2,
   PixelForm,
   PixelsView,
@@ -37,7 +36,6 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'web-scraper', pathMatch: 'full' },
       { path: 'web-scraper', component: WebScraperComponent },
-      { path: 'manual-mode', component: ManualModeComponent },
       { path: 'manual-mode-v2', component: ManualModeV2 },
       { path: 'games', component: GamesView },
       { path: 'games/create', component: GameForm },

@@ -1,4 +1,11 @@
-import { AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
 import { SteamService } from '../../services/steam/steam.service';
 import { FormControl, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -8,19 +15,29 @@ import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import * as XLSX from 'xlsx';
 import { Listing } from '../../models/listing.model';
-import { BehaviorSubject, finalize, startWith, Subject, takeUntil, tap } from 'rxjs';
-import { StopwatchComponent } from "../../components";
-import { ComboBoxComponent } from "../../components/filters/combo-box.component";
+import {
+  BehaviorSubject,
+  finalize,
+  startWith,
+  Subject,
+  takeUntil,
+  tap,
+} from 'rxjs';
+import { StopwatchComponent } from '../../components';
+import { ComboBoxComponent } from '../../components/filter-components/combo-box-filter.component';
 import { Game, GameUrl } from '../../models';
 import { GameService, GameUrlService } from '../../services';
 
-
 enum ScrapingMode {
-  ClassicWebScraper = 1,
-  ClassicWebScraperPaintsOnlyByPixel = 2,
-  PublicApiDeserializer = 3,
-  DeepClassicWebScraperPaintsOnly = 4
+  Scraper = 1,
+  PublicApiScraper = 2,
+  PixelScrape = 3,
 }
+
+type ScrapingModeItem = {
+  id: ScrapingMode;
+  name: string;
+};
 
 @Component({
   selector: 'web-scraper',
@@ -33,8 +50,8 @@ enum ScrapingMode {
     MatSortModule,
     MatPaginatorModule,
     StopwatchComponent,
-    ComboBoxComponent
-],
+    ComboBoxComponent,
+  ],
   templateUrl: './web-scraper.component.html',
   styleUrl: './web-scraper.component.scss',
   providers: [SteamService],
@@ -48,12 +65,20 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly gameIdControl = new FormControl<number | null>(null);
   readonly gameUrlIdControl = new FormControl<number | null>(null);
 
-    readonly games$ = new BehaviorSubject<readonly Game[]>([]);
-    readonly gameUrlsFiltered$ = new BehaviorSubject<readonly GameUrl[]>([]);
-      selectedGameUrl: GameUrl | null = null;
+  readonly games$ = new BehaviorSubject<readonly Game[]>([]);
+  readonly gameUrlsFiltered$ = new BehaviorSubject<readonly GameUrl[]>([]);
+  selectedGameUrl: GameUrl | null = null;
 
-   private games: Game[] = [];
+  private games: Game[] = [];
   private gameUrlsAll: GameUrl[] = [];
+
+  ScrapingModes: readonly ScrapingModeItem[] = [
+    { id: ScrapingMode.Scraper, name: 'Web Scraper' },
+    { id: ScrapingMode.PublicApiScraper, name: 'Public API Scrape' },
+    { id: ScrapingMode.PixelScrape, name: 'Pixel Scrape' },
+  ];
+
+  selectedMode: ScrapingModeItem | null = null;
 
   dataSource = new MatTableDataSource<Listing>([]);
   displayedColumns: string[] = [
@@ -69,12 +94,12 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
   pageNumber: number = 1;
   statusLabel: string = '';
   isLoading: boolean = false;
-  lastUsedMode: number | null = null;
 
-  constructor(private steamService: SteamService,
+  constructor(
+    private steamService: SteamService,
     private readonly cdr: ChangeDetectorRef,
-        private readonly gameService: GameService,
-        private readonly gameUrlService: GameUrlService,
+    private readonly gameService: GameService,
+    private readonly gameUrlService: GameUrlService,
   ) {}
 
   ngOnInit(): void {}
@@ -93,7 +118,7 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-    private loadGames(): void {
+  private loadGames(): void {
     this.gameService
       .getAll()
       .pipe(takeUntil(this.destroy$))
@@ -104,22 +129,19 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
-    private loadGameUrls(): void {
+  private loadGameUrls(): void {
     this.gameUrlService
       .getAll()
       .pipe(takeUntil(this.destroy$))
       .subscribe((urls) => {
-
-        let filtered = urls.filter(x=> x.isBatchUrl)
+        let filtered = urls.filter((x) => x.isBatchUrl);
 
         this.gameUrlsAll = filtered.map((url) => {
           if (url.isBatchUrl === true) {
-
-            url.name += ' [ Batch ]'       
+            url.name += ' [ Batch ]';
           }
           if (url.isPixelScrape === true) {
-
-            url.name += ' [ Pixel ]'       
+            url.name += ' [ Pixel ]';
           }
 
           return url;
@@ -130,19 +152,16 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   retryBatchButtonClicked() {
-    switch (this.lastUsedMode) {
-      case ScrapingMode.ClassicWebScraper:
-        this.classicWebScraperButtonClicked();
+    switch (this.selectedMode?.id) {
+      case ScrapingMode.Scraper:
+        this.scrapeButtonClicked();
         break;
-      case ScrapingMode.ClassicWebScraperPaintsOnlyByPixel:
-        this.scrapedPageByPixelButtonClicked();
-        break;
-      case ScrapingMode.PublicApiDeserializer:
-        this.publicApiDeserializerButtonClicked();
+      case ScrapingMode.PublicApiScraper:
+        this.publicApiScrapeButtonClicked();
         break;
 
-      case ScrapingMode.DeepClassicWebScraperPaintsOnly:
-        this.deepClassicWebScraperPaintsOnlyButtonClicked();
+      case ScrapingMode.PixelScrape:
+        this.pixelScrapeButtonClicked();
         break;
     }
   }
@@ -150,156 +169,94 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
   startBatchButtonClicked() {
     this.pageNumber++;
 
-    switch (this.lastUsedMode) {
-      case ScrapingMode.ClassicWebScraper:
-        this.classicWebScraperButtonClicked();
+    switch (this.selectedMode?.id) {
+      case ScrapingMode.Scraper:
+        this.scrapeButtonClicked();
         break;
-      case ScrapingMode.ClassicWebScraperPaintsOnlyByPixel:
-        this.scrapedPageByPixelButtonClicked();
-        break;
-      case ScrapingMode.PublicApiDeserializer:
-        this.publicApiDeserializerButtonClicked();
+      case ScrapingMode.PublicApiScraper:
+        this.publicApiScrapeButtonClicked();
         break;
 
-      case ScrapingMode.DeepClassicWebScraperPaintsOnly:
-        this.deepClassicWebScraperPaintsOnlyButtonClicked();
+      case ScrapingMode.PixelScrape:
+        this.pixelScrapeButtonClicked();
         break;
     }
   }
 
-  classicWebScraperButtonClicked() {
-    this.setLoading();
-    this.steamService
-      .getScrapedPage(this.pageNumber)
-      .pipe(takeUntil(this.cancel$),
-        finalize(() => {
-          this.finishLoading();
-        }))
-      .subscribe({
-        next: (response) => {
-          if (response.length === 0) {
-            console.log('No results found');
-          }
-          this.dataSource.data = response;
-          console.log([response]);
-          this.statusLabel = 'Successfully scraped Listings.';
-        },
-        error: (error) => {
-          this.statusLabel = 'Failed to scrape Listings.';
-          console.error('Error fetching data:', error);
-        },
-      });
-
-    this.lastUsedMode = ScrapingMode.ClassicWebScraper;
+  scrapeButtonClicked() {
+    this.executeScrape(
+      ScrapingMode.Scraper,
+      () =>
+        this.steamService.scrapePage(this.requireGameUrlId(), this.pageNumber),
+      'Successfully scraped Listings.',
+      'Failed to scrape Listings.',
+    );
   }
 
-  scrapedPageByPixelButtonClicked() {
-    this.setLoading();
-    this.steamService
-      .getScrapedPageByPixel(this.pageNumber)
-      .pipe(takeUntil(this.cancel$),
-        finalize(() => {
-          this.finishLoading();
-        }))
-      .subscribe({
-        next: (response) => {
-          if (response.length === 0) {
-            console.log('No results found');
-          }
-
-          this.dataSource.data = response;
-          this.statusLabel =
-            'Successfully scraped Listings with Paints by Pixel.';
-          console.log([response]);
-        },
-        error: (error) => {
-          this.statusLabel = 'Failed to scrape Listings with Paints by Pixel.';
-          console.error('Error fetching data:', error);
-        },
-      });
-
-    this.lastUsedMode = ScrapingMode.ClassicWebScraperPaintsOnlyByPixel;
+  publicApiScrapeButtonClicked() {
+    this.executeScrape(
+      ScrapingMode.PublicApiScraper,
+      () =>
+        this.steamService.scrapeFromPublicApi(
+          this.requireGameUrlId(),
+          this.pageNumber,
+        ),
+      'Successfully scraped by Public API.',
+      'Failed to scrape by Public API.',
+    );
   }
 
-  publicApiDeserializerButtonClicked() {
-    this.setLoading();
-    this.steamService
-      .getBulkPage(this.pageNumber)
-      .pipe(takeUntil(this.cancel$),
-        finalize(() => {
-          this.finishLoading();
-        }))
-      .subscribe({
-        next: (response) => {
-          if (response.length === 0) {
-            console.log('No results found');
-          }
-          this.dataSource.data = response;
-          console.table(response);
-          this.statusLabel = 'Successfully scraped by Public API.';
-        },
-        error: (error) => {
-          this.statusLabel = 'Failed to scrape by Public API.';
-          console.error('Error fetching data:', error);
-        },
-      });
-
-    this.lastUsedMode = ScrapingMode.PublicApiDeserializer;
+  pixelScrapeButtonClicked() {
+    this.executeScrape(
+      ScrapingMode.PixelScrape,
+      () =>
+        this.steamService.scrapeForPixels(
+          this.requireGameUrlId(),
+          this.pageNumber,
+        ),
+      'Successfully scraped by Pixel Scraper.',
+      'Failed to scrape by Pixel Scraper.',
+    );
   }
 
-  deepClassicWebScraperPaintsOnlyButtonClicked() {
-    this.setLoading();
-    this.steamService
-      .getDeepScrapePaintedOnly(this.pageNumber)
-      .pipe(takeUntil(this.cancel$),
-        finalize(() => {
-          this.finishLoading();
-        }))
-      .subscribe({
-        next: (response) => {
-          if (response.length === 0) {
-            console.log('No results found');
-          }
+  private requireGameUrlId(): number {
+    const id = this.gameUrlIdControl.value;
 
-          this.dataSource.data = response;
-          this.statusLabel = 'Successfully scraped by Deep Scraping.';
-          console.log([response]);
-        },
-        error: (error) => {
-          this.statusLabel = 'Failed to scrape by Deep Scraping.';
-          console.error('Error fetching data:', error);
-        },
-      });
+    if (id === null || id <= 0) {
+      throw new Error('gameUrlId is required');
+    }
 
-    this.lastUsedMode = ScrapingMode.DeepClassicWebScraperPaintsOnly;
+    return id;
   }
 
-  checkPaintButtonClicked(name: string, index: number) {
-    this.setLoadingWithoutDataClear();
+  private executeScrape(
+    mode: ScrapingMode,
+    request: () => any,
+    successLabel: string,
+    errorLabel: string,
+  ) {
 
-    this.steamService
-      .getIsHatPainted(name)
+    this.setSelectedMode(mode);
+
+    if (this.selectedGameUrl === null) {
+      this.statusLabel = 'Game Url not selected';
+      return;
+    }
+
+    this.setLoading();
+
+    request()
       .pipe(
         takeUntil(this.cancel$),
-        finalize(() => {
-          this.finishLoading();
-        })
+        finalize(() => this.finishLoading()),
       )
       .subscribe({
-        next: (response) => {
-          console.log([response]);
-
-          if (response.isPainted === false) {
-            this.dataSource.data[index].color = 'Not Painted';
-          } else {
-            this.dataSource.data[index].color = response.paintText;
-          }
-
-          this.statusLabel = 'Successfully Check Listing for Paint.';
+        next: (response: never[]) => {
+          this.dataSource.data = response ?? [];
+          this.statusLabel = successLabel;
         },
-        error: (error) => {
-          this.statusLabel = 'Failed to Check Listing for Paint.';
-          console.error('Error fetching data:', error);
+        error: (err:any) => {
+          this.statusLabel = err?.error ?? err?.message ?? 'Unknown error';
         },
       });
   }
@@ -332,7 +289,7 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
     this.statusLabel = 'Loading...';
   }
 
-    setLoadingWithoutDataClear(): void {
+  setLoadingWithoutDataClear(): void {
     this.isLoading = true;
     this.statusLabel = 'Loading...';
   }
@@ -358,7 +315,7 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
     this.cancel$ = new Subject<void>();
   }
 
-    readonly bindGameUrlToExternal$ = this.gameUrlIdControl.valueChanges.pipe(
+  readonly bindGameUrlToExternal$ = this.gameUrlIdControl.valueChanges.pipe(
     startWith(this.gameUrlIdControl.value),
     tap((gameUrlId) => {
       if (gameUrlId === null) {
@@ -381,18 +338,17 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
     }),
   );
 
-   clearBatchButtonClicked(): void {
+  clearBatchButtonClicked(): void {
     // this.currentIndex = null;
     // this.batchSize = null;
   }
-  
 
-    readonly bindToExternal$ = this.gameIdControl.valueChanges.pipe(
-      startWith(this.gameIdControl.value),
-      tap((gameId) => {
-        this.applyGameFilter(gameId);
-      }),
-    );
+  readonly bindToExternal$ = this.gameIdControl.valueChanges.pipe(
+    startWith(this.gameIdControl.value),
+    tap((gameId) => {
+      this.applyGameFilter(gameId);
+    }),
+  );
 
   private applyGameFilter(gameId: number | null): void {
     if (gameId === null) {
@@ -411,6 +367,16 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedGameUrl = null;
 
     this.cdr.markForCheck();
+  }
+
+  private setSelectedMode(modeId: ScrapingMode): void {
+    const mode = this.ScrapingModes.find((m) => m.id === modeId);
+
+    if (!mode) {
+      throw new Error('Invalid scraping mode');
+    }
+
+    this.selectedMode = mode;
   }
 
   ngOnDestroy() {

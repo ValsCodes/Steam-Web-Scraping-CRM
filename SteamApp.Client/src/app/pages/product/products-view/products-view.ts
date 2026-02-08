@@ -15,10 +15,10 @@ import { Game, Product, Tag } from '../../../models';
 import { encode } from '../../../common';
 import { FormControl } from '@angular/forms';
 import { TextFilterComponent } from '../../../components';
-import { NumberFilterComponent } from '../../../components/filters/number-filter.component';
-import { TagFilterSelectComponent } from '../../../components/filters/tag-filter.component';
+import { NumberFilterComponent } from '../../../components/filter-components/number-filter.component';
+import { TagFilterSelectComponent } from '../../../components/filter-components/tag-filter.component';
 import { BehaviorSubject, startWith, Subject, takeUntil, tap } from 'rxjs';
-import { ComboBoxComponent } from '../../../components/filters/combo-box.component';
+import { ComboBoxComponent } from '../../../components/filter-components/combo-box-filter.component';
 
 @Component({
   selector: 'steam-products-grid',

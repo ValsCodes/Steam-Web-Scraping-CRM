@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ManualModeComponent } from './manual-mode.component';
+import { GameUrlPixelsView } from './game-url-pixels-view';
 
-describe('ManualModeComponent', () => {
-  let component: ManualModeComponent;
-  let fixture: ComponentFixture<ManualModeComponent>;
+describe('GameUrlPixelsView', () => {
+  let component: GameUrlPixelsView;
+  let fixture: ComponentFixture<GameUrlPixelsView>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ManualModeComponent]
+      imports: [GameUrlPixelsView]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(ManualModeComponent);
+    fixture = TestBed.createComponent(GameUrlPixelsView);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

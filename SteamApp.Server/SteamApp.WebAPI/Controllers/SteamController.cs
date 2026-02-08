@@ -47,7 +47,7 @@ public class SteamController(
         }
     }
 
-    [HttpGet("scrape-public-api/gameUrl/{gamerUrlId}/page/{page}")]
+    [HttpGet("scrape-public-api/gameUrl/{gameUrlId}/page/{page}")]
     public async Task<IActionResult> ScrapeFromPublicApi(long gameUrlId, short page)
     {
         using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(ScrapeFromPublicApi)))

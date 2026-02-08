@@ -32,7 +32,6 @@ namespace SteamApp.WebAPI.MinimalAPIs
                         GameName = x.GameUrl.Game.Name,
                         FullUrl = x.GameUrl.PartialUrl + Uri.EscapeDataString(x.Product.Name),
                         x.Name,
-                        x.Description,
                         x.BatchNumber,
                         x.ReleaseDate,
                         x.IsActive,

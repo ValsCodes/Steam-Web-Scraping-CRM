@@ -225,7 +225,8 @@ public class Program
         app.MapWishListEndpoints();
         app.MapGameUrlProductsEndpoints();
         app.MapTagsEndpoints();
-        app.MapProductTagsEndpoints();  
+        app.MapProductTagsEndpoints();
+        app.MapGameUrlPixelsEndpoints();
 
         app.Run();
     }

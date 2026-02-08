@@ -1,8 +1,8 @@
-﻿namespace SteamApp.Application.DTOs.GameUrlProduct
+﻿namespace SteamApp.Application.DTOs.GameUrlPixel
 {
     public sealed class GameUrlPixelCreateDto
     {
-        public long ProductId { get; set; }
+        public long PixelId { get; set; }
         public long GameUrlId { get; set; }
     }
 

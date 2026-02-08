@@ -1,6 +1,5 @@
 // Core pages
 export { WebScraperComponent } from './web-scraper/web-scraper.component';
-export { ManualModeComponent } from './manual-mode/manual-mode.component';
 export { ManualModeV2 } from './manual-mode-v2/manual-mode-v2';
 export { LoginComponent } from './login/login.component';
 

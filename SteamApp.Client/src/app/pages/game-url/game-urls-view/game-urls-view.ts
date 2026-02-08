@@ -8,7 +8,7 @@ import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { Game, GameUrl } from '../../../models';
 import { GameService, GameUrlService } from '../../../services';
-import { ComboBoxComponent } from "../../../components/filters/combo-box.component";
+import { ComboBoxComponent } from "../../../components/filter-components/combo-box-filter.component";
 import { TextFilterComponent } from "../../../components";
 import { FormControl } from '@angular/forms';
 import { BehaviorSubject, startWith, Subject, takeUntil, tap } from 'rxjs';
