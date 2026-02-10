@@ -19,7 +19,7 @@ export class WatchListService {
   private readonly controller = 'api/watch-list';
   private readonly baseUrl = `${g.localHost}${this.controller}`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   getAll(): Observable<WatchList[]> {
     return this.http

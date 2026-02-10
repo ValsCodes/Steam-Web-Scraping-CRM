@@ -38,6 +38,7 @@ export class GameUrlsView implements OnInit {
     'startPage',
     'endPage',
     'isPixelScrape',
+    'isPublicApi',
     'actions'
   ];
 

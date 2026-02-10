@@ -22,23 +22,9 @@ namespace SteamApp.WebAPI.MinimalAPIs
             {
                 var entities = await db.WatchList
                     .AsNoTracking()
-                    .Select(x => new
-                    {
-                        x.Id,
-                        x.ProductId,
-                        ProductName = x.Product.Name,
-                        x.GameUrlId,
-                        GameUrlName = x.GameUrl.Name,
-                        GameName = x.GameUrl.Game.Name,
-                        FullUrl = x.GameUrl.PartialUrl + Uri.EscapeDataString(x.Product.Name),
-                        x.Name,
-                        x.BatchNumber,
-                        x.ReleaseDate,
-                        x.IsActive,
-                    })
                     .ToListAsync();
 
-                return Results.Ok(entities);
+                return Results.Ok(mapper.Map<List<WatchListDto>>(entities));
             })
             .WithName("GetAllWatchList")
             .Produces<List<object>>(StatusCodes.Status200OK);
@@ -50,7 +36,6 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 IMapper mapper) =>
             {
                 var entity = await db.WatchList
-                    .Include(w => w.GameUrl)
                     .FirstAsync(w => w.Id == id);
 
                 if (entity is null) { return Results.NotFound(); }
@@ -67,27 +52,9 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-
-                if (input.ProductId.HasValue)
-                {
-                    var productExists = await db.Products
-                        .AsNoTracking()
-                        .AnyAsync(g => g.Id == input.ProductId.Value);
-
-                    if (!productExists) { return Results.BadRequest("Invalid ProductId"); }
-                }
-
-                if (input.GameUrlId.HasValue)
-                {
-                    var gameUrlExists = await db.GameUrls
-                        .AsNoTracking()
-                        .AnyAsync(g => g.Id == input.GameUrlId.Value);
-
-                    if (!gameUrlExists) { return Results.BadRequest("Invalid GameUrlId"); }
-                }
-
-                var entity = mapper.Map<WatchList>(input);
-
+                input.RegistrationDate ??= new DateOnly();
+                var entity = mapper.Map<WatchList>(input);             
+              
                 db.WatchList.Add(entity);
                 await db.SaveChangesAsync();
 
@@ -109,6 +76,9 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 var entity = await db.WatchList.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
+                input.RegistrationDate ??= new DateOnly();
+
+ 
                 mapper.Map(input, entity);
 
                 await db.SaveChangesAsync();

@@ -21,6 +21,8 @@ import {
   WebScraperComponent,
   WishListForm,
   WishListsView,
+  GameUrlPixelForm,
+  GameUrlPixelsView
 } from './pages';
 import { AuthGuard } from './services/auth/auth.guard';
 
@@ -70,6 +72,18 @@ export const routes: Routes = [
       { path: 'tags', component: TagsView },
       { path: 'tags/create', component: TagForm },
       { path: 'tags/edit/:id', component: TagForm },
+      {
+        path: 'game-url-pixels',
+        component: GameUrlPixelsView,
+      },
+      {
+        path: 'game-url-pixels/create',
+        component: GameUrlPixelForm,
+      },
+      {
+        path: 'game-url-pixels/edit/:pixelId/:gameUrlId',
+        component: GameUrlPixelForm,
+      },
     ],
   },
 ];

@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { handleError } from '../error-handler';
 import * as g from '../general-data';
+import { WhishListResponse } from '../../models';
 
 @Injectable({
   providedIn: 'root'
@@ -46,7 +47,7 @@ export class SteamService {
     );
   }
 
-  checkWishlistItem(wishlistId: number): Observable<any> {
+  checkWishlistItem(wishlistId: number): Observable<WhishListResponse> {
     const url = `${this.baseUrl}check-wishlist/${wishlistId}`;
     return this.http.get<any>(url).pipe(
       catchError(handleError)

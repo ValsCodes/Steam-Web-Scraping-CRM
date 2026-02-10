@@ -27,7 +27,5 @@ public sealed class Product
 
     public ICollection<GameUrlProducts> GameUrlsProducts { get; set; } = [];
 
-    public ICollection<WatchList> WatchLists { get; set; } = [];
-
     public ICollection<ProductTags> ProductTags { get; set; } = [];
 }

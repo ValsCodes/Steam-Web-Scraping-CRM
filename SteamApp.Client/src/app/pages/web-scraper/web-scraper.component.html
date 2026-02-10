@@ -8,32 +8,54 @@
             <!-- Control Panel -->
             <div class="flex flex-col p-4 bg-orange-200 rounded-md min-w-[400px]">
                 <h2 class="mb-4 font-semibold">Control Panel</h2>
-                <!-- Game -->
-                <app-combo-box label="Game" [control]="gameIdControl" [items$]="games$" idKey="id" labelKey="name"
-                    [bind$]="bindToExternal$"></app-combo-box>
+                <div class="flex justify-between gap-x-4">
+                    <div class="flex flex-col">
+                        <!-- Game -->
+                        <app-combo-box label="Game" [control]="gameIdControl" [items$]="games$" idKey="id"
+                            labelKey="name" [bind$]="bindToExternal$"></app-combo-box>
 
-                <!-- Game URL -->
-                <app-combo-box label="Game URL" placeholder="Select a game URL" [control]="gameUrlIdControl"
-                    [items$]="gameUrlsFiltered$" idKey="id" labelKey="name"
-                    [bind$]="bindGameUrlToExternal$"></app-combo-box>
+                        <!-- Game URL -->
+                        <app-combo-box label="Game URL" placeholder="Select a game URL" [control]="gameUrlIdControl"
+                            [items$]="gameUrlsFiltered$" idKey="id" labelKey="name"
+                            [bind$]="bindGameUrlToExternal$"></app-combo-box>
+                    </div>
+                    <div>
+                        <button (click)="clearButtonClicked()" class="button button-small-danger"> Clear </button>
+
+                    </div>
+                </div>
 
                 <!-- Actions -->
-                <div class="flex gap-2 mt-4">
+                <div class="flex gap-2 mt-4 justify-between">
 
                     <div class="flex items-center gap-2">
+                        @if(this.selectedGameUrl?.isPublicApi)
+                        {
+                        <button (click)="publicApiScrapeButtonClicked()" class="button-small-success"
+                            title="Duration ~1sec">Public API</button>
+                        }
+
+                        @if( this.selectedGameUrl?.isBatchUrl)
+                        {
                         <button (click)="scrapeButtonClicked()" class="button-small-success" title="Duration ~3sec">Web
                             Scrape</button>
+                        }
+
                         <!-- <button (click)="scrapedPageByPixelButtonClicked()" class="button-small-success"
                             title="Duration ~7sec">Web
                             Scrape by Pixel</button> -->
-                        <button (click)="publicApiScrapeButtonClicked()" class="button-small-success"
-                            title="Duration ~1sec">Public API</button>
+
+                        @if( this.selectedGameUrl?.isPixelScrape)
+                        {
                         <button (click)="pixelScrapeButtonClicked()" class="button-small-success"
                             title="Duration ~30s">Pixel Scrape</button>
+                        }
 
-                        <button (click)="clearButtonClicked()" class="button button-small-danger"> Clear </button>
                     </div>
                 </div>
+                @if(this.selectedGameUrl !== null)
+                {
+
                 Current Mode: {{this.selectedMode?.name ?? 'Not Selected'}} <br><br>
                 <div class="flex items-center ml-2 gap-x-2">
                     <div class="flex items-center gap-2">
@@ -63,6 +85,7 @@
                     </div>
                 </div>
                 <label class="my-2 py-2">{{statusLabel}}</label>
+                }
             </div>
         </div>
         <app-stopwatch></app-stopwatch>

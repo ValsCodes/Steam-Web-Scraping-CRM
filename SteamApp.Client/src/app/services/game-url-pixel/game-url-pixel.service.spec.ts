@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 
-import { MageUrlPixelService } from './mage-url-pixel.service';
+import { GameUrlPixelService } from './game-url-pixel.service';
 
-describe('MageUrlPixelService', () => {
-  let service: MageUrlPixelService;
+describe('GameUrlPixelService', () => {
+  let service: GameUrlPixelService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(MageUrlPixelService);
+    service = TestBed.inject(GameUrlPixelService);
   });
 
   it('should be created', () => {

@@ -51,8 +51,6 @@ namespace SteamApp.Domain.Entities
 
         public ICollection<GameUrlPixels> GameUrlsPixels { get; set; } = [];
 
-        public ICollection<WatchList> WatchLists { get; set; } = [];
-
         public ICollection<GameUrlProducts> GameUrlsProducts { get; set; } = [];
     }
 }

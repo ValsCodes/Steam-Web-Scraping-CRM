@@ -134,7 +134,7 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
       .getAll()
       .pipe(takeUntil(this.destroy$))
       .subscribe((urls) => {
-        let filtered = urls.filter((x) => x.isBatchUrl);
+        let filtered = urls.filter((x) => x.isBatchUrl || x.isPixelScrape || x.isPublicApi);
 
         this.gameUrlsAll = filtered.map((url) => {
           if (url.isBatchUrl === true) {
@@ -142,6 +142,10 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
           }
           if (url.isPixelScrape === true) {
             url.name += ' [ Pixel ]';
+          }
+
+          if (url.isPublicApi === true) {
+            url.name += ' [ Public API ]';
           }
 
           return url;

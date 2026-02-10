@@ -8,15 +8,42 @@
     </button>
   </div>
 
-      <div class="flex gap-x-5">
-    <app-text-filter [SearchLabel]="'Game Url'" [SearchTextBind]="searchByGameUrlNameFilterControl"
-      (filterChange)="onGameUrlNameFilterChanged($event)">
-    </app-text-filter>
-        <app-text-filter [SearchLabel]="'Product Name'" [SearchTextBind]="searchByProductNameFilterControl"
-      (filterChange)="onProductNameFilterChanged($event)">
-    </app-text-filter>
+  <div class="flex gap-x-5">
+    <app-combo-box
+      label="Game"
+      placeholder="Select a game"
+      [control]="gameIdControl"
+      [items$]="games$"
+      idKey="id"
+      labelKey="name"
+      [bind$]="bindGameToExternal$">
+    </app-combo-box>
 
-    <button (click)="clearFiltersButtonClicked()" class="button button-small-danger"> Clear </button>
+    <app-combo-box
+      label="Game URL"
+      placeholder="Select a game URL"
+      [control]="gameUrlIdControl"
+      [items$]="gameUrlsFiltered$"
+      idKey="id"
+      labelKey="name"
+      [bind$]="bindGameUrlToExternal$">
+    </app-combo-box>
+
+    <app-combo-box
+      label="Product"
+      placeholder="Select a product"
+      [control]="productIdControl"
+      [items$]="productsFiltered$"
+      idKey="id"
+      labelKey="name"
+      [bind$]="bindProductToExternal$">
+    </app-combo-box>
+
+    <button
+      (click)="clearFiltersButtonClicked()"
+      class="button button-small-danger">
+      Clear
+    </button>
   </div>
 
   <div class="table-container">

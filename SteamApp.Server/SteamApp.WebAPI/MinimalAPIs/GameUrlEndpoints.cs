@@ -29,7 +29,8 @@ namespace SteamApp.WebAPI.MinimalAPIs
                         IsBatchUrl = x.IsBatchUrl,
                         StartPage = x.StartPage,
                         EndPage = x.EndPage,
-                        IsPixelScrape = x.IsPixelScrape
+                        IsPixelScrape = x.IsPixelScrape,
+                        IsPublicApi = x.IsPublicApi
                     })
                     .ToListAsync();
 

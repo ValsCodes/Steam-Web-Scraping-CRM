@@ -9,15 +9,13 @@ namespace SteamApp.WebAPI.Mapper
     {
         public WatchListMappingProfile()
         {
-            CreateMap<WatchList, WatchListDto>()
-                .ForMember(dest => dest.GameId, opt => opt.MapFrom(src => src.GameUrl.GameId));
+            CreateMap<WatchList, WatchListDto>();
 
             CreateMap<WatchListCreateDto, WatchList>()
                 .ForMember(d => d.Id, o => o.Ignore());
 
             CreateMap<WatchListUpdateDto, WatchList>()
-                .ForMember(d => d.Id, o => o.Ignore())
-                .ForMember(d => d.GameUrlId, o => o.Ignore());
+                .ForMember(d => d.Id, o => o.Ignore());
         }
     }
 }

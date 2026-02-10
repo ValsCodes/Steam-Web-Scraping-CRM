@@ -1,28 +1,35 @@
 import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { FormControl } from '@angular/forms';
+import { BehaviorSubject, startWith, tap } from 'rxjs';
 
-import { MatTableModule } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
-import { MatTableDataSource } from '@angular/material/table';
-import { GameUrlProduct } from '../../../models';
-import { GameUrlProductService } from '../../../services';
-import { TextFilterComponent } from '../../../components';
-import { FormControl } from '@angular/forms';
+
+import { Game, GameUrl, Product, GameUrlProduct } from '../../../models';
+import {
+  GameService,
+  GameUrlService,
+  ProductService,
+  GameUrlProductService,
+} from '../../../services';
+import { ComboBoxComponent } from '../../../components/filter-components/combo-box-filter.component';
 
 @Component({
   selector: 'app-game-url-products',
+  standalone: true,
   templateUrl: './game-url-products-view.html',
   imports: [
     CommonModule,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
-    TextFilterComponent,
+    ComboBoxComponent,
   ],
 })
-export class GameUrlProductsView implements AfterViewInit {
+export class GameUrlProductsView implements AfterViewInit, OnInit {
   displayedColumns: string[] = [
     'productName',
     'gameUrlName',
@@ -34,40 +41,84 @@ export class GameUrlProductsView implements AfterViewInit {
   dataSource = new MatTableDataSource<GameUrlProduct>([]);
 
   gameUrlProducts: GameUrlProduct[] = [];
-  filteredGameUrlProduct: GameUrlProduct[] = [];
+  filteredGameUrlProducts: GameUrlProduct[] = [];
 
-  searchByGameUrlNameFilterControl = new FormControl<string>('', {
-    nonNullable: true,
-  });
+  readonly games$ = new BehaviorSubject<readonly Game[]>([]);
+  readonly gameUrlsFiltered$ = new BehaviorSubject<readonly GameUrl[]>([]);
+  readonly productsFiltered$ = new BehaviorSubject<readonly Product[]>([]);
 
-  searchByProductNameFilterControl = new FormControl<string>('', {
-    nonNullable: true,
-  });
+  readonly gameIdControl = new FormControl<number | null>(null);
+  readonly gameUrlIdControl = new FormControl<number | null>(null);
+  readonly productIdControl = new FormControl<number | null>(null);
+
+  readonly bindGameToExternal$ = this.gameIdControl.valueChanges.pipe(
+    startWith(this.gameIdControl.value),
+    tap(gameId => this.applyGameFilter(gameId))
+  );
+
+  readonly bindGameUrlToExternal$ = this.gameUrlIdControl.valueChanges.pipe(
+    startWith(this.gameUrlIdControl.value),
+    tap(() => this.loadFilteredGameUrlProducts())
+  );
+
+  readonly bindProductToExternal$ = this.productIdControl.valueChanges.pipe(
+    startWith(this.productIdControl.value),
+    tap(() => this.loadFilteredGameUrlProducts())
+  );
+
+  private games: Game[] = [];
+  private gameUrlsAll: GameUrl[] = [];
+  private productsAll: Product[] = [];
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
   constructor(
-    private gameUrlProductService: GameUrlProductService,
-    private router: Router,
+    private readonly gameUrlProductService: GameUrlProductService,
+    private readonly gameService: GameService,
+    private readonly gameUrlService: GameUrlService,
+    private readonly productService: ProductService,
+    private readonly router: Router,
   ) {}
 
-  ngAfterViewInit(): void {
-    throw new Error('Method not implemented.');
-  }
-
   ngOnInit(): void {
+    this.loadGames();
+    this.loadGameUrls();
+    this.loadProducts();
     this.fetchGameUrlProducts();
   }
 
-  fetchGameUrlProducts(): void {
-    this.gameUrlProductService.getAll().subscribe((items) => {
-      this.gameUrlProducts = items;
-      this.filteredGameUrlProduct = items;
+  ngAfterViewInit(): void {
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
+  }
 
+  private loadGames(): void {
+    this.gameService.getAll().subscribe(games => {
+      this.games = games;
+      this.games$.next(games);
+    });
+  }
+
+  private loadGameUrls(): void {
+    this.gameUrlService.getAll().subscribe(urls => {
+      this.gameUrlsAll = urls;
+      this.applyGameFilter(this.gameIdControl.value);
+    });
+  }
+
+  private loadProducts(): void {
+    this.productService.getAll().subscribe(products => {
+      this.productsAll = products;
+      this.applyGameFilter(this.gameIdControl.value);
+    });
+  }
+
+  fetchGameUrlProducts(): void {
+    this.gameUrlProductService.getAll().subscribe(items => {
+      this.gameUrlProducts = items;
+      this.filteredGameUrlProducts = items;
       this.dataSource.data = items;
-      this.dataSource.paginator = this.paginator;
-      this.dataSource.sort = this.sort;
     });
   }
 
@@ -80,48 +131,60 @@ export class GameUrlProductsView implements AfterViewInit {
       return;
     }
 
-    this.gameUrlProductService.delete(productId, gameUrlId).subscribe(() => {
-      this.fetchGameUrlProducts();
-    });
+    this.gameUrlProductService
+      .delete(productId, gameUrlId)
+      .subscribe(() => this.fetchGameUrlProducts());
   }
 
   clearFiltersButtonClicked(): void {
-    this.searchByGameUrlNameFilterControl.setValue('', { emitEvent: false });
-    this.searchByProductNameFilterControl.setValue('', { emitEvent: false });
-
+    this.gameIdControl.setValue(null);
+    this.gameUrlIdControl.setValue(null);
+    this.productIdControl.setValue(null);
     this.loadFilteredGameUrlProducts();
   }
 
-  onGameUrlNameFilterChanged(filter: string): void {
-    this.searchByGameUrlNameFilterControl.setValue(filter, {
-      emitEvent: false,
-    });
-    this.loadFilteredGameUrlProducts();
-  }
+  private applyGameFilter(gameId: number | null): void {
+    if (gameId === null) {
+      this.gameUrlsFiltered$.next([]);
+      this.productsFiltered$.next([]);
+      this.gameUrlIdControl.reset();
+      this.productIdControl.reset();
+      this.loadFilteredGameUrlProducts();
+      return;
+    }
 
-  onProductNameFilterChanged(filter: string): void {
-    this.searchByProductNameFilterControl.setValue(filter, {
-      emitEvent: false,
-    });
+    const urls = this.gameUrlsAll.filter(u => u.gameId === gameId);
+    this.gameUrlsFiltered$.next(urls);
+
+    const products = this.productsAll.filter(p => p.gameId === gameId);
+    this.productsFiltered$.next(products);
+
+    this.gameUrlIdControl.reset();
+    this.productIdControl.reset();
     this.loadFilteredGameUrlProducts();
   }
 
   private loadFilteredGameUrlProducts(): void {
-    const gameUrlNameFilter =
-      this.searchByGameUrlNameFilterControl.value?.toLowerCase() ?? '';
-    const productNameFilter =
-      this.searchByProductNameFilterControl.value?.toLowerCase() ?? '';
+    const gameId = this.gameIdControl.value;
+    const gameUrlId = this.gameUrlIdControl.value;
+    const productId = this.productIdControl.value;
 
-    this.filteredGameUrlProduct = this.gameUrlProducts.filter((gameUrl) => {
-      const matchesName =
-        (!gameUrlNameFilter ||
-          gameUrl.gameUrlName?.toLowerCase().includes(gameUrlNameFilter)) &&
-        (!productNameFilter ||
-          gameUrl.productName?.toLowerCase().includes(productNameFilter));
+    this.filteredGameUrlProducts = this.gameUrlProducts.filter(x => {
+      const matchesGame =
+        gameId === null ||
+        this.gameUrlsAll.some(
+          u => u.id === x.gameUrlId && u.gameId === gameId
+        );
 
-      return matchesName;
+      const matchesGameUrl =
+        gameUrlId === null || x.gameUrlId === gameUrlId;
+
+      const matchesProduct =
+        productId === null || x.productId === productId;
+
+      return matchesGame && matchesGameUrl && matchesProduct;
     });
 
-    this.dataSource.data = this.filteredGameUrlProduct;
+    this.dataSource.data = this.filteredGameUrlProducts;
   }
 }

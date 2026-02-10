@@ -8,6 +8,11 @@ export interface GameUrl {
   startPage?: number | null;
   endPage?: number | null;
   isPixelScrape: boolean;
+  pixelX?: number | null;
+  pixelY?: number | null;
+  pixelImageWidth?: number | null;
+  pixelImageHeight?: number | null;
+  isPublicApi: boolean;
 }
 
 export interface CreateGameUrl {
@@ -18,6 +23,12 @@ export interface CreateGameUrl {
   startPage?: number | null;
   endPage?: number | null;
   isPixelScrape: boolean;
+  pixelX?: number | null;
+  pixelY?: number | null;
+  pixelImageWidth?: number | null;
+  pixelImageHeight?: number | null;
+  isPublicApi: boolean;
+
 }
 
 export interface UpdateGameUrl {
@@ -27,4 +38,9 @@ export interface UpdateGameUrl {
   startPage?: number | null;
   endPage?: number | null;
   isPixelScrape: boolean;
+  pixelX?: number | null;
+  pixelY?: number | null;
+  pixelImageWidth?: number | null;
+  pixelImageHeight?: number | null;
+  isPublicApi: boolean;
 }

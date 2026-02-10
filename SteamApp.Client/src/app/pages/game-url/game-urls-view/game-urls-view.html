@@ -80,6 +80,14 @@
       </ng-container>
 
       <!-- Pixel -->
+      <ng-container matColumnDef="isPublicApi">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Public API</th>
+        <td mat-cell *matCellDef="let row">
+          <input type="checkbox" [checked]="row.isPublicApi" disabled />
+        </td>
+      </ng-container>
+
+      <!-- Pixel -->
       <ng-container matColumnDef="isPixelScrape">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Pixel</th>
         <td mat-cell *matCellDef="let row">

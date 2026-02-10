@@ -39,3 +39,7 @@ export { TagForm } from './tag/tag-form/tag-form';
 export { ProductTagForm } from './product-tag/product-tag-form/product-tag-form';
 export { ProductTagsView } from './product-tag/product-tags-view/product-tags-view';
 
+// Game URL Pixels
+export { GameUrlPixelForm } from './game-url-pixel/game-url-pixel-form/game-url-pixel-form';
+export { GameUrlPixelsView } from './game-url-pixel/game-url-pixels-view/game-url-pixels-view';
+

@@ -1,1 +1,52 @@
-<p>game-url-pixel-form works!</p>
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form">
+  <h2>{{ isEditMode ? 'Edit Game URL Pixel' : 'Create Game URL Pixel' }}</h2>
+
+  <!-- Game -->
+  <div class="flex py-2 gap-2 items-center">
+    <label class="w-24">Game</label>
+    <select class="px-2 py-1 w-full" [formControl]="gameIdControl">
+      <option [ngValue]="null" disabled>Select a game</option>
+      <option *ngFor="let game of games" [ngValue]="game.id">
+        {{ game.name }}
+      </option>
+    </select>
+  </div>
+
+  <!-- Game URL -->
+  <div class="flex py-2 gap-2 items-center">
+    <label class="w-24">Game URL *</label>
+    <select
+      formControlName="gameUrlId"
+      class="px-2 py-1 w-full"
+      [disabled]="gameUrlsFiltered.length === 0">
+      <option [ngValue]="null" disabled>Select a game URL</option>
+      <option *ngFor="let gameUrl of gameUrlsFiltered" [ngValue]="gameUrl.id">
+        {{ gameUrl.name }}
+      </option>
+    </select>
+  </div>
+
+  <!-- Pixel -->
+  <div class="flex py-2 gap-2 items-center">
+    <label class="w-24">Pixel *</label>
+    <select
+      formControlName="pixelId"
+      class="px-2 py-1 w-full"
+      [disabled]="pixelsFiltered.length === 0">
+      <option [ngValue]="null" disabled>Select a pixel</option>
+      <option *ngFor="let pixel of pixelsFiltered" [ngValue]="pixel.id">
+        {{ pixel.name }}
+      </option>
+    </select>
+  </div>
+
+  <div class="flex gap-x-2">
+    <button type="submit" [disabled]="form.invalid">
+      {{ isEditMode ? 'Save' : 'Create' }}
+    </button>
+
+    <button type="button" (click)="cancel()">
+      Back
+    </button>
+  </div>
+</form>
