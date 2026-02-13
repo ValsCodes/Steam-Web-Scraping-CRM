@@ -22,7 +22,7 @@ type NamedTag = { name: string | null };
       <select
         class="px-2 py-2 w-[15rem] ml-2 rounded-md border border-black"
         [formControl]="control()"
-        [disabled]="disabled() ?? (options()?.length ?? 0) === 0"
+        [disabled]="disabled() ?? options().length === 0"
         (change)="onSelectChanged()"
       >
         <option [ngValue]="null">{{ placeholder() }}</option>

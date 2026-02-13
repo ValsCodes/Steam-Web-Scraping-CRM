@@ -25,6 +25,7 @@ public class SteamRepository(ApplicationDbContext dbContext, IMemoryCache cache)
             .Include(x => x.GameUrlsPixels)
                 .ThenInclude(gup => gup.Pixel)
             .Include(x => x.GameUrlsProducts)
+                .ThenInclude(gup => gup.Product)
             .FirstOrDefaultAsync(g => g.Id == gameUrlId);
 
         if (gameUrl is null)

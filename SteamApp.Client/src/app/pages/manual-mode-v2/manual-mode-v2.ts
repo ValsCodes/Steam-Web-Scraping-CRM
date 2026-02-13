@@ -240,8 +240,8 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   openAllButtonClicked(): void {
     let blocked = false;
 
-    for (const product of this.productsFiltered) {
-      const newWindow = window.open(product.fullUrl, '_blank');
+    for (let i = 0; i < this.productsFiltered.length && i < 5; i++) {
+      const newWindow = window.open(this.productsFiltered[i].fullUrl, '_blank');
       if (!newWindow || newWindow.closed) {
         blocked = true;
       }
@@ -254,10 +254,17 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
   startBatchButtonClicked(): void {
     let currentIndex = this.currentIndex ?? 0;
-    const batchSize = this.batchSize ?? 0;
-    const toPage = currentIndex + batchSize;
 
-    console.log(this.selectedGameUrl?.isBatchUrl);
+    if (this.batchSize === null) {
+      this.batchSize = 0;
+    }
+
+    if (this.batchSize > 5) {
+      this.batchSize = 5;
+    }
+
+    const batchSize = this.batchSize;
+    const toPage = currentIndex + batchSize;
 
     let blocked = false;
     if (this.selectedGameUrl?.isBatchUrl === true) {
@@ -266,7 +273,10 @@ export class ManualModeV2 implements OnInit, OnDestroy {
           break;
         }
 
-        let url = (this.selectedGameUrl.partialUrl ?? '').replace('{0}', String(currentIndex));
+        let url = (this.selectedGameUrl.partialUrl ?? '').replace(
+          '{0}',
+          String(currentIndex),
+        );
 
         const newWindow = window.open(url, '_blank');
 

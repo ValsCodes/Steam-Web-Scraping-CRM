@@ -13,6 +13,8 @@
 
         public const string ProductPixels = "v1:product-pixels:{0}:{1}";
 
+        public const string BatchPage = "v1:batch-page:{0}:{1}:{2}";
+
         // Steam Repository
         public const string GameUrl = "game-url:{0}";
 

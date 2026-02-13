@@ -39,6 +39,10 @@
       [bind$]="bindProductToExternal$">
     </app-combo-box>
 
+         <!-- Tags -->
+    <app-tag-filter-select label="Tags" [control]="tagSelectControl" [options]="gameTagsFilter" [filters]="tagsFilter"
+      (tagSelected)="onTagSelectedFromComponent($event)" (removeClicked)="removeFilter($event)"></app-tag-filter-select>
+
     <button
       (click)="clearFiltersButtonClicked()"
       class="button button-small-danger">
