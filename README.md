@@ -50,12 +50,17 @@
     dotnet restore
     dotnet build
     ```
-4. **Run the Application**:
+4. **Setup User Secrets + Database**:
+    - Request User Secrets from the owener of the repo
+   ```bash
+   update-database
+   ```
+5. **Run the Application**:
 Terminal 1 (Web API):
    ```bash
    dotnet run
    ```
-5. **Terminal 2 (Angular client)**:
+6. **Terminal 2 (Angular client)**:
    ```bash
     npm start
    ```
@@ -64,3 +69,4 @@ Open your browser at http://localhost:4200.
 ## 📌 Requirements
 - 🏷️ Node.js (latest LTS recommended)
 - 🎯 .NET 9 SDK
+- Mailtrap setup guide https://github.com/mailtrap/mailtrap-dotnet
