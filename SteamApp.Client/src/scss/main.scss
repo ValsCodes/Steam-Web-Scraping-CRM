@@ -9,6 +9,16 @@
 @use "tailwindcss/components";
 @use "tailwindcss/utilities";
 
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #F3F4F6;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
 
 button {
   @each $name, $key in (create: primary, delete: danger, edit: success) {
@@ -22,26 +32,16 @@ button {
   }
 }
 
+select {
+  border: 1px solid #000;
+}
+
 input {
   border-width: 1px;
   border-color: black;
 }
 
-html,
-body {
-  height: 100%;
-}
-
-body {
-  margin: 0;
-  font-family: Roboto, "Helvetica Neue", sans-serif;
-}
-
 .table-container {
-  display: flex;
-  flex-direction: column;
-  padding: 1rem;
-
   th {
     background-color: $light-green;
     text-align: center;
@@ -50,15 +50,28 @@ body {
       background-color: color.adjust($light-green, $lightness: 10%);
     }
   }
-
-  td input {
-    padding: 0.25rem;
-    border: 0;
-    width: 100%;
-  }
 }
 
-.general-form {
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.form-group-row {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.control-panel {
+  border: #000 solid 1px;
+  background-color: rgba(186, 219, 255, 0.8)
+}
+
+.general-form{
   max-width: 600px;
   margin: 2rem auto;
   padding: 2rem;

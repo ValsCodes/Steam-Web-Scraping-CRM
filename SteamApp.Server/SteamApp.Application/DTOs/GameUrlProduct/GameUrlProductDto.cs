@@ -1,6 +1,6 @@
 ﻿namespace SteamApp.Application.DTOs.GameUrlProduct
 {
-    public class GameUrlPixelDto
+    public class GameUrlProductDto
     {
         public long ProductId { get; set; }
 

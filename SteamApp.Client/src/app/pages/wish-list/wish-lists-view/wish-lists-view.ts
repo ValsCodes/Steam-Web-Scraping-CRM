@@ -2,7 +2,7 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormControl } from '@angular/forms';
-import { BehaviorSubject, startWith, tap } from 'rxjs';
+import { BehaviorSubject, finalize, startWith, tap } from 'rxjs';
 
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
@@ -60,6 +60,7 @@ export class WishListsView implements OnInit {
   @ViewChild(MatSort) sort!: MatSort;
 
   checkLabel: string | null = null;
+  isChecking: boolean = false;
 
   constructor(
     private readonly wishListService: WishListService,
@@ -115,6 +116,7 @@ export class WishListsView implements OnInit {
   clearFiltersButtonClicked(): void {
     this.gameIdControl.setValue(null);
     this.searchByNameFilterControl.setValue('', { emitEvent: false });
+    this.checkLabel = '';
     this.loadFilteredWishLists();
   }
 
@@ -137,14 +139,23 @@ export class WishListsView implements OnInit {
   }
 
   checkButtonClicked(whishListItemId: number) {
-    this.steamService.checkWishlistItem(whishListItemId)
-    .subscribe({
-        next: (response: WhishListResponse) => {
-          this.checkLabel = `Price goal has been reached for Game ${response.gameName}! Current Price: ${response.currentPrice === 0 ? 'Free' : response.currentPrice }`; 
-        },
-        error: (err:any) => {
+    this.checkLabel = 'Checking...';
+    this.isChecking = true;
 
+    this.steamService
+      .checkWishlistItem(whishListItemId)
+      .pipe(
+        finalize(() => {
+          this.isChecking = false;
+        }),
+      )
+      .subscribe({
+        next: (response: WhishListResponse) => {
+          this.checkLabel = `Price goal has been reached for Game ${response.gameName}! Current Price: ${response.currentPrice === 0 ? 'Free' : response.currentPrice}`;
+        },
+        error: (err: any) => {
           this.checkLabel = 'Error Checking Wishlist Item';
-        }});
+        },
+      });
   }
 }
