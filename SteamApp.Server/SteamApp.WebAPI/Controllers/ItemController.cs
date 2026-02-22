@@ -14,11 +14,11 @@ namespace SteamApp.WebAPI.Controllers;
 public class ItemController(IItemService itemService) : ControllerBase
 {
     [HttpGet("{id:long}")]
-    public IActionResult GetItemById(long id, CancellationToken ct)
+    public async Task<IActionResult> GetItemByIdAsync(long id, CancellationToken ct)
     {
         try
         {
-            var result = itemService.GetItemById(id, ct).GetAwaiter().GetResult();
+            var result = await itemService.GetItemById(id, ct);
             return Ok(result);
         }
         catch (Exception ex)
@@ -28,11 +28,15 @@ public class ItemController(IItemService itemService) : ControllerBase
     }
 
     [HttpGet]
-    public IActionResult GetItemsAsync(CancellationToken ct, [FromQuery] string? name = null, [FromQuery] IEnumerable<long>? classFilters = null, [FromQuery] IEnumerable<long>? slotFilters = null)
+    public async Task<IActionResult> GetItemsAsync(
+        CancellationToken ct,
+        [FromQuery] string? name = null,
+        [FromQuery] IEnumerable<long>? classFilters = null,
+        [FromQuery] IEnumerable<long>? slotFilters = null)
     {
         try
         {
-            var result = itemService.GetItems(ct, name, classFilters, slotFilters).GetAwaiter().GetResult();
+            var result = await itemService.GetItems(ct, name, classFilters, slotFilters);
             return Ok(result);
         }
         catch (Exception ex)
@@ -71,14 +75,14 @@ public class ItemController(IItemService itemService) : ControllerBase
                 return NotFound();
             }
 
-            if (dto.Name != null) item.Name = dto.Name;
-            if (dto.IsWeapon.HasValue) item.IsWeapon = dto.IsWeapon.Value;
-            if (dto.ClassId.HasValue) item.ClassId = dto.ClassId.Value;
-            if (dto.SlotId.HasValue) item.SlotId = dto.SlotId.Value;
-            if (dto.IsActive.HasValue) item.IsActive = dto.IsActive.Value;
-            if (dto.CurrentStock.HasValue) item.CurrentStock = dto.CurrentStock.Value;
-            if (dto.TradesCount.HasValue) item.TradesCount = dto.TradesCount.Value;
-            if (dto.Rating.HasValue) item.Rating = dto.Rating.Value;
+            if (dto.Name != null) { item.Name = dto.Name; }
+            if (dto.IsWeapon.HasValue) { item.IsWeapon = dto.IsWeapon.Value; }
+            if (dto.ClassId.HasValue) { item.ClassId = dto.ClassId.Value; }
+            if (dto.SlotId.HasValue) { item.SlotId = dto.SlotId.Value; }
+            if (dto.IsActive.HasValue) { item.IsActive = dto.IsActive.Value; }
+            if (dto.CurrentStock.HasValue) { item.CurrentStock = dto.CurrentStock.Value; }
+            if (dto.TradesCount.HasValue) { item.TradesCount = dto.TradesCount.Value; }
+            if (dto.Rating.HasValue) { item.Rating = dto.Rating.Value; }
 
             var result = await itemService.UpdateItem(item, ct);
             return Ok(result);

@@ -16,11 +16,11 @@ public class SteamController(ISteamService steamService/*, ILogger<SteamControll
     /// <param name="src"></param>
     /// <returns></returns>
     [HttpGet("hat/paint-info-source")]
-    public IActionResult GetPaintInfoFromSourceAsync(string src, CancellationToken ct = default)
+    public async Task<IActionResult> GetPaintInfoFromSourceAsync(string src, CancellationToken ct = default)
     {
         try
         {
-            var result = steamService.GetPaintInfoFromSource(src, ct).GetAwaiter().GetResult();
+            var result = await steamService.GetPaintInfoFromSource(src, ct);
             return Ok(result);
         }
         catch (OperationCanceledException)
@@ -39,11 +39,11 @@ public class SteamController(ISteamService steamService/*, ILogger<SteamControll
     /// <param name="page"></param>
     /// <returns></returns>
     [HttpGet("hat/page/{page}")]
-    public IActionResult ScrapePageAsync(short page, CancellationToken ct = default)
+    public async Task<IActionResult> ScrapePageAsync(short page, CancellationToken ct = default)
     {
         try
         {
-            var result = steamService.ScrapePage(page, ct).GetAwaiter().GetResult();
+            var result = await steamService.ScrapePage(page, ct);
             return Ok(result);
         }
         catch (OperationCanceledException)
@@ -64,11 +64,11 @@ public class SteamController(ISteamService steamService/*, ILogger<SteamControll
     /// <param name="isGoodPaintsOnly"></param>
     /// <returns></returns>
     [HttpGet("hat/check-paint-by-pixel/{page}")]
-    public IActionResult ScrapePageWithSrcPixelPaintCheckAsync(short page, bool isGoodPaintsOnly = true, CancellationToken ct = default)
+    public async Task<IActionResult> ScrapePageWithSrcPixelPaintCheckAsync(short page, bool isGoodPaintsOnly = true, CancellationToken ct = default)
     {
         try
         {
-            var result = steamService.ScrapePageWithSrcPixelPaintCheck(page, isGoodPaintsOnly, ct).GetAwaiter().GetResult();
+            var result = await steamService.ScrapePageWithSrcPixelPaintCheck(page, isGoodPaintsOnly, ct);
             return Ok(result);
         }
         catch (OperationCanceledException)
@@ -87,11 +87,11 @@ public class SteamController(ISteamService steamService/*, ILogger<SteamControll
     /// <param name="page"></param>
     /// <returns></returns>
     [HttpGet("hat/page/{page}/bulk")]
-    public IActionResult GetDeserializedLisitngsFromUrlAsync(short page, CancellationToken ct = default)
+    public async Task<IActionResult> GetDeserializedLisitngsFromUrlAsync(short page, CancellationToken ct = default)
     {
         try
         {
-            var result = steamService.GetDeserializedLisitngsFromUrl(page, ct).GetAwaiter().GetResult();
+            var result = await steamService.GetDeserializedLisitngsFromUrl(page, ct);
             return Ok(result);
         }
         catch (OperationCanceledException)
@@ -111,11 +111,11 @@ public class SteamController(ISteamService steamService/*, ILogger<SteamControll
     /// <param name="name"></param>
     /// <returns></returns>
     [HttpGet("hat/name/{name}/is-painted")]
-    public IActionResult CheckIsListingPaintedAsync(string name, CancellationToken ct = default)
+    public async Task<IActionResult> CheckIsListingPaintedAsync(string name, CancellationToken ct = default)
     {
         try
         {
-            var result = steamService.CheckIsListingPainted(name, ct).GetAwaiter().GetResult();
+            var result = await steamService.CheckIsListingPainted(name, ct);
             return Ok(result);
         }
         catch (JsonSerializationException)
@@ -139,11 +139,11 @@ public class SteamController(ISteamService steamService/*, ILogger<SteamControll
     /// <param name="page"></param>
     /// <returns></returns>
     [HttpGet("hat/page/{page}/painted")]
-    public IActionResult ScrapePageForPaintedListingsOnlyAsync(short page, CancellationToken ct = default)
+    public async Task<IActionResult> ScrapePageForPaintedListingsOnlyAsync(short page, CancellationToken ct = default)
     {
         try
         {
-            var result = steamService.ScrapePageForPaintedListingsOnly(page, ct).GetAwaiter().GetResult();
+            var result = await steamService.ScrapePageForPaintedListingsOnly(page, ct);
             return Ok(result);
         }
         catch (OperationCanceledException)
