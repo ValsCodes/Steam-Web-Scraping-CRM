@@ -1,4 +1,4 @@
-# Web Scraping CRM for Steam Community Market
+# Web Scraping CRM for Steam Community market
 
 **An Angular 21 client integrated with a .NET 9 Web API backend**. This application helps you find items listed on the Steam Community Market at favorable price ranges—whether you’re investing or simply adding to your personal collection.
 
@@ -12,13 +12,34 @@
 - ⏱️ **Real-Time Updates**: Fetch live listing and pricing data directly from the Steam Community Market.
 - 📈 **Investment Insights**: Identify undervalued items that might be profitable for collectors or traders.
 
+## Backend
+
+- **In-memory caching** (IMemoryCache)
+- **JWT authentication**
+- **.NET Minimal APIs**
+- **Email integration** (Mailtrap)
+- **Background jobs**
+- **AutoMapper**
+- **Logging**
+- **User Secrets**
+
+## Frontend
+
+- **Angular**
+- **Tailwind CSS + SCSS**
+- **Auth guard** (route protection)
+- **HTTP interceptor**
+- **RxJS**
+- **Angular Material tables**
+- **Environment variables**
+
 ---
 
 ## 📥 Installation
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/ValsCodes/Steam-App-Angular-Server
+   git clone *repo*
    ```
 2. **Install Angular Client Dependencies**:
     ```bash
@@ -29,12 +50,17 @@
     dotnet restore
     dotnet build
     ```
-4. **Run the Application**:
+4. **Setup User Secrets + Database**:
+    - Request User Secrets from the owener of the repo
+   ```bash
+   update-database
+   ```
+5. **Run the Application**:
 Terminal 1 (Web API):
    ```bash
    dotnet run
    ```
-5. **Terminal 2 (Angular client)**:
+6. **Terminal 2 (Angular client)**:
    ```bash
     npm start
    ```
@@ -43,3 +69,4 @@ Open your browser at http://localhost:4200.
 ## 📌 Requirements
 - 🏷️ Node.js (latest LTS recommended)
 - 🎯 .NET 9 SDK
+- Mailtrap setup guide https://github.com/mailtrap/mailtrap-dotnet
