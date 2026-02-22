@@ -1,3 +1,7 @@
+@use "sass:map";
+@use "./variables" as *;
+@use "./mixins" as *;
+
 // Utility‐style .button‑{size}-{color}
 @each $size, $pad in $button-sizes {
   @each $key, $hex in $button-colors {

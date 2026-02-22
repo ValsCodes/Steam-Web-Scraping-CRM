@@ -1,18 +1,20 @@
-﻿using SteamApp.Models.DTOs;
+﻿using SteamApp.Application.DTOs.WatchItem;
+using SteamApp.Application.DTOs.WishListItem;
 
 namespace SteamApp.Infrastructure.Services;
 
 public interface ISteamService
 {
-    Task<string> GetPaintInfoFromSource(string src, CancellationToken cancellationToken);
+    Task<string> GetPixelInfoFromSource(long gamerUrlId, string srcUrl);
 
-    Task<IEnumerable<ListingDto>> GetDeserializedLisitngsFromUrl(short page, CancellationToken cancellationToken);
+    Task<IEnumerable<WatchItemDto>> ScrapePage(long gamerUrlId, short page);
 
-    Task<IEnumerable<ListingDto>> ScrapePage(short page, CancellationToken cancellationToken);
+    Task<IEnumerable<WatchItemDto>> ScrapeFromPublicApi(long gameUrlId, short page);
 
-    Task<IEnumerable<ListingDto>> ScrapePageWithSrcPixelPaintCheck(short page, bool isGoodPaintsOnly, CancellationToken cancellationToken);
+    Task<IEnumerable<WatchItemDto>> ScrapeForPixels(long gameUrlId, short page);
 
-    Task<IEnumerable<ListingDto>> ScrapePageForPaintedListingsOnly(short page, CancellationToken cancellationToken);
+    Task<WhishListResponse?> CheckWishlistItem(long wishListId);
 
-    Task<ListingDto> CheckIsListingPainted(string name, CancellationToken cancellationToken);
+    // Not Done
+    //Task<WatchItemDto> ScrapeProductPixels(long gameId, string prodtucName);
 }

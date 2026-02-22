@@ -17,5 +17,6 @@ import { MatPaginatorModule } from '@angular/material/paginator';
   styleUrl: './app.component.scss',
 })
 export class AppComponent {
+
   title = 'steam-app-angular-client';
 }

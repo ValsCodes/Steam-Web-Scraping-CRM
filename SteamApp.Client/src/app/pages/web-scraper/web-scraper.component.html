@@ -1,53 +1,101 @@
+<div class="flex px-5">
+    <h2 class="text-2xl font-semibold text-gray-500 mb-4">Web Scraper</h2>
+</div>
 <div class="main-container p-4">
-    <div class="flex px-5">
-        <h2 class="text-2xl font-semibold text-gray-500 mb-4">Web Scraper</h2>
 
-    </div>
     <div class="flex justify-between mx-4">
-        <div class="flex flex-col gap-x-4">
-            <div class="flex items-center gap-2">
-                <button (click)="classicWebScraperButtonClicked()" class="button-small-success"
-                    title="Duration ~3sec">Web
-                    Scraper</button>
-                <button (click)="scrapedPageByPixelButtonClicked()" class="button-small-success"
-                    title="Duration ~7sec">Web
-                    Scrape by Pixel</button>
-                <button (click)="publicApiDeserializerButtonClicked()" class="button-small-success"
-                    title="Duration ~1sec">Public API</button>
-                <button (click)="deepClassicWebScraperPaintsOnlyButtonClicked()" class="button-small-warning" title="Duration ~30s">Deep
-                        Web Scraper</button>
-                    @if(this.isLoading)
-                    {
-                    <button (click)="cancelAll()" class="button-small-danger"
-                        title="Clear Current Data"> Cancel</button>
-                    }
-                <!-- <button (click)="clearButtonClicked()" class="button button-small-danger" title="Clear Current Data">Clear</button> -->
-            </div>
-            <div class="flex items-center ml-2 gap-x-2">
-                <div>
-                    <label for="page-number">Page Number : </label>
-                    <input [(ngModel)]="pageNumber" (ngModelChange)="onPageNumberChange($event)" class="input-style"
-                        type="number" min="1" step="1" title="Enter a positive number">
+        <div class="flex gap-x-5 m-auto w-full justify-start">
+            <!-- Control Panel -->
+            <div class="flex flex-col p-4 bg-orange-200 rounded-md min-w-[400px]">
+                <h2 class="mb-4 font-semibold">Control Panel</h2>
+                <div class="flex justify-between gap-x-4">
+                    <div class="flex flex-col">
+                        <!-- Game -->
+                        <app-combo-box label="Game" [control]="gameIdControl" [items$]="games$" idKey="id"
+                            labelKey="name" [bind$]="bindToExternal$"></app-combo-box>
+
+                        <!-- Game URL -->
+                        <app-combo-box label="Game URL" placeholder="Select a game URL" [control]="gameUrlIdControl"
+                            [items$]="gameUrlsFiltered$" idKey="id" labelKey="name"
+                            [bind$]="bindGameUrlToExternal$"></app-combo-box>
+                    </div>
+                    <div>
+                        <button (click)="clearButtonClicked()" class="button button-small-danger"> Clear </button>
+
+                    </div>
                 </div>
-                <div class="flex gap-2">
-                    <button (click)="retryBatchButtonClicked()" [disabled]="this.lastUsedMode == null"
-                        class="button-small-primary">Retry</button>
-                    <button (click)="startBatchButtonClicked()" [disabled]="this.lastUsedMode == null"
-                        class="button-small-warning">Next
-                        Page</button>
-                    <button (click)="clearButtonClicked()" [disabled]="this.lastUsedMode == null"
-                        class="button-small-danger" title="Clear Current Data"> Reset</button>             
-                    <label class="my-2 py-2">{{statusLabel}}</label>
+
+                <!-- Actions -->
+                <div class="flex gap-2 mt-4 justify-between">
+
+                    <div class="flex items-center gap-2">
+                        @if(this.selectedGameUrl?.isPublicApi)
+                        {
+                        <button (click)="publicApiScrapeButtonClicked()" class="button-small-success"
+                            title="Duration ~1sec">Public API</button>
+                        }
+
+                        @if( this.selectedGameUrl?.isBatchUrl)
+                        {
+                        <button (click)="scrapeButtonClicked()" class="button-small-success" title="Duration ~3sec">Web
+                            Scrape</button>
+                        }
+
+                        <!-- <button (click)="scrapedPageByPixelButtonClicked()" class="button-small-success"
+                            title="Duration ~7sec">Web
+                            Scrape by Pixel</button> -->
+
+                        @if( this.selectedGameUrl?.isPixelScrape)
+                        {
+                        <button (click)="pixelScrapeButtonClicked()" class="button-small-success"
+                            title="Duration ~30s">Pixel Scrape</button>
+                        }
+
+                    </div>
                 </div>
+                @if(this.selectedGameUrl !== null)
+                {
+
+                Current Mode: {{this.selectedMode?.name ?? 'Not Selected'}} <br><br>
+                <div class="flex items-center ml-2 gap-x-2">
+                    <div class="flex items-center gap-2">
+                        <label for="page-number" class="whitespace-nowrap">
+                            Page Number :
+                        </label>
+                        <input [(ngModel)]="pageNumber" (ngModelChange)="onPageNumberChange($event)" class="input-style"
+                            type="number" min="1" step="1" title="Enter a positive number" />
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button (click)="retryBatchButtonClicked()" [disabled]="this.selectedMode == null"
+                            class="button-small-primary">
+                            Retry
+                        </button>
+
+                        <button (click)="startBatchButtonClicked()" [disabled]="this.selectedMode == null"
+                            class="button-small-warning">
+                            Next Page
+                        </button>
+
+                        @if(this.isLoading) {
+                        <button (click)="cancelAll()" class="button-small-danger" title="Clear Current Data">
+                            Cancel
+                        </button>
+                        }
+                    </div>
+                </div>
+                <label class="my-2 py-2">{{statusLabel}}</label>
+                }
             </div>
-            <!-- <div class="ml-auto">
-                            <button (click)="exportButtonClicked()" class="justify-end button button-small-primary py-0 mr-4"
-                                title="Export current data to Excel">Export</button>
-                            <!-- <button class="button button-small-success mr-4">Import</button> -->
-            <!-- </div> -->
         </div>
         <app-stopwatch></app-stopwatch>
     </div>
+
+    <div class="flex justify-end mr-4">
+        <button (click)="exportButtonClicked()" class="justify-end button button-small-primary py-2 px-3"
+            title="Export current data to Excel">Export</button>
+    </div>
+
     <div class="table-container">
         <table mat-table [dataSource]="dataSource" matSort class="border-2">
             <!-- Item Column -->
@@ -80,8 +128,8 @@
             <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef>Actions</th>
                 <td mat-cell *matCellDef="let element; let i = index">
-                    <button type="button" class="button button-small-primary"
-                        (click)="checkPaintButtonClicked(element.name, i)">Check For Paint</button>
+                    <!-- <button type="button" class="button button-small-primary"
+                        (click)="checkPaintButtonClicked(element.name, i)">Check For Paint</button> -->
                     <!-- <button type="button" class="delete-button ml-2" (click)="deleteButtonClicked(i)">Delete</button> -->
                 </td>
             </ng-container>
@@ -91,4 +139,3 @@
         </table>
         <mat-paginator showFirstLastButtons></mat-paginator>
     </div>
-</div>

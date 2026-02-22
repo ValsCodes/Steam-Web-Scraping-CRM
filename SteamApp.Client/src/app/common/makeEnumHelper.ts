@@ -1,4 +1,4 @@
-function makeEnumHelpers<E extends { [k: string]: string | number }>(e: E) {
+export function makeEnumHelpers<E extends { [k: string]: string | number }>(e: E) {
   const names = Object.keys(e)
     .filter(k => typeof e[k] === 'number') as (keyof E)[]
   

@@ -6,3 +6,9 @@ export interface Listing {
   color: string;
   linkUrl: string;
 }
+
+export interface WhishListResponse {
+  gameName: string;
+  isPriceReached: boolean;
+  currentPrice: number;
+}

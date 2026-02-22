@@ -1,70 +1,53 @@
-import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+
 import {
   Product,
   CreateProduct,
-  UpdateProduct,
+  UpdateProduct
 } from '../../models/product.model';
+
 import { handleError } from '../error-handler';
 import * as g from '../general-data';
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class ProductService {
+  private readonly controller = 'api/products';
+  private readonly baseUrl = `${g.localHost}${this.controller}`;
+
   constructor(private http: HttpClient) {}
 
-  private readonly productController: string = 'api/products';
-
-  getProducts(): Observable<Product[]> {
-    const url = `${g.localHost}${this.productController}`;
-    return this.http.get<Product[]>(url).pipe(catchError(handleError));
-  }
-
-  getProductById(productId: number): Observable<Product> {
-    const url = `${g.localHost}${this.productController}/${productId}`;
-    return this.http.get<Product>(url).pipe(catchError(handleError));
-  }
-
-  createProduct(product: CreateProduct): Observable<any> {
-    const url = `${g.localHost}${this.productController}`;
-
-    return this.http.post<any>(url, product).pipe(catchError(handleError));
-  }
-
-  updateProduct(product: UpdateProduct): Observable<any> {
-    const url = `${g.localHost}${this.productController}`;
-
-    return this.http.patch<any>(url, product).pipe(catchError(handleError));
-  }
-
-  deleteProduct(productId: number): Observable<any> {
-    const url = `${g.localHost}${this.productController}/${productId}`;
-
-    return this.http.delete<any>(url).pipe(catchError(handleError));
-  }
-
-  // Beta
-  createProducts(products: CreateProduct[]): Observable<any[]> {
-    const url = `${g.localHost}${this.productController}/batch`;
-
-    return this.http.post<any[]>(url, products).pipe(catchError(handleError));
-  }
-
-  // TODO not done
-  updateProducts(products: Product[]): Observable<any[]> {
-    const url = `${g.localHost}${this.productController}/batch`;
-
-    return this.http.patch<any[]>(url, products).pipe(catchError(handleError));
-  }
-
-  deleteProducts(productIds: number[]): Observable<any[]> {
-    const url = `${g.localHost}${this.productController}/batch`;
-
+  getAll(): Observable<Product[]> {
     return this.http
-      .delete<any[]>(url, { body: productIds })
+      .get<Product[]>(this.baseUrl)
+      .pipe(catchError(handleError));
+  }
+
+  getById(id: number): Observable<Product> {
+    return this.http
+      .get<Product>(`${this.baseUrl}/${id}`)
+      .pipe(catchError(handleError));
+  }
+
+  create(input: CreateProduct): Observable<Product> {
+    return this.http
+      .post<Product>(this.baseUrl, input)
+      .pipe(catchError(handleError));
+  }
+
+  update(id: number, input: UpdateProduct): Observable<void> {
+    return this.http
+      .put<void>(`${this.baseUrl}/${id}`, input)
+      .pipe(catchError(handleError));
+  }
+
+  delete(id: number): Observable<void> {
+    return this.http
+      .delete<void>(`${this.baseUrl}/${id}`)
       .pipe(catchError(handleError));
   }
 }

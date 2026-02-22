@@ -8,7 +8,7 @@ using SteamApp.WebAPI.Context;
 
 #nullable disable
 
-namespace SteamApp.Migrations
+namespace SteamApp.WebAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     partial class ApplicationDbContextModelSnapshot : ModelSnapshot
@@ -17,12 +17,12 @@ namespace SteamApp.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.7")
+                .HasAnnotation("ProductVersion", "9.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("SteamApp.Models.Entities.Class", b =>
+            modelBuilder.Entity("SteamApp.Domain.Entities.Game", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -31,17 +31,28 @@ namespace SteamApp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<string>("BaseUrl")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("base_url");
+
+                    b.Property<long?>("InternalId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("internal_id");
+
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("name");
 
+                    b.Property<string>("PageUrl")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("page_url");
+
                     b.HasKey("Id");
 
-                    b.ToTable("class");
+                    b.ToTable("game");
                 });
 
-            modelBuilder.Entity("SteamApp.Models.Entities.Grade", b =>
+            modelBuilder.Entity("SteamApp.Domain.Entities.GameAddOn", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -50,17 +61,26 @@ namespace SteamApp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<long>("GameId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("game_id");
+
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("name");
 
+                    b.Property<double?>("Price")
+                        .HasColumnType("float")
+                        .HasColumnName("price");
+
                     b.HasKey("Id");
 
-                    b.ToTable("grade");
+                    b.HasIndex("GameId");
+
+                    b.ToTable("game_add_on");
                 });
 
-            modelBuilder.Entity("SteamApp.Models.Entities.Item", b =>
+            modelBuilder.Entity("SteamApp.Domain.Entities.GameUrl", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -69,49 +89,96 @@ namespace SteamApp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<long?>("ClassId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("class_id");
-
-                    b.Property<int?>("CurrentStock")
+                    b.Property<int?>("EndPage")
                         .HasColumnType("int")
-                        .HasColumnName("current_stock");
+                        .HasColumnName("end_page");
 
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_active");
+                    b.Property<long>("GameId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("game_id");
 
-                    b.Property<bool>("IsWeapon")
+                    b.Property<bool>("IsBatchUrl")
                         .HasColumnType("bit")
-                        .HasColumnName("is_weapon");
+                        .HasColumnName("is_batch_url");
+
+                    b.Property<bool>("IsPixelScrape")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_pixel_scrape");
+
+                    b.Property<bool>("IsPublicApi")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_public_api");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("name");
 
-                    b.Property<short?>("Rating")
-                        .HasColumnType("smallint")
-                        .HasColumnName("rating");
+                    b.Property<string>("PartialUrl")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("partial_url");
 
-                    b.Property<long?>("SlotId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("slot_id");
-
-                    b.Property<int?>("TradesCount")
+                    b.Property<int?>("PixelImageHeight")
                         .HasColumnType("int")
-                        .HasColumnName("trades_count");
+                        .HasColumnName("pixel_image_height");
+
+                    b.Property<int?>("PixelImageWidth")
+                        .HasColumnType("int")
+                        .HasColumnName("pixel_image_width");
+
+                    b.Property<int?>("PixelX")
+                        .HasColumnType("int")
+                        .HasColumnName("pixel_x");
+
+                    b.Property<int?>("PixelY")
+                        .HasColumnType("int")
+                        .HasColumnName("pixel_y");
+
+                    b.Property<int?>("StartPage")
+                        .HasColumnType("int")
+                        .HasColumnName("start_page");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ClassId");
+                    b.HasIndex("GameId");
 
-                    b.HasIndex("SlotId");
-
-                    b.ToTable("item");
+                    b.ToTable("game_url");
                 });
 
-            modelBuilder.Entity("SteamApp.Models.Entities.ItemSkins", b =>
+            modelBuilder.Entity("SteamApp.Domain.Entities.GameUrlPixels", b =>
+                {
+                    b.Property<long>("PixelId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("pixel_id");
+
+                    b.Property<long>("GameUrlId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("game_url_id");
+
+                    b.HasKey("PixelId", "GameUrlId");
+
+                    b.HasIndex("GameUrlId");
+
+                    b.ToTable("game_url_pixels");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.GameUrlProducts", b =>
+                {
+                    b.Property<long>("ProductId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("product_id");
+
+                    b.Property<long>("GameUrlId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("game_url_id");
+
+                    b.HasKey("ProductId", "GameUrlId");
+
+                    b.HasIndex("GameUrlId");
+
+                    b.ToTable("game_url_products");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.Pixel", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -120,65 +187,35 @@ namespace SteamApp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<long?>("GradeId")
+                    b.Property<long>("BlueValue")
                         .HasColumnType("bigint")
-                        .HasColumnName("grade_id");
-
-                    b.Property<long>("ItemId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("item_id");
-
-                    b.Property<long>("SkinId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("skin_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GradeId");
-
-                    b.HasIndex("ItemId");
-
-                    b.HasIndex("SkinId");
-
-                    b.ToTable("ItemSkins");
-                });
-
-            modelBuilder.Entity("SteamApp.Models.Entities.Paint", b =>
-                {
-                    b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("smallint")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
-
-                    b.Property<byte>("B")
-                        .HasColumnType("tinyint")
                         .HasColumnName("b_value");
 
-                    b.Property<byte>("G")
-                        .HasColumnType("tinyint")
-                        .HasColumnName("g_value");
+                    b.Property<long>("GameId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("game_id");
 
-                    b.Property<bool>("IsGoodPaint")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_good_paint");
+                    b.Property<long>("GreenValue")
+                        .HasColumnType("bigint")
+                        .HasColumnName("g_value");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("name");
 
-                    b.Property<byte>("R")
-                        .HasColumnType("tinyint")
+                    b.Property<long>("RedValue")
+                        .HasColumnType("bigint")
                         .HasColumnName("r_value");
 
                     b.HasKey("Id");
 
-                    b.ToTable("paint");
+                    b.HasIndex("GameId");
+
+                    b.ToTable("pixel");
                 });
 
-            modelBuilder.Entity("SteamApp.Models.Entities.Product", b =>
+            modelBuilder.Entity("SteamApp.Domain.Entities.Product", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -187,162 +224,47 @@ namespace SteamApp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<decimal>("CostPrice")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("cost_price");
-
-                    b.Property<DateTime>("DateBought")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("date_bought");
-
-                    b.Property<DateTime?>("DateSold")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("date_sold");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("desciption");
-
-                    b.Property<bool>("IsHat")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_hat");
-
-                    b.Property<bool>("IsSold")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_sold");
-
-                    b.Property<bool?>("IsStrange")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_strange");
-
-                    b.Property<bool>("IsWeapon")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_weapon");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("name");
-
-                    b.Property<short?>("PaintId")
-                        .HasColumnType("smallint")
-                        .HasColumnName("paint_id");
-
-                    b.Property<short?>("QualityId")
-                        .HasColumnType("smallint")
-                        .HasColumnName("quality_id");
-
-                    b.Property<short?>("SheenId")
-                        .HasColumnType("smallint")
-                        .HasColumnName("sheen_id");
-
-                    b.Property<decimal?>("SoldPrice")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("sold_price");
-
-                    b.Property<decimal?>("TargetSellPrice1")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("t_sell_price_1");
-
-                    b.Property<decimal?>("TargetSellPrice2")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("t_sell_price_2");
-
-                    b.Property<decimal?>("TargetSellPrice3")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("t_sell_price_3");
-
-                    b.Property<decimal?>("TargetSellPrice4")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("t_sell_price_4");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PaintId");
-
-                    b.HasIndex("QualityId");
-
-                    b.HasIndex("SheenId");
-
-                    b.ToTable("product");
-                });
-
-            modelBuilder.Entity("SteamApp.Models.Entities.Quality", b =>
-                {
-                    b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("smallint")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("name");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("quality");
-                });
-
-            modelBuilder.Entity("SteamApp.Models.Entities.Sheen", b =>
-                {
-                    b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("smallint")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
-
-                    b.Property<bool>("IsGoodSheen")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_good_sheen");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("name");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("sheen");
-                });
-
-            modelBuilder.Entity("SteamApp.Models.Entities.Skin", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<long>("GameId")
                         .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+                        .HasColumnName("game_id");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit")
                         .HasColumnName("is_active");
 
-                    b.Property<bool>("IsWarPaint")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_war_paint");
-
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("name");
 
-                    b.Property<short?>("QualityId")
-                        .HasColumnType("smallint")
-                        .HasColumnName("quality_id");
+                    b.Property<int?>("Rating")
+                        .HasColumnType("int")
+                        .HasColumnName("rating");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("QualityId");
+                    b.HasIndex("GameId");
 
-                    b.ToTable("skin");
+                    b.ToTable("product");
                 });
 
-            modelBuilder.Entity("SteamApp.Models.Entities.Slot", b =>
+            modelBuilder.Entity("SteamApp.Domain.Entities.ProductTags", b =>
+                {
+                    b.Property<long>("ProductId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("product_id");
+
+                    b.Property<long>("TagId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tag_id");
+
+                    b.HasKey("ProductId", "TagId");
+
+                    b.HasIndex("TagId");
+
+                    b.ToTable("product_tags");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.Tag", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -351,126 +273,268 @@ namespace SteamApp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<long>("GameId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("game_id");
+
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("name");
 
                     b.HasKey("Id");
 
-                    b.ToTable("slot");
+                    b.HasIndex("GameId");
+
+                    b.ToTable("tag");
                 });
 
-            modelBuilder.Entity("SteamApp.Models.Entities.Item", b =>
+            modelBuilder.Entity("SteamApp.Domain.Entities.WatchList", b =>
                 {
-                    b.HasOne("SteamApp.Models.Entities.Class", "Class")
-                        .WithMany("Items")
-                        .HasForeignKey("ClassId");
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
 
-                    b.HasOne("SteamApp.Models.Entities.Slot", "Slot")
-                        .WithMany("Items")
-                        .HasForeignKey("SlotId");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Navigation("Class");
+                    b.Property<long?>("GameUrlId")
+                        .HasColumnType("bigint");
 
-                    b.Navigation("Slot");
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("name");
+
+                    b.Property<long?>("ProductId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateOnly>("RegistrationDate")
+                        .HasColumnType("date")
+                        .HasColumnName("rd");
+
+                    b.Property<string>("Url")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("url");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameUrlId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("watch_list");
                 });
 
-            modelBuilder.Entity("SteamApp.Models.Entities.ItemSkins", b =>
+            modelBuilder.Entity("SteamApp.Domain.Entities.WishList", b =>
                 {
-                    b.HasOne("SteamApp.Models.Entities.Grade", "Grade")
-                        .WithMany("ItemSkins")
-                        .HasForeignKey("GradeId");
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
 
-                    b.HasOne("SteamApp.Models.Entities.Item", "ManualSearchItem")
-                        .WithMany("ItemSkins")
-                        .HasForeignKey("ItemId")
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("GameId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("game_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("name");
+
+                    b.Property<double?>("Price")
+                        .HasColumnType("float")
+                        .HasColumnName("price");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId");
+
+                    b.ToTable("wish_list");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.GameAddOn", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.Game", "Game")
+                        .WithMany("GameAddOns")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.GameUrl", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.Game", "Game")
+                        .WithMany("GameUrls")
+                        .HasForeignKey("GameId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SteamApp.Models.Entities.Skin", "Skin")
-                        .WithMany("ItemSkins")
-                        .HasForeignKey("SkinId")
+                    b.Navigation("Game");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.GameUrlPixels", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.GameUrl", "GameUrl")
+                        .WithMany("GameUrlsPixels")
+                        .HasForeignKey("GameUrlId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SteamApp.Domain.Entities.Pixel", "Pixel")
+                        .WithMany("GameUrlsPixels")
+                        .HasForeignKey("PixelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("GameUrl");
+
+                    b.Navigation("Pixel");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.GameUrlProducts", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.GameUrl", "GameUrl")
+                        .WithMany("GameUrlsProducts")
+                        .HasForeignKey("GameUrlId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SteamApp.Domain.Entities.Product", "Product")
+                        .WithMany("GameUrlsProducts")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("GameUrl");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.Pixel", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.Game", "Game")
+                        .WithMany("Pixels")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.Product", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.Game", "Game")
+                        .WithMany("Products")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.ProductTags", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.Product", "Product")
+                        .WithMany("ProductTags")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SteamApp.Domain.Entities.Tag", "Tag")
+                        .WithMany("ProductTags")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.Tag", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.Game", "Game")
+                        .WithMany("Tags")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.WatchList", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.GameUrl", null)
+                        .WithMany("WatchLists")
+                        .HasForeignKey("GameUrlId");
+
+                    b.HasOne("SteamApp.Domain.Entities.Product", null)
+                        .WithMany("WatchLists")
+                        .HasForeignKey("ProductId");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.WishList", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.Game", "Game")
+                        .WithMany("WishLists")
+                        .HasForeignKey("GameId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Grade");
-
-                    b.Navigation("ManualSearchItem");
-
-                    b.Navigation("Skin");
+                    b.Navigation("Game");
                 });
 
-            modelBuilder.Entity("SteamApp.Models.Entities.Product", b =>
+            modelBuilder.Entity("SteamApp.Domain.Entities.Game", b =>
                 {
-                    b.HasOne("SteamApp.Models.Entities.Paint", "Paint")
-                        .WithMany("Products")
-                        .HasForeignKey("PaintId");
+                    b.Navigation("GameAddOns");
 
-                    b.HasOne("SteamApp.Models.Entities.Quality", "Quality")
-                        .WithMany("Products")
-                        .HasForeignKey("QualityId");
+                    b.Navigation("GameUrls");
 
-                    b.HasOne("SteamApp.Models.Entities.Sheen", "Sheen")
-                        .WithMany("Products")
-                        .HasForeignKey("SheenId");
+                    b.Navigation("Pixels");
 
-                    b.Navigation("Paint");
-
-                    b.Navigation("Quality");
-
-                    b.Navigation("Sheen");
-                });
-
-            modelBuilder.Entity("SteamApp.Models.Entities.Skin", b =>
-                {
-                    b.HasOne("SteamApp.Models.Entities.Quality", "Quality")
-                        .WithMany("Skins")
-                        .HasForeignKey("QualityId");
-
-                    b.Navigation("Quality");
-                });
-
-            modelBuilder.Entity("SteamApp.Models.Entities.Class", b =>
-                {
-                    b.Navigation("Items");
-                });
-
-            modelBuilder.Entity("SteamApp.Models.Entities.Grade", b =>
-                {
-                    b.Navigation("ItemSkins");
-                });
-
-            modelBuilder.Entity("SteamApp.Models.Entities.Item", b =>
-                {
-                    b.Navigation("ItemSkins");
-                });
-
-            modelBuilder.Entity("SteamApp.Models.Entities.Paint", b =>
-                {
-                    b.Navigation("Products");
-                });
-
-            modelBuilder.Entity("SteamApp.Models.Entities.Quality", b =>
-                {
                     b.Navigation("Products");
 
-                    b.Navigation("Skins");
+                    b.Navigation("Tags");
+
+                    b.Navigation("WishLists");
                 });
 
-            modelBuilder.Entity("SteamApp.Models.Entities.Sheen", b =>
+            modelBuilder.Entity("SteamApp.Domain.Entities.GameUrl", b =>
                 {
-                    b.Navigation("Products");
+                    b.Navigation("GameUrlsPixels");
+
+                    b.Navigation("GameUrlsProducts");
+
+                    b.Navigation("WatchLists");
                 });
 
-            modelBuilder.Entity("SteamApp.Models.Entities.Skin", b =>
+            modelBuilder.Entity("SteamApp.Domain.Entities.Pixel", b =>
                 {
-                    b.Navigation("ItemSkins");
+                    b.Navigation("GameUrlsPixels");
                 });
 
-            modelBuilder.Entity("SteamApp.Models.Entities.Slot", b =>
+            modelBuilder.Entity("SteamApp.Domain.Entities.Product", b =>
                 {
-                    b.Navigation("Items");
+                    b.Navigation("GameUrlsProducts");
+
+                    b.Navigation("ProductTags");
+
+                    b.Navigation("WatchLists");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.Tag", b =>
+                {
+                    b.Navigation("ProductTags");
                 });
 #pragma warning restore 612, 618
         }

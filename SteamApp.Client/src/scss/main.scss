@@ -1,41 +1,37 @@
-@import '../scss/_variables.scss';
-@import '../scss/_mixins.scss';
-@import '../scss/_utilities.scss';
+@use "sass:color";
+@use "sass:map";
 
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+@use "./variables" as *;
+@use "./mixins" as *;
+@use "./utilities" as *;
+
+@use "tailwindcss/base";
+@use "tailwindcss/components";
+@use "tailwindcss/utilities";
 
 
-// Base button styles
-%btn-base {
-  border-radius: 0.375rem;
-  color: white;
-  transition: background-color 0.3s ease;
-  margin-bottom: 1rem;
-  border: 0.0625rem solid black;
-}
-
-// Main <button> with specific classes
 button {
   @each $name, $key in (create: primary, delete: danger, edit: success) {
     &.#{$name}-button {
-      @include btn-variant($key, map-get($button-sizes, default));
+      @include btn-variant($key, map.get($button-sizes, default));
 
-        &[disabled] {
-          background-color: gray;
-        }
+      &[disabled] {
+        background-color: gray;
+      }
     }
   }
 }
 
-// Other global styles remain largely unchanged
 input {
   border-width: 1px;
   border-color: black;
 }
 
-html, body { height: 100%; }
+html,
+body {
+  height: 100%;
+}
+
 body {
   margin: 0;
   font-family: Roboto, "Helvetica Neue", sans-serif;
@@ -51,7 +47,7 @@ body {
     text-align: center;
 
     &:hover {
-      background-color: lighten($light-green, 10%);
+      background-color: color.adjust($light-green, $lightness: 10%);
     }
   }
 
@@ -70,87 +66,28 @@ body {
   border-radius: 0.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
-  h2 {
-    margin-bottom: 1.5rem;
-    font-size: 1.5rem;
-    color: #333;
-  }
-
-  .form-group {
-    margin-bottom: 1.25rem;
-
-    label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: 600;
-      color: #555;
-    }
-
-    input[type="text"],
-    input[type="number"],
-    input[type="date"],
-    select,
-    textarea {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid #ccc;
-      border-radius: 0.25rem;
-      font-size: 1rem;
-      transition: border-color 0.2s, box-shadow 0.2s;
-
-      &:focus {
-        outline: none;
-        border-color: #0056b3;
-        box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.2);
-      }
-    }
-
-    textarea { resize: vertical; }
-
-    .error {
-      margin-top: 0.25rem;
-      color: #e74c3c;
-      font-size: 0.875rem;
-    }
-  }
-
-  .price-group {
-    .price-inputs {
-      display: flex;
-      gap: 0.75rem;
-
-      input { flex: 1; }
-    }
-  }
-
-  .checkbox-group {
-    display: flex;
-    gap: 1.5rem;
-
-    label {
-      display: flex;
-      align-items: center;
-      font-weight: 500;
-      color: #555;
-
-      input {
-        margin-right: 0.5rem;
-        width: auto;
-      }
-    }
-  }
-
   button[type="submit"],
   button[type="return"] {
-    @include btn-variant(primary, map-get($button-sizes, default));
+    @include btn-variant(primary, map.get($button-sizes, default));
 
     &[type="submit"] {
-      background-color: map-get($button-colors, success);
-      &:hover:not(:disabled) { background-color: lighten(map-get($button-colors, success), 10%); }
+      background-color: map.get($button-colors, success);
+
+      &:hover:not(:disabled) {
+        background-color: color.adjust(
+          map.get($button-colors, success),
+          $lightness: 10%
+        );
+      }
     }
 
     &[type="return"] {
-      &:hover { background-color: lighten(map-get($button-colors, primary), 10%); }
+      &:hover {
+        background-color: color.adjust(
+          map.get($button-colors, primary),
+          $lightness: 10%
+        );
+      }
     }
   }
 }

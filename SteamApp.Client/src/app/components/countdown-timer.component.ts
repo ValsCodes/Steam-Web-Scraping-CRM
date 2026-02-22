@@ -49,25 +49,20 @@ import { CommonModule } from '@angular/common';
   ],
 })
 export class CountdownTimerComponent implements OnDestroy, OnChanges {
-  /** initial time in milliseconds (default = 1 hour) */
   @Input() initialMs = 5 * 60 * 1000;
 
-  /** whether to show start/pause/reset buttons */
   @Input() showControls = true;
   @Input() startOnLoad = false;
   @Input() alertThreshold = 5 * 60 * 1000;
   @Input() comment = "timer";
 
-  /** remaining time signal */
   private remainingMs = signal(this.initialMs);
 
-  /** is the timer running? */
   running = false;
 
   private timerId: ReturnType<typeof setInterval> | null = null;
   private endTs = 0;
 
-  /** formatted HH:mm:ss */
   formattedTime = computed(() => {
     let ms = this.remainingMs();
     if (ms < 0) ms = 0;
@@ -82,7 +77,6 @@ export class CountdownTimerComponent implements OnDestroy, OnChanges {
   isTimerLow = computed(() => this.remainingMs() < this.alertThreshold);
 
   ngOnChanges(changes: SimpleChanges) {
-    // If parent changes the initialMs, reset remainingMs accordingly
     if (changes['initialMs']) {
       this.resetInternal();
     }
@@ -94,11 +88,9 @@ export class CountdownTimerComponent implements OnDestroy, OnChanges {
 
   startPause() {
     if (this.running) {
-      // pause
       this.stopInterval();
       this.running = false;
     } else {
-      // start (or resume)
       this.endTs = Date.now() + this.remainingMs();
       this.running = true;
       this.timerId = setInterval(() => {
@@ -120,7 +112,6 @@ export class CountdownTimerComponent implements OnDestroy, OnChanges {
     this.resetInternal();
   }
 
-  /** internal helper to sync remainingMs with initialMs */
   private resetInternal() {
     this.remainingMs.set(this.initialMs);
   }

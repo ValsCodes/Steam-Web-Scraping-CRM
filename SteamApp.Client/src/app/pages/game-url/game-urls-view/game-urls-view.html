@@ -1,0 +1,118 @@
+<div class="p-4">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-2xl font-semibold text-gray-500">
+      Game URLs
+    </h2>
+
+    <button class="create-button" (click)="createButtonClicked()">
+      Create
+    </button>
+  </div>
+
+      <div class="flex gap-x-5">
+      
+      <!-- Game -->
+      <app-combo-box label="Game" [control]="gameIdControl" [items$]="games$" idKey="id" labelKey="name" [bind$]="bindToExternal$"></app-combo-box>
+      
+      <!-- Name -->
+    <app-text-filter [SearchLabel]="'Name'" [SearchTextBind]="searchByNameFilterControl"
+      (filterChange)="onNameFilterChanged($event)">
+    </app-text-filter>
+
+    <button (click)="clearFiltersButtonClicked()" class="button button-small-danger"> Clear </button>
+  </div>
+
+  <div class="table-container">
+    <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z8">
+
+      <!-- Id -->
+      <!-- <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Id</th>
+        <td mat-cell *matCellDef="let row">{{ row.id }}</td>
+      </ng-container> -->
+
+      <!-- Game Id -->
+      <ng-container matColumnDef="gameName">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Game</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.gameName }}
+        </td>
+      </ng-container>
+
+      <!-- Name -->
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.name || '—' }}
+        </td>
+      </ng-container>
+
+      <!-- Partial Url -->
+      <ng-container matColumnDef="partialUrl">
+        <th mat-header-cell *matHeaderCellDef>URL</th>
+        <td mat-cell *matCellDef="let row">
+            <a [href]="row.partialUrl" [title]="row.partialUrl" target="_blank" rel="noopener noreferrer"><p><b>&lt;-- Link --&gt;</b></p></a>
+        </td>
+      </ng-container>
+
+      <!-- Batch -->
+      <ng-container matColumnDef="isBatchUrl">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Batch</th>
+        <td mat-cell *matCellDef="let row">
+          <input type="checkbox" [checked]="row.isBatchUrl" disabled />
+        </td>
+      </ng-container>
+
+      <!-- Start Page -->
+      <ng-container matColumnDef="startPage">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Start</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.startPage ?? '—' }}
+        </td>
+      </ng-container>
+
+      <!-- End Page -->
+      <ng-container matColumnDef="endPage">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>End</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.endPage ?? '—' }}
+        </td>
+      </ng-container>
+
+      <!-- Pixel -->
+      <ng-container matColumnDef="isPublicApi">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Public API</th>
+        <td mat-cell *matCellDef="let row">
+          <input type="checkbox" [checked]="row.isPublicApi" disabled />
+        </td>
+      </ng-container>
+
+      <!-- Pixel -->
+      <ng-container matColumnDef="isPixelScrape">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Pixel</th>
+        <td mat-cell *matCellDef="let row">
+          <input type="checkbox" [checked]="row.isPixelScrape" disabled />
+        </td>
+      </ng-container>
+
+      <!-- Actions -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Actions</th>
+        <td mat-cell *matCellDef="let row" class="flex justify-center gap-x-2 py-2">
+          <button class="edit-button" (click)="editButtonClicked(row.id)">
+            Edit
+          </button>
+
+          <button class="delete-button" (click)="deleteButtonClicked(row.id)">
+            Delete
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator showFirstLastButtons></mat-paginator>
+  </div>
+</div>

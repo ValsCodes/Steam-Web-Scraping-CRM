@@ -1,10 +1,21 @@
+@use "./placeholders" as *;
+@use "./variables" as *;
+@use "sass:color";
+@use "sass:map";
+@use "sass:list";
+
+
 @mixin btn-variant($color-key, $padding, $text-color: white) {
-  @extend %btn-base;
-  padding: nth($padding, 1) nth($padding, 2);
-  background-color: map-get($button-colors, $color-key);
+  border-radius: 0.375rem;
   color: $text-color;
+  transition: background-color 0.3s ease;
+  margin-bottom: 1rem;
+  border: 0.0625rem solid black;
+
+  padding: list.nth($padding, 1) list.nth($padding, 2);
+  background-color: map.get($button-colors, $color-key);
 
   &:hover {
-    background-color: lighten(map-get($button-colors, $color-key), 10%);
+    background-color: color.adjust(map.get($button-colors, $color-key), $lightness: 10%);
   }
 }

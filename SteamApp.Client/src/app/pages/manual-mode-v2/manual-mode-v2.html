@@ -1,0 +1,135 @@
+<div class="container p-4 gap-2">
+  <div class="flex px-5">
+    <h2 class="text-2xl font-semibold text-gray-500">Manual Mode</h2>
+  </div>
+
+  <div class="flex gap-x-5 m-auto w-full justify-start">
+    <!-- Control Panel -->
+    <div class="flex flex-col p-4 bg-orange-200 rounded-md min-w-[400px]">
+      <h2 class="mb-4 font-semibold">Control Panel</h2>
+
+      <!-- Game -->
+      <app-combo-box label="Game" [control]="gameIdControl" [items$]="games$" idKey="id" labelKey="name"
+        [bind$]="bindToExternal$"></app-combo-box>
+
+      <!-- Game URL -->
+      <app-combo-box label="Game URL" placeholder="Select a game URL" [control]="gameUrlIdControl"
+        [items$]="gameUrlsFiltered$" idKey="id" labelKey="name" [bind$]="bindGameUrlToExternal$"></app-combo-box>
+
+      <!-- Actions -->
+      <div class="flex gap-2 mt-4">
+        <button class="button button-small-primary" (click)="showAllButtonClicked()"
+          [hidden]="this.selectedGameUrl?.isBatchUrl" [disabled]="gameUrlIdControl.value === null">
+          Show All
+        </button>
+        <button (click)="clearButtonClicked()" class="button button-small-danger"> Clear </button>
+      </div>
+    </div>
+
+    <!-- Batch Settings -->
+    <div class="flex flex-col p-4 bg-orange-200 rounded-md min-w-[400px]">
+      <h2 class="mb-4 font-semibold">Batch Panel</h2>
+      <div class="flex flex-col h-full justify-between">
+
+        <div class="flex gap-x-2 justify-between">
+          <div class="py-2"> <label>Current Item:</label> <input class="w-[5rem] ml-2 pl-2 rounded-md" type="number"
+              min="1" max="500" [value]="currentIndex" (input)="currentIndex = $any($event.target).valueAsNumber">
+          </div>
+          <div class="py-2"> <label>Batch Size:</label> <input class="w-[5rem] ml-2 pl-2 rounded-md" type="number"
+              min="1" max="500" [value]="batchSize" (input)="batchSize = $any($event.target).valueAsNumber"> </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-2 mt-4">
+          <button (click)="startBatchButtonClicked()" class="button button-small-success"> Start Batch </button>
+          <button (click)="clearBatchButtonClicked()" class="button button-small-danger"> Clear </button>
+          <button (click)="openAllButtonClicked()" class="button button-small-primary"
+            [hidden]="this.selectedGameUrl?.isBatchUrl === true"> Open All </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Links -->
+    <div class="flex flex-col p-4 bg-orange-200 rounded-md min-w-[300px]">
+      <h2 class="mb-4 font-semibold">Links</h2>
+      <ul class="list-disc list-inside ml-2 marker:text-black marker:text-lg">
+        <li>
+          <strong>
+            <a href="https://backpack.tf/spreadsheet" target="_blank" rel="noopener noreferrer"
+              class="hover:text-blue-600">
+              BackpackTF Prices URL
+            </a>
+          </strong>
+        </li>
+        <li>
+          <strong>
+            <a href="https://steamcommunity.com/id/_Val/inventory" target="_blank" rel="noopener noreferrer"
+              class="hover:text-blue-600">
+              Inventory
+            </a>
+          </strong>
+        </li>
+        <li>
+          <strong>
+            <a href="https://steamcommunity.com/market/" target="_blank" rel="noopener noreferrer"
+              class="hover:text-blue-600">
+              Community Market
+            </a>
+          </strong>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Search -->
+    <div class="flex flex-col p-4 bg-orange-200 rounded-md min-w-[300px]">
+      <h2 class="mb-4 font-semibold">Word List</h2>
+      <app-copy-link [textToCopy]="'Strange Part:'" [textToShow]="'< Strange Part: >'">
+      </app-copy-link>
+    </div>
+  </div>
+
+  @if(this.selectedGameUrl?.isBatchUrl !== true)
+  {
+  <div class="flex justify-between">
+    <div class="flex gap-x-5">
+
+    <!-- Product Name -->
+    <app-text-filter [SearchLabel]="'Product Name'" [SearchTextBind]="searchByNameFilterControl"
+      (filterChange)="onNameFilterChanged($event)">
+    </app-text-filter>
+
+    <!-- Rating -->
+    <app-number-filter [SearchLabel]="'Rating'" [SearchNumberBind]="searchByRatingFilterControl"
+      (filterChange)="onRatingFilterChanged($event)">
+    </app-number-filter>
+
+    <!-- Tags -->
+    <app-tag-filter-select label="Tags" [control]="tagSelectControl" [options]="gameTagsFilter" [filters]="tagsFilter"
+      (tagSelected)="onTagSelectedFromComponent($event)" (removeClicked)="removeFilter($event)"></app-tag-filter-select>
+
+    <button (click)="clearFiltersButtonClicked()" class="button button-small-danger"> Clear </button>
+    </div>
+
+        <div class="flex justify-end mr-4">
+        <button (click)="exportButtonClicked()" class="justify-end button button-small-primary"
+            title="Export current data to Excel">Export</button>
+    </div>
+  </div>
+
+  <!-- Products -->
+  <div class="panel panel--weapon-list mt-6">
+    <div class="grid-item flex flex-col"
+      *ngFor="let product of productsFiltered; trackBy: trackByProductId let i = index">
+      <strong> {{ i + 1 }}.
+        <a [href]="product.fullUrl" [title]="product.fullUrl" target="_blank" rel="noopener">
+          {{ product.productName }}
+        </a>
+        @if(product.rating !== null)
+        {
+        Rating: {{product.rating}} ⭐
+        }
+      </strong>
+    </div>
+  </div>
+  }
+</div>

@@ -1,0 +1,51 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form">
+  <h2>{{ isEditMode ? 'Edit Watch List Item' : 'Create Watch List Item' }}</h2>
+
+  <!-- URL -->
+  <div class="form-group">
+    <label>URL *</label>
+    <input
+      type="text"
+      formControlName="url"
+      class="px-2 py-1 w-full"
+      placeholder="https://example.com"
+    />
+  </div>
+
+  <!-- Name -->
+  <div class="form-group">
+    <label>Name *</label>
+    <input
+      type="text"
+      formControlName="name"
+      class="px-2 py-1 w-full"
+      placeholder="Name"
+    />
+  </div>
+
+  <!-- Registration Date -->
+  <div class="form-group">
+    <label>Registration Date</label>
+    <input
+      type="date"
+      formControlName="registrationDate"
+      class="px-2 py-1 w-full"
+    />
+  </div>
+
+  <!-- Active -->
+  <div class="form-group checkbox-group">
+    <label>
+      <input type="checkbox" formControlName="isActive" />
+      Active
+    </label>
+  </div>
+
+  <div class="flex gap-x-2">
+    <button type="submit" [disabled]="form.invalid">
+      {{ isEditMode ? 'Save' : 'Create' }}
+    </button>
+
+    <button type="button" (click)="cancel()">Back</button>
+  </div>
+</form>

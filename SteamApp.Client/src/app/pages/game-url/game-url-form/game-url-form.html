@@ -1,0 +1,82 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form">
+  <h2>{{ isEditMode ? 'Edit Game URL' : 'Create Game URL' }}</h2>
+
+  <div class="form-group">
+    <label>Game *</label>
+    <select formControlName="gameId" class="px-2 py-1">
+      <option value="" disabled>Select a game</option>
+      <option *ngFor="let game of games" [value]="game.id">
+        {{ game.name }}
+      </option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Name *</label>
+    <input formControlName="name" class="px-2 py-1 w-1/2" placeholder="Special Item" />
+  </div>
+
+  <div class="form-group">
+    <label>URL *</label>
+    <input formControlName="partialUrl" class="px-2 py-1 w-full" placeholder="/market/listings/..." />
+  </div>
+
+  <div class="form-group checkbox-group">
+    <label>
+      <input type="checkbox" formControlName="isBatchUrl" />
+      Batch URL
+    </label>
+    <label>
+      <input type="checkbox" formControlName="isPixelScrape" />
+      Pixel Scrape
+    </label>
+    <label>
+      <input type="checkbox" formControlName="isPublicApi" />
+      Public API
+    </label>
+
+  </div>
+
+  @if (form.get('isBatchUrl')?.value === true) {
+
+  <div class="form-group">
+    <label>Start Page</label>
+    <input type="number" formControlName="startPage" class="px-2 py-1" />
+  </div>
+
+  <div class="form-group">
+    <label>End Page</label>
+    <input type="number" formControlName="endPage" class="px-2 py-1" />
+  </div>
+  @if (form.get('isPixelScrape')?.value === true) {
+
+  <div class="form-group">
+    <label>Pixel X</label>
+    <input type="number" formControlName="pixelX" class="px-2 py-1" />
+  </div>
+
+  <div class="form-group">
+    <label>Pixel Y</label>
+    <input type="number" formControlName="pixelY" class="px-2 py-1" />
+  </div>
+
+  <div class="form-group">
+    <label>Image Width</label>
+    <input type="number" formControlName="pixelImageWidth" class="px-2 py-1" />
+  </div>
+
+  <div class="form-group">
+    <label>Image Height</label>
+    <input type="number" formControlName="pixelImageHeight" class="px-2 py-1" />
+  </div>
+  }
+  }
+
+  <div class="flex gap-x-2">
+    <button type="submit" [disabled]="form.invalid">
+      {{ isEditMode ? 'Save' : 'Create' }}
+    </button>
+
+    <button type="button" (click)="cancel()">Back</button>
+  </div>
+</form>

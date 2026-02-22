@@ -7,11 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.JsonPatch" Version="9.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.JsonPatch" Version="9.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.2" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SteamApp.Models\SteamApp.Models.csproj" />
+    <ProjectReference Include="..\SteamApp.Application\SteamApp.Application.csproj" />
+    <ProjectReference Include="..\SteamApp.Models\SteamApp.Domain.csproj" />
   </ItemGroup>
 
 </Project>

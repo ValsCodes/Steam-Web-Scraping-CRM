@@ -1,25 +1,89 @@
 import { Routes } from '@angular/router';
-
-import { WebScraperComponent } from "./pages/web-scraper/web-scraper.component";
-import { ManualModeComponent } from "./pages/manual-mode/manual-mode.component";
-import { ProductsCatalogComponent } from './pages/products/products-catalog/products-catalog.component';
-import { CreateProductFormComponent } from './pages/products/create-product-form/create-product-form.component';
-import { EditProductFormComponent } from './pages/products/edit-product-form/edit-product-form.component';
-import { ItemsCatalogComponent } from './pages/items/items-catalog/items-catalog.component';
-import { CreateItemFormComponent } from './pages/items/create-item-form/create-item-form.component';
-import { EditItemFormComponent } from './pages/items/edit-item-form/edit-item-form.component';
-import { LoginComponent } from './pages/login/login.component';
+import {
+  GameForm,
+  GamesView,
+  GameUrlForm,
+  GameUrlProductForm,
+  GameUrlProductsView,
+  GameUrlsView,
+  LoginComponent,
+  ManualModeV2,
+  PixelForm,
+  PixelsView,
+  ProductForm,
+  ProductsView,
+  ProductTagForm,
+  ProductTagsView,
+  TagForm,
+  TagsView,
+  WatchListForm,
+  WatchListsView,
+  WebScraperComponent,
+  WishListForm,
+  WishListsView,
+  GameUrlPixelForm,
+  GameUrlPixelsView
+} from './pages';
 import { AuthGuard } from './services/auth/auth.guard';
 
 export const routes: Routes = [
-    { path: 'web-scraper', component: WebScraperComponent, title: "Web Scraper", canActivate: [AuthGuard]    },
-    { path: 'manual-mode', component: ManualModeComponent, title: "Manual Mode", canActivate: [AuthGuard]   },
-    { path: 'products-catalog', component: ProductsCatalogComponent, title: "Products Catalog", canActivate: [AuthGuard]  },
-    { path: 'create-product', component: CreateProductFormComponent, title: "Create Product", canActivate: [AuthGuard]  },
-    { path: 'edit-product/:id', component: EditProductFormComponent, title: "Edit Product", canActivate: [AuthGuard]  },
-    { path: 'items-catalog', component: ItemsCatalogComponent, title: "Items Catalog", canActivate: [AuthGuard]  },
-    { path: 'create-item', component: CreateItemFormComponent, title: "Create Item", canActivate: [AuthGuard]  },
-    { path: 'edit-item/:id', component: EditItemFormComponent, title: "Edit Item", canActivate: [AuthGuard]  },
-    { path: 'login', component: LoginComponent, title: "Login" },
-    { path: '', redirectTo: 'login', pathMatch: 'full' },
+  {
+    path: 'login',
+    component: LoginComponent,
+    title: 'Login',
+  },
+  {
+    path: '',
+    canActivateChild: [AuthGuard],
+    children: [
+      { path: '', redirectTo: 'web-scraper', pathMatch: 'full' },
+      { path: 'web-scraper', component: WebScraperComponent },
+      { path: 'manual-mode-v2', component: ManualModeV2 },
+      { path: 'games', component: GamesView },
+      { path: 'games/create', component: GameForm },
+      { path: 'games/edit/:id', component: GameForm },
+      { path: 'game-urls', component: GameUrlsView },
+      { path: 'game-urls/create', component: GameUrlForm },
+      { path: 'game-urls/edit/:id', component: GameUrlForm },
+      { path: 'products', component: ProductsView },
+      { path: 'products/create', component: ProductForm },
+      { path: 'products/edit/:id', component: ProductForm },
+      { path: 'pixels', component: PixelsView },
+      { path: 'pixels/create', component: PixelForm },
+      { path: 'pixels/edit/:id', component: PixelForm },
+      { path: 'wishlist', component: WishListsView },
+      { path: 'wishlist/create', component: WishListForm },
+      { path: 'wishlist/edit/:id', component: WishListForm },
+      { path: 'watch-list', component: WatchListsView },
+      { path: 'watch-list/create', component: WatchListForm },
+      { path: 'watch-list/edit/:id', component: WatchListForm },
+      { path: 'game-url-products', component: GameUrlProductsView },
+      { path: 'game-url-products/create', component: GameUrlProductForm },
+      {
+        path: 'game-url-products/edit/:productId/:gameUrlId',
+        component: GameUrlProductForm,
+      },
+      { path: 'product-tags', component: ProductTagsView },
+      { path: 'product-tags/create', component: ProductTagForm },
+      {
+        path: 'product-tags/edit/:productId/:tagId',
+        component: ProductTagForm,
+      },
+      { path: 'tags', component: TagsView },
+      { path: 'tags/create', component: TagForm },
+      { path: 'tags/edit/:id', component: TagForm },
+      {
+        path: 'game-url-pixels',
+        component: GameUrlPixelsView,
+      },
+      {
+        path: 'game-url-pixels/create',
+        component: GameUrlPixelForm,
+      },
+      {
+        path: 'game-url-pixels/edit/:pixelId/:gameUrlId',
+        component: GameUrlPixelForm,
+      },
+    ],
+  },
 ];

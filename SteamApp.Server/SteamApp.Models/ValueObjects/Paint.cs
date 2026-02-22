@@ -1,6 +1,6 @@
 ﻿using System.Drawing;
 
-namespace SteamApp.Models.ValueObjects;
+namespace SteamApp.Domain.ValueObjects;
 
 public class Paint
 {

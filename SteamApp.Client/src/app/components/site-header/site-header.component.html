@@ -1,24 +1,25 @@
 <div class="flex items-center justify-between p-4">
-        @if (isLoggedIn()) {
+        @if (isLoggedIn) {
         <div class="flex">
                 <steam-dropdown label="Scraping"
-                        [links]="[{ label: 'Web Scraper', route: '/web-scraper' },{ label: 'Manual Scraper', route: '/manual-mode' }]"></steam-dropdown>
-                <steam-dropdown label="Catalogs"
-                        [links]="[{ label: 'Watch List', route: '/products-catalog' },{ label: 'Items', route: '/items-catalog' }]"></steam-dropdown>
-                <!-- <steam-dropdown label="Finance"
-                        [links]="[{ label: 'Invoices', route: '/invoices' }, { label: 'Finance Report', route: '/finance-report' }]"></steam-dropdown>
-                        <steam-dropdown label="General Game Data"  [links]="[    
-                        { label: 'Item Add-Ons ', route: '/item-add-ons' },                    
-                        { label: 'Item Grades', route: '/item-grades' },
-                        { label: 'Item Skins', route: '/item-skins' },
-                        { label: 'Item Qualities', route: '/qualities' },
-                        { label: 'Item Categories', route: '/categories' },
-                        { label: 'Item Slots', route: '/slots' },
-                        ]"></steam-dropdown> 
-                <a routerLink="/games" routerLinkActive="active">Games</a>-->
+                        [links]="[{ label: 'Web Scraper', route: '/web-scraper' },
+                        { label: 'Manual Scraper', route: '/manual-mode-v2' }]"></steam-dropdown>
+                        <a routerLink="/games" routerLinkActive="active">Games</a>
+
+                        <steam-dropdown label="Game URLs" [links]="[
+                        { label: 'Game URLs', route: '/game-urls' },
+                        { label: 'Game URL Products', route: '/game-url-products' },
+                        { label: 'Game URL Pixels', route: '/game-url-pixels' }]"></steam-dropdown> 
+
+                                        <steam-dropdown label="Products" [links]="[{ label: 'Products', route: '/products' }, 
+                                                                { label: 'Product Tags', route: '/product-tags' }]"></steam-dropdown>
+<a routerLink="/tags" routerLinkActive="active">Tags</a>
+                <a routerLink="/pixels" routerLinkActive="active">Pixels</a>
+                <a routerLink="/wishlist" routerLinkActive="active">Game Wish List</a>
+                <a routerLink="/watch-list" routerLinkActive="active">Custom Watch List</a>
         </div>}
         <div class="flex space-x-4 items-center">
-                @if(isLoggedIn())
+                @if(isLoggedIn)
                 {
                 <app-countdown-timer [initialMs]="expiration" [showControls]="false" [startOnLoad]="true"
                         comment="Remaining Session"></app-countdown-timer>

@@ -1,0 +1,30 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form">
+  <h2>{{ isEditMode ? 'Edit Tag' : 'Create Tag' }}</h2>
+
+  <div class="form-group">
+    <label>Game *</label>
+    <select formControlName="gameId" class="px-2 py-1">
+      <option value="" disabled>Select a game</option>
+      <option *ngFor="let game of games" [value]="game.id">
+        {{ game.name }}
+      </option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Name *</label>
+    <input
+      formControlName="name"
+      class="px-2 py-1 w-1/2"
+      placeholder="Tag name"
+    />
+  </div>
+
+  <div class="flex gap-x-2">
+    <button type="submit" [disabled]="form.invalid">
+      {{ isEditMode ? 'Save' : 'Create' }}
+    </button>
+
+    <button type="button" (click)="cancel()">Back</button>
+  </div>
+</form>
