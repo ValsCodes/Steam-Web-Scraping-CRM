@@ -48,7 +48,7 @@
 
       <!-- Page Url -->
       <ng-container matColumnDef="pageUrl">
-        <th mat-header-cell *matHeaderCellDef>Page URL</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Page URL</th>
         <td mat-cell *matCellDef="let game">
           <a [href]="game.pageUrl " [title]="game.pageUrl" target="_blank" rel="noopener noreferrer">
             <p><b>&lt;-- Link --&gt;</b></p>

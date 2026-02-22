@@ -353,7 +353,8 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       .getAll()
       .pipe(takeUntil(this.destroy$))
       .subscribe((urls) => {
-        this.gameUrlsAll = urls.map((url) => {
+        this.gameUrlsAll = urls.filter(url => url.isPublicApi === false)
+        .map((url) => {
           if (url.isBatchUrl === true) {
             return {
               ...url,

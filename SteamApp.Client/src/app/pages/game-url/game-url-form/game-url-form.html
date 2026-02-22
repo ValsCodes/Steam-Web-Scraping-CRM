@@ -4,10 +4,12 @@
   <div class="form-group">
     <label>Game *</label>
     <select formControlName="gameId" class="px-2 py-1">
-      <option value="" disabled>Select a game</option>
-      <option *ngFor="let game of games" [value]="game.id">
+      <option ngValue="" disabled>Select a game</option>
+      @for (game of games; track game.id) {
+      <option [ngValue]="game.id">
         {{ game.name }}
       </option>
+      }
     </select>
   </div>
 
@@ -21,7 +23,7 @@
     <input formControlName="partialUrl" class="px-2 py-1 w-full" placeholder="/market/listings/..." />
   </div>
 
-  <div class="form-group checkbox-group">
+  <div class="form-group-row checkbox-group">
     <label>
       <input type="checkbox" formControlName="isBatchUrl" />
       Batch URL
@@ -77,6 +79,6 @@
       {{ isEditMode ? 'Save' : 'Create' }}
     </button>
 
-    <button type="button" (click)="cancel()">Back</button>
+    <button type="return" (click)="cancel()">Back</button>
   </div>
 </form>

@@ -80,7 +80,7 @@ public static class GameUrlProductsEndpoints
 
         // POST: /api/game-url-products
         group.MapPost("/", async (
-            GameUrlPixelCreateDto input,
+            GameUrlProductCreateDto input,
             ApplicationDbContext db) =>
         {
             var productExists = await db.Products
