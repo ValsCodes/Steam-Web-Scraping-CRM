@@ -145,7 +145,7 @@ export class GameUrlsView implements OnInit {
   private applyGameFilter(gameId: number | null): void {
 
     this.gameUrlsFiltered = this.gameUrls.filter(x=> x.gameId === gameId);
-    this.dataSource.data=this.gameUrlsFiltered ;
+    this.dataSource.data = this.gameUrlsFiltered ;
     
     this.cdr.markForCheck();
   }

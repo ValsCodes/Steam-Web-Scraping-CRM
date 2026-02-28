@@ -87,13 +87,13 @@ export class ProductForm implements OnInit {
       };
 
       this.productService.update(this.productId, update).subscribe(() => {
-        this.router.navigate(['/products']);
+         this.router.navigate(['/products']);
       });
     } else {
       const create: CreateProduct = this.form.getRawValue();
 
       this.productService.create(create).subscribe(() => {
-        this.router.navigate(['/products']);
+         this.router.navigate(['/products']);
       });
     }
   }

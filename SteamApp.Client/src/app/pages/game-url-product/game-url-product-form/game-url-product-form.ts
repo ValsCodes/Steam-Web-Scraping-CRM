@@ -167,7 +167,7 @@ export class GameUrlProductForm implements OnInit, OnDestroy {
         .delete(this.originalProductId, this.originalGameUrlId)
         .subscribe(() => {
           this.service.create(payload).subscribe(() => {
-            this.router.navigate(['/game-url-products']);
+             this.router.navigate(['/game-url-products']);
           });
         });
 

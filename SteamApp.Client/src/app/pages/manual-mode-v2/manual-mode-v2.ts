@@ -231,8 +231,11 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       .existsByGameUrl(this.selectedGameUrl.id)
       .pipe(takeUntil(this.destroy$))
       .subscribe((products) => {
-        this.products = products;
-        this.productsFiltered = products;
+
+        let filteredResults = products.filter(x => x.isActive === true);
+
+        this.products = filteredResults;
+        this.productsFiltered = filteredResults;
         this.cdr.markForCheck();
       });
   }
@@ -291,7 +294,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
         }
 
         const newWindow = window.open(
-          this.products[currentIndex - 1].fullUrl,
+          this.productsFiltered[currentIndex - 1].fullUrl,
           '_blank',
         );
 

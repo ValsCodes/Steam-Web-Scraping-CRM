@@ -6,7 +6,8 @@ export interface GameUrlProduct {
   isBatchUrl: boolean;
   fullUrl: string;
   tags: string[];
-  rating:number | null; 
+  isActive: boolean;
+  rating: number | null;
 }
 
 export interface CreateGameUrlProduct {

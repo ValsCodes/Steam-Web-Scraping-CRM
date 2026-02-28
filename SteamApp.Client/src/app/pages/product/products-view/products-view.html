@@ -88,6 +88,11 @@
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef>Actions</th>
         <td mat-cell *matCellDef="let row" class="flex justify-center gap-x-2 py-2">
+
+          <button class="{{row.isActive === true ? 'delete-button'  : 'edit-button'}}" (click)="activeButtonClicked(row)">
+           {{row.isActive === true ? 'Deactivate'  : 'Activate'}}
+          </button>
+
           <button class="edit-button" (click)="editButtonClicked(row.id)" (auxclick)="openInNewTab(row.id)">
             Edit
           </button>

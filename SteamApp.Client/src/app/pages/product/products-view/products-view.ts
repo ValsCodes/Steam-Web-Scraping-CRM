@@ -11,7 +11,7 @@ import {
   ProductService,
   TagService,
 } from '../../../services';
-import { Game, Product, Tag } from '../../../models';
+import { Game, Product, Tag, UpdateProductStatus } from '../../../models';
 import { encode } from '../../../common';
 import { FormControl } from '@angular/forms';
 import { TextFilterComponent } from '../../../components';
@@ -54,13 +54,11 @@ export class ProductsView implements OnInit {
   readonly gameIdControl = new FormControl<number | null>(null);
   private games: Game[] = [];
   readonly games$ = new BehaviorSubject<readonly Game[]>([]);
-  
+
   dataSource = new MatTableDataSource<Product>([]);
 
   products: Product[] = [];
   productsFiltered: Product[] = [];
-
-
 
   private gameTagsAll: Tag[] = [];
   gameTagsFilter: Tag[] = [];
@@ -138,6 +136,9 @@ export class ProductsView implements OnInit {
       this.tagSelectControl.disable();
     }
 
+    this.productsFiltered = this.products.filter(x => x.gameId === gameId);
+    this.dataSource.data = this.productsFiltered ;
+
     this.cdr.markForCheck();
   }
 
@@ -162,6 +163,32 @@ export class ProductsView implements OnInit {
 
   editButtonClicked(id: number): void {
     this.router.navigate(['/products/edit', id]);
+  }
+
+  activeButtonClicked(product: Product): void {
+    const nextIsActive = !product.isActive;
+
+    const input: UpdateProductStatus = {
+      id: product.id,
+      isActive: nextIsActive,
+    };
+
+    this.productService
+      .updateStatus(input)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.products = this.products.map((p) =>
+          p.id === product.id ? { ...p, isActive: nextIsActive } : p,
+        );
+
+        this.productsFiltered = this.productsFiltered.map((p) =>
+          p.id === product.id ? { ...p, isActive: nextIsActive } : p,
+        );
+
+        this.dataSource.data = this.productsFiltered;
+
+        this.cdr.markForCheck();
+      });
   }
 
   deleteButtonClicked(id: number): void {
@@ -282,6 +309,6 @@ export class ProductsView implements OnInit {
   }
 
   openInNewTab(id: number): void {
-  window.open(`products/edit/${id}`, '_blank');
-}
+    window.open(`products/edit/${id}`, '_blank');
+  }
 }

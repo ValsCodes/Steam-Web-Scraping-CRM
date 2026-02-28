@@ -21,3 +21,8 @@ export interface UpdateProduct {
   isActive?: boolean | null;
   rating?: number | null;
 }
+
+export interface UpdateProductStatus {
+  id: number;
+  isActive: boolean;
+}

@@ -19,7 +19,7 @@
       <!-- Actions -->
       <div class="flex gap-2 mt-4">
         <button class="button button-small-primary" (click)="showAllButtonClicked()"
-          [hidden]="this.selectedGameUrl?.isBatchUrl" [disabled]="gameUrlIdControl.value === null">
+          [hidden]="this.selectedGameUrl?.isBatchUrl" [disabled]="gameUrlIdControl.value === null ">
           Show All
         </button>
         <button (click)="clearButtonClicked()" class="button button-small-danger"> Clear </button>
@@ -44,7 +44,7 @@
           <button (click)="startBatchButtonClicked()" class="button button-small-success"> Start Batch </button>
           <button (click)="clearBatchButtonClicked()" class="button button-small-danger"> Clear </button>
           <button (click)="openAllButtonClicked()" class="button button-small-primary"
-            [hidden]="this.selectedGameUrl?.isBatchUrl === true"> Open All </button>
+            [hidden]="this.selectedGameUrl?.isBatchUrl === true" [disabled]="true"> Open All </button>
         </div>
       </div>
     </div>
