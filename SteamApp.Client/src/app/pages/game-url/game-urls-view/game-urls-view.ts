@@ -10,6 +10,7 @@ import { Game, GameUrl } from '../../../models';
 import { GameService, GameUrlService } from '../../../services';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { combineLatest, startWith, Subject, takeUntil } from 'rxjs';
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'steam-game-urls-grid',
@@ -91,6 +92,27 @@ export class GameUrlsView implements OnInit, OnDestroy {
   onNameFilterChanged(filter: string): void
   {
     this.searchByNameFilterControl.setValue(filter, { emitEvent: true });
+  }
+
+  exportButtonClicked(): void
+  {
+    const dataToExport = this.dataSource.data.map(x => ({
+      gameName: x.gameName,
+      name: x.name ?? '',
+      partialUrl: x.partialUrl ?? '',
+      isBatchUrl: x.isBatchUrl,
+      startPage: x.startPage ?? '',
+      endPage: x.endPage ?? '',
+      isPixelScrape: x.isPixelScrape,
+      isPublicApi: x.isPublicApi,
+    }));
+
+    const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'GameUrls');
+
+    const today = new Date();
+    XLSX.writeFile(workbook, `Export_${today.toDateString()}_GameUrls.xlsx`);
   }
 
   createButtonClicked(): void

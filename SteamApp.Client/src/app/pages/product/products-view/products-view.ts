@@ -10,6 +10,7 @@ import { Subject, takeUntil } from 'rxjs';
 
 import { GameService, ProductService, TagService } from '../../../services';
 import { Game, Product, Tag, UpdateProductStatus } from '../../../models';
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'steam-products-grid',
@@ -116,6 +117,24 @@ export class ProductsView implements OnInit, OnDestroy {
       this.dataSource.paginator = this.paginator;
       this.dataSource.sort = this.sort;
     });
+  }
+
+
+  exportButtonClicked(): void {
+    const dataToExport = this.dataSource.data.map(x => ({
+      gameName: x.gameName,
+      name: x.name ?? '',
+      tags: x.tags?.join(', ') ?? '',
+      rating: x.rating ?? '',
+      isActive: x.isActive,
+    }));
+
+    const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Products');
+
+    const today = new Date();
+    XLSX.writeFile(workbook, `Export_${today.toDateString()}_Products.xlsx`);
   }
 
   createButtonClicked(): void {
