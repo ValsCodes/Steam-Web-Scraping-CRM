@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -9,7 +9,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { Game, GameUrl } from '../../../models';
 import { GameService, GameUrlService } from '../../../services';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { BehaviorSubject, combineLatest, startWith, Subject, takeUntil } from 'rxjs';
+import { combineLatest, startWith, Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'steam-game-urls-grid',
@@ -38,7 +38,7 @@ export class GameUrlsView implements OnInit, OnDestroy {
     'actions'
   ];
 
-  readonly games$ = new BehaviorSubject<readonly Game[]>([]);
+  readonly games = signal<readonly Game[]>([]);
 
   readonly gameIdControl = new FormControl<number | null>(null);
   readonly searchByNameFilterControl = new FormControl<string>('', { nonNullable: true });
@@ -55,7 +55,6 @@ export class GameUrlsView implements OnInit, OnDestroy {
     private readonly gameUrlService: GameUrlService,
     private readonly gameService: GameService,
     private readonly router: Router,
-    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void
@@ -80,7 +79,6 @@ export class GameUrlsView implements OnInit, OnDestroy {
       });
 
       this.dataSource.data = filtered;
-      this.cdr.markForCheck();
     });
   }
 
@@ -130,8 +128,6 @@ export class GameUrlsView implements OnInit, OnDestroy {
 
       this.dataSource.paginator = this.paginator;
       this.dataSource.sort = this.sort;
-
-      this.cdr.markForCheck();
     });
   }
 
@@ -141,8 +137,7 @@ export class GameUrlsView implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(games =>
       {
-        this.games$.next(games);
-        this.cdr.markForCheck();
+        this.games.set(games);
       });
   }
 }
