@@ -31,8 +31,9 @@ import { ComboBoxComponent } from '../../../components/filter-components/combo-b
 })
 export class GameUrlPixelsView implements AfterViewInit, OnInit {
   displayedColumns: string[] = [
-    'pixelName',
+    'gameName',
     'gameUrlName',
+    'pixelName',
     'pixelLocation',
     'pixelColor',
     'actions',

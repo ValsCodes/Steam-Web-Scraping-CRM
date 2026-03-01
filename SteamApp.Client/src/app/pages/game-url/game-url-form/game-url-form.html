@@ -5,7 +5,7 @@
     <label>Game *</label>
     <select formControlName="gameId" class="px-2 py-1">
       <option ngValue="" disabled>Select a game</option>
-      @for (game of games; track game.id) {
+      @for (game of games(); track game.id){
       <option [ngValue]="game.id">
         {{ game.name }}
       </option>
@@ -24,6 +24,8 @@
   </div>
 
   <div class="form-group-row checkbox-group">
+    @if (!isPublicApi())
+    {
     <label>
       <input type="checkbox" formControlName="isBatchUrl" />
       Batch URL
@@ -32,6 +34,7 @@
       <input type="checkbox" formControlName="isPixelScrape" />
       Pixel Scrape
     </label>
+    }
     <label>
       <input type="checkbox" formControlName="isPublicApi" />
       Public API
@@ -39,7 +42,7 @@
 
   </div>
 
-  @if (form.get('isBatchUrl')?.value === true) {
+  @if (isBatchUrl()) {
 
   <div class="form-group">
     <label>Start Page</label>
@@ -50,7 +53,9 @@
     <label>End Page</label>
     <input type="number" formControlName="endPage" class="px-2 py-1" />
   </div>
-  @if (form.get('isPixelScrape')?.value === true) {
+  }
+
+  @if (isPixelScrape()) {
 
   <div class="form-group">
     <label>Pixel X</label>
@@ -71,7 +76,6 @@
     <label>Image Height</label>
     <input type="number" formControlName="pixelImageHeight" class="px-2 py-1" />
   </div>
-  }
   }
 
   <div class="flex gap-x-2">

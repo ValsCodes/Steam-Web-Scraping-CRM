@@ -2,7 +2,14 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormControl } from '@angular/forms';
-import { BehaviorSubject, finalize, startWith, tap } from 'rxjs';
+import {
+  BehaviorSubject,
+  finalize,
+  startWith,
+  Subject,
+  takeUntil,
+  tap,
+} from 'rxjs';
 
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
@@ -138,24 +145,41 @@ export class WishListsView implements OnInit {
     });
   }
 
+  private cancelCheck$ = new Subject<void>();
+
   checkButtonClicked(whishListItemId: number) {
+    this.cancelCheck$.next();
+
     this.checkLabel = 'Checking...';
     this.isChecking = true;
 
     this.steamService
       .checkWishlistItem(whishListItemId)
       .pipe(
+        takeUntil(this.cancelCheck$),
         finalize(() => {
           this.isChecking = false;
         }),
       )
       .subscribe({
         next: (response: WhishListResponse) => {
-          this.checkLabel = `Price goal has been reached for Game ${response.gameName}! Current Price: ${response.currentPrice === 0 ? 'Free' : response.currentPrice}`;
+
+          if(response.isPriceReached === true)
+          {
+            this.checkLabel = `Price goal has been reached for Game ${response.gameName}! Current Price: ${response.currentPrice === 0 ? 'Free' : response.currentPrice}`;
+          } else
+          {
+            this.checkLabel = `Price goal has not been reached for Game ${response.gameName}! Current Price: ${response.currentPrice}`;
+          }
         },
         error: (err: any) => {
           this.checkLabel = 'Error Checking Wishlist Item';
         },
       });
+  }
+
+  cancelButtonClicked(): void {
+    this.cancelCheck$.next();
+    this.checkLabel = 'Operation Cancelled'
   }
 }

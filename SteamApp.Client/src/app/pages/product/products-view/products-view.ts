@@ -7,7 +7,6 @@ import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import {
   GameService,
-  GameUrlService,
   ProductService,
   TagService,
 } from '../../../services';

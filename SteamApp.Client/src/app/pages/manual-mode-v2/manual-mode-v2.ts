@@ -235,8 +235,9 @@ export class ManualModeV2 implements OnInit, OnDestroy {
         let filteredResults = products.filter(x => x.isActive === true);
 
         this.products = filteredResults;
-        this.productsFiltered = filteredResults;
-        this.cdr.markForCheck();
+        this.productsFiltered = [...filteredResults];
+
+        this.cdr.detectChanges();
       });
   }
 

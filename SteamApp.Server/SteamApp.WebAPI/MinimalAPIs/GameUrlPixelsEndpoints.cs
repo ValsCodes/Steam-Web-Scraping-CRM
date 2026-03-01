@@ -24,6 +24,7 @@ public static class GameUrlPixelsEndpoints
                     PixelName = x.Pixel.Name,
                     x.GameUrlId,
                     GameUrlName = x.GameUrl.Name,
+                    GameName = x.GameUrl.Game.Name,
                     GameUrlPixelLocationX = x.GameUrl.PixelX,
                     GameUrlPixelLocationY = x.GameUrl.PixelY,
                     GameUrlImageWidth = x.GameUrl.PixelImageWidth,

@@ -88,7 +88,7 @@
     </div>
   </div>
 
-  @if(this.selectedGameUrl?.isBatchUrl !== true)
+  @if(this.products.length > 0)
   {
   <div class="flex justify-between">
     <div class="flex gap-x-5">
@@ -118,18 +118,21 @@
 
   <!-- Products -->
   <div class="panel panel--weapon-list mt-6">
-    <div class="grid-item flex flex-col"
-      *ngFor="let product of productsFiltered; trackBy: trackByProductId let i = index">
-      <strong> {{ i + 1 }}.
-        <a [href]="product.fullUrl" [title]="product.fullUrl" target="_blank" rel="noopener">
+    @for (product of productsFiltered; track product; let i = $index)
+    {
+    <a [href]="product.fullUrl" [title]="product.fullUrl" target="_blank" rel="noopener">
+      <div class="grid-item flex flex-col h-[4.5rem]">
+        <strong> {{ i + 1 }}.
+  
           {{ product.productName }}
-        </a>
-        @if(product.rating !== null)
-        {
-        Rating: {{product.rating}} ⭐
-        }
-      </strong>
-    </div>
+  
+          @if(product.rating !== null)
+          {
+          Rating: {{product.rating}} ⭐
+          }
+        </strong>
+      </div>
+    </a>
+    }
   </div>
-  }
-</div>
+}

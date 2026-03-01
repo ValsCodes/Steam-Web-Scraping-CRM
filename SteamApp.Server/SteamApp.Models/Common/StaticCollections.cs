@@ -6,7 +6,6 @@ namespace SteamApp.Domain.Common;
 public static class StaticCollections
 {
 
-    // TODO Turn Into Entitity
     public static readonly Paint[] Paints =
 [
         new Paint() { Name = "Pink as Hell",  Color = Color.FromArgb(192, 255, 105, 180), IsGoodPaint = true},

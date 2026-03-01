@@ -65,13 +65,13 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 long id,
                 GameUpdateDto input,
                 ApplicationDbContext db,
-                IMapper mapper, IMemoryCache cache) =>
+                IMapper mapper, 
+                IMemoryCache cache) =>
             {
                 var entity = await db.Games.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
                 mapper.Map(input, entity);
-
 
                 var cacheKey = string.Format(CacheKeys.Game, id);
                 cache.Remove(cacheKey);

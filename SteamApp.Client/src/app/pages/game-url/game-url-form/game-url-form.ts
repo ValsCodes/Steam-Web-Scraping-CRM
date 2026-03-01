@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -16,8 +16,14 @@ import { Game } from '../../../models';
   styleUrl: './game-url-form.scss',
 })
 export class GameUrlForm implements OnInit {
+
   isEditMode = false;
   gameUrlId?: number;
+
+  readonly games = signal<readonly Game[]>([]);
+  readonly isBatchUrl = signal(false);
+  readonly isPixelScrape = signal(false);
+  readonly isPublicApi = signal(false);
 
   form = this.fb.nonNullable.group({
     gameId: [0, Validators.required],
@@ -35,30 +41,80 @@ export class GameUrlForm implements OnInit {
     isPublicApi: [false],
   });
 
-  games: Game[] = [];
-
   constructor(
     private readonly fb: FormBuilder,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly gameUrlService: GameUrlService,
     private readonly gameService: GameService,
-    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
+
+    this.syncSignalsFromForm();
+
+    this.form.controls.isPublicApi.valueChanges.subscribe(v =>
+    {
+      const enabled = v === true;
+
+      if (enabled)
+      {
+        this.form.controls.isBatchUrl.setValue(false, { emitEvent: false });
+        this.form.controls.isPixelScrape.setValue(false, { emitEvent: false });
+
+        this.form.controls.isBatchUrl.disable({ emitEvent: false });
+        this.form.controls.isPixelScrape.disable({ emitEvent: false });
+      }
+      else
+      {
+        this.form.controls.isBatchUrl.enable({ emitEvent: false });
+        this.form.controls.isPixelScrape.enable({ emitEvent: false });
+      }
+
+      this.syncSignalsFromForm();
+    });
+
+    this.form.controls.isBatchUrl.valueChanges.subscribe(() =>
+    {
+      this.syncSignalsFromForm();
+    });
+
+    this.form.controls.isPixelScrape.valueChanges.subscribe(() =>
+    {
+      this.syncSignalsFromForm();
+    });
+
     const idParam = this.route.snapshot.paramMap.get('id');
+
     this.loadGames();
 
-    if (idParam) {
+    if (idParam)
+    {
       this.isEditMode = true;
       this.gameUrlId = Number(idParam);
       this.loadGameUrl(this.gameUrlId);
     }
   }
 
-  private loadGameUrl(id: number): void {
-    this.gameUrlService.getById(id).subscribe(gameUrl => {
+  private syncSignalsFromForm(): void
+  {
+    this.isPublicApi.set(this.form.controls.isPublicApi.value === true);
+    this.isBatchUrl.set(this.form.controls.isBatchUrl.value === true);
+    this.isPixelScrape.set(this.form.controls.isPixelScrape.value === true);
+  }
+
+  private loadGames(): void
+  {
+    this.gameService.getAll().subscribe(games =>
+    {
+      this.games.set(games);
+    });
+  }
+
+  private loadGameUrl(id: number): void
+  {
+    this.gameUrlService.getById(id).subscribe(gameUrl =>
+    {
       this.form.patchValue({
         gameId: Number(gameUrl.gameId),
         name: gameUrl.name ?? '',
@@ -75,36 +131,47 @@ export class GameUrlForm implements OnInit {
         isPublicApi: gameUrl.isPublicApi,
       });
 
+      if (gameUrl.isPublicApi)
+      {
+        this.form.controls.isBatchUrl.disable({ emitEvent: false });
+        this.form.controls.isPixelScrape.disable({ emitEvent: false });
+      }
+
+      this.syncSignalsFromForm();
+
       this.form.controls.gameId.disable();
     });
   }
 
-  private loadGames(): void {
-    this.gameService.getAll().subscribe(games => {
-      this.games = games;
-      this.cdr.detectChanges();
-    });
-  }
-
-  onSubmit(): void {
-    if (this.form.invalid) {
+  onSubmit(): void
+  {
+    if (this.form.invalid)
+    {
       return;
     }
 
-    if (this.isEditMode && this.gameUrlId) {
+    if (this.isEditMode && this.gameUrlId)
+    {
       const update: UpdateGameUrl = this.form.getRawValue();
-      this.gameUrlService.update(this.gameUrlId, update).subscribe(() => {
+
+      this.gameUrlService.update(this.gameUrlId, update).subscribe(() =>
+      {
         this.router.navigate(['/game-urls']);
       });
-    } else {
+    }
+    else
+    {
       const create: CreateGameUrl = this.form.getRawValue();
-      this.gameUrlService.create(create).subscribe(() => {
+
+      this.gameUrlService.create(create).subscribe(() =>
+      {
         this.router.navigate(['/game-urls']);
       });
     }
   }
 
-  cancel(): void {
+  cancel(): void
+  {
     this.router.navigate(['/game-urls']);
   }
 }
