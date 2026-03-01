@@ -1,8 +1,15 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { FormControl } from '@angular/forms';
-import { BehaviorSubject, finalize, startWith, tap } from 'rxjs';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import {
+  BehaviorSubject,
+  combineLatest,
+  finalize,
+  startWith,
+  Subject,
+  takeUntil,
+} from 'rxjs';
 
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
@@ -11,25 +18,24 @@ import { MatSort, MatSortModule } from '@angular/material/sort';
 import { WishList } from '../../../models/wish-list.model';
 import { WishListService } from '../../../services/wish-list/wish-list.service';
 import { GameService, SteamService } from '../../../services';
-import { ComboBoxComponent } from '../../../components/filter-components/combo-box-filter.component';
-import { TextFilterComponent } from '../../../components';
 import { Game, WhishListResponse } from '../../../models';
+
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'steam-wish-lists-view',
   standalone: true,
   imports: [
     CommonModule,
+    ReactiveFormsModule,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
-    ComboBoxComponent,
-    TextFilterComponent,
   ],
   templateUrl: './wish-lists-view.html',
   styleUrl: './wish-lists-view.scss',
 })
-export class WishListsView implements OnInit {
+export class WishListsView implements OnInit, OnDestroy {
   displayedColumns: string[] = [
     'gameName',
     'name',
@@ -40,27 +46,23 @@ export class WishListsView implements OnInit {
   ];
 
   dataSource = new MatTableDataSource<WishList>([]);
-  wishLists: WishList[] = [];
-  filteredWishLists: WishList[] = [];
+  private wishLists: WishList[] = [];
 
   readonly gameIdControl = new FormControl<number | null>(null);
   readonly searchByNameFilterControl = new FormControl<string>('', {
     nonNullable: true,
   });
 
-  private games: Game[] = [];
   readonly games$ = new BehaviorSubject<readonly Game[]>([]);
-
-  readonly bindGameToExternal$ = this.gameIdControl.valueChanges.pipe(
-    startWith(this.gameIdControl.value),
-    tap(() => this.loadFilteredWishLists()),
-  );
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
   checkLabel: string | null = null;
   isChecking: boolean = false;
+
+  private readonly destroy$ = new Subject<void>();
+  private readonly cancelCheck$ = new Subject<void>();
 
   constructor(
     private readonly wishListService: WishListService,
@@ -72,52 +74,95 @@ export class WishListsView implements OnInit {
   ngOnInit(): void {
     this.loadGames();
     this.fetchWishLists();
+
+    // Apply filters whenever either control changes
+    combineLatest([
+      this.gameIdControl.valueChanges.pipe(startWith(this.gameIdControl.value)),
+      this.searchByNameFilterControl.valueChanges.pipe(
+        startWith(this.searchByNameFilterControl.value),
+      ),
+    ])
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(([gameId, name]) => {
+        this.applyFilters(gameId, name);
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+
+    this.cancelCheck$.next();
+    this.cancelCheck$.complete();
   }
 
   private loadGames(): void {
-    this.gameService.getAll().subscribe((games) => {
-      this.games = games;
-      this.games$.next(games);
-    });
+    this.gameService
+      .getAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((games) => {
+        this.games$.next(games);
+      });
   }
 
   fetchWishLists(): void {
-    this.wishListService.getAll().subscribe((items) => {
-      this.wishLists = items;
-      this.filteredWishLists = items;
+    this.wishListService
+      .getAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((items) => {
+        this.wishLists = items;
 
-      this.dataSource.data = items;
-      this.dataSource.paginator = this.paginator;
-      this.dataSource.sort = this.sort;
-    });
+        this.dataSource.data = items;
+        this.dataSource.paginator = this.paginator;
+        this.dataSource.sort = this.sort;
+
+        // ensure current filter state is applied after load
+        this.applyFilters(
+          this.gameIdControl.value,
+          this.searchByNameFilterControl.value,
+        );
+      });
   }
 
-  onNameFilterChanged(filter: string): void {
-    this.searchByNameFilterControl.setValue(filter, { emitEvent: false });
-    this.loadFilteredWishLists();
-  }
+  private applyFilters(gameId: number | null, name: string): void {
+    const nameFilter = (name ?? '').trim().toLowerCase();
 
-  private loadFilteredWishLists(): void {
-    const gameId = this.gameIdControl.value;
-    const nameFilter = this.searchByNameFilterControl.value.toLowerCase();
-
-    this.filteredWishLists = this.wishLists.filter((x) => {
-      const matchesGame = gameId === null || x.gameId === gameId;
-
-      const matchesName =
-        !nameFilter || x.name?.toLowerCase().includes(nameFilter);
-
-      return matchesGame && matchesName;
+    const filtered = this.wishLists.filter((x) => {
+      if (gameId !== null && x.gameId !== gameId) {
+        return false;
+      }
+      if (nameFilter && !(x.name ?? '').toLowerCase().includes(nameFilter)) {
+        return false;
+      }
+      return true;
     });
 
-    this.dataSource.data = this.filteredWishLists;
+    this.dataSource.data = filtered;
   }
 
   clearFiltersButtonClicked(): void {
     this.gameIdControl.setValue(null);
-    this.searchByNameFilterControl.setValue('', { emitEvent: false });
+    this.searchByNameFilterControl.setValue('');
     this.checkLabel = '';
-    this.loadFilteredWishLists();
+    // subscriptions re-apply filters automatically
+  }
+
+  exportButtonClicked(): void {
+    const dataToExport = this.dataSource.data.map((x) => ({
+      Game: x.gameName ?? '',
+      Name: x.name ?? '',
+      PageUrl: x.pageUrl ?? '',
+      Price: x.price ?? '',
+      Active: x.isActive,
+    }));
+
+    const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
+
+    const workbook: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'WishList');
+
+    const today = new Date();
+    XLSX.writeFile(workbook, `Export_${today.toDateString()}_WishList.xlsx`);
   }
 
   createButtonClicked(): void {
@@ -133,29 +178,46 @@ export class WishListsView implements OnInit {
       return;
     }
 
-    this.wishListService.delete(id).subscribe(() => {
-      this.fetchWishLists();
-    });
+    this.wishListService
+      .delete(id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.fetchWishLists();
+      });
   }
 
-  checkButtonClicked(whishListItemId: number) {
+  checkButtonClicked(whishListItemId: number): void {
+    this.cancelCheck$.next();
+
     this.checkLabel = 'Checking...';
     this.isChecking = true;
 
     this.steamService
       .checkWishlistItem(whishListItemId)
       .pipe(
+        takeUntil(this.cancelCheck$),
         finalize(() => {
           this.isChecking = false;
         }),
       )
       .subscribe({
         next: (response: WhishListResponse) => {
-          this.checkLabel = `Price goal has been reached for Game ${response.gameName}! Current Price: ${response.currentPrice === 0 ? 'Free' : response.currentPrice}`;
+          if (response.isPriceReached === true) {
+            this.checkLabel = `Price goal has been reached for Game ${response.gameName}! Current Price: ${
+              response.currentPrice === 0 ? 'Free' : response.currentPrice
+            }`;
+          } else {
+            this.checkLabel = `Price goal has not been reached for Game ${response.gameName}! Current Price: ${response.currentPrice}`;
+          }
         },
-        error: (err: any) => {
+        error: () => {
           this.checkLabel = 'Error Checking Wishlist Item';
         },
       });
+  }
+
+  cancelButtonClicked(): void {
+    this.cancelCheck$.next();
+    this.checkLabel = 'Operation Cancelled';
   }
 }

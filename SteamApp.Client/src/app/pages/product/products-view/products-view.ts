@@ -1,47 +1,27 @@
-import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
-import {
-  GameService,
-  GameUrlService,
-  ProductService,
-  TagService,
-} from '../../../services';
-import { Game, Product, Tag } from '../../../models';
-import { encode } from '../../../common';
-import { FormControl } from '@angular/forms';
-import { TextFilterComponent } from '../../../components';
-import { NumberFilterComponent } from '../../../components/filter-components/number-filter.component';
-import { TagFilterSelectComponent } from '../../../components/filter-components/tag-filter.component';
-import { BehaviorSubject, startWith, Subject, takeUntil, tap } from 'rxjs';
-import { ComboBoxComponent } from '../../../components/filter-components/combo-box-filter.component';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
+
+import { GameService, ProductService, TagService } from '../../../services';
+import { Game, Product, Tag, UpdateProductStatus } from '../../../models';
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'steam-products-grid',
   standalone: true,
-  imports: [
-    CommonModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatSortModule,
-    TextFilterComponent,
-    NumberFilterComponent,
-    TagFilterSelectComponent,
-    ComboBoxComponent,
-  ],
+  imports: [CommonModule, ReactiveFormsModule, MatTableModule, MatPaginatorModule, MatSortModule],
   templateUrl: './products-view.html',
   styleUrl: './products-view.scss',
 })
-export class ProductsView implements OnInit {
+export class ProductsView implements OnInit, OnDestroy {
   displayedColumns: string[] = [
-    //'id',
-    //'gameId',
     'gameName',
-    //'fullUrl',
     'name',
     'tags',
     'rating',
@@ -52,56 +32,57 @@ export class ProductsView implements OnInit {
   private readonly destroy$ = new Subject<void>();
 
   readonly gameIdControl = new FormControl<number | null>(null);
-  private games: Game[] = [];
-  readonly games$ = new BehaviorSubject<readonly Game[]>([]);
-  
+  readonly searchByNameFilterControl = new FormControl<string>('', { nonNullable: true });
+  readonly searchByRatingFilterControl = new FormControl<number | null>(null, { nonNullable: true });
+  readonly tagIdControl = new FormControl<number | null>(null);
+
+  readonly games = signal<readonly Game[]>([]);
+  readonly products = signal<readonly Product[]>([]);
+  readonly gameTagsAll = signal<readonly Tag[]>([]);
+  readonly gameTagsFilter = signal<readonly Tag[]>([]);
+  readonly tagsFilter = signal<readonly string[]>([]);
+
   dataSource = new MatTableDataSource<Product>([]);
-
-  products: Product[] = [];
-  productsFiltered: Product[] = [];
-
-
-
-  private gameTagsAll: Tag[] = [];
-  gameTagsFilter: Tag[] = [];
-  tagsFilter: string[] = [];
-
-  readonly tagSelectControl = new FormControl<Tag | null>({
-    value: null,
-    disabled: true,
-  });
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
   constructor(
-    private productService: ProductService,
-    private gameService: GameService,
-    private tagsService: TagService,
-    private router: Router,
-    private readonly cdr: ChangeDetectorRef,
+    private readonly productService: ProductService,
+    private readonly gameService: GameService,
+    private readonly tagsService: TagService,
+    private readonly router: Router,
   ) {}
 
   ngOnInit(): void {
     this.loadGames();
     this.loadGameTags();
-
     this.fetchProducts();
+
+    this.gameIdControl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(gameId => this.applyGameFilter(gameId));
+
+    this.searchByNameFilterControl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.loadFilteredProducts());
+
+    this.searchByRatingFilterControl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.loadFilteredProducts());
   }
 
-  readonly bindToExternal$ = this.gameIdControl.valueChanges.pipe(
-    startWith(this.gameIdControl.value),
-    tap((gameId) => {
-      this.applyGameFilter(gameId);
-    }),
-  );
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   private loadGameTags(): void {
     this.tagsService
       .getAll()
       .pipe(takeUntil(this.destroy$))
-      .subscribe((tags) => {
-        this.gameTagsAll = tags;
+      .subscribe(tags => {
+        this.gameTagsAll.set(tags);
         this.applyGameFilter(this.gameIdControl.value);
       });
   }
@@ -110,58 +91,78 @@ export class ProductsView implements OnInit {
     this.gameService
       .getAll()
       .pipe(takeUntil(this.destroy$))
-      .subscribe((games) => {
-        this.games = games;
-        this.games$.next(games);
-        this.cdr.markForCheck();
+      .subscribe(games => {
+        this.games.set(games);
       });
   }
 
   private applyGameFilter(gameId: number | null): void {
-    this.tagsFilter = [];
-    this.tagSelectControl.setValue(null);
+    this.tagsFilter.set([]);
+    this.tagIdControl.setValue(null, { emitEvent: false });
 
     if (gameId === null) {
-      this.gameTagsFilter = [];
-      this.tagSelectControl.disable();
-
-      this.cdr.markForCheck();
+      this.gameTagsFilter.set([]);
+      this.loadFilteredProducts();
       return;
     }
 
-    this.gameTagsFilter = this.gameTagsAll.filter(
-      (tag) => tag.gameId === gameId,
-    );
-    if (this.gameTagsFilter.length) {
-      this.tagSelectControl.enable();
-    } else {
-      this.tagSelectControl.disable();
-    }
-
-    this.cdr.markForCheck();
+    this.gameTagsFilter.set(this.gameTagsAll().filter(tag => tag.gameId === gameId));
+    this.loadFilteredProducts();
   }
 
   fetchProducts(): void {
-    this.productService.getAll().subscribe((products) => {
+    this.productService.getAll().subscribe(products => {
+      this.products.set(products);
       this.dataSource.data = products;
       this.dataSource.paginator = this.paginator;
       this.dataSource.sort = this.sort;
-
-      this.products = products;
-      this.productsFiltered = products;
     });
+  }
+
+
+  exportButtonClicked(): void {
+    const dataToExport = this.dataSource.data.map(x => ({
+      gameName: x.gameName,
+      name: x.name ?? '',
+      tags: x.tags?.join(', ') ?? '',
+      rating: x.rating ?? '',
+      isActive: x.isActive,
+    }));
+
+    const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Products');
+
+    const today = new Date();
+    XLSX.writeFile(workbook, `Export_${today.toDateString()}_Products.xlsx`);
   }
 
   createButtonClicked(): void {
     this.router.navigate(['/products/create']);
   }
 
-  encodeText(value: string): string {
-    return encode(value);
-  }
-
   editButtonClicked(id: number): void {
     this.router.navigate(['/products/edit', id]);
+  }
+
+  activeButtonClicked(product: Product): void {
+    const nextIsActive = !product.isActive;
+
+    const input: UpdateProductStatus = {
+      id: product.id,
+      isActive: nextIsActive,
+    };
+
+    this.productService
+      .updateStatus(input)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.products.set(
+          this.products().map(p => (p.id === product.id ? { ...p, isActive: nextIsActive } : p)),
+        );
+
+        this.loadFilteredProducts();
+      });
   }
 
   deleteButtonClicked(id: number): void {
@@ -171,110 +172,79 @@ export class ProductsView implements OnInit {
 
     this.productService.delete(id).subscribe(() => {
       this.fetchProducts();
+      this.loadFilteredProducts();
     });
   }
 
-  searchByNameFilterControl = new FormControl<string>('', {
-    nonNullable: true,
-  });
+  onTagSelectedFromSelect(): void {
+    const selectedTagId = this.tagIdControl.value;
+    if (selectedTagId === null) {
+      return;
+    }
 
-  searchByRatingFilterControl = new FormControl<number | null>(null, {
-    nonNullable: true,
-  });
-
-  onTagSelectedFromComponent(tag: Tag): void {
-    if (!tag.name) {
+    const tag = this.gameTagsFilter().find(x => x.id === selectedTagId);
+    if (!tag?.name) {
       return;
     }
 
     const tagName = tag.name.toLowerCase();
-    if (!this.tagsFilter.includes(tagName)) {
-      this.tagsFilter.push(tagName);
+    const filters = this.tagsFilter();
+
+    if (!filters.includes(tagName)) {
+      this.tagsFilter.set([...filters, tagName]);
     }
 
-    this.gameTagsFilter = this.gameTagsFilter.filter((t) => t.id !== tag.id);
-    if (this.gameTagsFilter.length) {
-      this.tagSelectControl.enable();
-    } else {
-      this.tagSelectControl.disable();
-    }
+    this.gameTagsFilter.set(this.gameTagsFilter().filter(t => t.id !== tag.id));
+    this.tagIdControl.setValue(null, { emitEvent: false });
 
-    this.loadFilteredProducts();
-  }
-
-  onNameFilterChanged(filter: string): void {
-    this.searchByNameFilterControl.setValue(filter, { emitEvent: false });
-    this.loadFilteredProducts();
-  }
-
-  onRatingFilterChanged(filter: number): void {
-    this.searchByRatingFilterControl.setValue(filter, { emitEvent: false });
     this.loadFilteredProducts();
   }
 
   private loadFilteredProducts(): void {
-    const nameFilter =
-      this.searchByNameFilterControl.value?.toLowerCase() ?? '';
-
+    const gameId = this.gameIdControl.value;
+    const nameFilter = this.searchByNameFilterControl.value?.toLowerCase() ?? '';
     const ratingFilter = this.searchByRatingFilterControl.value;
-    const tagFilters = this.tagsFilter.map((t) => t.toLowerCase());
+    const tagFilters = this.tagsFilter().map(t => t.toLowerCase());
 
-    this.productsFiltered = this.products.filter((product) => {
-      const matchesName =
-        (!nameFilter || product.name?.toLowerCase().includes(nameFilter)) &&
-        (!ratingFilter || product.rating == ratingFilter);
-
+    const filtered = this.products().filter(product => {
+      const matchesGame = gameId === null || product.gameId === gameId;
+      const matchesName = !nameFilter || product.name?.toLowerCase().includes(nameFilter);
+      const matchesRating = !ratingFilter || product.rating! >= ratingFilter;
       const matchesTags =
         tagFilters.length === 0 ||
-        tagFilters.every((filter) =>
-          product.tags?.some((tag) => tag.toLowerCase().includes(filter)),
-        );
+        tagFilters.every(filter => product.tags?.some(tag => tag.toLowerCase().includes(filter)));
 
-      return matchesName && matchesTags;
+      return matchesGame && matchesName && matchesRating && matchesTags;
     });
 
-    this.dataSource.data = this.productsFiltered;
+    this.dataSource.data = filtered;
   }
 
   clearFiltersButtonClicked(): void {
     this.searchByNameFilterControl.setValue('', { emitEvent: false });
     this.searchByRatingFilterControl.setValue(null, { emitEvent: false });
+    this.gameIdControl.setValue(null, { emitEvent: false });
 
-    this.gameIdControl.setValue(null);
-
-    this.searchByNameFilterControl.setValue('', { emitEvent: false });
-    this.tagsFilter = [];
-
-    const gameId = this.gameIdControl.value;
-    this.gameTagsFilter =
-      gameId === null
-        ? []
-        : this.gameTagsAll.filter((t) => t.gameId === gameId);
-
-    this.tagSelectControl.setValue(null);
-    if (this.gameTagsFilter.length) {
-      this.tagSelectControl.enable();
-    } else {
-      this.tagSelectControl.disable();
-    }
+    this.tagsFilter.set([]);
+    this.tagIdControl.setValue(null, { emitEvent: false });
+    this.gameTagsFilter.set([]);
 
     this.loadFilteredProducts();
   }
 
   removeFilter(value: string): void {
-    this.tagsFilter = this.tagsFilter.filter((f) => f !== value);
+    this.tagsFilter.set(this.tagsFilter().filter(f => f !== value));
 
-    const restored = this.gameTagsAll.find(
-      (t) =>
+    const restored = this.gameTagsAll().find(
+      t =>
         t.gameId === this.gameIdControl.value &&
         t.name !== null &&
         t.name.toLowerCase() === value,
     );
 
-    if (restored && !this.gameTagsFilter.some((t) => t.id === restored.id)) {
-      this.gameTagsFilter.push(restored);
-      this.gameTagsFilter.sort((a, b) =>
-        (a.name ?? '').localeCompare(b.name ?? ''),
+    if (restored && !this.gameTagsFilter().some(t => t.id === restored.id)) {
+      this.gameTagsFilter.set(
+        [...this.gameTagsFilter(), restored].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')),
       );
     }
 
@@ -282,6 +252,6 @@ export class ProductsView implements OnInit {
   }
 
   openInNewTab(id: number): void {
-  window.open(`products/edit/${id}`, '_blank');
-}
+    window.open(`products/edit/${id}`, '_blank');
+  }
 }

@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.GameUrl;
 using SteamApp.Domain.Entities;
 using SteamApp.WebAPI.Context;
@@ -87,7 +89,8 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 long id,
                 GameUrlUpdateDto input,
                 ApplicationDbContext db,
-                IMapper mapper) =>
+                IMapper mapper,
+                IMemoryCache cache) =>
             {
                 var entity = await db.GameUrls.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
@@ -95,6 +98,10 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 mapper.Map(input, entity);
 
                 await db.SaveChangesAsync();
+
+                var cacheKey = string.Format(CacheKeys.GameUrl, id);
+                cache.Remove(cacheKey);
+
                 return Results.NoContent();
             })
             .WithName("UpdateGameUrl")
@@ -105,13 +112,18 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // DELETE: /api/game-urls/{id}
             group.MapDelete("/{id:long}", async (
                 long id,
-                ApplicationDbContext db) =>
+                ApplicationDbContext db,
+                IMemoryCache cache) =>
             {
                 var entity = await db.GameUrls.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
                 db.GameUrls.Remove(entity);
                 await db.SaveChangesAsync();
+
+                var cacheKey = string.Format(CacheKeys.GameUrl, id);
+                cache.Remove(cacheKey);
+
                 return Results.NoContent();
             })
             .WithName("DeleteGameUrl")

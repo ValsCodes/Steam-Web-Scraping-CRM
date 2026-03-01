@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.WishListItem;
 using SteamApp.Domain.Entities;
 using SteamApp.WebAPI.Context;
@@ -87,7 +89,8 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 long id,
                 WishListUpdateDto input,
                 ApplicationDbContext db,
-                IMapper mapper) =>
+                IMapper mapper, 
+                IMemoryCache cache) =>
             {
                 var entity = await db.WishLists.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
@@ -95,6 +98,10 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 mapper.Map(input, entity);
 
                 await db.SaveChangesAsync();
+
+                var cacheKey = string.Format(CacheKeys.WishListItem, entity.Id);
+                cache.Remove(cacheKey);
+
                 return Results.NoContent();
             })
             .WithName("UpdateWishListItem")
@@ -105,13 +112,18 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // DELETE: /api/wish-list/{id}
             group.MapDelete("/{id:long}", async (
                 long id,
-                ApplicationDbContext db) =>
+                ApplicationDbContext db,
+                IMemoryCache cache) =>
             {
                 var entity = await db.WishLists.FindAsync(id);
                 if (entity is null) { return Results.NotFound(); }
 
                 db.WishLists.Remove(entity);
                 await db.SaveChangesAsync();
+
+                var cacheKey = string.Format(CacheKeys.WishListItem, entity.Id);
+                cache.Remove(cacheKey);
+
                 return Results.NoContent();
             })
             .WithName("DeleteWishList")

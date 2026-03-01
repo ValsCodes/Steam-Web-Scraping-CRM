@@ -7,14 +7,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import {
-  BehaviorSubject,
-  merge,
-  startWith,
-  Subject,
-  takeUntil,
-  tap,
-} from 'rxjs';
+import { BehaviorSubject, startWith, Subject, takeUntil } from 'rxjs';
 import * as XLSX from 'xlsx';
 
 import { Game, GameUrl, GameUrlProduct, Tag } from '../../models';
@@ -24,11 +17,7 @@ import {
   GameUrlService,
   TagService,
 } from '../../services';
-import { CopyLinkComponent, TextFilterComponent } from '../../components';
-import { ComboBoxComponent } from '../../components/filter-components/combo-box-filter.component';
-import { TagFilterSelectComponent } from '../../components/filter-components/tag-filter.component';
-import { CONSTANTS } from '../../common';
-import { NumberFilterComponent } from '../../components/filter-components/number-filter.component';
+import { CopyLinkComponent } from '../../components';
 
 @Component({
   selector: 'steam-manual-mode-v2',
@@ -38,10 +27,6 @@ import { NumberFilterComponent } from '../../components/filter-components/number
     CommonModule,
     ReactiveFormsModule,
     CopyLinkComponent,
-    TextFilterComponent,
-    ComboBoxComponent,
-    TagFilterSelectComponent,
-    NumberFilterComponent,
   ],
   templateUrl: './manual-mode-v2.html',
   styleUrl: './manual-mode-v2.scss',
@@ -65,9 +50,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     nonNullable: true,
   });
 
-  readonly searchByRatingFilterControl = new FormControl<number | null>(null, {
-    nonNullable: true,
-  });
+  readonly searchByRatingFilterControl = new FormControl<number | null>(null);
 
   readonly tagSelectControl = new FormControl<Tag | null>({
     value: null,
@@ -76,38 +59,6 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
   gameTagsFilter: Tag[] = [];
   tagsFilter: string[] = [];
-
-  readonly bindToExternal$ = this.gameIdControl.valueChanges.pipe(
-    startWith(this.gameIdControl.value),
-    tap((gameId) => {
-      this.applyGameFilter(gameId);
-    }),
-  );
-
-  readonly bindGameUrlToExternal$ = this.gameUrlIdControl.valueChanges.pipe(
-    startWith(this.gameUrlIdControl.value),
-    tap((gameUrlId) => {
-      if (gameUrlId === null) {
-        this.selectedGameUrl = null;
-        this.products = [];
-        this.productsFiltered = [];
-        this.cdr.markForCheck();
-        return;
-      }
-
-      this.selectedGameUrl =
-        this.gameUrlsFiltered$.value.find((u) => u.id === gameUrlId) ?? null;
-
-      this.clearBatchButtonClicked();
-
-      if (this.selectedGameUrl?.isBatchUrl) {
-        this.currentIndex = this.selectedGameUrl.startPage ?? null;
-        this.batchSize = this.currentIndex === null ? null : 5;
-      }
-
-      this.cdr.markForCheck();
-    }),
-  );
 
   private readonly destroy$ = new Subject<void>();
 
@@ -128,9 +79,58 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.loadGameUrls();
     this.loadGameTags();
 
-    merge(this.searchByNameFilterControl.valueChanges)
+    this.gameIdControl.valueChanges
+      .pipe(startWith(this.gameIdControl.value), takeUntil(this.destroy$))
+      .subscribe((gameId) => {
+        this.applyGameFilter(gameId);
+      });
+
+    this.gameUrlIdControl.valueChanges
+      .pipe(startWith(this.gameUrlIdControl.value), takeUntil(this.destroy$))
+      .subscribe((gameUrlId) => {
+        if (gameUrlId === null) {
+          this.selectedGameUrl = null;
+          this.products = [];
+          this.productsFiltered = [];
+          this.cdr.markForCheck();
+          return;
+        }
+
+        this.selectedGameUrl =
+          this.gameUrlsFiltered$.value.find((u) => u.id === gameUrlId) ?? null;
+
+        this.clearBatchButtonClicked();
+
+        if (this.selectedGameUrl?.isBatchUrl) {
+          this.currentIndex = this.selectedGameUrl.startPage ?? null;
+          this.batchSize = this.currentIndex === null ? null : 5;
+        }
+
+        this.cdr.markForCheck();
+      });
+
+    this.searchByNameFilterControl.valueChanges
+      .pipe(startWith(this.searchByNameFilterControl.value), takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.loadFilteredProducts();
+        this.cdr.markForCheck();
+      });
+
+    this.searchByRatingFilterControl.valueChanges
+      .pipe(startWith(this.searchByRatingFilterControl.value), takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.loadFilteredProducts();
+        this.cdr.markForCheck();
+      });
+
+    this.tagSelectControl.valueChanges
       .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.loadFilteredProducts());
+      .subscribe((tag) => {
+        if (tag === null) {
+          return;
+        }
+        this.onTagSelectedFromSelect(tag);
+      });
   }
 
   ngOnDestroy(): void {
@@ -138,78 +138,15 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  addFilter(value: string): void {
-    const v = value.trim().toLowerCase();
-    if (v && !this.tagsFilter.includes(v)) {
-      this.tagsFilter.push(v);
-
-      this.loadFilteredProducts();
-    }
-  }
-
-  removeFilter(value: string): void {
-    this.tagsFilter = this.tagsFilter.filter((f) => f !== value);
-
-    const restored = this.gameTagsAll.find(
-      (t) =>
-        t.gameId === this.gameIdControl.value &&
-        t.name !== null &&
-        t.name.toLowerCase() === value,
-    );
-
-    if (restored && !this.gameTagsFilter.some((t) => t.id === restored.id)) {
-      this.gameTagsFilter.push(restored);
-      this.gameTagsFilter.sort((a, b) =>
-        (a.name ?? '').localeCompare(b.name ?? ''),
-      );
-    }
-
-    this.loadFilteredProducts();
-  }
-
-  onNameFilterChanged(filter: string): void {
-    this.searchByNameFilterControl.setValue(filter, { emitEvent: false });
-    this.loadFilteredProducts();
-  }
-
-  onRatingFilterChanged(filter: number): void {
-    this.searchByRatingFilterControl.setValue(filter, { emitEvent: false });
-
-    this.loadFilteredProducts();
-  }
-
   exportButtonClicked(): void {
     const dataToExport = this.productsFiltered;
 
     const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
-
     const workbook: XLSX.WorkBook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
 
     const today = new Date();
     XLSX.writeFile(workbook, `Export_${today.toDateString()}_Products.xlsx`);
-  }
-
-  clearFiltersButtonClicked(): void {
-    this.searchByNameFilterControl.setValue('', { emitEvent: false });
-    this.searchByRatingFilterControl.setValue(null, { emitEvent: false });
-
-    this.tagsFilter = [];
-
-    const gameId = this.gameIdControl.value;
-    this.gameTagsFilter =
-      gameId === null
-        ? []
-        : this.gameTagsAll.filter((t) => t.gameId === gameId);
-
-    this.tagSelectControl.setValue(null);
-    if (this.gameTagsFilter.length) {
-      this.tagSelectControl.enable();
-    } else {
-      this.tagSelectControl.disable();
-    }
-
-    this.loadFilteredProducts();
   }
 
   clearButtonClicked(): void {
@@ -231,9 +168,13 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       .existsByGameUrl(this.selectedGameUrl.id)
       .pipe(takeUntil(this.destroy$))
       .subscribe((products) => {
-        this.products = products;
-        this.productsFiltered = products;
-        this.cdr.markForCheck();
+        const filteredResults = products.filter((x) => x.isActive === true);
+
+        this.products = filteredResults;
+        this.productsFiltered = [...filteredResults];
+
+        this.loadFilteredProducts();
+        this.cdr.detectChanges();
       });
   }
 
@@ -267,13 +208,14 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     const toPage = currentIndex + batchSize;
 
     let blocked = false;
+
     if (this.selectedGameUrl?.isBatchUrl === true) {
       for (; currentIndex < toPage; currentIndex++) {
         if (currentIndex - 1 > toPage || currentIndex < 0) {
           break;
         }
 
-        let url = (this.selectedGameUrl.partialUrl ?? '').replace(
+        const url = (this.selectedGameUrl.partialUrl ?? '').replace(
           '{0}',
           String(currentIndex),
         );
@@ -291,7 +233,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
         }
 
         const newWindow = window.open(
-          this.products[currentIndex - 1].fullUrl,
+          this.productsFiltered[currentIndex - 1].fullUrl,
           '_blank',
         );
 
@@ -306,15 +248,66 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     }
 
     this.currentIndex = currentIndex;
+    this.cdr.markForCheck();
   }
 
   clearBatchButtonClicked(): void {
     this.currentIndex = null;
     this.batchSize = null;
+    this.cdr.markForCheck();
   }
 
-  onTagSelectedFromComponent(tag: Tag): void {
+  clearFiltersButtonClicked(): void {
+    this.searchByNameFilterControl.setValue('', { emitEvent: false });
+    this.searchByRatingFilterControl.setValue(null, { emitEvent: false });
+
+    this.tagsFilter = [];
+
+    const gameId = this.gameIdControl.value;
+    this.gameTagsFilter =
+      gameId === null ? [] : this.gameTagsAll.filter((t) => t.gameId === gameId);
+
+    this.tagSelectControl.setValue(null, { emitEvent: false });
+    if (this.gameTagsFilter.length) {
+      this.tagSelectControl.enable({ emitEvent: false });
+    } else {
+      this.tagSelectControl.disable({ emitEvent: false });
+    }
+
+    this.loadFilteredProducts();
+    this.cdr.markForCheck();
+  }
+
+  removeFilter(value: string): void {
+    this.tagsFilter = this.tagsFilter.filter((f) => f !== value);
+
+    const restored = this.gameTagsAll.find(
+      (t) =>
+        t.gameId === this.gameIdControl.value &&
+        t.name !== null &&
+        t.name.toLowerCase() === value,
+    );
+
+    if (restored && !this.gameTagsFilter.some((t) => t.id === restored.id)) {
+      this.gameTagsFilter.push(restored);
+      this.gameTagsFilter.sort((a, b) =>
+        (a.name ?? '').localeCompare(b.name ?? ''),
+      );
+    }
+
+    if (this.gameTagsFilter.length) {
+      this.tagSelectControl.enable({ emitEvent: false });
+    } else {
+      this.tagSelectControl.disable({ emitEvent: false });
+    }
+
+    this.loadFilteredProducts();
+    this.cdr.markForCheck();
+  }
+
+  private onTagSelectedFromSelect(tag: Tag): void {
     if (!tag.name) {
+      this.tagSelectControl.setValue(null, { emitEvent: false });
       return;
     }
 
@@ -324,13 +317,17 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     }
 
     this.gameTagsFilter = this.gameTagsFilter.filter((t) => t.id !== tag.id);
+
+    this.tagSelectControl.setValue(null, { emitEvent: false });
+
     if (this.gameTagsFilter.length) {
-      this.tagSelectControl.enable();
+      this.tagSelectControl.enable({ emitEvent: false });
     } else {
-      this.tagSelectControl.disable();
+      this.tagSelectControl.disable({ emitEvent: false });
     }
 
     this.loadFilteredProducts();
+    this.cdr.markForCheck();
   }
 
   trackByProductId(_: number, product: GameUrlProduct): number {
@@ -353,16 +350,14 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       .getAll()
       .pipe(takeUntil(this.destroy$))
       .subscribe((urls) => {
-        this.gameUrlsAll = urls.filter(url => url.isPublicApi === false)
-        .map((url) => {
-          if (url.isBatchUrl === true) {
-            return {
-              ...url,
-              name: `${url.name} - [ Batch ]`,
-            };
-          }
-          return url;
-        });
+        this.gameUrlsAll = urls
+          .filter((url) => url.isPublicApi === false)
+          .map((url) => {
+            if (url.isBatchUrl === true) {
+              return { ...url, name: `${url.name} - [ Batch ]` };
+            }
+            return url;
+          });
 
         this.applyGameFilter(this.gameIdControl.value);
       });
@@ -380,15 +375,18 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
   private applyGameFilter(gameId: number | null): void {
     this.tagsFilter = [];
-    this.tagSelectControl.setValue(null);
+    this.tagSelectControl.setValue(null, { emitEvent: false });
 
     if (gameId === null) {
       this.gameUrlsFiltered$.next([]);
       this.gameTagsFilter = [];
-      this.tagSelectControl.disable();
+      this.tagSelectControl.disable({ emitEvent: false });
 
-      this.gameUrlIdControl.reset();
+      this.gameUrlIdControl.setValue(null);
       this.selectedGameUrl = null;
+
+      this.products = [];
+      this.productsFiltered = [];
 
       this.cdr.markForCheck();
       return;
@@ -397,31 +395,38 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     const urls = this.gameUrlsAll.filter((url) => url.gameId === gameId);
     this.gameUrlsFiltered$.next(urls);
 
-    this.gameTagsFilter = this.gameTagsAll.filter(
-      (tag) => tag.gameId === gameId,
-    );
+    this.gameTagsFilter = this.gameTagsAll.filter((tag) => tag.gameId === gameId);
+
     if (this.gameTagsFilter.length) {
-      this.tagSelectControl.enable();
+      this.tagSelectControl.enable({ emitEvent: false });
     } else {
-      this.tagSelectControl.disable();
+      this.tagSelectControl.disable({ emitEvent: false });
     }
 
-    this.gameUrlIdControl.reset();
+    this.gameUrlIdControl.setValue(null);
     this.selectedGameUrl = null;
+
+    this.products = [];
+    this.productsFiltered = [];
 
     this.cdr.markForCheck();
   }
 
   private loadFilteredProducts(): void {
-    const nameFilter = this.searchByNameFilterControl.value.toLowerCase();
+    const nameFilter = (this.searchByNameFilterControl.value ?? '').toLowerCase();
     const tagFilters = this.tagsFilter.map((t) => t.toLowerCase());
     const ratingFilter = this.searchByRatingFilterControl.value;
 
     this.productsFiltered = this.products.filter((product) => {
-      const matchesName =
-        (!nameFilter ||
-          product.productName.toLowerCase().includes(nameFilter)) &&
-        (!ratingFilter || product.rating! >= ratingFilter);
+      const productName = (product.productName ?? '').toLowerCase();
+      const productRating = product.rating ?? null;
+
+      const matchesName = !nameFilter || productName.includes(nameFilter);
+
+      const matchesRating =
+        ratingFilter === null ||
+        ratingFilter === undefined ||
+        (productRating !== null && productRating >= ratingFilter);
 
       const matchesTags =
         tagFilters.length === 0 ||
@@ -429,7 +434,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
           product.tags?.some((tag) => tag.toLowerCase().includes(filter)),
         );
 
-      return matchesName && matchesTags;
+      return matchesName && matchesRating && matchesTags;
     });
   }
 }

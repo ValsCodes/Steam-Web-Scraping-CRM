@@ -1,7 +1,8 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { FormControl } from '@angular/forms';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { startWith, Subject, takeUntil } from 'rxjs';
 
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
@@ -9,22 +10,23 @@ import { MatSort, MatSortModule } from '@angular/material/sort';
 
 import { WatchList } from '../../../models/watch-list.model';
 import { WatchListService } from '../../../services/watch-list/watch-list.service';
-import { TextFilterComponent } from '../../../components';
+
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'steam-watch-lists-view',
   standalone: true,
   imports: [
     CommonModule,
+    ReactiveFormsModule,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
-    TextFilterComponent,
   ],
   templateUrl: './watch-lists-view.html',
   styleUrl: './watch-lists-view.scss',
 })
-export class WatchListsView implements OnInit {
+export class WatchListsView implements OnInit, OnDestroy {
   displayedColumns: string[] = [
     'name',
     'url',
@@ -36,7 +38,9 @@ export class WatchListsView implements OnInit {
   dataSource = new MatTableDataSource<WatchList>([]);
   private allItems: WatchList[] = [];
 
-  searchByNameControl = new FormControl<string>('', { nonNullable: true });
+  readonly searchByNameControl = new FormControl<string>('', { nonNullable: true });
+
+  private readonly destroy$ = new Subject<void>();
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -48,30 +52,60 @@ export class WatchListsView implements OnInit {
 
   ngOnInit(): void {
     this.fetchWatchLists();
+
+    this.searchByNameControl.valueChanges
+      .pipe(startWith(this.searchByNameControl.value), takeUntil(this.destroy$))
+      .subscribe(name => {
+        this.applyFilters(name);
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private fetchWatchLists(): void {
-    this.watchListService.getAll().subscribe((items) => {
+    this.watchListService.getAll().subscribe(items => {
       this.allItems = items;
+
       this.dataSource.data = items;
       this.dataSource.paginator = this.paginator;
       this.dataSource.sort = this.sort;
+
+      this.applyFilters(this.searchByNameControl.value);
     });
   }
 
-  onNameFilterChanged(value: string): void {
-    this.searchByNameControl.setValue(value, { emitEvent: false });
+  private applyFilters(name: string): void {
+    const filter = (name ?? '').trim().toLowerCase();
 
-    const filter = value.toLowerCase();
-
-    this.dataSource.data = this.allItems.filter(
-      (item) => !filter || item.name?.toLowerCase().includes(filter),
-    );
+    this.dataSource.data = this.allItems.filter(item => {
+      if (!filter) { return true; }
+      return (item.name ?? '').toLowerCase().includes(filter);
+    });
   }
 
   clearFiltersButtonClicked(): void {
-    this.searchByNameControl.setValue('', { emitEvent: false });
-    this.dataSource.data = this.allItems;
+    this.searchByNameControl.setValue('');
+    // subscription re-applies automatically
+  }
+
+  exportButtonClicked(): void {
+    const dataToExport = this.dataSource.data.map(x => ({
+      Name: x.name ?? '',
+      Url: x.url ?? '',
+      RegistrationDate: x.registrationDate ?? '',
+      Active: x.isActive,
+    }));
+
+    const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
+
+    const workbook: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'WatchList');
+
+    const today = new Date();
+    XLSX.writeFile(workbook, `Export_${today.toDateString()}_WatchList.xlsx`);
   }
 
   createButtonClicked(): void {

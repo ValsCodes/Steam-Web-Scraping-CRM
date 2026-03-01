@@ -5,6 +5,7 @@ export interface GameUrlPixel {
 
   gameUrlId: number;
   gameUrlName: string;
+  gameName:string;
 
   gameUrlPixelLocationX: number;
   gameUrlPixelLocationY: number;

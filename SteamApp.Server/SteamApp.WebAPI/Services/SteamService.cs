@@ -12,6 +12,7 @@ using SteamApp.WebAPI.Helpers;
 using SteamApp.WebAPI.Utilities;
 using System.Collections.ObjectModel;
 using System.Drawing;
+using System.Globalization;
 using System.Text;
 
 namespace SteamApp.WebAPI.Services;
@@ -231,59 +232,89 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
     public async Task<WhishListResponse?> CheckWishlistItem(long wishListId)
     {
         var wishList = await steamRepository.GetWishListItem(wishListId);
-
         if (wishList == null)
         {
             throw new Exception("Wishlist not found.");
         }
 
         var url = wishList.Game.PageUrl;
-
-        if (string.IsNullOrEmpty(url))
+        if (string.IsNullOrWhiteSpace(url))
         {
             throw new Exception("Game URL is null or empty.");
         }
 
         var options = new ChromeOptions();
-
-        options.AddArgument("--headless");
+        options.AddArgument("--headless=new");
         options.AddArgument("--disable-gpu");
+        options.AddArgument("--no-sandbox");
+        options.AddArgument("--disable-dev-shm-usage");
 
         using IWebDriver driver = new ChromeDriver(options);
         driver.Navigate().GoToUrl(url);
 
         var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
-        wait.Until(ExpectedConditions.ElementExists(By.XPath($"//div[starts-with(@id, 'appHubAppName')]")));
+        wait.Until(ExpectedConditions.ElementExists(By.CssSelector("div[id^='appHubAppName']")));
 
-        IWebElement gamePrice = driver.FindElement(By.XPath($"//div[starts-with(@class, 'game_purchase_price price')]"));
-        IWebElement discountPrice = driver.FindElement(By.XPath($"//div[starts-with(@class, 'discount_final_price')]"));
+        // Price elements are not guaranteed; use FindElements to avoid exceptions.
+        IWebElement? gamePriceEl = driver.FindElements(By.CssSelector(".game_purchase_price.price")).FirstOrDefault();
+        IWebElement? discountPriceEl = driver.FindElements(By.CssSelector(".discount_final_price")).FirstOrDefault();
 
-        if (gamePrice != null)
+        if (gamePriceEl == null && discountPriceEl == null)
         {
-            var priceText = gamePrice.Text.Replace("Free To Play", "0").Trim();
-            if (double.TryParse(priceText, out double price))
-            {
-                if (discountPrice != null)
-                {
-                    var discountPriceText = discountPrice.Text.Replace("Free To Play", "0").Trim();
-                    if (double.TryParse(discountPriceText, out double discountPriceValue))
-                    {
-                        price = discountPriceValue;
-                    }
-                }
-                return new WhishListResponse
-                {
-                    IsPriceReached = price <= wishList.Price,
-                    CurrentPrice = price,
-                    GameName = wishList.Game.Name,
-                };
-            }
+            throw new Exception("No Price element was found.");
         }
 
-        throw new Exception("No Price element Was Found.");
+        // Prefer discounted price if present; otherwise base price.
+        double finalPrice = ParseSteamPrice(gamePriceEl!, preferCentsAttribute: true);
+
+        return new WhishListResponse
+        {
+            IsPriceReached = finalPrice <= wishList.Price,
+            CurrentPrice = finalPrice,
+            GameName = wishList.Game.Name,
+        };
     }
 
     #region Private Methods
+    private static double ParseSteamPrice(IWebElement el, bool preferCentsAttribute)
+    {
+        if (preferCentsAttribute)
+        {
+            string? centsRaw = el.GetAttribute("data-price-final");
+            if (!string.IsNullOrWhiteSpace(centsRaw) &&
+                long.TryParse(centsRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out long cents))
+            {
+                return cents / 100.0;
+            }
+        }
+
+        string text = (el.Text ?? string.Empty).Trim();
+
+        if (text.Contains("Free To Play", StringComparison.OrdinalIgnoreCase))
+        {
+            return 0.0;
+        }
+
+        // Keep only digits and decimal separators
+        string cleaned = new string(text.Where(c => char.IsDigit(c) || c == ',' || c == '.').ToArray());
+
+        // Normalize to invariant decimal format
+        if (cleaned.Contains(',') && !cleaned.Contains('.'))
+        {
+            cleaned = cleaned.Replace(',', '.');
+        }
+        else
+        {
+            cleaned = cleaned.Replace(",", "");
+        }
+
+        if (double.TryParse(cleaned, NumberStyles.Number, CultureInfo.InvariantCulture, out double value))
+        {
+            return value;
+        }
+
+        throw new Exception($"Could not parse price text: '{text}'");
+    }
     private static async Task<IEnumerable<WatchItemDto>> ScrapePageFromUrl(string url)
     {
         var ct = new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token;

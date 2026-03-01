@@ -114,6 +114,27 @@ public static class ProductEndpoints
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status404NotFound);
 
+        // PATCH: /api/products/{id}
+        group.MapPatch("/{id:long}", async (
+            ProductUpdateStatusDto input,
+            ApplicationDbContext db) =>
+        {
+            var entity = await db.Products.FindAsync(input.Id);
+            if (entity is null) { return Results.NotFound(); }
+
+            if(entity.IsActive != input.IsActive)
+            {
+                entity.IsActive = input.IsActive;
+
+                await db.SaveChangesAsync();
+            }
+
+            return Results.NoContent();
+        })
+        .WithName("UpdateProductStatus")
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status404NotFound);
+
         return app;
     }
 }

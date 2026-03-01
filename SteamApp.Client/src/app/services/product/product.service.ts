@@ -6,14 +6,15 @@ import { catchError } from 'rxjs/operators';
 import {
   Product,
   CreateProduct,
-  UpdateProduct
+  UpdateProduct,
+  UpdateProductStatus
 } from '../../models/product.model';
 
 import { handleError } from '../error-handler';
 import * as g from '../general-data';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ProductService {
   private readonly controller = 'api/products';
@@ -22,9 +23,7 @@ export class ProductService {
   constructor(private http: HttpClient) {}
 
   getAll(): Observable<Product[]> {
-    return this.http
-      .get<Product[]>(this.baseUrl)
-      .pipe(catchError(handleError));
+    return this.http.get<Product[]>(this.baseUrl).pipe(catchError(handleError));
   }
 
   getById(id: number): Observable<Product> {
@@ -42,6 +41,12 @@ export class ProductService {
   update(id: number, input: UpdateProduct): Observable<void> {
     return this.http
       .put<void>(`${this.baseUrl}/${id}`, input)
+      .pipe(catchError(handleError));
+  }
+
+  updateStatus(input: UpdateProductStatus): Observable<void> {
+    return this.http
+      .patch<void>(`${this.baseUrl}/${input.id}`, input)
       .pipe(catchError(handleError));
   }
 

@@ -1,18 +1,30 @@
 <div class="p-4">
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="text-2xl font-semibold text-gray-500">
-      Custom Watch List
-    </h2>
+  <div class="flex items-center justify-between">
+    <h2 class="text-2xl font-semibold text-gray-500">Custom Watch List</h2>
 
-    <button class="create-button" (click)="createButtonClicked()">
-      Create
-    </button>
+    <div class="flex gap-x-2">
+      <button
+        (click)="exportButtonClicked()"
+        class="button button-small-primary"
+        title="Export current data to Excel">
+        Export
+      </button>
+
+      <button class="create-button" (click)="createButtonClicked()">
+        Create
+      </button>
+    </div>
   </div>
 
-  <div class="flex gap-x-5 mb-4">
-    <app-text-filter [SearchLabel]="'Name'" [SearchTextBind]="searchByNameControl"
-      (filterChange)="onNameFilterChanged($event)">
-    </app-text-filter>
+  <div class="filter-toolbar">
+    <div class="filter-group">
+      <label>Name</label>
+      <input
+        class="px-2 py-1"
+        type="text"
+        placeholder="Filter by name"
+        [formControl]="searchByNameControl" />
+    </div>
 
     <button class="button button-small-danger" (click)="clearFiltersButtonClicked()">
       Clear
@@ -21,14 +33,11 @@
 
   <div class="table-container">
     <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z8">
-
-      <!-- Name -->
       <ng-container matColumnDef="name">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
         <td mat-cell *matCellDef="let row">{{ row.name ?? '—' }}</td>
       </ng-container>
 
-      <!-- Url -->
       <ng-container matColumnDef="url">
         <th mat-header-cell *matHeaderCellDef>URL</th>
         <td mat-cell *matCellDef="let row">

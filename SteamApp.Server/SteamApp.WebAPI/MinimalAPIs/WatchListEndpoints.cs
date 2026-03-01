@@ -77,11 +77,11 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 if (entity is null) { return Results.NotFound(); }
 
                 input.RegistrationDate ??= new DateOnly();
-
  
                 mapper.Map(input, entity);
 
                 await db.SaveChangesAsync();
+
                 return Results.NoContent();
             })
             .WithName("UpdateWatchListItem")
@@ -99,6 +99,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                 db.WatchList.Remove(entity);
                 await db.SaveChangesAsync();
+
                 return Results.NoContent();
             })
             .WithName("DeleteWatchList")

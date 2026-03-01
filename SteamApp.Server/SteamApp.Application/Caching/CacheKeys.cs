@@ -20,6 +20,7 @@
 
         public const string Game = "game:{0}";
 
+        // Wishlist Item
         public const string WishListItem = "wish-list-item:{0}";
     }
 }
