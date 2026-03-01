@@ -6,10 +6,7 @@
                         { label: 'Manual Scraper', route: '/manual-mode-v2' }]"></steam-dropdown>
                         <a routerLink="/games" routerLinkActive="active">Games</a>
 
-                        <steam-dropdown label="Game URLs" [links]="[
-                        { label: 'Game URLs', route: '/game-urls' },
-                        { label: 'Game URL Products', route: '/game-url-products' },
-                        { label: 'Game URL Pixels', route: '/game-url-pixels' }]"></steam-dropdown> 
+                        <a routerLink="/game-urls" routerLinkActive="active">Game URLs</a>
 
                                         <steam-dropdown label="Products" [links]="[{ label: 'Products', route: '/products' }, 
                                                                 { label: 'Product Tags', route: '/product-tags' }]"></steam-dropdown>

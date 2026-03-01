@@ -55,6 +55,34 @@ public static class GameUrlPixelsEndpoints
                 : Results.NotFound();
         });
 
+        // GET: /api/game-url-pixels/{gameUrlId}
+        group.MapGet("/{gameUrlId:long}", async (
+            long gameUrlId,
+            ApplicationDbContext db) =>
+        {
+            var relations = await db.GameUrlsPixels
+                .AsNoTracking()
+                .Where(x => x.GameUrlId == gameUrlId)
+                .Select(x => new
+                {
+                    x.PixelId,
+                    PixelName = x.Pixel.Name,
+                    x.GameUrlId,
+                    GameUrlName = x.GameUrl.Name,
+                    GameName = x.GameUrl.Game.Name,
+                    GameUrlPixelLocationX = x.GameUrl.PixelX,
+                    GameUrlPixelLocationY = x.GameUrl.PixelY,
+                    GameUrlImageWidth = x.GameUrl.PixelImageWidth,
+                    GameUrlImageHeight = x.GameUrl.PixelImageHeight,
+                    x.Pixel.RedValue,
+                    x.Pixel.BlueValue,
+                    x.Pixel.GreenValue
+                })
+                .ToListAsync();
+
+            return Results.Ok(relations);
+        });
+
         // POST: /api/game-url-pixels
         group.MapPost("/", async (
             GameUrlPixelCreateDto input,

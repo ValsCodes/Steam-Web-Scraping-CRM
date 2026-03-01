@@ -3,8 +3,6 @@ import {
   GameForm,
   GamesView,
   GameUrlForm,
-  GameUrlProductForm,
-  GameUrlProductsView,
   GameUrlsView,
   LoginComponent,
   ManualModeV2,
@@ -20,9 +18,7 @@ import {
   WatchListsView,
   WebScraperComponent,
   WishListForm,
-  WishListsView,
-  GameUrlPixelForm,
-  GameUrlPixelsView
+  WishListsView
 } from './pages';
 import { AuthGuard } from './services/auth/auth.guard';
 
@@ -64,15 +60,6 @@ export const routes: Routes = [
       { path: 'watch-list', component: WatchListsView, title: 'Watch List' },
       { path: 'watch-list/create', component: WatchListForm, title: 'Create Watch List Item' },
       { path: 'watch-list/edit/:id', component: WatchListForm, title: 'Edit Watch List Item' },
-
-      { path: 'game-url-products', component: GameUrlProductsView, title: 'Game URL Products' },
-      { path: 'game-url-products/create', component: GameUrlProductForm, title: 'Create Game URL Product' },
-      {
-        path: 'game-url-products/edit/:productId/:gameUrlId',
-        component: GameUrlProductForm,
-        title: 'Edit Game URL Product',
-      },
-
       { path: 'product-tags', component: ProductTagsView, title: 'Product Tags' },
       { path: 'product-tags/create', component: ProductTagForm, title: 'Create Product Tag' },
       {
@@ -84,14 +71,6 @@ export const routes: Routes = [
       { path: 'tags', component: TagsView, title: 'Tags' },
       { path: 'tags/create', component: TagForm, title: 'Create Tag' },
       { path: 'tags/edit/:id', component: TagForm, title: 'Edit Tag' },
-
-      { path: 'game-url-pixels', component: GameUrlPixelsView, title: 'Game URL Pixels' },
-      { path: 'game-url-pixels/create', component: GameUrlPixelForm, title: 'Create Game URL Pixel' },
-      {
-        path: 'game-url-pixels/edit/:pixelId/:gameUrlId',
-        component: GameUrlPixelForm,
-        title: 'Edit Game URL Pixel',
-      },
     ],
   },
 ];
