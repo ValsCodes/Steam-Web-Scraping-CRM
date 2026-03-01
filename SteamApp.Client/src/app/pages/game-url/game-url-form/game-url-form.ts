@@ -311,6 +311,8 @@ export class GameUrlForm implements OnInit {
           this.router.navigate(['/game-urls']);
         });
     }
+
+    return forkJoin(requests).pipe(switchMap(() => of(void 0)));
   }
 
   private syncRelations(gameUrlId: number) {
