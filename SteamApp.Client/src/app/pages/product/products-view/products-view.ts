@@ -209,7 +209,7 @@ export class ProductsView implements OnInit, OnDestroy {
     const filtered = this.products().filter(product => {
       const matchesGame = gameId === null || product.gameId === gameId;
       const matchesName = !nameFilter || product.name?.toLowerCase().includes(nameFilter);
-      const matchesRating = !ratingFilter || product.rating == ratingFilter;
+      const matchesRating = !ratingFilter || product.rating! >= ratingFilter;
       const matchesTags =
         tagFilters.length === 0 ||
         tagFilters.every(filter => product.tags?.some(tag => tag.toLowerCase().includes(filter)));

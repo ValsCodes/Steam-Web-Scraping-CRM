@@ -3,6 +3,7 @@
 export interface Tag {
   id: number;
   gameId: number;
+  gameName:string | null;
   name: string | null;
 }
 

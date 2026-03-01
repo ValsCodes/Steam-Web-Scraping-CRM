@@ -1,33 +1,35 @@
 <div class="p-4">
-  <div class="flex flex-col px-5">
-    <div class="flex items-center justify-between">
-      <h2 class="text-2xl font-semibold text-gray-500">
-        Games
-      </h2>
+  <div class="flex flex-col">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-2xl font-semibold text-gray-500">Games</h2>
 
-      <button class="create-button" (click)="createButtonClicked()">
-        Create
-      </button>
-    </div>
-
-    <div class="flex justify-between">
       <div class="flex gap-x-2">
-        <app-text-filter
-          [SearchLabel]="'Name'"
-          [SearchTextBind]="searchByName"
-          (filterChange)="onNameFilterChanged($event)">
-        </app-text-filter>
+        <button
+          (click)="exportButtonClicked()"
+          class="button button-small-primary"
+          title="Export current data to Excel">
+          Export
+        </button>
 
-        <button class="button button-small-danger" (click)="clearFilters()">
-          Clear
+        <button class="create-button" (click)="createButtonClicked()">
+          Create
         </button>
       </div>
+    </div>
 
-      <button
-        (click)="exportButtonClicked()"
-        class="button button-small-primary py-2 px-3"
-        title="Export current data to Excel">
-        Export
+    <div class="filter-toolbar">
+      <div class="filter-group">
+        <label>Name</label>
+        <input
+          class="px-2 py-1"
+          type="text"
+          placeholder="Filter by name"
+          [formControl]="searchByName"
+          (input)="onNameFilterChanged($any($event.target).value)" />
+      </div>
+
+      <button class="button button-small-danger" (click)="clearFilters()">
+        Clear
       </button>
     </div>
   </div>
