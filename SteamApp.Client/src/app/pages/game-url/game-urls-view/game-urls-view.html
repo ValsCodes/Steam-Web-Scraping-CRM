@@ -14,7 +14,7 @@
       <select class="px-2 py-1"
               [formControl]="gameIdControl">
         <option [ngValue]="null">All</option>
-        @for (g of games$ | async; track g.id) {
+        @for (g of games(); track g.id) {
           <option [ngValue]="g.id">{{ g.name }}</option>
         }
       </select>
