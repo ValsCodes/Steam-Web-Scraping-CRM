@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -9,7 +9,8 @@ import { MatTableDataSource } from '@angular/material/table';
 import { Game, GameUrl } from '../../../models';
 import { GameService, GameUrlService } from '../../../services';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { BehaviorSubject, combineLatest, startWith, Subject, takeUntil } from 'rxjs';
+import { combineLatest, startWith, Subject, takeUntil } from 'rxjs';
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'steam-game-urls-grid',
@@ -38,7 +39,7 @@ export class GameUrlsView implements OnInit, OnDestroy {
     'actions'
   ];
 
-  readonly games$ = new BehaviorSubject<readonly Game[]>([]);
+  readonly games = signal<readonly Game[]>([]);
 
   readonly gameIdControl = new FormControl<number | null>(null);
   readonly searchByNameFilterControl = new FormControl<string>('', { nonNullable: true });
@@ -55,7 +56,6 @@ export class GameUrlsView implements OnInit, OnDestroy {
     private readonly gameUrlService: GameUrlService,
     private readonly gameService: GameService,
     private readonly router: Router,
-    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void
@@ -80,7 +80,6 @@ export class GameUrlsView implements OnInit, OnDestroy {
       });
 
       this.dataSource.data = filtered;
-      this.cdr.markForCheck();
     });
   }
 
@@ -93,6 +92,27 @@ export class GameUrlsView implements OnInit, OnDestroy {
   onNameFilterChanged(filter: string): void
   {
     this.searchByNameFilterControl.setValue(filter, { emitEvent: true });
+  }
+
+  exportButtonClicked(): void
+  {
+    const dataToExport = this.dataSource.data.map(x => ({
+      gameName: x.gameName,
+      name: x.name ?? '',
+      partialUrl: x.partialUrl ?? '',
+      isBatchUrl: x.isBatchUrl,
+      startPage: x.startPage ?? '',
+      endPage: x.endPage ?? '',
+      isPixelScrape: x.isPixelScrape,
+      isPublicApi: x.isPublicApi,
+    }));
+
+    const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'GameUrls');
+
+    const today = new Date();
+    XLSX.writeFile(workbook, `Export_${today.toDateString()}_GameUrls.xlsx`);
   }
 
   createButtonClicked(): void
@@ -130,8 +150,6 @@ export class GameUrlsView implements OnInit, OnDestroy {
 
       this.dataSource.paginator = this.paginator;
       this.dataSource.sort = this.sort;
-
-      this.cdr.markForCheck();
     });
   }
 
@@ -141,8 +159,7 @@ export class GameUrlsView implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(games =>
       {
-        this.games$.next(games);
-        this.cdr.markForCheck();
+        this.games.set(games);
       });
   }
 }
