@@ -10,8 +10,6 @@ import {
   PixelsView,
   ProductForm,
   ProductsView,
-  ProductTagForm,
-  ProductTagsView,
   TagForm,
   TagsView,
   WatchListForm,
@@ -60,14 +58,6 @@ export const routes: Routes = [
       { path: 'watch-list', component: WatchListsView, title: 'Watch List' },
       { path: 'watch-list/create', component: WatchListForm, title: 'Create Watch List Item' },
       { path: 'watch-list/edit/:id', component: WatchListForm, title: 'Edit Watch List Item' },
-      { path: 'product-tags', component: ProductTagsView, title: 'Product Tags' },
-      { path: 'product-tags/create', component: ProductTagForm, title: 'Create Product Tag' },
-      {
-        path: 'product-tags/edit/:productId/:tagId',
-        component: ProductTagForm,
-        title: 'Edit Product Tag',
-      },
-
       { path: 'tags', component: TagsView, title: 'Tags' },
       { path: 'tags/create', component: TagForm, title: 'Create Tag' },
       { path: 'tags/edit/:id', component: TagForm, title: 'Edit Tag' },

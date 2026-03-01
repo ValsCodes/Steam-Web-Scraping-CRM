@@ -39,11 +39,9 @@
       <input type="checkbox" formControlName="isPublicApi" />
       Public API
     </label>
-
   </div>
 
   @if (isBatchUrl()) {
-
   <div class="form-group">
     <label>Start Page</label>
     <input type="number" formControlName="startPage" class="px-2 py-1" />
@@ -56,7 +54,6 @@
   }
 
   @if (isPixelScrape()) {
-
   <div class="form-group">
     <label>Pixel X</label>
     <input type="number" formControlName="pixelX" class="px-2 py-1" />
@@ -85,6 +82,16 @@
       <p class="relation-empty">No products available for this game.</p>
     }
     @else {
+      <label class="relation-select-all">
+        <input
+          type="checkbox"
+          [checked]="areAllFilteredProductsSelected"
+          [indeterminate]="areSomeFilteredProductsSelected"
+          (change)="toggleAllProducts($any($event.target).checked)"
+        />
+        Select all products
+      </label>
+
       <div class="relation-grid">
         @for (product of filteredProducts; track product.id)
         {
@@ -108,6 +115,16 @@
       <p class="relation-empty">No pixels available for this game.</p>
     }
     @else {
+      <label class="relation-select-all">
+        <input
+          type="checkbox"
+          [checked]="areAllFilteredPixelsSelected"
+          [indeterminate]="areSomeFilteredPixelsSelected"
+          (change)="toggleAllPixels($any($event.target).checked)"
+        />
+        Select all pixels
+      </label>
+
       <div class="relation-grid">
         @for (pixel of filteredPixels; track pixel.id)
         {
