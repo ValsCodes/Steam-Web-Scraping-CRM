@@ -2,7 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { forkJoin, of, switchMap } from 'rxjs';
+import { forkJoin, Observable, of, switchMap, mapTo } from 'rxjs';
 
 import { GameUrlService } from '../../../services/game-url/game-url.service';
 import { CreateGameUrl, UpdateGameUrl } from '../../../models/game-url.model';
@@ -311,11 +311,9 @@ export class GameUrlForm implements OnInit {
           this.router.navigate(['/game-urls']);
         });
     }
-
-    return forkJoin(requests).pipe(switchMap(() => of(void 0)));
   }
 
-  private syncRelations(gameUrlId: number) {
+  private syncRelations(gameUrlId: number): Observable<void> {
     const selectedProducts = this.selectedProductIds();
     const selectedPixels = this.selectedPixelIds();
 
@@ -341,7 +339,7 @@ export class GameUrlForm implements OnInit {
       return of(void 0);
     }
 
-    return forkJoin(requests).pipe(switchMap(() => of(void 0)));
+    return forkJoin(requests).pipe(mapTo(void 0));
   }
 
   cancel(): void {
