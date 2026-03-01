@@ -2,27 +2,31 @@
   <div class="flex items-center justify-between mb-4">
     <h2 class="text-2xl font-semibold text-gray-500">Game URLs</h2>
 
-    <button class="create-button" (click)="createButtonClicked()">
-      Create
-    </button>
+    <div class="flex gap-x-2">
+      <button
+        (click)="exportButtonClicked()"
+        class="button button-small-primary"
+        title="Export current data to Excel">
+        Export
+      </button>
+
+      <button class="create-button" (click)="createButtonClicked()">Create</button>
+    </div>
   </div>
 
-  <div class="flex gap-x-5 items-end">
-    <!-- Game (native select) -->
-    <div class="flex flex-col">
-      <label class="mb-1 font-semibold">Game</label>
-      <select class="px-2 py-1"
-              [formControl]="gameIdControl">
+  <div class="filter-toolbar">
+    <div class="filter-group">
+      <label>Game</label>
+      <select class="px-2 py-1" [formControl]="gameIdControl">
         <option [ngValue]="null">All</option>
-        @for (g of games$ | async; track g.id) {
+        @for (g of games(); track g.id) {
           <option [ngValue]="g.id">{{ g.name }}</option>
         }
       </select>
     </div>
 
-    <!-- Name (native input) -->
-    <div class="flex flex-col">
-      <label class="mb-1 font-semibold">Name</label>
+    <div class="filter-group">
+      <label>Name</label>
       <input
         class="px-2 py-1"
         type="text"
@@ -31,9 +35,7 @@
         (input)="onNameFilterChanged($any($event.target).value)">
     </div>
 
-    <button (click)="clearFiltersButtonClicked()" class="button button-small-danger">
-      Clear
-    </button>
+    <button (click)="clearFiltersButtonClicked()" class="button button-small-danger">Clear</button>
   </div>
 
   <div class="table-container">
