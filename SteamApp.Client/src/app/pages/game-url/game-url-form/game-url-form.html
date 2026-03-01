@@ -39,11 +39,9 @@
       <input type="checkbox" formControlName="isPublicApi" />
       Public API
     </label>
-
   </div>
 
   @if (isBatchUrl()) {
-
   <div class="form-group">
     <label>Start Page</label>
     <input type="number" formControlName="startPage" class="px-2 py-1" />
@@ -56,7 +54,6 @@
   }
 
   @if (isPixelScrape()) {
-
   <div class="form-group">
     <label>Pixel X</label>
     <input type="number" formControlName="pixelX" class="px-2 py-1" />
@@ -78,11 +75,77 @@
   </div>
   }
 
+  <div class="relation-section">
+    <h3>Products for this Game URL</h3>
+    @if (filteredProducts.length === 0)
+    {
+      <p class="relation-empty">No products available for this game.</p>
+    }
+    @else {
+      <label class="relation-select-all">
+        <input
+          type="checkbox"
+          [checked]="areAllFilteredProductsSelected"
+          [indeterminate]="areSomeFilteredProductsSelected"
+          (change)="toggleAllProducts($any($event.target).checked)"
+        />
+        Select all products
+      </label>
+
+      <div class="relation-grid">
+        @for (product of filteredProducts; track product.id)
+        {
+          <label>
+            <input
+              type="checkbox"
+              [checked]="isProductSelected(product.id)"
+              (change)="toggleProduct(product.id, $any($event.target).checked)"
+            />
+            {{ product.name || 'Unnamed product' }}
+          </label>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="relation-section">
+    <h3>Pixels for this Game URL</h3>
+    @if (filteredPixels.length === 0)
+    {
+      <p class="relation-empty">No pixels available for this game.</p>
+    }
+    @else {
+      <label class="relation-select-all">
+        <input
+          type="checkbox"
+          [checked]="areAllFilteredPixelsSelected"
+          [indeterminate]="areSomeFilteredPixelsSelected"
+          (change)="toggleAllPixels($any($event.target).checked)"
+        />
+        Select all pixels
+      </label>
+
+      <div class="relation-grid">
+        @for (pixel of filteredPixels; track pixel.id)
+        {
+          <label>
+            <input
+              type="checkbox"
+              [checked]="isPixelSelected(pixel.id)"
+              (change)="togglePixel(pixel.id, $any($event.target).checked)"
+            />
+            {{ pixel.name }}
+          </label>
+        }
+      </div>
+    }
+  </div>
+
   <div class="flex gap-x-2">
     <button type="submit" [disabled]="form.invalid">
       {{ isEditMode ? 'Save' : 'Create' }}
     </button>
 
-    <button type="return" (click)="cancel()">Back</button>
+    <button type="button" (click)="cancel()">Back</button>
   </div>
 </form>
