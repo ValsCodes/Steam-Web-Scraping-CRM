@@ -1,25 +1,40 @@
 <div class="p-4">
-  <div class="flex items-center justify-between mb-4">
+  <div class="flex flex-row items-center justify-between mb-4">
     <h2 class="text-2xl font-semibold text-gray-500">
       Tags
     </h2>
 
-    <button class="create-button" (click)="createButtonClicked()">
-      Create
-    </button>
+    <div class="flex gap-x-2">
+      <button
+        (click)="exportButtonClicked()"
+        class="button button-small-primary"
+        title="Export current data to Excel">
+        Export
+      </button>
+
+      <button class="create-button" (click)="createButtonClicked()">Create</button>
+    </div>
   </div>
 
-        <div class="flex gap-x-5">
-      
-      <!-- Game -->
-      <app-combo-box label="Game" [control]="gameIdControl" [items$]="games$" idKey="id" labelKey="name" [bind$]="bindToExternal$"></app-combo-box>
-      
-      <!-- Name -->
-    <app-text-filter [SearchLabel]="'Name'" [SearchTextBind]="searchByNameFilterControl"
-      (filterChange)="onNameFilterChanged($event)">
-    </app-text-filter>
+  <div class="filter-toolbar">
+    <div class="filter-group">
+      <label>Game</label>
+      <select class="px-2 py-1" [formControl]="gameIdControl">
+        <option [ngValue]="null">All</option>
+        @for (g of games$ | async; track g.id) {
+        <option [ngValue]="g.id">{{ g.name }}</option>
+        }
+      </select>
+    </div>
 
-    <button (click)="clearFiltersButtonClicked()" class="button button-small-danger"> Clear </button>
+    <div class="filter-group">
+      <label>Name</label>
+      <input class="px-2 py-1" type="text" placeholder="Filter by name" [formControl]="searchByNameFilterControl" />
+    </div>
+
+    <button (click)="clearFiltersButtonClicked()" class="button button-small-danger">
+      Clear
+    </button>
   </div>
 
   <div class="table-container">

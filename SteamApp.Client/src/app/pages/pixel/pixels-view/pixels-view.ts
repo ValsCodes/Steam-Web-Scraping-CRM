@@ -1,4 +1,10 @@
-import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -6,69 +12,93 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 
-import { Game, Pixel, PixelListItem, Tag } from '../../../models';
+import { Game, PixelListItem } from '../../../models';
 import { GameService, PixelService } from '../../../services';
-import { ComboBoxComponent } from "../../../components/filter-components/combo-box-filter.component";
-import { TextFilterComponent } from "../../../components";
-import { BehaviorSubject, startWith, Subject, takeUntil, tap } from 'rxjs';
-import { FormControl } from '@angular/forms';
+import {
+  BehaviorSubject,
+  combineLatest,
+  startWith,
+  Subject,
+  takeUntil,
+} from 'rxjs';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'steam-pixels-grid',
   standalone: true,
   imports: [
     CommonModule,
+    ReactiveFormsModule,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
-    ComboBoxComponent,
-    TextFilterComponent,
   ],
   templateUrl: './pixels-view.html',
   styleUrl: './pixels-view.scss',
 })
-export class PixelsView implements OnInit {
-  displayedColumns: string[] = [
-    //'id',
-    'gameName',
-    'name',
-    'rgb',
-    'actions',
-  ];
+export class PixelsView implements OnInit, OnDestroy {
+  displayedColumns: string[] = ['gameName', 'name', 'rgb', 'actions'];
 
-  private readonly destroy$ = new Subject<void>();
-
-  readonly gameIdControl = new FormControl<number | null>(null);
-  private games: Game[] = [];
   readonly games$ = new BehaviorSubject<readonly Game[]>([]);
 
-  searchByNameFilterControl = new FormControl<string>('', {
+  readonly gameIdControl = new FormControl<number | null>(null);
+  readonly searchByNameFilterControl = new FormControl<string>('', {
     nonNullable: true,
   });
 
-  onNameFilterChanged(filter: string): void {
-    this.searchByNameFilterControl.setValue(filter, { emitEvent: false });
-    this.loadFilteredTags();
-  }
-
   dataSource = new MatTableDataSource<PixelListItem>([]);
-  pixels: PixelListItem[] = [];
-  pixelsFiltered: PixelListItem[] = [];
+  private pixels: PixelListItem[] = [];
+
+  private readonly destroy$ = new Subject<void>();
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
   constructor(
-    private pixelService: PixelService,
-    private router: Router,
-    private gameService: GameService,
+    private readonly pixelService: PixelService,
+    private readonly router: Router,
+    private readonly gameService: GameService,
     private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.loadGames();
-
     this.fetchPixels();
+
+    combineLatest([
+      this.gameIdControl.valueChanges.pipe(startWith(this.gameIdControl.value)),
+      this.searchByNameFilterControl.valueChanges.pipe(
+        startWith(this.searchByNameFilterControl.value),
+      ),
+    ])
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(([gameId, name]) => {
+        this.applyFilters(gameId, name);
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private applyFilters(gameId: number | null, name: string): void {
+    const nameFilter = (name ?? '').trim().toLowerCase();
+
+    const filtered = this.pixels.filter((p) => {
+      if (gameId !== null && p.gameId !== gameId) {
+        return false;
+      }
+      if (nameFilter && !(p.name ?? '').toLowerCase().includes(nameFilter)) {
+        return false;
+      }
+      return true;
+    });
+
+    this.dataSource.data = filtered;
+    this.cdr.markForCheck();
   }
 
   private loadGames(): void {
@@ -76,7 +106,6 @@ export class PixelsView implements OnInit {
       .getAll()
       .pipe(takeUntil(this.destroy$))
       .subscribe((games) => {
-        this.games = games;
         this.games$.next(games);
         this.cdr.markForCheck();
       });
@@ -84,12 +113,16 @@ export class PixelsView implements OnInit {
 
   fetchPixels(): void {
     this.pixelService.getAll().subscribe((pixels) => {
-      this.dataSource.data = pixels;
       this.pixels = pixels;
-      this.pixelsFiltered = pixels;
 
+      this.dataSource.data = pixels;
       this.dataSource.paginator = this.paginator;
       this.dataSource.sort = this.sort;
+
+      this.applyFilters(
+        this.gameIdControl.value,
+        this.searchByNameFilterControl.value,
+      );
     });
   }
 
@@ -111,47 +144,24 @@ export class PixelsView implements OnInit {
     });
   }
 
-  rgb(pixel: PixelListItem): string {
-    return `rgb(${pixel.redValue}, ${pixel.greenValue}, ${pixel.blueValue})`;
-  }
-
-  readonly bindToExternal$ = this.gameIdControl.valueChanges.pipe(
-    startWith(this.gameIdControl.value),
-    tap((gameId) => {
-      this.applyGameFilter(gameId);
-    }),
-  );
-
-  private applyGameFilter(gameId: number | null): void {
-    this.pixelsFiltered = this.pixels.filter((x) => x.gameId === gameId);
-    this.dataSource.data = this.pixelsFiltered;
-
-    this.cdr.markForCheck();
-  }
-
   clearFiltersButtonClicked(): void {
-    this.searchByNameFilterControl.setValue('', { emitEvent: false });
-
     this.gameIdControl.setValue(null);
-
-    this.searchByNameFilterControl.setValue('', { emitEvent: false });
-
-    const gameId = this.gameIdControl.value;
-
-    this.loadFilteredTags();
+    this.searchByNameFilterControl.setValue('');
   }
 
-  private loadFilteredTags(): void {
-    const nameFilter =
-      this.searchByNameFilterControl.value?.toLowerCase() ?? '';
+  exportButtonClicked(): void {
+    const dataToExport = this.dataSource.data.map((x) => ({
+      Game: x.gameName ?? '',
+      Name: x.name ?? '',
+      RGB: `rgb(${x.redValue}, ${x.greenValue}, ${x.blueValue})`,
+    }));
 
-    this.pixelsFiltered = this.pixels.filter((tag) => {
-      const matchesName =
-        !nameFilter || tag.name?.toLowerCase().includes(nameFilter);
+    const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
 
-      return matchesName;
-    });
+    const workbook: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Pixels');
 
-    this.dataSource.data = this.pixelsFiltered;
+    const today = new Date();
+    XLSX.writeFile(workbook, `Export_${today.toDateString()}_Pixels.xlsx`);
   }
 }

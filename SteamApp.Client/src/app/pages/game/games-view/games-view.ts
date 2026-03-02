@@ -4,8 +4,7 @@ import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { Router } from '@angular/router';
 import { Game } from '../../../models/game.model';
-import { TextFilterComponent } from "../../../components";
-import { FormControl } from '@angular/forms';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { GameService } from '../../../services/game/game.service';
 import * as XLSX from 'xlsx';
@@ -13,11 +12,11 @@ import * as XLSX from 'xlsx';
 @Component({
   selector: 'steam-games-view',
   imports: [
-    TextFilterComponent,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
     CommonModule,
+    ReactiveFormsModule,
   ],
   templateUrl: './games-view.html',
   styleUrl: './games-view.scss',
@@ -25,7 +24,7 @@ import * as XLSX from 'xlsx';
 export class GamesView implements OnInit {
   displayedColumns: string[] = ['name', 'pageUrl', 'actions'];
 
-  searchByName = new FormControl<string | null>('');
+  searchByName = new FormControl<string>('', { nonNullable: true });
 
   // signals
   readonly games = signal<readonly Game[]>([]);

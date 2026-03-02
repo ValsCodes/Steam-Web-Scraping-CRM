@@ -1,138 +1,232 @@
-<div class="container p-4 gap-2">
   <div class="flex px-5">
-    <h2 class="text-2xl font-semibold text-gray-500">Manual Mode</h2>
+    <h2 class="text-2xl font-semibold text-gray-500 mb-4">
+      Manual Mode
+    </h2>
   </div>
-
+<div class="container p-4 gap-2">
   <div class="flex gap-x-5 m-auto w-full justify-start">
     <!-- Control Panel -->
     <div class="control-panel flex flex-col p-4 rounded-md min-w-[400px]">
-      <h2 class="mb-4 font-semibold">Control Panel</h2>
+      <h2 class="mb-4 font-semibold">
+        Control Panel
+      </h2>
+      <div class="filter-toolbar">
+        <!-- Game -->
+        <div class="filter-group min-w-[220px]">
+          <label>
+            Game
+          </label>
 
-      <!-- Game -->
-      <app-combo-box label="Game" [control]="gameIdControl" [items$]="games$" idKey="id" labelKey="name"
-        [bind$]="bindToExternal$"></app-combo-box>
+          <select class="px-2 py-1" [formControl]="gameIdControl">
+            <option [ngValue]="null">
+              Select Game
+            </option>
+            @for (game of games$ | async; track game.id)
+            {
+            <option [ngValue]="game.id">
+              {{ game.name }}
+            </option>
+            }
+          </select>
+        </div>
 
-      <!-- Game URL -->
-      <app-combo-box label="Game URL" placeholder="Select a game URL" [control]="gameUrlIdControl"
-        [items$]="gameUrlsFiltered$" idKey="id" labelKey="name" [bind$]="bindGameUrlToExternal$"></app-combo-box>
+        <!-- Game URL -->
+        <div class="filter-group min-w-[220px]">
+          <label>
+            Game URL
+          </label>
+          <select class="px-2 py-1" [formControl]="gameUrlIdControl">
+            <option [ngValue]="null">
+              Select Game URL
+            </option>
+            @for (url of gameUrlsFiltered$ | async; track url.id)
+            {
+            <option [ngValue]="url.id">
+              {{ url.name }}
+            </option>
+            }
+          </select>
+        </div>
+      </div>
 
-      <!-- Actions -->
       <div class="flex gap-2 mt-4">
         <button class="button button-small-primary" (click)="showAllButtonClicked()"
-          [hidden]="this.selectedGameUrl?.isBatchUrl" [disabled]="gameUrlIdControl.value === null ">
+          [hidden]="this.selectedGameUrl?.isBatchUrl" [disabled]="gameUrlIdControl.value === null">
           Show All
         </button>
-        <button (click)="clearButtonClicked()" class="button button-small-danger"> Clear </button>
+
+        <button (click)="clearButtonClicked()" class="button button-small-danger">
+          Clear
+        </button>
       </div>
     </div>
 
-    <!-- Batch Settings -->
-    <div class=" control-panel flex flex-col p-4 rounded-md min-w-[400px]">
-      <h2 class="mb-4 font-semibold">Batch Panel</h2>
-      <div class="flex flex-col h-full justify-between">
+    <!-- Batch Panel -->
+    <div class="control-panel flex flex-col p-4 rounded-md min-w-[400px]">
+      <h2 class="mb-4 font-semibold">
+        Batch Panel
+      </h2>
 
+      <div class="flex flex-col h-full justify-between">
         <div class="flex gap-x-2 justify-between">
-          <div class="py-2"> <label>Current Item:</label> <input class="w-[5rem] ml-2 pl-2 rounded-md" type="number"
-              min="1" max="500" [value]="currentIndex" (input)="currentIndex = $any($event.target).valueAsNumber">
+          <div class="py-2">
+            <label>
+              Current Item:
+            </label>
+
+            <input class="w-[5rem] ml-2 pl-2 rounded-md" type="number" [value]="currentIndex"
+              (input)="currentIndex = $any($event.target).valueAsNumber">
           </div>
-          <div class="py-2"> <label>Batch Size:</label> <input class="w-[5rem] ml-2 pl-2 rounded-md" type="number"
-              min="1" max="500" [value]="batchSize" (input)="batchSize = $any($event.target).valueAsNumber"> </div>
+
+          <div class="py-2">
+            <label>
+              Batch Size:
+            </label>
+            <input class="w-[5rem] ml-2 pl-2 rounded-md" type="number" [value]="batchSize"
+              (input)="batchSize = $any($event.target).valueAsNumber">
+          </div>
         </div>
 
-        <!-- Actions -->
         <div class="flex gap-2 mt-4">
-          <button (click)="startBatchButtonClicked()" class="button button-small-success"> Start Batch </button>
-          <button (click)="clearBatchButtonClicked()" class="button button-small-danger"> Clear </button>
+          <button (click)="startBatchButtonClicked()" class="button button-small-success">
+            Start Batch
+          </button>
+
+          <button (click)="clearBatchButtonClicked()" class="button button-small-danger">
+            Clear
+          </button>
+
           <button (click)="openAllButtonClicked()" class="button button-small-primary"
-            [hidden]="this.selectedGameUrl?.isBatchUrl === true" [disabled]="true"> Open All </button>
+            [hidden]="this.selectedGameUrl?.isBatchUrl === true" [disabled]="true">
+            Open All
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Links -->
     <div class="control-panel flex flex-col p-4 rounded-md min-w-[300px]">
-      <h2 class="mb-4 font-semibold">Links</h2>
-      <ul class="list-disc list-inside ml-2 marker:text-black marker:text-lg">
+
+      <h2 class="mb-4 font-semibold">
+        Links
+      </h2>
+
+      <ul class="list-disc list-inside ml-2">
+
         <li>
-          <strong>
-            <a href="https://backpack.tf/spreadsheet" target="_blank" rel="noopener noreferrer"
-              class="hover:text-blue-600">
-              BackpackTF Prices URL
-            </a>
-          </strong>
+          <a href="https://backpack.tf/spreadsheet" target="_blank">
+            BackpackTF Prices URL
+          </a>
         </li>
+
         <li>
-          <strong>
-            <a href="https://steamcommunity.com/id/_Val/inventory" target="_blank" rel="noopener noreferrer"
-              class="hover:text-blue-600">
-              Inventory
-            </a>
-          </strong>
+          <a href="https://steamcommunity.com/id/_Val/inventory" target="_blank">
+            Inventory
+          </a>
         </li>
+
         <li>
-          <strong>
-            <a href="https://steamcommunity.com/market/" target="_blank" rel="noopener noreferrer"
-              class="hover:text-blue-600">
-              Community Market
-            </a>
-          </strong>
+          <a href="https://steamcommunity.com/market/" target="_blank">
+            Community Market
+          </a>
         </li>
       </ul>
     </div>
 
-    <!-- Search -->
+    <!-- Word List -->
     <div class="control-panel flex flex-col p-4 rounded-md min-w-[300px]">
-      <h2 class="mb-4 font-semibold">Word List</h2>
+
+      <h2 class="mb-4 font-semibold">
+        Word List
+      </h2>
       <app-copy-link [textToCopy]="'Strange Part:'" [textToShow]="'< Strange Part: >'">
       </app-copy-link>
     </div>
   </div>
 
-  @if(this.products.length > 0)
+  @if(products.length > 0)
   {
   <div class="flex justify-between">
-    <div class="flex gap-x-5">
+    <div class="filter-toolbar">
+      <!-- Product Name -->
+      <div class="filter-group">
+        <label>
+          Product Name
+        </label>
 
-    <!-- Product Name -->
-    <app-text-filter [SearchLabel]="'Product Name'" [SearchTextBind]="searchByNameFilterControl"
-      (filterChange)="onNameFilterChanged($event)">
-    </app-text-filter>
+        <input class="px-2 py-1" type="text" placeholder="Filter by name" [formControl]="searchByNameFilterControl">
+      </div>
 
-    <!-- Rating -->
-    <app-number-filter [SearchLabel]="'Rating'" [SearchNumberBind]="searchByRatingFilterControl"
-      (filterChange)="onRatingFilterChanged($event)">
-    </app-number-filter>
+      <!-- Rating -->
+      <div class="filter-group">
 
-    <!-- Tags -->
-    <app-tag-filter-select label="Tags" [control]="tagSelectControl" [options]="gameTagsFilter" [filters]="tagsFilter"
-      (tagSelected)="onTagSelectedFromComponent($event)" (removeClicked)="removeFilter($event)"></app-tag-filter-select>
+        <label>
+          Rating
+        </label>
 
-    <button (click)="clearFiltersButtonClicked()" class="button button-small-danger"> Clear </button>
+        <input class="px-2 py-1" type="number" placeholder="Filter by rating"
+          [formControl]="searchByRatingFilterControl">
+
+      </div>
+
+      <!-- Tags -->
+      <div class="filter-group">
+        <label>
+          Tags
+        </label>
+
+        <select class="px-2 py-1" [formControl]="tagSelectControl">
+
+          <option [ngValue]="null">
+            Select Tag
+          </option>
+
+          @for (tag of gameTagsFilter; track tag.id)
+          {
+          <option [ngValue]="tag">
+            {{ tag.name }}
+          </option>
+          }
+
+        </select>
+
+      </div>
+
+      @if (this.tagsFilter.length > 0) {
+      <div class="tag-chip-row">
+        @for (filter of this.tagsFilter; track filter) {
+        <div class="tag-chip">
+          <span>{{ filter }}</span>
+          <button type="button" (click)="removeFilter(filter)">×</button>
+        </div>
+        }
+      </div>
+      }
+
+      <button (click)="clearFiltersButtonClicked()" class="button button-small-danger">
+        Clear
+      </button>
     </div>
-
-        <div class="flex justify-end mr-4">
-        <button (click)="exportButtonClicked()" class="justify-end button button-small-primary"
-            title="Export current data to Excel">Export</button>
-    </div>
+    <button (click)="exportButtonClicked()" class="button button-small-primary">Export </button>
   </div>
 
-  <!-- Products -->
   <div class="panel panel--weapon-list mt-6">
-    @for (product of productsFiltered; track product; let i = $index)
+    @for (product of productsFiltered; track product.productId; let i = $index)
     {
-    <a [href]="product.fullUrl" [title]="product.fullUrl" target="_blank" rel="noopener">
+    <a [href]="product.fullUrl" target="_blank">
       <div class="grid-item flex flex-col h-[4.5rem]">
-        <strong> {{ i + 1 }}.
-  
+        <strong>
+          {{ i + 1 }}.
           {{ product.productName }}
-  
+
           @if(product.rating !== null)
           {
-          Rating: {{product.rating}} ⭐
+          Rating: {{ product.rating }} ⭐
           }
         </strong>
       </div>
     </a>
     }
   </div>
-}
+  }
+</div>
