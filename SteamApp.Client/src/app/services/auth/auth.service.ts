@@ -24,7 +24,6 @@ export class AuthService {
   login(clientId: string, clientSecret: string) {
     const url = `${this.endpoint}token`;
 
-    console.log(url)
 
     return this.http.post<TokenResponse>(url, { clientId, clientSecret }).pipe(
       tap(res => {
@@ -48,28 +47,38 @@ export class AuthService {
   }
 
   private hasValidToken(): boolean {
-    const token = localStorage.getItem(this.tokenKey);
-    if (!token) { return false; }
+    const payload = this.getTokenPayload();
+    if (!payload || typeof payload.exp !== 'number') {
+      return false;
+    }
 
-    const [, payload] = token.split('.');
-    if (!payload) { return false; }
-
-    const exp = JSON.parse(atob(payload)).exp;
-    return Date.now() < exp * 1000;
+    return Date.now() < payload.exp * 1000;
   }
 
   getTimeBeforeExpiration(): number {
-  const token = localStorage.getItem(this.tokenKey);
-  if (!token) {
-    return 0;
+    const payload = this.getTokenPayload();
+    if (!payload || typeof payload.exp !== 'number') {
+      return 0;
+    }
+
+    return payload.exp * 1000 - Date.now();
   }
 
-  const [, payload] = token.split('.');
-  if (!payload) {
-    return 0;
-  }
+  private getTokenPayload(): { exp?: number } | null {
+    const token = localStorage.getItem(this.tokenKey);
+    if (!token) {
+      return null;
+    }
 
-  const exp = JSON.parse(atob(payload)).exp;
-  return exp * 1000 - Date.now();
-}
+    const [, payload] = token.split('.');
+    if (!payload) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(atob(payload));
+    } catch {
+      return null;
+    }
+  }
 }

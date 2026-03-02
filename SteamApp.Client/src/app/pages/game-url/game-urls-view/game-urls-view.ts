@@ -127,7 +127,7 @@ export class GameUrlsView implements OnInit, OnDestroy {
 
   deleteButtonClicked(id: number): void
   {
-    if (!confirm('Delete this Pixel?')) { return; }
+    if (!confirm('Delete this Game URL?')) { return; }
 
     this.gameUrlService.delete(id).subscribe(() =>
     {
