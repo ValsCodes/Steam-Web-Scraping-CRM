@@ -2,30 +2,26 @@ import {
   AfterViewInit,
   ChangeDetectorRef,
   Component,
-  OnDestroy,
-  OnInit,
+  DestroyRef,
   ViewChild,
+  computed,
+  effect,
+  inject,
+  signal,
 } from '@angular/core';
-import { SteamService } from '../../services/steam/steam.service';
-import { FormControl, FormsModule } from '@angular/forms';
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { MatTableDataSource } from '@angular/material/table';
-import { MatTableModule } from '@angular/material/table';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { startWith, map, finalize, Subject, takeUntil } from 'rxjs';
 import * as XLSX from 'xlsx';
-import { Listing } from '../../models/listing.model';
-import {
-  BehaviorSubject,
-  finalize,
-  startWith,
-  Subject,
-  takeUntil,
-  tap,
-} from 'rxjs';
+
+import { SteamService } from '../../services/steam/steam.service';
 import { StopwatchComponent } from '../../components';
-import { ComboBoxComponent } from '../../components/filter-components/combo-box-filter.component';
 import { Game, GameUrl } from '../../models';
+import { Listing } from '../../models/listing.model';
 import { GameService, GameUrlService } from '../../services';
 
 enum ScrapingMode {
@@ -43,42 +39,95 @@ type ScrapingModeItem = {
   selector: 'web-scraper',
   standalone: true,
   imports: [
-    FormsModule,
     CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
     MatTableModule,
-    MatSort,
-    MatSortModule,
     MatPaginatorModule,
+    MatSortModule,
     StopwatchComponent,
-    ComboBoxComponent,
   ],
   templateUrl: './web-scraper.component.html',
   styleUrl: './web-scraper.component.scss',
   providers: [SteamService],
 })
-export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
+export class WebScraperComponent implements AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  private readonly destroy$ = new Subject<void>();
+  private readonly destroyRef = inject(DestroyRef);
   private cancel$ = new Subject<void>();
+
   readonly gameIdControl = new FormControl<number | null>(null);
   readonly gameUrlIdControl = new FormControl<number | null>(null);
 
-  readonly games$ = new BehaviorSubject<readonly Game[]>([]);
-  readonly gameUrlsFiltered$ = new BehaviorSubject<readonly GameUrl[]>([]);
-  selectedGameUrl: GameUrl | null = null;
+  // FormControl values as signals
+  readonly selectedGameId = toSignal(
+    this.gameIdControl.valueChanges.pipe(startWith(this.gameIdControl.value)),
+    { initialValue: null },
+  );
 
-  private games: Game[] = [];
-  private gameUrlsAll: GameUrl[] = [];
+  readonly selectedGameUrlId = toSignal(
+    this.gameUrlIdControl.valueChanges.pipe(
+      startWith(this.gameUrlIdControl.value),
+    ),
+    { initialValue: null },
+  );
 
-  ScrapingModes: readonly ScrapingModeItem[] = [
+  // Data from services as signals
+  readonly games = toSignal(this.gameService.getAll(), {
+    initialValue: [] as Game[],
+  });
+
+readonly gameUrlsAll = toSignal(
+  this.gameUrlService.getAll().pipe(
+    map((urls): GameUrl[] =>
+      urls
+        .filter((x) => x.isBatchUrl || x.isPixelScrape || x.isPublicApi)
+        .map((url): GameUrl => {
+          const baseName = url.name ?? '';
+
+          const suffix =
+            (url.isBatchUrl ? ' [ Batch ]' : '') +
+            (url.isPixelScrape ? ' [ Pixel ]' : '') +
+            (url.isPublicApi ? ' [ Public API ]' : '');
+
+          return {
+            ...url,
+            name: (baseName + suffix) as any, // remove this cast if GameUrl.name is string | null | undefined and you accept string
+          };
+        }),
+    ),
+  ),
+  { initialValue: [] as GameUrl[] },
+);
+
+  readonly gameUrlsFiltered = computed(() => {
+    const gameId = this.selectedGameId();
+    if (gameId === null) {
+      return [];
+    }
+    return this.gameUrlsAll()?.filter((u) => u.gameId === gameId);
+  });
+
+  readonly selectedGameUrl = computed<GameUrl | null>(() => {
+    const urlId = this.selectedGameUrlId();
+    if (urlId === null) {
+      return null;
+    }
+    return this.gameUrlsFiltered()?.find((u) => u.id === urlId) ?? null;
+  });
+
+  readonly ScrapingModes: readonly ScrapingModeItem[] = [
     { id: ScrapingMode.Scraper, name: 'Web Scraper' },
     { id: ScrapingMode.PublicApiScraper, name: 'Public API Scrape' },
     { id: ScrapingMode.PixelScrape, name: 'Pixel Scrape' },
   ];
 
-  selectedMode: ScrapingModeItem | null = null;
+  readonly selectedMode = signal<ScrapingModeItem | null>(null);
+  readonly statusLabel = signal<string>('');
+  readonly isLoading = signal<boolean>(false);
+  readonly pageNumber = signal<number>(1);
 
   dataSource = new MatTableDataSource<Listing>([]);
   displayedColumns: string[] = [
@@ -91,301 +140,197 @@ export class WebScraperComponent implements OnInit, AfterViewInit, OnDestroy {
 
   hatURL: string = 'https://steamcommunity.com/market/listings/440/';
 
-  pageNumber: number = 1;
-  statusLabel: string = '';
-  isLoading: boolean = false;
-
   constructor(
-    private steamService: SteamService,
+    private readonly steamService: SteamService,
     private readonly cdr: ChangeDetectorRef,
     private readonly gameService: GameService,
     private readonly gameUrlService: GameUrlService,
-  ) {}
+  ) {
+    // Reset URL + state when game changes
+    effect(
+      () => {
+        void this.selectedGameId();
+        this.gameUrlIdControl.setValue(null, { emitEvent: true });
+        this.selectedMode.set(null);
+        this.dataSource.data = [];
+        this.statusLabel.set('');
+        this.cdr.markForCheck();
+      },
+      { allowSignalWrites: true },
+    );
 
-  ngOnInit(): void {}
+    // Clear batch/state when URL changes
+    effect(
+      () => {
+        void this.selectedGameUrl();
+        this.clearBatchButtonClicked();
+        this.dataSource.data = [];
+        this.statusLabel.set('');
+        this.cdr.markForCheck();
+      },
+      { allowSignalWrites: true },
+    );
+  }
 
   ngAfterViewInit(): void {
-    this.loadGames();
-    this.loadGameUrls();
-
-    if (!this.dataSource.paginator) {
-      this.dataSource.paginator = this.paginator;
-      this.dataSource.paginator.pageSize = 10;
-      this.dataSource.paginator.pageSizeOptions = [10, 25, 50];
-    }
-    if (!this.dataSource.sort) {
-      this.dataSource.sort = this.sort;
-    }
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.paginator.pageSize = 10;
+    this.dataSource.paginator.pageSizeOptions = [10, 25, 50];
+    this.dataSource.sort = this.sort;
   }
 
-  private loadGames(): void {
-    this.gameService
-      .getAll()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((games) => {
-        this.games = games;
-        this.games$.next(games);
-        this.cdr.markForCheck();
+  private requireGameUrlId(): number {
+    const id = this.gameUrlIdControl.value;
+    if (id === null || id <= 0) {
+      throw new Error('gameUrlId is required');
+    }
+    return id;
+  }
+
+  private setSelectedMode(modeId: ScrapingMode): void {
+    const mode = this.ScrapingModes.find((m) => m.id === modeId);
+    if (!mode) {
+      throw new Error('Invalid scraping mode');
+    }
+    this.selectedMode.set(mode);
+  }
+
+  private setLoading(): void {
+    this.dataSource.data = [];
+    this.isLoading.set(true);
+    this.statusLabel.set('Loading...');
+  }
+
+  private finishLoading(): void {
+    this.isLoading.set(false);
+  }
+
+  private executeScrape(
+    mode: ScrapingMode,
+    request$: () => any,
+    successLabel: string,
+    errorLabel: string,
+  ): void {
+    this.setSelectedMode(mode);
+
+    if (this.selectedGameUrl() === null) {
+      this.statusLabel.set('Game Url not selected');
+      return;
+    }
+
+    this.setLoading();
+
+    request$()
+      .pipe(
+        takeUntil(this.cancel$),
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.finishLoading()),
+      )
+      .subscribe({
+        next: (response: Listing[]) => {
+          this.dataSource.data = response ?? [];
+          this.statusLabel.set(successLabel);
+        },
+        error: (err: any) => {
+          this.statusLabel.set(err?.error ?? err?.message ?? errorLabel);
+        },
       });
   }
 
-  private loadGameUrls(): void {
-    this.gameUrlService
-      .getAll()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((urls) => {
-        let filtered = urls.filter((x) => x.isBatchUrl || x.isPixelScrape || x.isPublicApi);
-
-        this.gameUrlsAll = filtered.map((url) => {
-          if (url.isBatchUrl === true) {
-            url.name += ' [ Batch ]';
-          }
-          if (url.isPixelScrape === true) {
-            url.name += ' [ Pixel ]';
-          }
-
-          if (url.isPublicApi === true) {
-            url.name += ' [ Public API ]';
-          }
-
-          return url;
-        });
-
-        this.applyGameFilter(this.gameIdControl.value);
-      });
-  }
-
-  retryBatchButtonClicked() {
-    switch (this.selectedMode?.id) {
-      case ScrapingMode.Scraper:
-        this.scrapeButtonClicked();
-        break;
-      case ScrapingMode.PublicApiScraper:
-        this.publicApiScrapeButtonClicked();
-        break;
-
-      case ScrapingMode.PixelScrape:
-        this.pixelScrapeButtonClicked();
-        break;
-    }
-  }
-
-  startBatchButtonClicked() {
-    this.pageNumber++;
-
-    switch (this.selectedMode?.id) {
-      case ScrapingMode.Scraper:
-        this.scrapeButtonClicked();
-        break;
-      case ScrapingMode.PublicApiScraper:
-        this.publicApiScrapeButtonClicked();
-        break;
-
-      case ScrapingMode.PixelScrape:
-        this.pixelScrapeButtonClicked();
-        break;
-    }
-  }
-
-  scrapeButtonClicked() {
+  scrapeButtonClicked(): void {
     this.executeScrape(
       ScrapingMode.Scraper,
       () =>
-        this.steamService.scrapePage(this.requireGameUrlId(), this.pageNumber),
+        this.steamService.scrapePage(
+          this.requireGameUrlId(),
+          this.pageNumber(),
+        ),
       'Successfully scraped Listings.',
       'Failed to scrape Listings.',
     );
   }
 
-  publicApiScrapeButtonClicked() {
+  publicApiScrapeButtonClicked(): void {
     this.executeScrape(
       ScrapingMode.PublicApiScraper,
       () =>
         this.steamService.scrapeFromPublicApi(
           this.requireGameUrlId(),
-          this.pageNumber,
+          this.pageNumber(),
         ),
       'Successfully scraped by Public API.',
       'Failed to scrape by Public API.',
     );
   }
 
-  pixelScrapeButtonClicked() {
+  pixelScrapeButtonClicked(): void {
     this.executeScrape(
       ScrapingMode.PixelScrape,
       () =>
         this.steamService.scrapeForPixels(
           this.requireGameUrlId(),
-          this.pageNumber,
+          this.pageNumber(),
         ),
       'Successfully scraped by Pixel Scraper.',
       'Failed to scrape by Pixel Scraper.',
     );
   }
 
-  private requireGameUrlId(): number {
-    const id = this.gameUrlIdControl.value;
-
-    if (id === null || id <= 0) {
-      throw new Error('gameUrlId is required');
+  retryBatchButtonClicked(): void {
+    switch (this.selectedMode()?.id) {
+      case ScrapingMode.Scraper:
+        this.scrapeButtonClicked();
+        break;
+      case ScrapingMode.PublicApiScraper:
+        this.publicApiScrapeButtonClicked();
+        break;
+      case ScrapingMode.PixelScrape:
+        this.pixelScrapeButtonClicked();
+        break;
     }
-
-    return id;
   }
 
-  private executeScrape(
-    mode: ScrapingMode,
-    request: () => any,
-    successLabel: string,
-    errorLabel: string,
-  ) {
+  startBatchButtonClicked(): void {
+    this.pageNumber.set(this.pageNumber() + 1);
+    this.retryBatchButtonClicked();
+  }
 
-    this.setSelectedMode(mode);
-
-    if (this.selectedGameUrl === null) {
-      this.statusLabel = 'Game Url not selected';
+  onPageNumberChange(value: number): void {
+    if (value < 1 || value > 100000) {
+      this.pageNumber.set(1);
       return;
     }
-
-    this.setLoading();
-
-    request()
-      .pipe(
-        takeUntil(this.cancel$),
-        finalize(() => this.finishLoading()),
-      )
-      .subscribe({
-        next: (response: never[]) => {
-          this.dataSource.data = response ?? [];
-          this.statusLabel = successLabel;
-        },
-        error: (err:any) => {
-          this.statusLabel = err?.error ?? err?.message ?? 'Unknown error';
-        },
-      });
+    this.pageNumber.set(value);
   }
 
-  exportButtonClicked(): void {
-    const dataToExport = this.dataSource.data;
-
-    const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
-
-    const workbook: XLSX.WorkBook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
-
-    const today = new Date();
-    XLSX.writeFile(workbook, `Export_${today.toDateString()}_Listings.xlsx`);
+  cancelAll(): void {
+    this.cancel$.next();
+    this.statusLabel.set('Operation Cancelled.');
+    this.isLoading.set(false);
   }
 
   clearButtonClicked(): void {
     this.dataSource.data = [];
-    this.statusLabel = '';
-
+    this.statusLabel.set('');
     this.gameIdControl.setValue(null);
     this.gameUrlIdControl.setValue(null);
-
-    this.onPageNumberChange(1);
+    this.pageNumber.set(1);
   }
-
-  setLoading(): void {
-    this.dataSource.data = [];
-    this.isLoading = true;
-    this.statusLabel = 'Loading...';
-  }
-
-  setLoadingWithoutDataClear(): void {
-    this.isLoading = true;
-    this.statusLabel = 'Loading...';
-  }
-
-  finishLoading(): void {
-    this.isLoading = false;
-  }
-
-  onPageNumberChange(value: number) {
-    if (value < 0 || value > 100000) {
-      this.pageNumber = 1;
-    } else {
-      this.pageNumber = value;
-    }
-  }
-
-  cancelAll() {
-    this.cancel$.next();
-
-    this.statusLabel = 'Operation Cancelled.';
-    this.finishLoading();
-
-    this.cancel$ = new Subject<void>();
-  }
-
-  readonly bindGameUrlToExternal$ = this.gameUrlIdControl.valueChanges.pipe(
-    startWith(this.gameUrlIdControl.value),
-    tap((gameUrlId) => {
-      if (gameUrlId === null) {
-        this.selectedGameUrl = null;
-        this.cdr.markForCheck();
-        return;
-      }
-
-      this.selectedGameUrl =
-        this.gameUrlsFiltered$.value.find((u) => u.id === gameUrlId) ?? null;
-
-      this.clearBatchButtonClicked();
-
-      // if (this.selectedGameUrl?.isBatchUrl) {
-      //   this.currentIndex = this.selectedGameUrl.startPage ?? null;
-      //   this.batchSize = this.currentIndex === null ? null : 5;
-      // }
-
-      this.cdr.markForCheck();
-    }),
-  );
 
   clearBatchButtonClicked(): void {
-    // this.currentIndex = null;
-    // this.batchSize = null;
+    // batch reset logic (if needed)
   }
 
-  readonly bindToExternal$ = this.gameIdControl.valueChanges.pipe(
-    startWith(this.gameIdControl.value),
-    tap((gameId) => {
-      this.applyGameFilter(gameId);
-    }),
-  );
+  exportButtonClicked(): void {
+    const worksheet: XLSX.WorkSheet =
+      XLSX.utils.json_to_sheet(this.dataSource.data);
+    const workbook: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
 
-  private applyGameFilter(gameId: number | null): void {
-    if (gameId === null) {
-      this.gameUrlsFiltered$.next([]);
-      this.gameUrlIdControl.reset();
-      this.selectedGameUrl = null;
-
-      this.cdr.markForCheck();
-      return;
-    }
-
-    const urls = this.gameUrlsAll.filter((url) => url.gameId === gameId);
-    this.gameUrlsFiltered$.next(urls);
-
-    this.gameUrlIdControl.reset();
-    this.selectedGameUrl = null;
-
-    this.cdr.markForCheck();
-  }
-
-  private setSelectedMode(modeId: ScrapingMode): void {
-    const mode = this.ScrapingModes.find((m) => m.id === modeId);
-
-    if (!mode) {
-      throw new Error('Invalid scraping mode');
-    }
-
-    this.selectedMode = mode;
-  }
-
-  ngOnDestroy() {
-    // Always complete on destroy to avoid leaks
-    this.cancel$.next();
-    this.cancel$.complete();
+    const today = new Date();
+    XLSX.writeFile(
+      workbook,
+      `Export_${today.toDateString()}_Listings.xlsx`,
+    );
   }
 }

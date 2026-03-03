@@ -122,7 +122,11 @@ input {
     font-weight: 600;
   }
 
-  input,
+  input{
+    border: 1px solid #9ca3af;
+    border-radius: 0.375rem;
+  }
+
   select {
     min-width: 14rem;
     border: 1px solid #9ca3af;

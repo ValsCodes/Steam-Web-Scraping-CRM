@@ -1,8 +1,8 @@
-  <div class="flex px-5">
-    <h2 class="text-2xl font-semibold text-gray-500 mb-4">
-      Manual Mode
-    </h2>
-  </div>
+<div class="flex p-4">
+  <h2 class="text-2xl font-semibold text-gray-500 mb-4">
+    Manual Mode
+  </h2>
+</div>
 <div class="container p-4 gap-2">
   <div class="flex gap-x-5 m-auto w-full justify-start">
     <!-- Control Panel -->
@@ -68,21 +68,18 @@
       </h2>
 
       <div class="flex flex-col h-full justify-between">
-        <div class="flex gap-x-2 justify-between">
-          <div class="py-2">
-            <label>
-              Current Item:
-            </label>
-
-            <input class="w-[5rem] ml-2 pl-2 rounded-md" type="number" [value]="currentIndex"
+        <div class="filter-toolbar">
+          <div class="filter-group">
+            <label> Current Item </label>
+            <input class="w-[100px] ml-2 pl-2 rounded-md" type="number" [value]="currentIndex"
               (input)="currentIndex = $any($event.target).valueAsNumber">
           </div>
 
-          <div class="py-2">
+          <div class="filter-group">
             <label>
-              Batch Size:
+              Batch Size
             </label>
-            <input class="w-[5rem] ml-2 pl-2 rounded-md" type="number" [value]="batchSize"
+            <input class="w-[100px] ml-2 pl-2 rounded-md" type="number" [value]="batchSize"
               (input)="batchSize = $any($event.target).valueAsNumber">
           </div>
         </div>
