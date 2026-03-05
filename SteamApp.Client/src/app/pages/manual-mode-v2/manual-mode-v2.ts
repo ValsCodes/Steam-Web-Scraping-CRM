@@ -18,6 +18,7 @@ import {
   TagService,
 } from '../../services';
 import { CopyLinkComponent } from '../../components';
+import { MatTooltip } from "@angular/material/tooltip";
 
 @Component({
   selector: 'steam-manual-mode-v2',
@@ -27,7 +28,8 @@ import { CopyLinkComponent } from '../../components';
     CommonModule,
     ReactiveFormsModule,
     CopyLinkComponent,
-  ],
+    MatTooltip
+],
   templateUrl: './manual-mode-v2.html',
   styleUrl: './manual-mode-v2.scss',
 })

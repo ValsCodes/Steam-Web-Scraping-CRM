@@ -111,19 +111,19 @@
       <ul class="list-disc list-inside ml-2">
 
         <li>
-          <a href="https://backpack.tf/spreadsheet" target="_blank">
+          <a href="https://backpack.tf/spreadsheet" matTooltip="https://backpack.tf/spreadsheet" target="_blank">
             BackpackTF Prices URL
           </a>
         </li>
 
         <li>
-          <a href="https://steamcommunity.com/id/_Val/inventory" target="_blank">
+          <a href="https://steamcommunity.com/id/_Val/inventory" matTooltip="https://steamcommunity.com/id/_Val/inventory"  target="_blank">
             Inventory
           </a>
         </li>
 
         <li>
-          <a href="https://steamcommunity.com/market/" target="_blank">
+          <a href="https://steamcommunity.com/market/" matTooltip="https://steamcommunity.com/market/" target="_blank">
             Community Market
           </a>
         </li>
@@ -136,7 +136,7 @@
       <h2 class="mb-4 font-semibold">
         Word List
       </h2>
-      <app-copy-link [textToCopy]="'Strange Part:'" [textToShow]="'< Strange Part: >'">
+      <app-copy-link [textToCopy]="'Strange Part:'" [textToShow]="'< Strange Part: >'" matTooltip="< Strange Part: >">
       </app-copy-link>
     </div>
   </div>
@@ -211,7 +211,7 @@
     @for (product of productsFiltered; track product.productId; let i = $index)
     {
     <a [href]="product.fullUrl" target="_blank">
-      <div class="grid-item flex flex-col h-[4.5rem]">
+      <div class="grid-item flex flex-col h-[4.5rem]" [matTooltip]="product.fullUrl">
         <strong>
           {{ i + 1 }}.
           {{ product.productName }}
