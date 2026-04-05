@@ -19,43 +19,6 @@ namespace SteamApp.WebAPI.Services;
 
 public class SteamService(ISteamRepository steamRepository) : ISteamService
 {
-    public async Task<string> GetPixelInfoFromSource(long gamerUrlId, string srcUrl)
-    {
-        var gameUrl = await steamRepository.GetGameUrl(gamerUrlId);
-
-        if (gameUrl == null || !gameUrl.IsPixelScrape || gameUrl.PixelX == null || gameUrl.PixelY == null)
-        {
-            throw new Exception("Game URL is not configured for pixel scrape or pixel coordinates are missing.");
-        }
-
-        if (gameUrl.PixelImageWidth == null || gameUrl.PixelImageHeight == null)
-        {
-            gameUrl.PixelImageWidth = 62; // default values, can be updated later if needed
-            gameUrl.PixelImageHeight = 62; // default values, can be updated later if needed
-        }
-
-        string srcImage = srcUrl.Replace($"/{gameUrl.PixelImageWidth}fx{gameUrl.PixelImageHeight}f", string.Empty);
-
-        var result = new StringBuilder();
-
-        using (HttpClient client = new())
-        {
-            byte[] bytes = await client.GetByteArrayAsync(srcImage);
-
-            using var ms = new MemoryStream(bytes);
-            using Bitmap bmp = new(ms);
-
-
-            Color c = bmp.GetPixel(gameUrl.PixelX.Value, gameUrl.PixelY.Value);
-
-
-            result.AppendLine(c.Name);
-            result.AppendLine($"R - {c.R}, G - {c.G}, B - {c.B}");
-        }
-
-        return result.ToString();
-    }
-
     public async Task<IEnumerable<WatchItemDto>> ScrapePage(long gamerUrlId, short page)
     {
         var gameUrl = await steamRepository.GetGameUrl(gamerUrlId);
@@ -131,9 +94,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
 
         var options = new ChromeOptions();
 
-        //TODO Enable when testing is done
-        //options.AddArgument("--headless");
-
+        options.AddArgument("--headless");
         options.AddArgument("--disable-gpu");
         options.AddArgument("--no-sandbox");
         options.AddArgument("--disable-dev-shm-usage");
@@ -171,7 +132,10 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
             //Color? pixelValue = bmp.GetPixel(gameUrl.PixelX., gameUrl.PixelY!.Value);
             Color pixelValue = bmp.GetPixel(gameUrl.PixelX!.Value, gameUrl.PixelY!.Value);
 
-            var colorMatch = gameUrl.GameUrlsPixels.FirstOrDefault(x => x.Pixel.RedValue == pixelValue.R && x.Pixel.BlueValue == pixelValue.B && x.Pixel.GreenValue == pixelValue.G );
+            var colorMatch = gameUrl.GameUrlsPixels.FirstOrDefault(x => x.Pixel.RedValue == pixelValue.R && 
+                x.Pixel.BlueValue == pixelValue.B &&
+                x.Pixel.GreenValue == pixelValue.G);
+
             if (colorMatch != null)
             {
                 listing.IsPainted = true;
@@ -187,7 +151,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         return results;
     }
 
-    // TODO Too Many request to URL
+    // TODO Test
     public async Task<WatchItemDto> ScrapeProductPixels(long gameId, string productName)
     {
         productName = productName.Trim();
@@ -258,12 +222,12 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         }
 
         var options = new ChromeOptions();
-        options.AddArgument("--headless=new");
+        options.AddArgument("--headless");
         options.AddArgument("--disable-gpu");
         options.AddArgument("--no-sandbox");
         options.AddArgument("--disable-dev-shm-usage");
 
-        options.PlatformName = "Linux";
+        //options.PlatformName = "Linux";
         options.AcceptInsecureCertificates = true;
         options.UnhandledPromptBehavior = UnhandledPromptBehavior.AcceptAndNotify;
 
@@ -291,6 +255,44 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
             CurrentPrice = finalPrice,
             GameName = wishList.Game.Name,
         };
+    }
+
+    // Not Used Currently
+    public async Task<string> GetPixelInfoFromSource(long gamerUrlId, string srcUrl)
+    {
+        var gameUrl = await steamRepository.GetGameUrl(gamerUrlId);
+
+        if (gameUrl == null || !gameUrl.IsPixelScrape || gameUrl.PixelX == null || gameUrl.PixelY == null)
+        {
+            throw new Exception("Game URL is not configured for pixel scrape or pixel coordinates are missing.");
+        }
+
+        if (gameUrl.PixelImageWidth == null || gameUrl.PixelImageHeight == null)
+        {
+            gameUrl.PixelImageWidth = 62; // default values, can be updated later if needed
+            gameUrl.PixelImageHeight = 62; // default values, can be updated later if needed
+        }
+
+        string srcImage = srcUrl.Replace($"/{gameUrl.PixelImageWidth}fx{gameUrl.PixelImageHeight}f", string.Empty);
+
+        var result = new StringBuilder();
+
+        using (HttpClient client = new())
+        {
+            byte[] bytes = await client.GetByteArrayAsync(srcImage);
+
+            using var ms = new MemoryStream(bytes);
+            using Bitmap bmp = new(ms);
+
+
+            Color c = bmp.GetPixel(gameUrl.PixelX.Value, gameUrl.PixelY.Value);
+
+
+            result.AppendLine(c.Name);
+            result.AppendLine($"R - {c.R}, G - {c.G}, B - {c.B}");
+        }
+
+        return result.ToString();
     }
 
     #region Private Methods
