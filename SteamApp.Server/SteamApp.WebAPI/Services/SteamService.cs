@@ -19,10 +19,8 @@ namespace SteamApp.WebAPI.Services;
 
 public class SteamService(ISteamRepository steamRepository) : ISteamService
 {
-     // TODO Test
     public async Task<string> GetPixelInfoFromSource(long gamerUrlId, string srcUrl)
     {
-        // TODO get Pixel Location from game URL 450, 50
         var gameUrl = await steamRepository.GetGameUrl(gamerUrlId);
 
         if (gameUrl == null || !gameUrl.IsPixelScrape || gameUrl.PixelX == null || gameUrl.PixelY == null)
@@ -58,7 +56,6 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         return result.ToString();
     }
 
-    // TODO Test
     public async Task<IEnumerable<WatchItemDto>> ScrapePage(long gamerUrlId, short page)
     {
         var gameUrl = await steamRepository.GetGameUrl(gamerUrlId);
@@ -113,14 +110,20 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
 
         var gameUrl = await steamRepository.GetGameUrl(gameUrlId);
 
-        if (gameUrl == null || !gameUrl.IsPublicApi)
+        if (gameUrl == null || !gameUrl.IsPixelScrape)
         {
             throw new Exception("Game URL is not configured for public API Scrape.");
         }
 
-        if (gameUrl.PixelImageWidth == null || gameUrl.PixelImageHeight == null)
+        if (gameUrl.PixelImageWidth == null || gameUrl.PixelX == null)
         {
+            gameUrl.PixelX = 450;
             gameUrl.PixelImageWidth = 62; // default values, can be updated later if needed
+        }
+
+        if (gameUrl.PixelImageHeight == null || gameUrl.PixelY == null)
+        {
+            gameUrl.PixelY = 50;
             gameUrl.PixelImageHeight = 62; // default values, can be updated later if needed
         }
 
@@ -132,42 +135,53 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         //options.AddArgument("--headless");
 
         options.AddArgument("--disable-gpu");
+        options.AddArgument("--no-sandbox");
+        options.AddArgument("--disable-dev-shm-usage");
+
+        options.AcceptInsecureCertificates = true;
+        options.UnhandledPromptBehavior = UnhandledPromptBehavior.AcceptAndNotify;
 
 
         var results = new List<WatchItemDto>();
 
-        using (IWebDriver driver = new ChromeDriver(options))
+        using IWebDriver driver = new ChromeDriver(options);
+
+        driver.Navigate().GoToUrl(url);
+
+        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
+        wait.Until(ExpectedConditions.ElementExists(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]")));
+
+        ReadOnlyCollection<IWebElement> listingAnchors =
+            driver.FindElements(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]"));
+
+        foreach (var anchor in listingAnchors)
         {
-            driver.Navigate().GoToUrl(url);
+            var listing = ParseListingFromAnchor(anchor);
+            listing.PageUrl = url;
 
-            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
-            wait.Until(ExpectedConditions.ElementExists(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]")));
+            string srcImage = listing.ImageUrl!.Replace($"/{gameUrl.PixelImageWidth}fx{gameUrl.PixelImageHeight}f", string.Empty);
 
-            ReadOnlyCollection<IWebElement> listingAnchors =
-                driver.FindElements(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]"));
+            using HttpClient client = new HttpClient();
+            byte[] bytes = await client.GetByteArrayAsync(srcImage);
 
-            foreach (var anchor in listingAnchors)
+            using var ms = new MemoryStream(bytes);
+            using Bitmap bmp = new(ms);
+
+            // TODO add pixel location
+            //Color? pixelValue = bmp.GetPixel(gameUrl.PixelX., gameUrl.PixelY!.Value);
+            Color pixelValue = bmp.GetPixel(gameUrl.PixelX!.Value, gameUrl.PixelY!.Value);
+
+            var colorMatch = gameUrl.GameUrlsPixels.FirstOrDefault(x => x.Pixel.RedValue == pixelValue.R && x.Pixel.BlueValue == pixelValue.B && x.Pixel.GreenValue == pixelValue.G );
+            if (colorMatch != null)
             {
-                var listing = ParseListingFromAnchor(anchor);
-
-                string srcImage = listing.ImageUrl!.Replace($"/{gameUrl.PixelImageWidth}fx{gameUrl.PixelImageHeight}f", string.Empty);
-
-                using HttpClient client = new HttpClient();
-                byte[] bytes = await client.GetByteArrayAsync(srcImage);
-
-                using var ms = new MemoryStream(bytes);
-                using Bitmap bmp = new(ms);
-
-                Color pixelValue = bmp.GetPixel(gameUrl.PixelX.Value, gameUrl.PixelY.Value);
-
-
-                var colorMatch = gameUrl.GameUrlsPixels.FirstOrDefault(x => string.Equals(x.Pixel.Name, pixelValue.Name, StringComparison.OrdinalIgnoreCase));
-                if (colorMatch != null)
-                {
-                    listing.PixelName = colorMatch.Pixel.Name;
-                    results.Add(listing);
-                }
+                listing.IsPainted = true;
+                listing.PixelName = colorMatch.Pixel.Name;
+                listing.RedValue = colorMatch.Pixel.RedValue;
+                listing.BlueValue = colorMatch.Pixel.BlueValue;
+                listing.GreenValue = colorMatch.Pixel.GreenValue;
             }
+
+            results.Add(listing);
         }
 
         return results;
@@ -249,6 +263,10 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         options.AddArgument("--no-sandbox");
         options.AddArgument("--disable-dev-shm-usage");
 
+        options.PlatformName = "Linux";
+        options.AcceptInsecureCertificates = true;
+        options.UnhandledPromptBehavior = UnhandledPromptBehavior.AcceptAndNotify;
+
         using IWebDriver driver = new ChromeDriver(options);
         driver.Navigate().GoToUrl(url);
 
@@ -322,6 +340,14 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
 
         // TODO Enable when testing is done
         //options.AddArgument("--headless");
+
+        options.AddArgument("--disable-gpu");
+        options.AddArgument("--no-sandbox");
+        options.AddArgument("--disable-dev-shm-usage");
+
+        options.PlatformName = "Linux";
+        options.AcceptInsecureCertificates = true;
+        options.UnhandledPromptBehavior = UnhandledPromptBehavior.AcceptAndNotify;
 
         options.AddArgument("--disable-gpu");
         options.PageLoadStrategy = PageLoadStrategy.Eager;

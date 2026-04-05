@@ -106,7 +106,7 @@ public class SteamController(
         }
     }
 
-    [HttpGet("scrape-pixels/gameUrl/{gamerUrlId}/page/{page}")]
+    [HttpGet("scrape-pixels/gameUrl/{gameUrlId}/page/{page}")]
     public async Task<IActionResult> ScrapeForPixelsAsync(long gameUrlId, short page)
     {
         using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(ScrapeForPixelsAsync)))

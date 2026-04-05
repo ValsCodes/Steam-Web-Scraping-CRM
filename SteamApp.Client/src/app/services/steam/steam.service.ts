@@ -41,6 +41,9 @@ export class SteamService {
   }
 
   scrapeForPixels(gameUrlId: number, page: number): Observable<any> {
+
+  console.log('gGameUrlId ' + gameUrlId)
+
     const url = `${this.baseUrl}scrape-pixels/gameUrl/${gameUrlId}/page/${page}`;
     return this.http.get<any>(url).pipe(
       catchError(handleError)

@@ -23,6 +23,7 @@ import { StopwatchComponent } from '../../components';
 import { Game, GameUrl } from '../../models';
 import { Listing } from '../../models/listing.model';
 import { GameService, GameUrlService } from '../../services';
+import { MatTooltip } from '@angular/material/tooltip';
 
 enum ScrapingMode {
   Scraper = 1,
@@ -46,6 +47,7 @@ type ScrapingModeItem = {
     MatPaginatorModule,
     MatSortModule,
     StopwatchComponent,
+    MatTooltip,
   ],
   templateUrl: './web-scraper.component.html',
   styleUrl: './web-scraper.component.scss',
@@ -79,28 +81,28 @@ export class WebScraperComponent implements AfterViewInit {
     initialValue: [] as Game[],
   });
 
-readonly gameUrlsAll = toSignal(
-  this.gameUrlService.getAll().pipe(
-    map((urls): GameUrl[] =>
-      urls
-        .filter((x) => x.isBatchUrl || x.isPixelScrape || x.isPublicApi)
-        .map((url): GameUrl => {
-          const baseName = url.name ?? '';
+  readonly gameUrlsAll = toSignal(
+    this.gameUrlService.getAll().pipe(
+      map((urls): GameUrl[] =>
+        urls
+          .filter((x) => x.isBatchUrl || x.isPixelScrape || x.isPublicApi)
+          .map((url): GameUrl => {
+            const baseName = url.name ?? '';
 
-          const suffix =
-            (url.isBatchUrl ? ' [ Batch ]' : '') +
-            (url.isPixelScrape ? ' [ Pixel ]' : '') +
-            (url.isPublicApi ? ' [ Public API ]' : '');
+            const suffix =
+              (url.isBatchUrl ? ' [ Batch ]' : '') +
+              (url.isPixelScrape ? ' [ Pixel ]' : '') +
+              (url.isPublicApi ? ' [ Public API ]' : '');
 
-          return {
-            ...url,
-            name: (baseName + suffix) as any, // remove this cast if GameUrl.name is string | null | undefined and you accept string
-          };
-        }),
+            return {
+              ...url,
+              name: (baseName + suffix) as any, // remove this cast if GameUrl.name is string | null | undefined and you accept string
+            };
+          }),
+      ),
     ),
-  ),
-  { initialValue: [] as GameUrl[] },
-);
+    { initialValue: [] as GameUrl[] },
+  );
 
   readonly gameUrlsFiltered = computed(() => {
     const gameId = this.selectedGameId();
@@ -295,6 +297,11 @@ readonly gameUrlsAll = toSignal(
     this.retryBatchButtonClicked();
   }
 
+  showPageButtonClicked(): void {
+    this.pageNumber.set(this.pageNumber() + 1);
+    this.retryBatchButtonClicked();
+  }
+
   onPageNumberChange(value: number): void {
     if (value < 1 || value > 100000) {
       this.pageNumber.set(1);
@@ -322,15 +329,22 @@ readonly gameUrlsAll = toSignal(
   }
 
   exportButtonClicked(): void {
-    const worksheet: XLSX.WorkSheet =
-      XLSX.utils.json_to_sheet(this.dataSource.data);
+    const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(
+      this.dataSource.data,
+    );
     const workbook: XLSX.WorkBook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
 
     const today = new Date();
-    XLSX.writeFile(
-      workbook,
-      `Export_${today.toDateString()}_Listings.xlsx`,
+    XLSX.writeFile(workbook, `Export_${today.toDateString()}_Listings.xlsx`);
+  }
+
+  public getShowPageUrl(): string {
+    return (
+      this.selectedGameUrl()?.partialUrl?.replace(
+        '{0}',
+        this.pageNumber().toString(),
+      ) ?? ''
     );
   }
 }
