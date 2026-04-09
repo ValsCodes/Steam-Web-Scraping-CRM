@@ -150,7 +150,6 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         return results;
     }
 
-    // TODO Test
     public async Task<WatchItemDto> ScrapeProductPixels(long gameId, string productName)
     {
         productName = productName.Trim();
@@ -339,6 +338,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         var ct = new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token;
         var options = new ChromeOptions();
 
+        options.AddArgument("--headless");
         options.AddArgument("--disable-gpu");
         options.AddArgument("--no-sandbox");
         options.AddArgument("--disable-dev-shm-usage");
