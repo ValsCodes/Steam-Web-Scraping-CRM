@@ -30,7 +30,8 @@ export class GameForm implements OnInit {
     this.gameForm = this.fb.group({
       name: ['', Validators.required],
       //baseUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\//)]],
-      pageUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\//)]]
+      pageUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\//)]],
+      internalId: [0]
     });
 
     const idParam = this.route.snapshot.paramMap.get('id');
@@ -47,7 +48,8 @@ export class GameForm implements OnInit {
       this.gameForm.patchValue({
         name: game.name,
         //baseUrl: game.baseUrl,  
-        pageUrl: game.pageUrl
+        pageUrl: game.pageUrl,
+        internalId: game.internalId,
       });
     });
   }

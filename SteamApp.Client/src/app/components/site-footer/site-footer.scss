@@ -1,8 +1,19 @@
+:host {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+router-outlet {
+  display: block;
+  flex: 1;
+}
+
 .site-footer {
   background-color: #171d25;
   color: white;
-  margin-top: 3rem;
   padding: 2rem 1rem;
+  margin-top: auto;
 }
 
 .site-footer__inner {

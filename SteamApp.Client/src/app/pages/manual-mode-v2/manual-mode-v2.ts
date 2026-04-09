@@ -34,8 +34,8 @@ import { MatTooltip } from "@angular/material/tooltip";
   styleUrl: './manual-mode-v2.scss',
 })
 export class ManualModeV2 implements OnInit, OnDestroy {
-  currentIndex: number | null = null;
-  batchSize: number | null = null;
+  currentIndex: number | null = 1;
+  batchSize: number | null = 1;
 
   readonly games$ = new BehaviorSubject<readonly Game[]>([]);
   readonly gameUrlsFiltered$ = new BehaviorSubject<readonly GameUrl[]>([]);

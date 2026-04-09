@@ -22,7 +22,7 @@ import * as XLSX from 'xlsx';
   styleUrl: './games-view.scss',
 })
 export class GamesView implements OnInit {
-  displayedColumns: string[] = ['name', 'pageUrl', 'actions'];
+  displayedColumns: string[] = ['name', 'pageUrl', 'internalId', 'actions'];
 
   searchByName = new FormControl<string>('', { nonNullable: true });
 

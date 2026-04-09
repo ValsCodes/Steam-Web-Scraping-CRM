@@ -41,7 +41,6 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
     }
 
 
-    // TODO Test
     public async Task<IEnumerable<WatchItemDto>> ScrapeFromPublicApi(long gameUrlId, short page)
     {
         if (page < 0 || page > 500)
@@ -340,14 +339,10 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         var ct = new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token;
         var options = new ChromeOptions();
 
-        // TODO Enable when testing is done
-        //options.AddArgument("--headless");
-
         options.AddArgument("--disable-gpu");
         options.AddArgument("--no-sandbox");
         options.AddArgument("--disable-dev-shm-usage");
 
-        options.PlatformName = "Linux";
         options.AcceptInsecureCertificates = true;
         options.UnhandledPromptBehavior = UnhandledPromptBehavior.AcceptAndNotify;
 

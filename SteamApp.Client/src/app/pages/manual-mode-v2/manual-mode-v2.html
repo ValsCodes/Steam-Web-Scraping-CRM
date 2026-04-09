@@ -1,229 +1,266 @@
-<div class="flex p-4">
-  <h2 class="text-2xl font-semibold text-gray-500 mb-4">
-    Manual Mode
-  </h2>
-</div>
-<div class="container p-4 gap-2">
-  <div class="flex gap-x-5 m-auto w-full justify-start">
-    <!-- Control Panel -->
-    <div class="control-panel flex flex-col p-4 rounded-md min-w-[400px]">
-      <h2 class="mb-4 font-semibold">
-        Control Panel
-      </h2>
-      <div class="filter-toolbar">
-        <!-- Game -->
-        <div class="filter-group min-w-[220px]">
-          <label>
-            Game
-          </label>
+<div class="p-4">
+    <header class="mb-6">
+        <h1 class="text-2xl font-semibold text-gray-700">Manual Mode</h1>
+    </header>
 
-          <select class="px-2 py-1" [formControl]="gameIdControl">
-            <option [ngValue]="null">
-              Select Game
-            </option>
-            @for (game of games$ | async; track game.id)
-            {
-            <option [ngValue]="game.id">
-              {{ game.name }}
-            </option>
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
+        <!-- Left Rail -->
+        <aside class="flex flex-col gap-4">
+            <!-- Control Panel -->
+            <section class="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+                <h2 class="mb-4 text-lg font-semibold text-slate-800">Control Panel</h2>
+
+                <div class="rounded-md border border-slate-200 p-4">
+                    <h3 class="mb-4 text-sm font-semibold text-slate-700">1. Select Source</h3>
+
+                    <div class="flex flex-col gap-4">
+                        <div>
+                            <label class="mb-1 block text-sm font-medium text-slate-700">Game</label>
+                            <select class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="gameIdControl">
+                                <option [ngValue]="null">Select Game</option>
+                                @for (game of games$ | async; track game.id) {
+                                    <option [ngValue]="game.id">{{ game.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="mb-1 block text-sm font-medium text-slate-700">Game URL</label>
+                            <select class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="gameUrlIdControl">
+                                <option [ngValue]="null">Select Game URL</option>
+                                @for (url of gameUrlsFiltered$ | async; track url.id) {
+                                    <option [ngValue]="url.id">{{ url.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="flex flex-wrap justify-end gap-2">
+                            <button
+                                class="button button-small-primary"
+                                (click)="showAllButtonClicked()"
+                                [hidden]="this.selectedGameUrl?.isBatchUrl"
+                                [disabled]="gameUrlIdControl.value === null">
+                                Load Products
+                            </button>
+
+                            <button
+                                (click)="clearButtonClicked()"
+                                class="button button-small-danger">
+                                Reset Source
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Batch Panel -->
+            <section class="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+                <h2 class="mb-4 text-lg font-semibold text-slate-800">Batch Panel</h2>
+
+                <div class="rounded-md border border-slate-200 p-4">
+                    <h3 class="mb-4 text-sm font-semibold text-slate-700">2. Batch Settings</h3>
+
+                    <div class="flex flex-col gap-4">
+                        <div>
+                            <label class="mb-1 block text-sm font-medium text-slate-700">Current Item</label>
+                            <input
+                                class="w-full rounded border border-slate-300 px-3 py-2"
+                                type="number"
+                                [value]="currentIndex"
+                                (input)="currentIndex = $any($event.target).valueAsNumber" />
+                        </div>
+
+                        <div>
+                            <label class="mb-1 block text-sm font-medium text-slate-700">Batch Size</label>
+                            <input
+                                class="w-full rounded border border-slate-300 px-3 py-2"
+                                type="number"
+                                [value]="batchSize"
+                                (input)="batchSize = $any($event.target).valueAsNumber" />
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                (click)="startBatchButtonClicked()"
+                                class="button button-small-success">
+                                Run Batch
+                            </button>
+
+                            <button
+                                (click)="clearBatchButtonClicked()"
+                                class="button button-small-danger">
+                                Reset Batch
+                            </button>
+
+                            <button
+                                (click)="openAllButtonClicked()"
+                                class="button button-small-primary"
+                                [hidden]="this.selectedGameUrl?.isBatchUrl === true"
+                                [disabled]="true">
+                                Open Loaded Items
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Links -->
+            <section class="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+                <h2 class="mb-4 text-lg font-semibold text-slate-800">Links</h2>
+
+                <ul class="space-y-3 text-sm text-slate-700">
+                    <li>
+                        <a
+                            href="https://backpack.tf/spreadsheet"
+                            matTooltip="https://backpack.tf/spreadsheet"
+                            target="_blank"
+                            class="text-blue-600 hover:underline">
+                            BackpackTF Prices URL
+                        </a>
+                    </li>
+
+                    <li>
+                        <a
+                            href="https://steamcommunity.com/id/_Val/inventory"
+                            matTooltip="https://steamcommunity.com/id/_Val/inventory"
+                            target="_blank"
+                            class="text-blue-600 hover:underline">
+                            Inventory
+                        </a>
+                    </li>
+
+                    <li>
+                        <a
+                            href="https://steamcommunity.com/market/"
+                            matTooltip="https://steamcommunity.com/market/"
+                            target="_blank"
+                            class="text-blue-600 hover:underline">
+                            Community Market
+                        </a>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Word List -->
+            <section class="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+                <h2 class="mb-4 text-lg font-semibold text-slate-800">Word List</h2>
+
+                <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
+                    <app-copy-link
+                        [textToCopy]="'Strange Part:'"
+                        [textToShow]="'< Strange Part: >'"
+                        matTooltip="< Strange Part: >">
+                    </app-copy-link>
+                </div>
+            </section>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="flex min-w-0 flex-col gap-4">
+            <!-- Filters / Actions -->
+            @if (products.length > 0) {
+                <section class="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+                    <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 flex-1">
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-slate-700">Product Name</label>
+                                <input
+                                    class="w-full rounded border border-slate-300 px-3 py-2"
+                                    type="text"
+                                    placeholder="Filter by name"
+                                    [formControl]="searchByNameFilterControl" />
+                            </div>
+
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-slate-700">Rating</label>
+                                <input
+                                    class="w-full rounded border border-slate-300 px-3 py-2"
+                                    type="number"
+                                    placeholder="Filter by rating"
+                                    [formControl]="searchByRatingFilterControl" />
+                            </div>
+
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-slate-700">Tags</label>
+                                <select class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="tagSelectControl">
+                                    <option [ngValue]="null">Select Tag</option>
+                                    @for (tag of gameTagsFilter; track tag.id) {
+                                        <option [ngValue]="tag">{{ tag.name }}</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                (click)="clearFiltersButtonClicked()"
+                                class="button button-small-danger">
+                                Clear Filters
+                            </button>
+
+                            <button
+                                (click)="exportButtonClicked()"
+                                class="button button-small-primary">
+                                Export
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (this.tagsFilter.length > 0) {
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            @for (filter of this.tagsFilter; track filter) {
+                                <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700">
+                                    <span>{{ filter }}</span>
+                                    <button type="button" (click)="removeFilter(filter)" class="font-semibold text-slate-500 hover:text-slate-800">
+                                        ×
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+                </section>
+
+                <!-- Results -->
+                <section class="rounded-lg border border-slate-300 bg-white shadow-sm">
+                    <div class="border-b border-slate-200 px-4 py-3">
+                        <h2 class="text-lg font-semibold text-slate-800">Products</h2>
+                        <p class="mt-1 text-sm text-slate-500">
+                            Browse and open filtered product matches.
+                        </p>
+                    </div>
+
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                            @for (product of productsFiltered; track product.productId; let i = $index) {
+                                <a [href]="product.fullUrl" target="_blank" class="block">
+                                    <div
+                                        class="flex h-[5.5rem] flex-col justify-center rounded-lg border border-slate-200 bg-slate-50 p-3 transition hover:border-slate-300 hover:bg-white"
+                                        [matTooltip]="product.fullUrl">
+                                        <strong class="text-sm text-slate-800">
+                                            {{ i + 1 }}. {{ product.productName }}
+                                        </strong>
+
+                                        @if (product.rating !== null) {
+                                            <span class="mt-2 text-sm text-slate-600">
+                                                Rating: {{ product.rating }} ⭐
+                                            </span>
+                                        }
+                                    </div>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </section>
+            } @else {
+                <section class="rounded-lg border border-slate-300 bg-white p-8 shadow-sm">
+                    <div class="flex min-h-[320px] flex-col items-center justify-center text-center">
+                        <h2 class="text-lg font-semibold text-slate-800">No Products Loaded</h2>
+                        <p class="mt-2 max-w-md text-sm text-slate-500">
+                            Select a game and game URL, then load products to start filtering and batching.
+                        </p>
+                    </div>
+                </section>
             }
-          </select>
-        </div>
-
-        <!-- Game URL -->
-        <div class="filter-group min-w-[220px]">
-          <label>
-            Game URL
-          </label>
-          <select class="px-2 py-1" [formControl]="gameUrlIdControl">
-            <option [ngValue]="null">
-              Select Game URL
-            </option>
-            @for (url of gameUrlsFiltered$ | async; track url.id)
-            {
-            <option [ngValue]="url.id">
-              {{ url.name }}
-            </option>
-            }
-          </select>
-        </div>
-      </div>
-
-      <div class="flex gap-2 mt-4">
-        <button class="button button-small-primary" (click)="showAllButtonClicked()"
-          [hidden]="this.selectedGameUrl?.isBatchUrl" [disabled]="gameUrlIdControl.value === null">
-          Show All
-        </button>
-
-        <button (click)="clearButtonClicked()" class="button button-small-danger">
-          Clear
-        </button>
-      </div>
+        </main>
     </div>
-
-    <!-- Batch Panel -->
-    <div class="control-panel flex flex-col p-4 rounded-md min-w-[400px]">
-      <h2 class="mb-4 font-semibold">
-        Batch Panel
-      </h2>
-
-      <div class="flex flex-col h-full justify-between">
-        <div class="filter-toolbar">
-          <div class="filter-group">
-            <label> Current Item </label>
-            <input class="w-[100px] ml-2 pl-2 rounded-md" type="number" [value]="currentIndex"
-              (input)="currentIndex = $any($event.target).valueAsNumber">
-          </div>
-
-          <div class="filter-group">
-            <label>
-              Batch Size
-            </label>
-            <input class="w-[100px] ml-2 pl-2 rounded-md" type="number" [value]="batchSize"
-              (input)="batchSize = $any($event.target).valueAsNumber">
-          </div>
-        </div>
-
-        <div class="flex gap-2 mt-4">
-          <button (click)="startBatchButtonClicked()" class="button button-small-success">
-            Start Batch
-          </button>
-
-          <button (click)="clearBatchButtonClicked()" class="button button-small-danger">
-            Clear
-          </button>
-
-          <button (click)="openAllButtonClicked()" class="button button-small-primary"
-            [hidden]="this.selectedGameUrl?.isBatchUrl === true" [disabled]="true">
-            Open All
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Links -->
-    <div class="control-panel flex flex-col p-4 rounded-md min-w-[300px]">
-
-      <h2 class="mb-4 font-semibold">
-        Links
-      </h2>
-
-      <ul class="list-disc list-inside ml-2">
-
-        <li>
-          <a href="https://backpack.tf/spreadsheet" matTooltip="https://backpack.tf/spreadsheet" target="_blank">
-            BackpackTF Prices URL
-          </a>
-        </li>
-
-        <li>
-          <a href="https://steamcommunity.com/id/_Val/inventory" matTooltip="https://steamcommunity.com/id/_Val/inventory"  target="_blank">
-            Inventory
-          </a>
-        </li>
-
-        <li>
-          <a href="https://steamcommunity.com/market/" matTooltip="https://steamcommunity.com/market/" target="_blank">
-            Community Market
-          </a>
-        </li>
-      </ul>
-    </div>
-
-    <!-- Word List -->
-    <div class="control-panel flex flex-col p-4 rounded-md min-w-[300px]">
-
-      <h2 class="mb-4 font-semibold">
-        Word List
-      </h2>
-      <app-copy-link [textToCopy]="'Strange Part:'" [textToShow]="'< Strange Part: >'" matTooltip="< Strange Part: >">
-      </app-copy-link>
-    </div>
-  </div>
-
-  @if(products.length > 0)
-  {
-  <div class="flex justify-between">
-    <div class="filter-toolbar">
-      <!-- Product Name -->
-      <div class="filter-group">
-        <label>
-          Product Name
-        </label>
-
-        <input class="px-2 py-1" type="text" placeholder="Filter by name" [formControl]="searchByNameFilterControl">
-      </div>
-
-      <!-- Rating -->
-      <div class="filter-group">
-
-        <label>
-          Rating
-        </label>
-
-        <input class="px-2 py-1" type="number" placeholder="Filter by rating"
-          [formControl]="searchByRatingFilterControl">
-
-      </div>
-
-      <!-- Tags -->
-      <div class="filter-group">
-        <label>
-          Tags
-        </label>
-
-        <select class="px-2 py-1" [formControl]="tagSelectControl">
-
-          <option [ngValue]="null">
-            Select Tag
-          </option>
-
-          @for (tag of gameTagsFilter; track tag.id)
-          {
-          <option [ngValue]="tag">
-            {{ tag.name }}
-          </option>
-          }
-
-        </select>
-
-      </div>
-
-      @if (this.tagsFilter.length > 0) {
-      <div class="tag-chip-row">
-        @for (filter of this.tagsFilter; track filter) {
-        <div class="tag-chip">
-          <span>{{ filter }}</span>
-          <button type="button" (click)="removeFilter(filter)">×</button>
-        </div>
-        }
-      </div>
-      }
-
-      <button (click)="clearFiltersButtonClicked()" class="button button-small-danger">
-        Clear
-      </button>
-    </div>
-    <button (click)="exportButtonClicked()" class="button button-small-primary">Export </button>
-  </div>
-
-  <div class="panel panel--weapon-list mt-6">
-    @for (product of productsFiltered; track product.productId; let i = $index)
-    {
-    <a [href]="product.fullUrl" target="_blank">
-      <div class="grid-item flex flex-col h-[4.5rem]" [matTooltip]="product.fullUrl">
-        <strong>
-          {{ i + 1 }}.
-          {{ product.productName }}
-
-          @if(product.rating !== null)
-          {
-          Rating: {{ product.rating }} ⭐
-          }
-        </strong>
-      </div>
-    </a>
-    }
-  </div>
-  }
 </div>

@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SiteHeaderComponent } from './components/site-header/site-header.component';
 import { MatPaginatorModule } from '@angular/material/paginator';
+import { SiteFooter } from "./components/site-footer/site-footer";
 
 @Component({
   selector: 'app-root',
@@ -12,6 +13,7 @@ import { MatPaginatorModule } from '@angular/material/paginator';
     FormsModule,
     SiteHeaderComponent,
     MatPaginatorModule,
+    SiteFooter
 ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',

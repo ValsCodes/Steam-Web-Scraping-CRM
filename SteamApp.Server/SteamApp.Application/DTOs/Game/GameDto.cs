@@ -7,5 +7,7 @@ namespace SteamApp.Application.DTOs.Game
         public string BaseUrl { get; set; }
 
         public string? PageUrl { get; set; }
+
+        public long? InternalId { get; set; }
     }
 }
