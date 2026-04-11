@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -71,6 +71,7 @@ export class WishListsView implements OnInit, OnDestroy {
     private readonly gameService: GameService,
     private readonly steamService: SteamService,
     private readonly router: Router,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -215,6 +216,8 @@ export class WishListsView implements OnInit, OnDestroy {
           if (this.checkingId === whishListItemId) {
             this.checkingId = null;
           }
+
+          this.cdr.markForCheck();
         }),
       )
       .subscribe({
