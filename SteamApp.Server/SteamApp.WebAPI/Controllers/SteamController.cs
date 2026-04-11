@@ -12,6 +12,7 @@ namespace SteamApp.WebAPI.Controllers;
 [Authorize]
 public class SteamController(
     ISteamService steamService,
+    IWishlistService wishlistService,
     ILogger<SteamController> logger,
     IMemoryCache cache) : ControllerBase
 {
@@ -115,12 +116,12 @@ public class SteamController(
             {
                 var cacheKey = string.Format(CacheKeys.WishListItem, wishlistId);
 
-                if (cache.TryGetValue(cacheKey, out object cached))
+                if (cache.TryGetValue(cacheKey, out var cached))
                 {
                     return Ok(cached);
                 }
 
-                var result = await steamService.CheckWishlistItem(wishlistId);
+                var result = await wishlistService.CheckWishlistItem(wishlistId);
 
                 cache.Set(cacheKey, result, TimeSpan.FromMinutes(5));
                 return Ok(result);

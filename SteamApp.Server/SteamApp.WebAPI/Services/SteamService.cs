@@ -150,56 +150,6 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         return results;
     }
 
-    public async Task<WhishListResponse?> CheckWishlistItem(long wishListId)
-    {
-        var wishList = await steamRepository.GetWishListItem(wishListId);
-        if (wishList == null)
-        {
-            throw new Exception("Wishlist not found.");
-        }
-
-        var url = wishList.Game.PageUrl;
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            throw new Exception("Game URL is null or empty.");
-        }
-
-        var options = new ChromeOptions();
-        options.AddArgument("--headless");
-        options.AddArgument("--disable-gpu");
-        options.AddArgument("--no-sandbox");
-        options.AddArgument("--disable-dev-shm-usage");
-
-        //options.PlatformName = "Linux";
-        options.AcceptInsecureCertificates = true;
-        options.UnhandledPromptBehavior = UnhandledPromptBehavior.AcceptAndNotify;
-
-        using IWebDriver driver = new ChromeDriver(options);
-        driver.Navigate().GoToUrl(url);
-
-        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
-        wait.Until(ExpectedConditions.ElementExists(By.CssSelector("div[id^='appHubAppName']")));
-
-        // Price elements are not guaranteed; use FindElements to avoid exceptions.
-        IWebElement? gamePriceEl = driver.FindElements(By.CssSelector(".game_purchase_price.price")).FirstOrDefault();
-        IWebElement? discountPriceEl = driver.FindElements(By.CssSelector(".discount_final_price")).FirstOrDefault();
-
-        if (gamePriceEl == null && discountPriceEl == null)
-        {
-            throw new Exception("No Price element was found.");
-        }
-
-        // Prefer discounted price if present; otherwise base price.
-        double finalPrice = ParseSteamPrice(gamePriceEl!, preferCentsAttribute: true);
-
-        return new WhishListResponse
-        {
-            IsPriceReached = finalPrice <= wishList.Price,
-            CurrentPrice = finalPrice,
-            GameName = wishList.Game.Name,
-        };
-    }
-
     #region Not Done
     //public async Task<WatchItemDto> ScrapeProductPixels(long gameId, string productName)
     //{
@@ -296,7 +246,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
     #endregion
 
     #region Private Methods
-    private static double ParseSteamPrice(IWebElement el, bool preferCentsAttribute)
+    public static double ParseSteamPrice(IWebElement el, bool preferCentsAttribute)
     {
         if (preferCentsAttribute)
         {
@@ -335,6 +285,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
 
         throw new Exception($"Could not parse price text: '{text}'");
     }
+
     private static async Task<IEnumerable<WatchItemDto>> ScrapePageFromUrl(string url)
     {
         var ct = new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token;

@@ -2,20 +2,17 @@
 using SteamApp.Application.Caching;
 using SteamApp.Infrastructure;
 using SteamApp.Infrastructure.Services;
-using SteamApp.WebApiClient;
-
 namespace SteamApp.WebAPI.Jobs;
 
 public class WishlistCheckJob(
     ILogger<WishlistCheckJob> log, 
-    SteamApiClient apiClient, 
     IEmailService emailSerivce, 
     IMemoryCache cache, 
-    ISteamService steamService) : IJobService
+    IWishlistService wishlistService) : IJobService
 {
     public async Task RunAsync(CancellationToken ct)
     {
-        var wishList = await apiClient.WishList.GetAllAsync(ct);
+        var wishList = await wishlistService.GetAllAsync(ct);
 
         await Task.Delay(400, ct);
 
@@ -30,7 +27,7 @@ public class WishlistCheckJob(
                     continue;
                 }
 
-                var result = await steamService.CheckWishlistItem(item.Id);
+                var result = await wishlistService.CheckWishlistItem(item.Id);
 
                 if (result != null && result.IsPriceReached)
                 {

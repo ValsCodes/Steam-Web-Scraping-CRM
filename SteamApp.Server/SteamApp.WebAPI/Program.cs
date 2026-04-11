@@ -14,8 +14,6 @@ using SteamApp.WebAPI.Mapper;
 using SteamApp.WebAPI.MinimalAPIs;
 using SteamApp.WebAPI.Repositories;
 using SteamApp.WebAPI.Services;
-using SteamApp.WebApiClient;
-using SteamApp.WebApiClient.Managers;
 using System.Text;
 
 namespace SteamApp.WebAPI;
@@ -177,33 +175,17 @@ public class Program
 
         builder.Services.AddAutoMapper(typeof(GameMappingProfile).Assembly);
 
-        builder.Services.AddHttpClient<AuthApiClient>(client =>
-        {
-            client.BaseAddress =
-                new Uri(builder.Configuration["InternalApi:BaseUrl"]);
-        });
-
-        builder.Services.AddHttpClient<BaseApiClient>(client =>
-        {
-            client.BaseAddress =
-                new Uri(builder.Configuration["InternalApi:BaseUrl"]);
-        });
-
-        builder.Services.AddHttpClient<SteamApiClient>(client =>
-        {
-            client.BaseAddress =
-                new Uri(builder.Configuration["InternalApi:BaseUrl"]);
-        });
-
         builder.Services.Configure<EmailOptions>(
             builder.Configuration.GetSection("Mailtrap").Exists()
                 ? builder.Configuration.GetSection("Mailtrap")
                 : builder.Configuration.GetSection("Mailstrap"));
 
+        builder.Services.AddScoped<IEmailService, EmailService>();
         builder.Services.AddScoped<ISteamRepository, SteamRepository>();
         builder.Services.AddScoped<ISteamService, SteamService>();
-        builder.Services.AddScoped<IEmailService, EmailService>();
-        builder.Services.AddScoped<SteamApiClient>();
+        builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
+        builder.Services.AddScoped<IWishlistService, WishlistService>();
+
         builder.Services.AddScoped<WishlistCheckJob>();
 
         builder.Services.AddMemoryCache();

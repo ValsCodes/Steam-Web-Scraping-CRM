@@ -36,7 +36,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SteamApp.Infrastructure\SteamApp.Infrastructure.csproj" />
-    <ProjectReference Include="..\SteamApp.WebApiClient\SteamApp.WebApiClient.csproj" />
   </ItemGroup>
 
   <ItemGroup>

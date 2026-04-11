@@ -26,6 +26,7 @@ public class EmailService(IOptions<EmailOptions> options) : IEmailService
                 .Subject(message.Subject)
                 .Category("Integration Test")
                 .Text(message.Body);
+
             SendEmailResponse? response = await mailtrapClient
                 .Test(sandboxId)
                 .Send(request);
