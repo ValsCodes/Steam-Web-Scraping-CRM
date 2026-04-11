@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { finalize, Observable } from 'rxjs';
 import { GameService, WishListService } from '../../../services';
 import { CreateWishList, Game, UpdateWishList } from '../../../models';
 
@@ -19,6 +20,7 @@ import { CreateWishList, Game, UpdateWishList } from '../../../models';
 export class WishListForm implements OnInit {
   isEditMode = false;
   wishListId?: number;
+  isSubmitting = false;
 
   form = this.fb.nonNullable.group({
     gameId: [0, Validators.required],
@@ -76,27 +78,27 @@ export class WishListForm implements OnInit {
     }
 
   onSubmit(): void {
-    if (this.form.invalid) {
+    if (this.form.invalid || this.isSubmitting) {
       return;
     }
 
-    if (this.isEditMode && this.wishListId) {
-      const update: UpdateWishList = {
-        price: this.form.controls.price.value,
-        isActive: this.form.controls.isActive.value,
-        name: this.form.controls.name.value,
-      };
+    this.isSubmitting = true;
 
-      this.wishListService.update(this.wishListId, update).subscribe(() => {
+    const request$: Observable<unknown> = this.isEditMode && this.wishListId
+      ? this.wishListService.update(this.wishListId, {
+          price: this.form.controls.price.value,
+          isActive: this.form.controls.isActive.value,
+          name: this.form.controls.name.value,
+        } as UpdateWishList)
+      : this.wishListService.create(this.form.getRawValue() as CreateWishList);
+
+    request$
+      .pipe(finalize(() => {
+        this.isSubmitting = false;
+      }))
+      .subscribe(() => {
         this.router.navigate(['/wishlist']);
       });
-    } else {
-      const create: CreateWishList = this.form.getRawValue();
-
-      this.wishListService.create(create).subscribe(() => {
-        this.router.navigate(['/wishlist']);
-      });
-    }
   }
 
   cancel(): void {

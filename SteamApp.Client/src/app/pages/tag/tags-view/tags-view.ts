@@ -8,7 +8,7 @@ import { MatSort, MatSortModule } from '@angular/material/sort';
 
 import { GameService, TagService } from '../../../services';
 import { Game, Tag } from '../../../models';
-import { BehaviorSubject, combineLatest, startWith, Subject, takeUntil } from 'rxjs';
+import { BehaviorSubject, combineLatest, finalize, startWith, Subject, takeUntil } from 'rxjs';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 
 import * as XLSX from 'xlsx';
@@ -37,6 +37,7 @@ export class TagsView implements OnInit, OnDestroy {
 
   dataSource = new MatTableDataSource<Tag>([]);
   private tags: Tag[] = [];
+  private readonly deletingIds = new Set<number>();
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -111,13 +112,29 @@ export class TagsView implements OnInit, OnDestroy {
   }
 
   deleteButtonClicked(id: number): void {
+    if (this.isDeleting(id)) {
+      return;
+    }
+
     if (!confirm('Delete this tag?')) {
       return;
     }
 
-    this.tagService.delete(id).subscribe(() => {
-      this.fetchTags();
-    });
+    this.deletingIds.add(id);
+
+    this.tagService.delete(id)
+      .pipe(
+        finalize(() => {
+          this.deletingIds.delete(id);
+        }),
+      )
+      .subscribe(() => {
+        this.fetchTags();
+      });
+  }
+
+  isDeleting(id: number): boolean {
+    return this.deletingIds.has(id);
   }
 
   clearFiltersButtonClicked(): void {

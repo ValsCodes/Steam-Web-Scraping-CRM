@@ -2,7 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { forkJoin, of, switchMap } from 'rxjs';
+import { finalize, forkJoin, of, switchMap } from 'rxjs';
 
 import { GameUrlService } from '../../../services/game-url/game-url.service';
 import { CreateGameUrl, UpdateGameUrl } from '../../../models/game-url.model';
@@ -23,6 +23,7 @@ import { GameUrlPixelService } from '../../../services/game-url-pixel/game-url-p
 export class GameUrlForm implements OnInit {
   isEditMode = false;
   gameUrlId?: number;
+  isSubmitting = false;
 
   readonly games = signal<readonly Game[]>([]);
   readonly products = signal<readonly Product[]>([]);
@@ -288,29 +289,27 @@ export class GameUrlForm implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.form.invalid) {
+    if (this.form.invalid || this.isSubmitting) {
       return;
     }
 
-    if (this.isEditMode && this.gameUrlId) {
-      const update: UpdateGameUrl = this.form.getRawValue();
+    this.isSubmitting = true;
 
-      this.gameUrlService
-        .update(this.gameUrlId, update)
-        .pipe(switchMap(() => this.syncRelations(this.gameUrlId!)))
-        .subscribe(() => {
-          this.router.navigate(['/game-urls']);
-        });
-    } else {
-      const create: CreateGameUrl = this.form.getRawValue();
+    const request$ = this.isEditMode && this.gameUrlId
+      ? this.gameUrlService
+          .update(this.gameUrlId, this.form.getRawValue() as UpdateGameUrl)
+          .pipe(switchMap(() => this.syncRelations(this.gameUrlId!)))
+      : this.gameUrlService
+          .create(this.form.getRawValue() as CreateGameUrl)
+          .pipe(switchMap(created => this.syncRelations(created.id)));
 
-      this.gameUrlService
-        .create(create)
-        .pipe(switchMap(created => this.syncRelations(created.id)))
-        .subscribe(() => {
-          this.router.navigate(['/game-urls']);
-        });
-    }
+    request$
+      .pipe(finalize(() => {
+        this.isSubmitting = false;
+      }))
+      .subscribe(() => {
+        this.router.navigate(['/game-urls']);
+      });
   }
 
   private syncRelations(gameUrlId: number) {

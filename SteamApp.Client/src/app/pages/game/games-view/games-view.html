@@ -70,7 +70,7 @@
             Edit
           </button>
 
-          <button class="delete-button" (click)="deleteButtonClicked(game.id)">
+          <button class="delete-button" (click)="deleteButtonClicked(game.id)" [disabled]="isDeleting(game.id)" [class.busy-cursor]="isDeleting(game.id)">
             Delete
           </button>
         </td>

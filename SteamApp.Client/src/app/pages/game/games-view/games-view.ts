@@ -8,6 +8,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { GameService } from '../../../services/game/game.service';
 import * as XLSX from 'xlsx';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'steam-games-view',
@@ -42,6 +43,7 @@ export class GamesView implements OnInit {
   });
 
   readonly dataSource = new MatTableDataSource<Game>([]);
+  private readonly deletingIds = new Set<number>();
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -102,8 +104,22 @@ export class GamesView implements OnInit {
   }
 
   deleteButtonClicked(id: number): void {
-    this.gameService.delete(id).subscribe({
+    if (this.isDeleting(id)) {
+      return;
+    }
+
+    this.deletingIds.add(id);
+
+    this.gameService.delete(id).pipe(
+      finalize(() => {
+        this.deletingIds.delete(id);
+      }),
+    ).subscribe({
       next: () => this.fetchGames(),
     });
+  }
+
+  isDeleting(id: number): boolean {
+    return this.deletingIds.has(id);
   }
 }

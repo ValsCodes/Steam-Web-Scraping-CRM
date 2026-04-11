@@ -17,6 +17,7 @@ import { GameService, PixelService } from '../../../services';
 import {
   BehaviorSubject,
   combineLatest,
+  finalize,
   startWith,
   Subject,
   takeUntil,
@@ -50,6 +51,7 @@ export class PixelsView implements OnInit, OnDestroy {
 
   dataSource = new MatTableDataSource<PixelListItem>([]);
   private pixels: PixelListItem[] = [];
+  private readonly deletingIds = new Set<number>();
 
   private readonly destroy$ = new Subject<void>();
 
@@ -135,13 +137,29 @@ export class PixelsView implements OnInit, OnDestroy {
   }
 
   deleteButtonClicked(id: number): void {
+    if (this.isDeleting(id)) {
+      return;
+    }
+
     if (!confirm('Delete this pixel?')) {
       return;
     }
 
-    this.pixelService.delete(id).subscribe(() => {
-      this.fetchPixels();
-    });
+    this.deletingIds.add(id);
+
+    this.pixelService.delete(id)
+      .pipe(
+        finalize(() => {
+          this.deletingIds.delete(id);
+        }),
+      )
+      .subscribe(() => {
+        this.fetchPixels();
+      });
+  }
+
+  isDeleting(id: number): boolean {
+    return this.deletingIds.has(id);
   }
 
   clearFiltersButtonClicked(): void {

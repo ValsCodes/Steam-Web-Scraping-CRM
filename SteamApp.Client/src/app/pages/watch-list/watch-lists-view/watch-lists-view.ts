@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { startWith, Subject, takeUntil } from 'rxjs';
+import { finalize, startWith, Subject, takeUntil } from 'rxjs';
 
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
@@ -37,6 +37,7 @@ export class WatchListsView implements OnInit, OnDestroy {
 
   dataSource = new MatTableDataSource<WatchList>([]);
   private allItems: WatchList[] = [];
+  private readonly deletingIds = new Set<number>();
 
   readonly searchByNameControl = new FormControl<string>('', { nonNullable: true });
 
@@ -117,12 +118,28 @@ export class WatchListsView implements OnInit, OnDestroy {
   }
 
   deleteButtonClicked(id: number): void {
+    if (this.isDeleting(id)) {
+      return;
+    }
+
     if (!confirm('Delete this watch list item?')) {
       return;
     }
 
-    this.watchListService.delete(id).subscribe(() => {
-      this.fetchWatchLists();
-    });
+    this.deletingIds.add(id);
+
+    this.watchListService.delete(id)
+      .pipe(
+        finalize(() => {
+          this.deletingIds.delete(id);
+        }),
+      )
+      .subscribe(() => {
+        this.fetchWatchLists();
+      });
+  }
+
+  isDeleting(id: number): boolean {
+    return this.deletingIds.has(id);
   }
 }

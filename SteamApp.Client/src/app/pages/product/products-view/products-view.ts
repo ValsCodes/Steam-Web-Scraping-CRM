@@ -6,7 +6,7 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { Subject, takeUntil } from 'rxjs';
+import { finalize, Subject, takeUntil } from 'rxjs';
 
 import { GameService, ProductService, TagService } from '../../../services';
 import { Game, Product, Tag, UpdateProductStatus } from '../../../models';
@@ -41,6 +41,8 @@ export class ProductsView implements OnInit, OnDestroy {
   readonly gameTagsAll = signal<readonly Tag[]>([]);
   readonly gameTagsFilter = signal<readonly Tag[]>([]);
   readonly tagsFilter = signal<readonly string[]>([]);
+  private readonly deletingIds = new Set<number>();
+  private readonly statusUpdatingIds = new Set<number>();
 
   dataSource = new MatTableDataSource<Product>([]);
 
@@ -146,6 +148,10 @@ export class ProductsView implements OnInit, OnDestroy {
   }
 
   activeButtonClicked(product: Product): void {
+    if (this.isStatusUpdating(product.id)) {
+      return;
+    }
+
     const nextIsActive = !product.isActive;
 
     const input: UpdateProductStatus = {
@@ -153,9 +159,16 @@ export class ProductsView implements OnInit, OnDestroy {
       isActive: nextIsActive,
     };
 
+    this.statusUpdatingIds.add(product.id);
+
     this.productService
       .updateStatus(input)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.statusUpdatingIds.delete(product.id);
+        }),
+      )
       .subscribe(() => {
         this.products.set(
           this.products().map(p => (p.id === product.id ? { ...p, isActive: nextIsActive } : p)),
@@ -166,14 +179,34 @@ export class ProductsView implements OnInit, OnDestroy {
   }
 
   deleteButtonClicked(id: number): void {
+    if (this.isDeleting(id)) {
+      return;
+    }
+
     if (!confirm('Delete this product?')) {
       return;
     }
 
-    this.productService.delete(id).subscribe(() => {
-      this.fetchProducts();
-      this.loadFilteredProducts();
-    });
+    this.deletingIds.add(id);
+
+    this.productService.delete(id)
+      .pipe(
+        finalize(() => {
+          this.deletingIds.delete(id);
+        }),
+      )
+      .subscribe(() => {
+        this.fetchProducts();
+        this.loadFilteredProducts();
+      });
+  }
+
+  isDeleting(id: number): boolean {
+    return this.deletingIds.has(id);
+  }
+
+  isStatusUpdating(id: number): boolean {
+    return this.statusUpdatingIds.has(id);
   }
 
   onTagSelectedFromSelect(): void {

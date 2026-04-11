@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { finalize, Observable } from 'rxjs';
 import { GameService, PixelService } from '../../../services';
 import { CreatePixel, UpdatePixel, Game } from '../../../models';
 
@@ -15,6 +16,7 @@ import { CreatePixel, UpdatePixel, Game } from '../../../models';
 export class PixelForm implements OnInit {
   isEditMode = false;
   pixelId?: number;
+  isSubmitting = false;
 
   games: Game[] = [];
 
@@ -64,21 +66,23 @@ export class PixelForm implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.form.invalid) {
+    if (this.form.invalid || this.isSubmitting) {
       return;
     }
 
-    if (this.isEditMode && this.pixelId) {
-      const update: UpdatePixel = this.form.getRawValue();
-      this.pixelService.update(this.pixelId, update).subscribe(() => {
+    this.isSubmitting = true;
+
+    const request$: Observable<unknown> = this.isEditMode && this.pixelId
+      ? this.pixelService.update(this.pixelId, this.form.getRawValue() as UpdatePixel)
+      : this.pixelService.create(this.form.getRawValue() as CreatePixel);
+
+    request$
+      .pipe(finalize(() => {
+        this.isSubmitting = false;
+      }))
+      .subscribe(() => {
         this.router.navigate(['/pixels']);
       });
-    } else {
-      const create: CreatePixel = this.form.getRawValue();
-      this.pixelService.create(create).subscribe(() => {
-        this.router.navigate(['/pixels']);
-      });
-    }
   }
 
   cancel(): void {

@@ -9,7 +9,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { Game, GameUrl } from '../../../models';
 import { GameService, GameUrlService } from '../../../services';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { combineLatest, startWith, Subject, takeUntil } from 'rxjs';
+import { combineLatest, finalize, startWith, Subject, takeUntil } from 'rxjs';
 import * as XLSX from 'xlsx';
 
 @Component({
@@ -46,6 +46,7 @@ export class GameUrlsView implements OnInit, OnDestroy {
 
   dataSource = new MatTableDataSource<GameUrl>([]);
   private gameUrls: GameUrl[] = [];
+  private readonly deletingIds = new Set<number>();
 
   private readonly destroy$ = new Subject<void>();
 
@@ -127,12 +128,27 @@ export class GameUrlsView implements OnInit, OnDestroy {
 
   deleteButtonClicked(id: number): void
   {
+    if (this.isDeleting(id)) { return; }
     if (!confirm('Delete this Game URL?')) { return; }
 
-    this.gameUrlService.delete(id).subscribe(() =>
-    {
-      this.fetchGameUrls();
-    });
+    this.deletingIds.add(id);
+
+    this.gameUrlService.delete(id)
+      .pipe(
+        finalize(() =>
+        {
+          this.deletingIds.delete(id);
+        }),
+      )
+      .subscribe(() =>
+      {
+        this.fetchGameUrls();
+      });
+  }
+
+  isDeleting(id: number): boolean
+  {
+    return this.deletingIds.has(id);
   }
 
   clearFiltersButtonClicked(): void

@@ -11,7 +11,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { finalize, Observable, Subject, takeUntil } from 'rxjs';
 
 import {
   CreateWatchList,
@@ -31,6 +31,7 @@ export class WatchListForm implements OnInit, OnDestroy {
 
   isEditMode = false;
   watchListId?: number;
+  isSubmitting = false;
 
   form = this.fb.nonNullable.group({
     url: ['', Validators.required],
@@ -79,27 +80,26 @@ export class WatchListForm implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
-    if (this.form.invalid) {
+    if (this.form.invalid || this.isSubmitting) {
       return;
     }
 
-    if (this.isEditMode && this.watchListId !== undefined) {
-      const update: UpdateWatchList = this.form.getRawValue();
+    this.isSubmitting = true;
 
-      this.watchListService
-        .update(this.watchListId, update)
-        .subscribe(() => {
-          this.router.navigate(['/watch-list']);
-        });
+    const request$: Observable<unknown> = this.isEditMode && this.watchListId !== undefined
+      ? this.watchListService.update(this.watchListId, this.form.getRawValue() as UpdateWatchList)
+      : this.watchListService.create(this.form.getRawValue() as CreateWatchList);
 
-      return;
-    }
-
-    const create: CreateWatchList = this.form.getRawValue();
-
-    this.watchListService.create(create).subscribe(() => {
-      this.router.navigate(['/watch-list']);
-    });
+    request$
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isSubmitting = false;
+        }),
+      )
+      .subscribe(() => {
+        this.router.navigate(['/watch-list']);
+      });
   }
 
   cancel(): void {

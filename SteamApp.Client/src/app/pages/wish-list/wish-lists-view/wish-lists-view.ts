@@ -60,6 +60,8 @@ export class WishListsView implements OnInit, OnDestroy {
 
   checkLabel: string | null = null;
   isChecking: boolean = false;
+  checkingId: number | null = null;
+  private readonly deletingIds = new Set<number>();
 
   private readonly destroy$ = new Subject<void>();
   private readonly cancelCheck$ = new Subject<void>();
@@ -174,13 +176,24 @@ export class WishListsView implements OnInit, OnDestroy {
   }
 
   deleteButtonClicked(id: number): void {
+    if (this.isDeleting(id)) {
+      return;
+    }
+
     if (!confirm('Delete this wish list item?')) {
       return;
     }
 
+    this.deletingIds.add(id);
+
     this.wishListService
       .delete(id)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.deletingIds.delete(id);
+        }),
+      )
       .subscribe(() => {
         this.fetchWishLists();
       });
@@ -191,6 +204,7 @@ export class WishListsView implements OnInit, OnDestroy {
 
     this.checkLabel = 'Checking...';
     this.isChecking = true;
+    this.checkingId = whishListItemId;
 
     this.steamService
       .checkWishlistItem(whishListItemId)
@@ -198,6 +212,9 @@ export class WishListsView implements OnInit, OnDestroy {
         takeUntil(this.cancelCheck$),
         finalize(() => {
           this.isChecking = false;
+          if (this.checkingId === whishListItemId) {
+            this.checkingId = null;
+          }
         }),
       )
       .subscribe({
@@ -219,5 +236,9 @@ export class WishListsView implements OnInit, OnDestroy {
   cancelButtonClicked(): void {
     this.cancelCheck$.next();
     this.checkLabel = 'Operation Cancelled';
+  }
+
+  isDeleting(id: number): boolean {
+    return this.deletingIds.has(id);
   }
 }

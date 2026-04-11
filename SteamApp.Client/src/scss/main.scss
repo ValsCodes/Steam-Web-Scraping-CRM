@@ -32,6 +32,10 @@ button {
   }
 }
 
+.busy-cursor {
+  cursor: wait !important;
+}
+
 select {
   border: 1px solid #000;
 }
@@ -80,7 +84,7 @@ input {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
   button[type="submit"],
-  button[type="return"] {
+  button.form-back-button {
     @include btn-variant(primary, map.get($button-sizes, default));
 
     &[type="submit"] {
@@ -94,7 +98,7 @@ input {
       }
     }
 
-    &[type="return"] {
+    &.form-back-button {
       &:hover {
         background-color: color.adjust(
           map.get($button-colors, primary),

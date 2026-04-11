@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { finalize, Observable } from 'rxjs';
 
 import { GameService, TagService } from '../../../services';
 import { Game, CreateTag, UpdateTag } from '../../../models';
@@ -16,6 +17,7 @@ import { Game, CreateTag, UpdateTag } from '../../../models';
 export class TagForm implements OnInit {
   isEditMode = false;
   tagId?: number;
+  isSubmitting = false;
 
   form = this.fb.nonNullable.group({
     gameId: [0],
@@ -68,25 +70,25 @@ export class TagForm implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.form.invalid) {
+    if (this.form.invalid || this.isSubmitting) {
       return;
     }
 
-    if (this.isEditMode && this.tagId) {
-      const update: UpdateTag = {
-        name: this.form.controls.name.value,
-      };
+    this.isSubmitting = true;
 
-      this.tagService.update(this.tagId, update).subscribe(() => {
+    const request$: Observable<unknown> = this.isEditMode && this.tagId
+      ? this.tagService.update(this.tagId, {
+          name: this.form.controls.name.value,
+        } as UpdateTag)
+      : this.tagService.create(this.form.getRawValue() as CreateTag);
+
+    request$
+      .pipe(finalize(() => {
+        this.isSubmitting = false;
+      }))
+      .subscribe(() => {
         this.router.navigate(['/tags']);
       });
-    } else {
-      const create: CreateTag = this.form.getRawValue();
-
-      this.tagService.create(create).subscribe(() => {
-        this.router.navigate(['/tags']);
-      });
-    }
   }
 
   cancel(): void {

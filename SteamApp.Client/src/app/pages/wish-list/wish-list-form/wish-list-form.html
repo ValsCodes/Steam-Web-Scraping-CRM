@@ -29,11 +29,11 @@
   </div>
 
   <div class="flex gap-x-2">
-    <button type="submit" [disabled]="form.invalid">
+    <button type="submit" [disabled]="form.invalid || isSubmitting" [class.busy-cursor]="isSubmitting">
       {{ isEditMode ? 'Save' : 'Create' }}
     </button>
 
-    <button type="return" (click)="cancel()">
+    <button type="button" class="form-back-button" (click)="cancel()">
       Back
     </button>
   </div>

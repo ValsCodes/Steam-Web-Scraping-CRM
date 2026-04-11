@@ -2,7 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { forkJoin, of, switchMap } from 'rxjs';
+import { finalize, forkJoin, of, switchMap } from 'rxjs';
 
 import { GameService, ProductService } from '../../../services';
 import { CreateProduct, Game, Tag, UpdateProduct } from '../../../models';
@@ -19,6 +19,7 @@ import { ProductTagService } from '../../../services/product-tag/product-tag.ser
 export class ProductForm implements OnInit {
   isEditMode = false;
   productId?: number;
+  isSubmitting = false;
 
   readonly games = signal<readonly Game[]>([]);
   readonly tags = signal<readonly Tag[]>([]);
@@ -150,33 +151,31 @@ export class ProductForm implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.form.invalid) {
+    if (this.form.invalid || this.isSubmitting) {
       return;
     }
 
-    if (this.isEditMode && this.productId) {
-      const update: UpdateProduct = {
-        name: this.form.controls.name.value,
-        isActive: this.form.controls.isActive.value,
-        rating: this.form.controls.rating.value,
-      };
+    this.isSubmitting = true;
 
-      this.productService
-        .update(this.productId, update)
-        .pipe(switchMap(() => this.syncProductTags(this.productId!)))
-        .subscribe(() => {
-          this.router.navigate(['/products']);
-        });
-    } else {
-      const create: CreateProduct = this.form.getRawValue();
+    const request$ = this.isEditMode && this.productId
+      ? this.productService
+          .update(this.productId, {
+            name: this.form.controls.name.value,
+            isActive: this.form.controls.isActive.value,
+            rating: this.form.controls.rating.value,
+          } as UpdateProduct)
+          .pipe(switchMap(() => this.syncProductTags(this.productId!)))
+      : this.productService
+          .create(this.form.getRawValue() as CreateProduct)
+          .pipe(switchMap(created => this.syncProductTags(created.id)));
 
-      this.productService
-        .create(create)
-        .pipe(switchMap(created => this.syncProductTags(created.id)))
-        .subscribe(() => {
-          this.router.navigate(['/products']);
-        });
-    }
+    request$
+      .pipe(finalize(() => {
+        this.isSubmitting = false;
+      }))
+      .subscribe(() => {
+        this.router.navigate(['/products']);
+      });
   }
 
   private syncProductTags(productId: number) {
