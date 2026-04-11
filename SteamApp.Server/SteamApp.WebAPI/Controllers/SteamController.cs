@@ -74,38 +74,6 @@ public class SteamController(
         }
     }
 
-    [HttpGet("pixel-info/gameUrl/{gameUrlId}")]
-    public async Task<IActionResult> GetPixelInfoFromSourceAsync(long gameUrlId, string srcUrl)
-    {
-        using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(GetPixelInfoFromSourceAsync)))
-        {
-            try
-            {
-                if (gameUrlId <= 0 || string.IsNullOrWhiteSpace(srcUrl))
-                {
-                    return BadRequest("Invalid parameters.");
-                }
-
-                var cacheKey = string.Format(CacheKeys.PixelInfo, gameUrlId, srcUrl);
-
-                if (cache.TryGetValue(cacheKey, out object cached))
-                {
-                    return Ok(cached);
-                }
-
-                var result = await steamService.GetPixelInfoFromSource(gameUrlId, srcUrl);
-
-                cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Request failed.");
-                return StatusCode(500, ex.Message);
-            }
-        }
-    }
-
     [HttpGet("scrape-pixels/gameUrl/{gameUrlId}/page/{page}")]
     public async Task<IActionResult> ScrapeForPixelsAsync(long gameUrlId, short page)
     {
@@ -120,7 +88,7 @@ public class SteamController(
                     return Ok(cached);
                 }
 
-                var result = await steamService.ScrapeForPixels(gameUrlId, page);
+                var result = await steamService.ScrapeWithPixels(gameUrlId, page);
 
                 cache.Set(cacheKey, result, TimeSpan.FromMinutes(5));
                 return Ok(result);
@@ -170,21 +138,27 @@ public class SteamController(
         }
     }
 
-    //[HttpGet("scrape-product-page/{gameId}/pixels")]
-    //public async Task<IActionResult> ScrapeProductPixelsAsync(long gameId, string productName)
+    #region Not Done
+    //[HttpGet("pixel-info/gameUrl/{gameUrlId}")]
+    //public async Task<IActionResult> GetPixelInfoFromSourceAsync(long gameUrlId, string srcUrl)
     //{
-    //    using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(ScrapeProductPixelsAsync)))
+    //    using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(GetPixelInfoFromSourceAsync)))
     //    {
     //        try
     //        {
-    //            var cacheKey = string.Format(CacheKeys.ProductPixels, gameId, productName);
+    //            if (gameUrlId <= 0 || string.IsNullOrWhiteSpace(srcUrl))
+    //            {
+    //                return BadRequest("Invalid parameters.");
+    //            }
+
+    //            var cacheKey = string.Format(CacheKeys.PixelInfo, gameUrlId, srcUrl);
 
     //            if (cache.TryGetValue(cacheKey, out object cached))
     //            {
     //                return Ok(cached);
     //            }
 
-    //            var result = await steamService.ScrapeProductPixels(gameId, productName);
+    //            var result = await steamService.GetPixelInfoFromSource(gameUrlId, srcUrl);
 
     //            cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
     //            return Ok(result);
@@ -196,4 +170,32 @@ public class SteamController(
     //        }
     //    }
     //}
+
+    /*[HttpGet("scrape-product-page/{gameId}/pixels")]
+    public async Task<IActionResult> ScrapeProductForPixelsAsync(long gameId, string productName)
+    {
+        using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(ScrapeProductForPixelsAsync)))
+        {
+            try
+            {
+                var cacheKey = string.Format(CacheKeys.ProductPixels, gameId, productName);
+
+                if (cache.TryGetValue(cacheKey, out object cached))
+                {
+                    return Ok(cached);
+                }
+
+                var result = await steamService.ScrapeProductPixels(gameId, productName);
+
+                cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Request failed.");
+                return StatusCode(500, ex.Message);
+            }
+        }
+    }*/
+    #endregion
 }

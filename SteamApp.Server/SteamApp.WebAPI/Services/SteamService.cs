@@ -63,7 +63,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         return [.. filteredResult.OrderBy(x => x.SellPrice).Select(x => new WatchItemDto { Name = x.Name, Price = x.SellPrice / 100, Quantity = x.SellListings })];
     }
 
-    public async Task<IEnumerable<WatchItemDto>> ScrapeForPixels(long gameUrlId, short page)
+    public async Task<IEnumerable<WatchItemDto>> ScrapeWithPixels(long gameUrlId, short page)
     {
         if (page < 0 || page > 500)
         {
@@ -150,61 +150,6 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         return results;
     }
 
-    public async Task<WatchItemDto> ScrapeProductPixels(long gameId, string productName)
-    {
-        productName = productName.Trim();
-        if (string.IsNullOrEmpty(productName))
-        {
-            throw new ArgumentNullException("Product Name is null or empty.");
-        }
-
-        if (productName.Length > 200)
-        {
-            throw new ArgumentOutOfRangeException("Name is too long.");
-        }
-
-        var game = await steamRepository.GetGame(gameId);
-
-        if (game == null)
-        {
-            throw new Exception("Game not found.");
-        }
-
-        var encodedProductName = UrlUtilities.UrlEncode(productName);
-
-        //var url = $"{Constants.FIRST_PAGE_URL_PART_1}{encodedProductName}{Constants.FIRST_PAGE_URL_PART_2}";
-
-        var url = string.Format(Constants.STEAM_GAME_LISTING_URL, game.InternalId, encodedProductName);
-
-        var jsonResponse = await HttpUtilities.GetHttpResposeAsync(url);
-
-        var jsonString = JsonUtilities.FormatJsonStringForDeserialization(jsonResponse);
-
-        var result = JsonUtilities.DeserializeFormattedJsonString<Listing>(jsonString);
-
-        var resultAssets = result?.Assets?.FirstOrDefault().Value?.FirstOrDefault().Value?.FirstOrDefault().Value; // assets/440/2/ first
-
-        var descriptions = resultAssets!.Descriptions?.Where(x => x.Value != null);
-
-        var listingResult = new WatchItemDto
-        {
-            Name = resultAssets.Name
-        };
-
-        if (resultAssets != null)
-        {
-            var pixel = descriptions!.FirstOrDefault(x => x.Value.StartsWith("Paint Color:"))?.Value;
-            if (pixel != null)
-            {
-                listingResult.IsPainted = true;
-                listingResult.PaintText = pixel.Replace("Paint Color:", string.Empty).Trim();
-                listingResult.IsGoodPaint = game.Pixels.Any(x => string.Equals(x.Name, listingResult.PaintText, StringComparison.OrdinalIgnoreCase));
-            }
-        }
-
-        return listingResult;
-    }
-
     public async Task<WhishListResponse?> CheckWishlistItem(long wishListId)
     {
         var wishList = await steamRepository.GetWishListItem(wishListId);
@@ -255,43 +200,100 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         };
     }
 
-    // Not Used Currently
-    public async Task<string> GetPixelInfoFromSource(long gamerUrlId, string srcUrl)
-    {
-        var gameUrl = await steamRepository.GetGameUrl(gamerUrlId);
+    #region Not Done
+    //public async Task<WatchItemDto> ScrapeProductPixels(long gameId, string productName)
+    //{
+    //    productName = productName.Trim();
+    //    if (string.IsNullOrEmpty(productName))
+    //    {
+    //        throw new ArgumentNullException("Product Name is null or empty.");
+    //    }
 
-        if (gameUrl == null || !gameUrl.IsPixelScrape || gameUrl.PixelX == null || gameUrl.PixelY == null)
-        {
-            throw new Exception("Game URL is not configured for pixel scrape or pixel coordinates are missing.");
-        }
+    //    if (productName.Length > 200)
+    //    {
+    //        throw new ArgumentOutOfRangeException("Name is too long.");
+    //    }
 
-        if (gameUrl.PixelImageWidth == null || gameUrl.PixelImageHeight == null)
-        {
-            gameUrl.PixelImageWidth = 62; // default values, can be updated later if needed
-            gameUrl.PixelImageHeight = 62; // default values, can be updated later if needed
-        }
+    //    var game = await steamRepository.GetGame(gameId);
 
-        string srcImage = srcUrl.Replace($"/{gameUrl.PixelImageWidth}fx{gameUrl.PixelImageHeight}f", string.Empty);
+    //    if (game == null)
+    //    {
+    //        throw new Exception("Game not found.");
+    //    }
 
-        var result = new StringBuilder();
+    //    var encodedProductName = UrlUtilities.UrlEncode(productName);
 
-        using (HttpClient client = new())
-        {
-            byte[] bytes = await client.GetByteArrayAsync(srcImage);
+    //    //var url = $"{Constants.FIRST_PAGE_URL_PART_1}{encodedProductName}{Constants.FIRST_PAGE_URL_PART_2}";
 
-            using var ms = new MemoryStream(bytes);
-            using Bitmap bmp = new(ms);
+    //    var url = string.Format(Constants.STEAM_GAME_LISTING_URL, game.InternalId, encodedProductName);
+
+    //    var jsonResponse = await HttpUtilities.GetHttpResposeAsync(url);
+
+    //    var jsonString = JsonUtilities.FormatJsonStringForDeserialization(jsonResponse);
+
+    //    var result = JsonUtilities.DeserializeFormattedJsonString<Listing>(jsonString);
+
+    //    var resultAssets = result?.Assets?.FirstOrDefault().Value?.FirstOrDefault().Value?.FirstOrDefault().Value; // assets/440/2/ first
+
+    //    var descriptions = resultAssets!.Descriptions?.Where(x => x.Value != null);
+
+    //    var listingResult = new WatchItemDto
+    //    {
+    //        Name = resultAssets.Name
+    //    };
+
+    //    if (resultAssets != null)
+    //    {
+    //        var pixel = descriptions!.FirstOrDefault(x => x.Value.StartsWith("Paint Color:"))?.Value;
+    //        if (pixel != null)
+    //        {
+    //            listingResult.IsPainted = true;
+    //            listingResult.PaintText = pixel.Replace("Paint Color:", string.Empty).Trim();
+    //            listingResult.IsGoodPaint = game.Pixels.Any(x => string.Equals(x.Name, listingResult.PaintText, StringComparison.OrdinalIgnoreCase));
+    //        }
+    //    }
+
+    //    return listingResult;
+    //}
+
+    // Get Pixel info from image source
+    //public async Task<string> GetPixelInfoFromSource(long gamerUrlId, string srcUrl)
+    //{
+    //    var gameUrl = await steamRepository.GetGameUrl(gamerUrlId);
+
+    //    if (gameUrl == null || !gameUrl.IsPixelScrape || gameUrl.PixelX == null || gameUrl.PixelY == null)
+    //    {
+    //        throw new Exception("Game URL is not configured for pixel scrape or pixel coordinates are missing.");
+    //    }
+
+    //    if (gameUrl.PixelImageWidth == null || gameUrl.PixelImageHeight == null)
+    //    {
+    //        gameUrl.PixelImageWidth = 62; // default values, can be updated later if needed
+    //        gameUrl.PixelImageHeight = 62; // default values, can be updated later if needed
+    //    }
+
+    //    string srcImage = srcUrl.Replace($"/{gameUrl.PixelImageWidth}fx{gameUrl.PixelImageHeight}f", string.Empty);
+
+    //    var result = new StringBuilder();
+
+    //    using (HttpClient client = new())
+    //    {
+    //        byte[] bytes = await client.GetByteArrayAsync(srcImage);
+
+    //        using var ms = new MemoryStream(bytes);
+    //        using Bitmap bmp = new(ms);
 
 
-            Color c = bmp.GetPixel(gameUrl.PixelX.Value, gameUrl.PixelY.Value);
+    //        Color c = bmp.GetPixel(gameUrl.PixelX.Value, gameUrl.PixelY.Value);
 
 
-            result.AppendLine(c.Name);
-            result.AppendLine($"R - {c.R}, G - {c.G}, B - {c.B}");
-        }
+    //        result.AppendLine(c.Name);
+    //        result.AppendLine($"R - {c.R}, G - {c.G}, B - {c.B}");
+    //    }
 
-        return result.ToString();
-    }
+    //    return result.ToString();
+    //}
+    #endregion
 
     #region Private Methods
     private static double ParseSteamPrice(IWebElement el, bool preferCentsAttribute)
