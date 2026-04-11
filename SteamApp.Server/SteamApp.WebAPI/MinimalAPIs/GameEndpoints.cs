@@ -65,7 +65,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 long id,
                 GameUpdateDto input,
                 ApplicationDbContext db,
-                IMapper mapper, 
+                IMapper mapper,
                 IMemoryCache cache) =>
             {
                 var entity = await db.Games.FindAsync(id);
@@ -89,10 +89,30 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 long id,
                 ApplicationDbContext db, IMemoryCache cache) =>
             {
-                var entity = await db.Games.FindAsync(id);
-                if (entity is null) { return Results.NotFound(); }
+                var exists = await db.Games
+                   .Where(x => x.Id == id)
+                   .Select(x => new
+                   {
+                       HasDependencies =
+                           x.GameUrls.Any() ||
+                           x.Products.Any() ||
+                           x.WishLists.Any() ||
+                           x.Tags.Any() ||
+                           x.Pixels.Any()
+                   })
+                   .FirstOrDefaultAsync();
 
-                db.Games.Remove(entity);
+                if (exists is null)
+                {
+                    return Results.NotFound();
+                }
+
+                if (exists.HasDependencies)
+                {
+                    return Results.BadRequest(new { message = "Game cannot be deleted" });
+                }
+
+                db.Games.Remove(new Game { Id = id });
                 await db.SaveChangesAsync();
 
                 var cacheKey = string.Format(CacheKeys.Game, id);

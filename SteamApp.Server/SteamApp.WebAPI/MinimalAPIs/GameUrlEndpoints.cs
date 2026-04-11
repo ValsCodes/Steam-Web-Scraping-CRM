@@ -115,10 +115,17 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 ApplicationDbContext db,
                 IMemoryCache cache) =>
             {
-                var entity = await db.GameUrls.FindAsync(id);
+                var entity = await db.GameUrls
+                .Include(x => x.GameUrlsProducts)
+                .Include(x => x.GameUrlsPixels)
+                .FirstOrDefaultAsync(x => x.Id == id);
+
                 if (entity is null) { return Results.NotFound(); }
 
+                db.GameUrlsProducts.RemoveRange(entity.GameUrlsProducts);
+                db.GameUrlsPixels.RemoveRange(entity.GameUrlsPixels);
                 db.GameUrls.Remove(entity);
+
                 await db.SaveChangesAsync();
 
                 var cacheKey = string.Format(CacheKeys.GameUrl, id);

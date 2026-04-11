@@ -1,4 +1,12 @@
-import { Component, OnInit, ViewChild, signal, computed, effect } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ViewChild,
+  signal,
+  computed,
+  effect,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
@@ -9,6 +17,7 @@ import { CommonModule } from '@angular/common';
 import { GameService } from '../../../services/game/game.service';
 import * as XLSX from 'xlsx';
 import { finalize } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'steam-games-view',
@@ -39,7 +48,7 @@ export class GamesView implements OnInit {
       return list;
     }
 
-    return list.filter(g => g.name.toLowerCase().includes(filter));
+    return list.filter((g) => g.name.toLowerCase().includes(filter));
   });
 
   readonly dataSource = new MatTableDataSource<Game>([]);
@@ -51,6 +60,7 @@ export class GamesView implements OnInit {
   constructor(
     private readonly gameService: GameService,
     private readonly router: Router,
+    private readonly cdr: ChangeDetectorRef,
   ) {
     effect(() => {
       this.dataSource.data = [...this.gamesFiltered()];
@@ -109,14 +119,33 @@ export class GamesView implements OnInit {
     }
 
     this.deletingIds.add(id);
+    this.cdr.markForCheck();
 
-    this.gameService.delete(id).pipe(
-      finalize(() => {
-        this.deletingIds.delete(id);
-      }),
-    ).subscribe({
-      next: () => this.fetchGames(),
-    });
+    this.gameService
+      .delete(id)
+      .pipe(
+        finalize(() => {
+          this.deletingIds.delete(id);
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.fetchGames();
+        },
+        error: async (error: HttpErrorResponse | Error) => {
+          if (error instanceof HttpErrorResponse) {
+          const message =
+            error.error.message ??
+            'Delete failed.';
+
+          window.alert(message)
+            return;
+          }
+
+          window.alert(error.message);
+        },
+      });
   }
 
   isDeleting(id: number): boolean {

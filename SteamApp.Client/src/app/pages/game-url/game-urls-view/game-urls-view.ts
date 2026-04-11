@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -11,6 +11,7 @@ import { GameService, GameUrlService } from '../../../services';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { combineLatest, finalize, startWith, Subject, takeUntil } from 'rxjs';
 import * as XLSX from 'xlsx';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'steam-game-urls-grid',
@@ -57,6 +58,7 @@ export class GameUrlsView implements OnInit, OnDestroy {
     private readonly gameUrlService: GameUrlService,
     private readonly gameService: GameService,
     private readonly router: Router,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void
@@ -132,18 +134,33 @@ export class GameUrlsView implements OnInit, OnDestroy {
     if (!confirm('Delete this Game URL?')) { return; }
 
     this.deletingIds.add(id);
+    this.cdr.markForCheck();
 
     this.gameUrlService.delete(id)
       .pipe(
         finalize(() =>
         {
           this.deletingIds.delete(id);
+           this.cdr.markForCheck();
         }),
       )
-      .subscribe(() =>
-      {
-        this.fetchGameUrls();
-      });
+      .subscribe(() =>({
+        next: () => {
+          this.fetchGameUrls();
+        },
+        error: async (error: HttpErrorResponse | Error) => {
+          if (error instanceof HttpErrorResponse) {
+          const message =
+            error.error.message ??
+            'Delete failed.';
+
+          window.alert(message)
+            return;
+          }
+
+          window.alert(error.message);
+        }
+      }));       
   }
 
   isDeleting(id: number): boolean
