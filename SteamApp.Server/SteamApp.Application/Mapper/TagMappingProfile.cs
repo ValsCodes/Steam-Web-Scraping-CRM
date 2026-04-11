@@ -2,7 +2,7 @@
 using SteamApp.Application.DTOs.Tag;
 using SteamApp.Domain.Entities;
 
-namespace SteamApp.WebAPI.Mapper
+namespace SteamApp.Application.Mapper
 {
     public sealed class TagMappingProfile : Profile
     {

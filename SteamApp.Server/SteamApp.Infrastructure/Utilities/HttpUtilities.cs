@@ -1,4 +1,4 @@
-﻿namespace SteamApp.WebAPI.Utilities;
+﻿namespace SteamApp.Infrastructure.Utilities;
 
 public static class HttpUtilities
 {

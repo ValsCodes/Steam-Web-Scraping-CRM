@@ -2,9 +2,9 @@
 using Mailtrap.Emails.Requests;
 using Mailtrap.Emails.Responses;
 using Microsoft.Extensions.Options;
-using SteamApp.Infrastructure.Services;
+using SteamApp.Application.Services;
 
-namespace SteamApp.WebAPI.Services;
+namespace SteamApp.Infrastructure.Services;
 
 public class EmailService(IOptions<EmailOptions> options) : IEmailService
 {

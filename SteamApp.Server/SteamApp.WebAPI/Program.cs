@@ -4,15 +4,16 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Serialization;
-using SteamApp.Domain.ValueObjects;
+using SteamApp.Application.Mapper;
+using SteamApp.Application.Repositories;
+using SteamApp.Application.Services;
 using SteamApp.Domain.ValueObjects.Authentication;
+using SteamApp.Infrastructure.Context;
 using SteamApp.Infrastructure.Repositories;
 using SteamApp.Infrastructure.Services;
-using SteamApp.WebAPI.Context;
 using SteamApp.WebAPI.Jobs;
-using SteamApp.WebAPI.Mapper;
+using SteamApp.WebAPI.Jobs.Base;
 using SteamApp.WebAPI.MinimalAPIs;
-using SteamApp.WebAPI.Repositories;
 using SteamApp.WebAPI.Services;
 using System.Text;
 
@@ -173,7 +174,7 @@ public class Program
                 builder.Configuration.GetConnectionString("DefaultConnection"));
         });
 
-        builder.Services.AddAutoMapper(typeof(GameMappingProfile).Assembly);
+        builder.Services.AddAutoMapper(_ => { }, typeof(BaseProfile));
 
         builder.Services.Configure<EmailOptions>(
             builder.Configuration.GetSection("Mailtrap").Exists()
@@ -186,12 +187,11 @@ public class Program
         builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
         builder.Services.AddScoped<IWishlistService, WishlistService>();
 
-        builder.Services.AddScoped<WishlistCheckJob>();
 
         builder.Services.AddMemoryCache();
 
+        builder.Services.AddScoped<WishlistCheckJob>();
         builder.Services.AddHostedService<BackgroundWorkerService<WishlistCheckJob>>();
-
         builder.Services.Configure<WorkerOptions>(nameof(WishlistCheckJob),builder.Configuration.GetSection("Workers:WishlistCheck"));
 
         builder.Services.Configure<HostOptions>(o =>

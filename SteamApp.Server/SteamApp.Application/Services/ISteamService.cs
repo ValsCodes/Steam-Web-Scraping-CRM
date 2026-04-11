@@ -1,6 +1,6 @@
 ﻿using SteamApp.Application.DTOs.WatchItem;
 
-namespace SteamApp.Infrastructure.Services;
+namespace SteamApp.Application.Services;
 
 public interface ISteamService
 {  

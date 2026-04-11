@@ -4,7 +4,7 @@ using Microsoft.Extensions.Caching.Memory;
 using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.WishListItem;
 using SteamApp.Domain.Entities;
-using SteamApp.WebAPI.Context;
+using SteamApp.Infrastructure.Context;
 
 namespace SteamApp.WebAPI.MinimalAPIs
 {

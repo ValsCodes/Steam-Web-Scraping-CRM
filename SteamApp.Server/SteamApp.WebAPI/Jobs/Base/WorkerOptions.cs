@@ -1,4 +1,4 @@
-﻿namespace SteamApp.Domain.ValueObjects
+﻿namespace SteamApp.WebAPI.Jobs.Base
 {
     public sealed class WorkerOptions
     {

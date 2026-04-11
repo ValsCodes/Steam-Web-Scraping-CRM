@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SteamApp.Application.DTOs.GameUrlProduct;
 using SteamApp.Domain.Entities;
-using SteamApp.WebAPI.Context;
-using SteamApp.WebAPI.Helpers;
+using SteamApp.Infrastructure.Context;
+using SteamApp.Infrastructure.Utilities;
 
 namespace SteamApp.WebAPI.MinimalAPIs;
 

@@ -2,7 +2,7 @@
 using SteamApp.Application.DTOs.GameUrl;
 using SteamApp.Domain.Entities;
 
-namespace SteamApp.WebAPI.Mapper
+namespace SteamApp.Application.Mapper
 {
     public class GameUrlMappingProfile : Profile
     {

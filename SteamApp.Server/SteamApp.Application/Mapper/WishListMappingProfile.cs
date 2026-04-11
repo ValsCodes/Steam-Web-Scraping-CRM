@@ -2,7 +2,7 @@
 using SteamApp.Application.DTOs.WishListItem;
 using SteamApp.Domain.Entities;
 
-namespace SteamApp.WebAPI.Mapper
+namespace SteamApp.Application.Mapper
 {
     public sealed class WishListMappingProfile : Profile
     {

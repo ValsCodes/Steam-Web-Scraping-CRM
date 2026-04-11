@@ -1,11 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using SteamApp.Application.Caching;
+using SteamApp.Application.Repositories;
 using SteamApp.Domain.Entities;
-using SteamApp.Infrastructure.Repositories;
-using SteamApp.WebAPI.Context;
+using SteamApp.Infrastructure.Context;
 
-namespace SteamApp.WebAPI.Repositories;
+namespace SteamApp.Infrastructure.Repositories;
 
 public class WishlistRepository(ApplicationDbContext dbContext, IMemoryCache cache) : IWishlistRepository
 {

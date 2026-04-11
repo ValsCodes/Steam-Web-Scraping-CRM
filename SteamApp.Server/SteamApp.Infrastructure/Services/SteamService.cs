@@ -3,19 +3,16 @@ using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using SeleniumExtras.WaitHelpers;
 using SteamApp.Application.DTOs.WatchItem;
-using SteamApp.Application.DTOs.WishListItem;
 using SteamApp.Application.JsonObjects;
+using SteamApp.Application.Repositories;
+using SteamApp.Application.Services;
 using SteamApp.Domain.Common;
-using SteamApp.Infrastructure.Repositories;
-using SteamApp.Infrastructure.Services;
-using SteamApp.WebAPI.Helpers;
-using SteamApp.WebAPI.Utilities;
+using SteamApp.Infrastructure.Utilities;
 using System.Collections.ObjectModel;
 using System.Drawing;
 using System.Globalization;
-using System.Text;
 
-namespace SteamApp.WebAPI.Services;
+namespace SteamApp.Infrastructure.Services;
 
 public class SteamService(ISteamRepository steamRepository) : ISteamService
 {

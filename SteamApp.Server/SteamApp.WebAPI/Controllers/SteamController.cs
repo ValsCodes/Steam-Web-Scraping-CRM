@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using SteamApp.Application.Caching;
-using SteamApp.Infrastructure.Services;
+using SteamApp.Application.Services;
 
 namespace SteamApp.WebAPI.Controllers;
 

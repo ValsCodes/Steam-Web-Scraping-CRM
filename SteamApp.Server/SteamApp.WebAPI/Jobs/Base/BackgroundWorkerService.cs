@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
-using SteamApp.Infrastructure;
-using SteamApp.Domain.ValueObjects;
 
-namespace SteamApp.WebAPI.Services
+namespace SteamApp.WebAPI.Jobs.Base
 {
     public sealed class BackgroundWorkerService<TJob>(ILogger<BackgroundWorkerService<TJob>> logger, IServiceScopeFactory scopeFactory, IOptionsMonitor<WorkerOptions> options) : BackgroundService where TJob : class, IJobService
     {

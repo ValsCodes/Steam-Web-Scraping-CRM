@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using SteamApp.Application.DTOs.Tag;
 using SteamApp.Domain.Entities;
-using SteamApp.WebAPI.Context;
+using SteamApp.Infrastructure.Context;
 
 namespace SteamApp.WebAPI.MinimalAPIs;
 

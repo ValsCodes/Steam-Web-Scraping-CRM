@@ -1,6 +1,6 @@
 ﻿using SteamApp.Application.DTOs.WishListItem;
 
-namespace SteamApp.Infrastructure.Services
+namespace SteamApp.Application.Services
 {
     public interface IWishlistService
     {

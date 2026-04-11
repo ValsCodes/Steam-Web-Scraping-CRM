@@ -1,4 +1,4 @@
-﻿namespace SteamApp.Infrastructure.Services
+﻿namespace SteamApp.Application.Services
 {
     public interface IEmailService
     {

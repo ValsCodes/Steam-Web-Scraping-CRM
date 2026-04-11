@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SteamApp.Domain.Entities;
 
-namespace SteamApp.WebAPI.Context;
+namespace SteamApp.Infrastructure.Context;
 
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {

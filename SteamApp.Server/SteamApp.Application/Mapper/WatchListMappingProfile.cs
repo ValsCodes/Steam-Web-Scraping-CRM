@@ -3,7 +3,7 @@ using SteamApp.Application.DTOs.WatchList;
 using SteamApp.Application.DTOs.WatchListItem;
 using SteamApp.Domain.Entities;
 
-namespace SteamApp.WebAPI.Mapper
+namespace SteamApp.Application.Mapper
 {
     public sealed class WatchListMappingProfile : Profile
     {
