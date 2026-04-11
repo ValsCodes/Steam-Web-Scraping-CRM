@@ -187,9 +187,9 @@ public class Program
         builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
         builder.Services.AddScoped<IWishlistService, WishlistService>();
 
-
         builder.Services.AddMemoryCache();
 
+        // Wishlist Job
         builder.Services.AddScoped<WishlistCheckJob>();
         builder.Services.AddHostedService<BackgroundWorkerService<WishlistCheckJob>>();
         builder.Services.Configure<WorkerOptions>(nameof(WishlistCheckJob),builder.Configuration.GetSection("Workers:WishlistCheck"));
