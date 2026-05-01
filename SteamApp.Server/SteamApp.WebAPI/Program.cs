@@ -109,11 +109,28 @@ public class Program
                     new CamelCasePropertyNamesContractResolver();
             });
 
+        var allowedOrigins = builder.Configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>() ?? Array.Empty<string>();
+
         builder.Services.AddCors(opts =>
         {
-            opts.AddPolicy("AllowAllOrigins", policy =>
+            opts.AddPolicy("FrontendCors", policy =>
             {
-                policy.AllowAnyOrigin()
+                if (allowedOrigins.Length == 0)
+                {
+                    if (builder.Environment.IsDevelopment())
+                    {
+                        policy.AllowAnyOrigin()
+                              .AllowAnyMethod()
+                              .AllowAnyHeader();
+                        return;
+                    }
+
+                    throw new InvalidOperationException("Cors:AllowedOrigins must be configured outside Development.");
+                }
+
+                policy.WithOrigins(allowedOrigins)
                       .AllowAnyMethod()
                       .AllowAnyHeader();
             });
@@ -179,7 +196,9 @@ public class Program
         });
 
         builder.Services.Configure<EmailOptions>(
-            builder.Configuration.GetSection("Mailstrap"));
+            builder.Configuration.GetSection("Mailtrap").Exists()
+                ? builder.Configuration.GetSection("Mailtrap")
+                : builder.Configuration.GetSection("Mailstrap"));
 
         builder.Services.AddScoped<ISteamRepository, SteamRepository>();
         builder.Services.AddScoped<ISteamService, SteamService>();
@@ -196,22 +215,25 @@ public class Program
         builder.Services.Configure<HostOptions>(o =>
         {
             o.BackgroundServiceExceptionBehavior =
-                BackgroundServiceExceptionBehavior.Ignore;
+                BackgroundServiceExceptionBehavior.StopHost;
             o.ShutdownTimeout = TimeSpan.FromSeconds(15);
         });
 
         var app = builder.Build();
 
-        app.UseSwagger();
-        app.UseSwaggerUI(c =>
+        if (app.Environment.IsDevelopment())
         {
-            c.SwaggerEndpoint(
-                "/swagger/v1/swagger.json",
-                "SteamApp API v1");
-        });
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint(
+                    "/swagger/v1/swagger.json",
+                    "SteamApp API v1");
+            });
+        }
 
         app.UseHttpsRedirection();
-        app.UseCors("AllowAllOrigins");
+        app.UseCors("FrontendCors");
         app.UseAuthentication();
         app.UseAuthorization();
 

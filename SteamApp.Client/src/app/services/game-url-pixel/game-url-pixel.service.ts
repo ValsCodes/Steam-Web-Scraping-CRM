@@ -30,6 +30,14 @@ export class GameUrlPixelService {
       .pipe(catchError(handleError));
   }
 
+
+  // GET: /api/game-url-pixels/{gameUrlId}
+  existsByGameUrl(gameUrlId: number): Observable<GameUrlPixel[]> {
+    return this.http
+      .get<GameUrlPixel[]>(`${this.baseUrl}/${gameUrlId}`)
+      .pipe(catchError(handleError));
+  }
+
   // POST: /api/game-url-pixels
   create(input: CreateGameUrlPixel): Observable<void> {
     return this.http
