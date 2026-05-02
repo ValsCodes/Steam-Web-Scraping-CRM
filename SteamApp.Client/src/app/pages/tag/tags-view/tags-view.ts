@@ -5,11 +5,13 @@ import { Router } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatDialog } from '@angular/material/dialog';
 
 import { GameService, TagService } from '../../../services';
 import { Game, Tag } from '../../../models';
 import { BehaviorSubject, combineLatest, finalize, startWith, Subject, takeUntil } from 'rxjs';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 
 import * as XLSX from 'xlsx';
 
@@ -47,6 +49,7 @@ export class TagsView implements OnInit, OnDestroy {
     private readonly router: Router,
     private readonly gameService: GameService,
     private readonly cdr: ChangeDetectorRef,
+    private readonly dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -107,6 +110,10 @@ export class TagsView implements OnInit, OnDestroy {
     this.router.navigate(['/tags/create']);
   }
 
+  refreshButtonClicked(): void {
+    this.fetchTags();
+  }
+
   editButtonClicked(id: number): void {
     this.router.navigate(['/tags/edit', id]);
   }
@@ -116,20 +123,38 @@ export class TagsView implements OnInit, OnDestroy {
       return;
     }
 
-    if (!confirm('Delete this tag?')) {
-      return;
-    }
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '420px',
+        data: {
+          title: 'Delete Tag',
+          subtitle: 'This action cannot be undone.',
+          message: 'Are you sure you want to delete this Tag?',
+          confirmText: 'Delete',
+          cancelText: 'Cancel',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) {
+          return;
+        }
 
-    this.deletingIds.add(id);
+        this.deletingIds.add(id);
+        this.cdr.markForCheck();
 
-    this.tagService.delete(id)
-      .pipe(
-        finalize(() => {
-          this.deletingIds.delete(id);
-        }),
-      )
-      .subscribe(() => {
-        this.fetchTags();
+        this.tagService.delete(id)
+          .pipe(
+            finalize(() => {
+              this.deletingIds.delete(id);
+              this.cdr.markForCheck();
+            }),
+          )
+          .subscribe({
+            next: () => {
+              this.fetchTags();
+            },
+          });
       });
   }
 

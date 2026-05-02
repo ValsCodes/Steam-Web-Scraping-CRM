@@ -14,11 +14,14 @@ import {
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatDialog } from '@angular/material/dialog';
 
 import { WishList } from '../../../models/wish-list.model';
 import { WishListService } from '../../../services/wish-list/wish-list.service';
 import { GameService, SteamService } from '../../../services';
 import { Game, WhishListResponse } from '../../../models';
+import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
+import { StatusDialogComponent } from '../../../components/status-dialog.component';
 
 import * as XLSX from 'xlsx';
 
@@ -58,7 +61,6 @@ export class WishListsView implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  checkLabel: string | null = null;
   isChecking: boolean = false;
   checkingId: number | null = null;
   private readonly deletingIds = new Set<number>();
@@ -72,6 +74,7 @@ export class WishListsView implements OnInit, OnDestroy {
     private readonly steamService: SteamService,
     private readonly router: Router,
     private readonly cdr: ChangeDetectorRef,
+    private readonly dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -146,7 +149,6 @@ export class WishListsView implements OnInit, OnDestroy {
   clearFiltersButtonClicked(): void {
     this.gameIdControl.setValue(null);
     this.searchByNameFilterControl.setValue('');
-    this.checkLabel = '';
     // subscriptions re-apply filters automatically
   }
 
@@ -168,6 +170,10 @@ export class WishListsView implements OnInit, OnDestroy {
     XLSX.writeFile(workbook, `Export_${today.toDateString()}_WishList.xlsx`);
   }
 
+  refreshButtonClicked(): void {
+    this.fetchWishLists();
+  }
+
   createButtonClicked(): void {
     this.router.navigate(['/wishlist/create']);
   }
@@ -181,29 +187,46 @@ export class WishListsView implements OnInit, OnDestroy {
       return;
     }
 
-    if (!confirm('Delete this wish list item?')) {
-      return;
-    }
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '420px',
+        data: {
+          title: 'Delete Wish List Item',
+          subtitle: 'This action cannot be undone.',
+          message: 'Are you sure you want to delete this wish list item?',
+          confirmText: 'Delete',
+          cancelText: 'Cancel',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) {
+          return;
+        }
 
-    this.deletingIds.add(id);
+        this.deletingIds.add(id);
+        this.cdr.markForCheck();
 
-    this.wishListService
-      .delete(id)
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => {
-          this.deletingIds.delete(id);
-        }),
-      )
-      .subscribe(() => {
-        this.fetchWishLists();
+        this.wishListService
+          .delete(id)
+          .pipe(
+            takeUntil(this.destroy$),
+            finalize(() => {
+              this.deletingIds.delete(id);
+              this.cdr.markForCheck();
+            }),
+          )
+          .subscribe({
+            next: () => {
+              this.fetchWishLists();
+            },
+          });
       });
   }
 
   checkButtonClicked(whishListItemId: number): void {
     this.cancelCheck$.next();
 
-    this.checkLabel = 'Checking...';
     this.isChecking = true;
     this.checkingId = whishListItemId;
 
@@ -223,25 +246,59 @@ export class WishListsView implements OnInit, OnDestroy {
       .subscribe({
         next: (response: WhishListResponse) => {
           if (response.isPriceReached === true) {
-            this.checkLabel = `Price goal has been reached for Game ${response.gameName}! Current Price: ${
-              response.currentPrice === 0 ? 'Free' : response.currentPrice
-            }`;
+            this.openStatusDialog({
+              title: 'Price Goal Reached',
+              subtitle: `${response.gameName} matched your target price.`,
+              message: `Current Price: ${this.formatCurrentPrice(response.currentPrice)}`,
+              variant: 'success',
+            });
           } else {
-            this.checkLabel = `Price goal has not been reached for Game ${response.gameName}! Current Price: ${response.currentPrice}`;
+            this.openStatusDialog({
+              title: 'Price Goal Not Reached',
+              subtitle: `${response.gameName} is still above your target price.`,
+              message: `Current Price: ${this.formatCurrentPrice(response.currentPrice)}`,
+              variant: 'info',
+            });
           }
         },
         error: () => {
-          this.checkLabel = 'Error Checking Wishlist Item';
+          this.openStatusDialog({
+            title: 'Check Failed',
+            subtitle: 'We could not check the wish list item right now.',
+            message: 'Please try again in a moment.',
+            variant: 'error',
+          });
         },
       });
   }
 
   cancelButtonClicked(): void {
     this.cancelCheck$.next();
-    this.checkLabel = 'Operation Cancelled';
+    this.openStatusDialog({
+      title: 'Check Cancelled',
+      subtitle: 'The price check was stopped before completion.',
+      message: 'No changes were made.',
+      variant: 'warn',
+    });
   }
 
   isDeleting(id: number): boolean {
     return this.deletingIds.has(id);
+  }
+
+  private formatCurrentPrice(price: number): string {
+    return price === 0 ? 'Free' : `${price}`;
+  }
+
+  private openStatusDialog(data: {
+    title: string;
+    subtitle: string;
+    message: string;
+    variant: 'success' | 'info' | 'warn' | 'error';
+  }): void {
+    this.dialog.open(StatusDialogComponent, {
+      width: '420px',
+      data,
+    });
   }
 }

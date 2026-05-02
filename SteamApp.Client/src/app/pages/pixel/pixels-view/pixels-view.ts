@@ -11,6 +11,7 @@ import { Router } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatDialog } from '@angular/material/dialog';
 
 import { Game, PixelListItem } from '../../../models';
 import { GameService, PixelService } from '../../../services';
@@ -23,6 +24,7 @@ import {
   takeUntil,
 } from 'rxjs';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 
 import * as XLSX from 'xlsx';
 
@@ -63,6 +65,7 @@ export class PixelsView implements OnInit, OnDestroy {
     private readonly router: Router,
     private readonly gameService: GameService,
     private readonly cdr: ChangeDetectorRef,
+    private readonly dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -132,6 +135,10 @@ export class PixelsView implements OnInit, OnDestroy {
     this.router.navigate(['/pixels/create']);
   }
 
+  refreshButtonClicked(): void {
+    this.fetchPixels();
+  }
+
   editButtonClicked(id: number): void {
     this.router.navigate(['/pixels/edit', id]);
   }
@@ -141,20 +148,38 @@ export class PixelsView implements OnInit, OnDestroy {
       return;
     }
 
-    if (!confirm('Delete this pixel?')) {
-      return;
-    }
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '420px',
+        data: {
+          title: 'Delete Pixel',
+          subtitle: 'This action cannot be undone.',
+          message: 'Are you sure you want to delete this Pixel?',
+          confirmText: 'Delete',
+          cancelText: 'Cancel',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) {
+          return;
+        }
 
-    this.deletingIds.add(id);
+        this.deletingIds.add(id);
+        this.cdr.markForCheck();
 
-    this.pixelService.delete(id)
-      .pipe(
-        finalize(() => {
-          this.deletingIds.delete(id);
-        }),
-      )
-      .subscribe(() => {
-        this.fetchPixels();
+        this.pixelService.delete(id)
+          .pipe(
+            finalize(() => {
+              this.deletingIds.delete(id);
+              this.cdr.markForCheck();
+            }),
+          )
+          .subscribe({
+            next: () => {
+              this.fetchPixels();
+            },
+          });
       });
   }
 

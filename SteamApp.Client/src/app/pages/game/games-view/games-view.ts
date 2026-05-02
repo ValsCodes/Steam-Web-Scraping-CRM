@@ -6,15 +6,18 @@ import {
   computed,
   effect,
   ChangeDetectorRef,
+  inject,
 } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { Game } from '../../../models/game.model';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { GameService } from '../../../services/game/game.service';
+import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import * as XLSX from 'xlsx';
 import { finalize } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -52,6 +55,7 @@ export class GamesView implements OnInit {
   });
 
   readonly dataSource = new MatTableDataSource<Game>([]);
+  private readonly dialog = inject(MatDialog);
   private readonly deletingIds = new Set<number>();
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -89,6 +93,10 @@ export class GamesView implements OnInit {
     XLSX.writeFile(workbook, `Export_${today.toDateString()}_Games.xlsx`);
   }
 
+  refreshButtonClicked(): void {
+    this.fetchGames();
+  }
+
   fetchGames(): void {
     this.gameService.getAll().subscribe({
       next: (games) => {
@@ -118,33 +126,39 @@ export class GamesView implements OnInit {
       return;
     }
 
-    this.deletingIds.add(id);
-    this.cdr.markForCheck();
-
-    this.gameService
-      .delete(id)
-      .pipe(
-        finalize(() => {
-          this.deletingIds.delete(id);
-          this.cdr.markForCheck();
-        }),
-      )
-      .subscribe({
-        next: () => {
-          this.fetchGames();
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '420px',
+        data: {
+          title: 'Delete Game',
+          subtitle: 'This action cannot be undone.',
+          message: 'Are you sure you want to delete this Game?',
+          confirmText: 'Delete',
+          cancelText: 'Cancel',
         },
-        error: async (error: HttpErrorResponse | Error) => {
-          if (error instanceof HttpErrorResponse) {
-          const message =
-            error.error.message ??
-            'Delete failed.';
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) {
+          return;
+        }
 
-          window.alert(message)
-            return;
-          }
+        this.deletingIds.add(id);
+        this.cdr.markForCheck();
 
-          window.alert(error.message);
-        },
+        this.gameService
+          .delete(id)
+          .pipe(
+            finalize(() => {
+              this.deletingIds.delete(id);
+              this.cdr.markForCheck();
+            }),
+          )
+          .subscribe({
+            next: () => {
+              this.fetchGames();
+            },
+          });
       });
   }
 

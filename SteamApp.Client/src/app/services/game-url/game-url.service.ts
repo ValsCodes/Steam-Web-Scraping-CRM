@@ -47,7 +47,7 @@ export class GameUrlService {
 
   delete(id: number): Observable<void> {
     return this.http
-      .delete<void>(`${this.baseUrl}/${id}`);
-      // .pipe(catchError(handleError));
+      .delete<void>(`${this.baseUrl}/${id}`)
+      .pipe(catchError(handleError));
   }
 }

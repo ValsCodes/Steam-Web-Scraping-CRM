@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -12,6 +12,8 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { combineLatest, finalize, startWith, Subject, takeUntil } from 'rxjs';
 import * as XLSX from 'xlsx';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
+import { MatDialog } from '@angular/material/dialog';
 
 @Component({
   selector: 'steam-game-urls-grid',
@@ -41,6 +43,7 @@ export class GameUrlsView implements OnInit, OnDestroy {
   ];
 
   readonly games = signal<readonly Game[]>([]);
+  private readonly dialog = inject(MatDialog);
 
   readonly gameIdControl = new FormControl<number | null>(null);
   readonly searchByNameFilterControl = new FormControl<string>('', { nonNullable: true });
@@ -118,6 +121,11 @@ export class GameUrlsView implements OnInit, OnDestroy {
     XLSX.writeFile(workbook, `Export_${today.toDateString()}_GameUrls.xlsx`);
   }
 
+  refreshButtonClicked(): void
+  {
+    this.fetchGameUrls();
+  }
+
   createButtonClicked(): void
   {
     this.router.navigate(['/game-urls/create']);
@@ -128,40 +136,46 @@ export class GameUrlsView implements OnInit, OnDestroy {
     this.router.navigate(['/game-urls/edit', id]);
   }
 
-  deleteButtonClicked(id: number): void
-  {
-    if (this.isDeleting(id)) { return; }
-    if (!confirm('Delete this Game URL?')) { return; }
-
-    this.deletingIds.add(id);
-    this.cdr.markForCheck();
-
-    this.gameUrlService.delete(id)
-      .pipe(
-        finalize(() =>
-        {
-          this.deletingIds.delete(id);
-           this.cdr.markForCheck();
-        }),
-      )
-      .subscribe(() =>({
-        next: () => {
-          this.fetchGameUrls();
-        },
-        error: async (error: HttpErrorResponse | Error) => {
-          if (error instanceof HttpErrorResponse) {
-          const message =
-            error.error.message ??
-            'Delete failed.';
-
-          window.alert(message)
-            return;
-          }
-
-          window.alert(error.message);
-        }
-      }));       
+  deleteButtonClicked(id: number): void {
+  if (this.isDeleting(id)) {
+    return;
   }
+
+  this.dialog
+    .open(ConfirmDialogComponent, {
+      width: '420px',
+      data: {
+        title: 'Delete Game URL',
+        subtitle: 'This action cannot be undone.',
+        message: 'Are you sure you want to delete this Game URL?',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+      },
+    })
+    .afterClosed()
+    .subscribe((confirmed: boolean) => {
+      if (!confirmed) {
+        return;
+      }
+
+      this.deletingIds.add(id);
+      this.cdr.markForCheck();
+
+      this.gameUrlService
+        .delete(id)
+        .pipe(
+          finalize(() => {
+            this.deletingIds.delete(id);
+            this.cdr.markForCheck();
+          }),
+        )
+        .subscribe({
+          next: () => {
+            this.fetchGameUrls();
+          },
+        });
+    });
+}
 
   isDeleting(id: number): boolean
   {

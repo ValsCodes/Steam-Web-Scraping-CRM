@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -7,9 +7,11 @@ import { finalize, startWith, Subject, takeUntil } from 'rxjs';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatDialog } from '@angular/material/dialog';
 
 import { WatchList } from '../../../models/watch-list.model';
 import { WatchListService } from '../../../services/watch-list/watch-list.service';
+import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 
 import * as XLSX from 'xlsx';
 
@@ -49,6 +51,8 @@ export class WatchListsView implements OnInit, OnDestroy {
   constructor(
     private readonly watchListService: WatchListService,
     private readonly router: Router,
+    private readonly cdr: ChangeDetectorRef,
+    private readonly dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -109,6 +113,10 @@ export class WatchListsView implements OnInit, OnDestroy {
     XLSX.writeFile(workbook, `Export_${today.toDateString()}_WatchList.xlsx`);
   }
 
+  refreshButtonClicked(): void {
+    this.fetchWatchLists();
+  }
+
   createButtonClicked(): void {
     this.router.navigate(['/watch-list/create']);
   }
@@ -122,20 +130,38 @@ export class WatchListsView implements OnInit, OnDestroy {
       return;
     }
 
-    if (!confirm('Delete this watch list item?')) {
-      return;
-    }
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '420px',
+        data: {
+          title: 'Delete Watch List Item',
+          subtitle: 'This action cannot be undone.',
+          message: 'Are you sure you want to delete this watch list item?',
+          confirmText: 'Delete',
+          cancelText: 'Cancel',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) {
+          return;
+        }
 
-    this.deletingIds.add(id);
+        this.deletingIds.add(id);
+        this.cdr.markForCheck();
 
-    this.watchListService.delete(id)
-      .pipe(
-        finalize(() => {
-          this.deletingIds.delete(id);
-        }),
-      )
-      .subscribe(() => {
-        this.fetchWatchLists();
+        this.watchListService.delete(id)
+          .pipe(
+            finalize(() => {
+              this.deletingIds.delete(id);
+              this.cdr.markForCheck();
+            }),
+          )
+          .subscribe({
+            next: () => {
+              this.fetchWatchLists();
+            },
+          });
       });
   }
 

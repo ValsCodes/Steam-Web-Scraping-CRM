@@ -20,6 +20,13 @@ body {
   font-family: Roboto, "Helvetica Neue", sans-serif;
 }
 
+html.app-loading,
+html.app-loading body,
+body.app-loading,
+body.app-loading * {
+  cursor: wait !important;
+}
+
 button {
   @each $name, $key in (create: primary, delete: danger, edit: success) {
     &.#{$name}-button {

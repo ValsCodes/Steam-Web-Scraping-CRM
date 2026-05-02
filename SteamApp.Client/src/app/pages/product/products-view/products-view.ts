@@ -1,15 +1,17 @@
-import { Component, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatDialog } from '@angular/material/dialog';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { finalize, Subject, takeUntil } from 'rxjs';
 
 import { GameService, ProductService, TagService } from '../../../services';
 import { Game, Product, Tag, UpdateProductStatus } from '../../../models';
+import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import * as XLSX from 'xlsx';
 
 @Component({
@@ -54,6 +56,8 @@ export class ProductsView implements OnInit, OnDestroy {
     private readonly gameService: GameService,
     private readonly tagsService: TagService,
     private readonly router: Router,
+    private readonly cdr: ChangeDetectorRef,
+    private readonly dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -139,6 +143,10 @@ export class ProductsView implements OnInit, OnDestroy {
     XLSX.writeFile(workbook, `Export_${today.toDateString()}_Products.xlsx`);
   }
 
+  refreshButtonClicked(): void {
+    this.fetchProducts();
+  }
+
   createButtonClicked(): void {
     this.router.navigate(['/products/create']);
   }
@@ -183,21 +191,38 @@ export class ProductsView implements OnInit, OnDestroy {
       return;
     }
 
-    if (!confirm('Delete this product?')) {
-      return;
-    }
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '420px',
+        data: {
+          title: 'Delete Product',
+          subtitle: 'This action cannot be undone.',
+          message: 'Are you sure you want to delete this Product?',
+          confirmText: 'Delete',
+          cancelText: 'Cancel',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) {
+          return;
+        }
 
-    this.deletingIds.add(id);
+        this.deletingIds.add(id);
+        this.cdr.markForCheck();
 
-    this.productService.delete(id)
-      .pipe(
-        finalize(() => {
-          this.deletingIds.delete(id);
-        }),
-      )
-      .subscribe(() => {
-        this.fetchProducts();
-        this.loadFilteredProducts();
+        this.productService.delete(id)
+          .pipe(
+            finalize(() => {
+              this.deletingIds.delete(id);
+              this.cdr.markForCheck();
+            }),
+          )
+          .subscribe({
+            next: () => {
+              this.fetchProducts();
+            },
+          });
       });
   }
 

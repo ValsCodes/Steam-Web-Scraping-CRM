@@ -4,6 +4,13 @@
 
     <div class="flex gap-x-2">
       <button
+        (click)="refreshButtonClicked()"
+        class="button button-small-secondary"
+        title="Reload current data">
+        Refresh
+      </button>
+
+      <button
         (click)="exportButtonClicked()"
         class="button button-small-primary"
         title="Export current data to Excel">
@@ -40,22 +47,6 @@
       Clear
     </button>
   </div>
-
-  @if (this.checkLabel !== '')
-  {
-    <div class="flex items-center my-4 gap-x-2">
-      <p class="m-0">
-        <b>{{ this.checkLabel ?? '' }}</b>
-      </p>
-
-      <button
-        [hidden]="!this.isChecking"
-        (click)="cancelButtonClicked()"
-        class="button button-small-danger">
-        Cancel
-      </button>
-    </div>
-  }
 
   <div class="table-container">
     <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z8">

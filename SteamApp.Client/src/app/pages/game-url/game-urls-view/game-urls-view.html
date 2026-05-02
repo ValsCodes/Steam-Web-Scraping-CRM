@@ -4,6 +4,13 @@
 
     <div class="flex gap-x-2">
       <button
+        (click)="refreshButtonClicked()"
+        class="button button-small-secondary"
+        title="Reload current data">
+        Refresh
+      </button>
+
+      <button
         (click)="exportButtonClicked()"
         class="button button-small-primary"
         title="Export current data to Excel">
