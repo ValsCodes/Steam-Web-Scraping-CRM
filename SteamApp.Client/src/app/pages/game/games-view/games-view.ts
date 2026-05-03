@@ -49,6 +49,9 @@ export class GamesView implements OnInit {
   // signals
   readonly games = signal<readonly Game[]>([]);
   readonly nameFilter = signal<string>('');
+  isGridLoading = false;
+  pageSize = 25;
+  readonly pageSizeOptions = [10, 25, 50, 100];
 
   readonly gamesFiltered = computed<readonly Game[]>(() => {
     const filter = this.nameFilter().trim().toLowerCase();
@@ -104,15 +107,43 @@ export class GamesView implements OnInit {
     this.fetchGames();
   }
 
-  fetchGames(): void {
-    this.gameService.getAll().subscribe({
-      next: (games) => {
-        this.games.set(games);
+  pageSizeChanged(value: string | number): void {
+    const pageSize = Number(value);
+    if (Number.isNaN(pageSize) || pageSize <= 0 || this.pageSize === pageSize) {
+      return;
+    }
 
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.sort = this.sort;
-      },
-    });
+    this.pageSize = pageSize;
+
+    if (this.paginator) {
+      this.paginator.pageSize = pageSize;
+      this.paginator.firstPage();
+      this.dataSource.data = [...this.dataSource.data];
+      this.cdr.markForCheck();
+    }
+  }
+
+  fetchGames(): void {
+    this.isGridLoading = true;
+    this.cdr.markForCheck();
+
+    this.gameService
+      .getAll()
+      .pipe(
+        finalize(() => {
+          this.isGridLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: (games) => {
+          this.games.set(games);
+
+          this.dataSource.paginator = this.paginator;
+          this.paginator.pageSize = this.pageSize;
+          this.dataSource.sort = this.sort;
+        },
+      });
   }
 
   clearFilters(): void {

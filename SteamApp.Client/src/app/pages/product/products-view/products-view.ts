@@ -59,6 +59,9 @@ export class ProductsView implements OnInit, OnDestroy {
   private readonly statusUpdatingIds = new Set<number>();
 
   dataSource = new MatTableDataSource<Product>([]);
+  isGridLoading = false;
+  pageSize = 25;
+  readonly pageSizeOptions = [10, 25, 50, 100];
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -129,12 +132,24 @@ export class ProductsView implements OnInit, OnDestroy {
   }
 
   fetchProducts(): void {
-    this.productService.getAll().subscribe(products => {
-      this.products.set(products);
-      this.dataSource.data = products;
-      this.dataSource.paginator = this.paginator;
-      this.dataSource.sort = this.sort;
-    });
+    this.isGridLoading = true;
+    this.cdr.markForCheck();
+
+    this.productService.getAll()
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isGridLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe(products => {
+        this.products.set(products);
+        this.dataSource.data = products;
+        this.dataSource.paginator = this.paginator;
+        this.paginator.pageSize = this.pageSize;
+        this.dataSource.sort = this.sort;
+      });
   }
 
 
@@ -157,6 +172,22 @@ export class ProductsView implements OnInit, OnDestroy {
 
   refreshButtonClicked(): void {
     this.fetchProducts();
+  }
+
+  pageSizeChanged(value: string | number): void {
+    const pageSize = Number(value);
+    if (Number.isNaN(pageSize) || pageSize <= 0 || this.pageSize === pageSize) {
+      return;
+    }
+
+    this.pageSize = pageSize;
+
+    if (this.paginator) {
+      this.paginator.pageSize = pageSize;
+      this.paginator.firstPage();
+      this.dataSource.data = [...this.dataSource.data];
+      this.cdr.markForCheck();
+    }
   }
 
   createButtonClicked(): void {

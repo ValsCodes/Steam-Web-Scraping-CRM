@@ -1,6 +1,13 @@
-<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form">
-  <h2>{{ isEditMode ? 'Edit Wish List Item' : 'Create Wish List Item' }}</h2>
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form app-form">
+  <div class="app-form__header">
+    <span class="app-form__eyebrow">Price Tracking</span>
+    <h2 class="app-form__title">{{ isEditMode ? 'Edit Wish List Item' : 'Create Wish List Item' }}</h2>
+    <p class="app-form__description">
+      Track a target price and activation state for a game you want to monitor.
+    </p>
+  </div>
 
+  <div class="app-form__grid">
   <div class="form-group">
     <label>Game *</label>
     <select formControlName="gameId" class="px-2 py-1">
@@ -11,7 +18,7 @@
     </select>
   </div>
 
-    <div class="form-group">
+  <div class="form-group">
     <label>Name *</label>
     <input formControlName="name" class="px-2 py-1 w-1/2" placeholder="name" />
   </div>
@@ -28,9 +35,11 @@
     </label>
   </div>
 
-  <div class="flex gap-x-2">
+  </div>
+
+  <div class="form-actions">
     <button type="submit" [disabled]="form.invalid || isSubmitting" [class.busy-cursor]="isSubmitting">
-      {{ isEditMode ? 'Save' : 'Create' }}
+      {{ isSubmitting ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save changes' : 'Create wish list item') }}
     </button>
 
     <button type="button" class="form-back-button" (click)="cancel()">

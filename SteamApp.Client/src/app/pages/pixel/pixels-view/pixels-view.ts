@@ -62,6 +62,9 @@ export class PixelsView implements OnInit, OnDestroy {
   });
 
   dataSource = new MatTableDataSource<PixelListItem>([]);
+  isGridLoading = false;
+  pageSize = 25;
+  readonly pageSizeOptions = [10, 25, 50, 100];
   private pixels: PixelListItem[] = [];
   private readonly deletingIds = new Set<number>();
 
@@ -127,18 +130,31 @@ export class PixelsView implements OnInit, OnDestroy {
   }
 
   fetchPixels(): void {
-    this.pixelService.getAll().subscribe((pixels) => {
-      this.pixels = pixels;
+    this.isGridLoading = true;
+    this.cdr.markForCheck();
 
-      this.dataSource.data = pixels;
-      this.dataSource.paginator = this.paginator;
-      this.dataSource.sort = this.sort;
+    this.pixelService
+      .getAll()
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isGridLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe((pixels) => {
+        this.pixels = pixels;
 
-      this.applyFilters(
-        this.gameIdControl.value,
-        this.searchByNameFilterControl.value,
-      );
-    });
+        this.dataSource.data = pixels;
+        this.dataSource.paginator = this.paginator;
+        this.paginator.pageSize = this.pageSize;
+        this.dataSource.sort = this.sort;
+
+        this.applyFilters(
+          this.gameIdControl.value,
+          this.searchByNameFilterControl.value,
+        );
+      });
   }
 
   createButtonClicked(): void {
@@ -147,6 +163,22 @@ export class PixelsView implements OnInit, OnDestroy {
 
   refreshButtonClicked(): void {
     this.fetchPixels();
+  }
+
+  pageSizeChanged(value: string | number): void {
+    const pageSize = Number(value);
+    if (Number.isNaN(pageSize) || pageSize <= 0 || this.pageSize === pageSize) {
+      return;
+    }
+
+    this.pageSize = pageSize;
+
+    if (this.paginator) {
+      this.paginator.pageSize = pageSize;
+      this.paginator.firstPage();
+      this.dataSource.data = [...this.dataSource.data];
+      this.cdr.markForCheck();
+    }
   }
 
   editButtonClicked(id: number): void {

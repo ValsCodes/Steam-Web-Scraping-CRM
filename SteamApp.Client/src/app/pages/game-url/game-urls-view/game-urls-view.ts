@@ -55,6 +55,9 @@ export class GameUrlsView implements OnInit, OnDestroy {
   readonly searchByNameFilterControl = new FormControl<string>('', { nonNullable: true });
 
   dataSource = new MatTableDataSource<GameUrl>([]);
+  isGridLoading = false;
+  pageSize = 25;
+  readonly pageSizeOptions = [10, 25, 50, 100];
   private gameUrls: GameUrl[] = [];
   private readonly deletingIds = new Set<number>();
 
@@ -194,16 +197,44 @@ export class GameUrlsView implements OnInit, OnDestroy {
     this.searchByNameFilterControl.setValue('', { emitEvent: true });
   }
 
+  pageSizeChanged(value: string | number): void {
+    const pageSize = Number(value);
+    if (Number.isNaN(pageSize) || pageSize <= 0 || this.pageSize === pageSize) {
+      return;
+    }
+
+    this.pageSize = pageSize;
+
+    if (this.paginator) {
+      this.paginator.pageSize = pageSize;
+      this.paginator.firstPage();
+      this.dataSource.data = [...this.dataSource.data];
+      this.cdr.markForCheck();
+    }
+  }
+
   private fetchGameUrls(): void
   {
-    this.gameUrlService.getAll().subscribe(urls =>
-    {
-      this.gameUrls = urls;
-      this.dataSource.data = urls;
+    this.isGridLoading = true;
+    this.cdr.markForCheck();
 
-      this.dataSource.paginator = this.paginator;
-      this.dataSource.sort = this.sort;
-    });
+    this.gameUrlService.getAll()
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isGridLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe(urls =>
+      {
+        this.gameUrls = urls;
+        this.dataSource.data = urls;
+
+        this.dataSource.paginator = this.paginator;
+        this.paginator.pageSize = this.pageSize;
+        this.dataSource.sort = this.sort;
+      });
   }
 
   private loadGames(): void

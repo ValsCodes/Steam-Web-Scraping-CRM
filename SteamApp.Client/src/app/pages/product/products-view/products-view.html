@@ -6,13 +6,16 @@
       <button
         (click)="refreshButtonClicked()"
         class="button button-small-secondary"
+        [disabled]="isGridLoading"
+        [class.busy-cursor]="isGridLoading"
         title="Reload current data">
-        Refresh
+        {{ isGridLoading ? 'Loading...' : 'Refresh' }}
       </button>
 
       <button
         (click)="exportButtonClicked()"
         class="button button-small-primary"
+        [disabled]="isGridLoading"
         title="Export current data to Excel">
         Export
       </button>
@@ -53,6 +56,21 @@
     </div>
 
     <button (click)="clearFiltersButtonClicked()" class="button button-small-danger">Clear</button>
+
+    <div class="filter-toolbar__spacer" aria-hidden="true"></div>
+
+    <div class="filter-group filter-group--page-size">
+      <label>Items per page</label>
+      <select
+        class="px-2 py-1"
+        [value]="pageSize"
+        [disabled]="isGridLoading"
+        (change)="pageSizeChanged($any($event.target).value)">
+        @for (size of pageSizeOptions; track size) {
+          <option [value]="size">{{ size }}</option>
+        }
+      </select>
+    </div>
   </div>
 
   @if (tagsFilter().length > 0) {
@@ -66,7 +84,19 @@
     </div>
   }
 
-  <div class="table-container">
+  <div
+    class="table-container table-container--with-loading"
+    [class.table-container--loading]="isGridLoading"
+    [attr.aria-busy]="isGridLoading">
+    @if (isGridLoading) {
+      <div class="grid-loading-overlay" role="status" aria-live="polite">
+        <div class="grid-loading-card">
+          <span class="grid-loading-spinner" aria-hidden="true"></span>
+          <span>Loading products...</span>
+        </div>
+      </div>
+    }
+
     <table mat-table [dataSource]="dataSource" matSort class="app-data-table">
       <ng-container matColumnDef="gameName">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Game</th>
@@ -150,6 +180,10 @@
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
 
-    <mat-paginator showFirstLastButtons></mat-paginator>
+    <mat-paginator
+      showFirstLastButtons
+      [disabled]="isGridLoading"
+      [hidePageSize]="true"
+      [pageSize]="pageSize"></mat-paginator>
   </div>
 </div>

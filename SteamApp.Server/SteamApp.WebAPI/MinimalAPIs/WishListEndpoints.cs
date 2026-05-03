@@ -1,10 +1,12 @@
-﻿using AutoMapper;
+using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.WishListItem;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
+using SteamApp.WebAPI.Contracts.Pagination;
 
 namespace SteamApp.WebAPI.MinimalAPIs
 {
@@ -24,7 +26,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
             {
                 var entities = await db.WishLists
                     .AsNoTracking()
-                    .Select(x=> new
+                    .Select(x => new
                     {
                         Id = x.Id,
                         GameName = x.Game.Name,
@@ -40,6 +42,67 @@ namespace SteamApp.WebAPI.MinimalAPIs
             })
             .WithName("GetAllWishList")
             .Produces<List<WishListDto>>(StatusCodes.Status200OK);
+
+            // GET: /api/wish-list/paged
+            group.MapGet("/paged", async (
+                ApplicationDbContext db,
+                [AsParameters] WishListsPageQuery request,
+                CancellationToken ct) =>
+            {
+                var query = db.WishLists.AsNoTracking();
+
+                if (request.GameId.HasValue)
+                {
+                    query = query.Where(x => x.GameId == request.GameId.Value);
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.Name))
+                {
+                    var nameFilter = request.Name.Trim();
+                    query = query.Where(x => x.Name != null && x.Name.Contains(nameFilter));
+                }
+
+                query = request.SortBy switch
+                {
+                    "gameName" => request.IsDescending
+                        ? query.OrderByDescending(x => x.Game.Name).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.Game.Name).ThenBy(x => x.Id),
+                    "name" => request.IsDescending
+                        ? query.OrderByDescending(x => x.Name).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.Name).ThenBy(x => x.Id),
+                    "pageUrl" => request.IsDescending
+                        ? query.OrderByDescending(x => x.Game.PageUrl).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.Game.PageUrl).ThenBy(x => x.Id),
+                    "price" => request.IsDescending
+                        ? query.OrderByDescending(x => x.Price).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.Price).ThenBy(x => x.Id),
+                    "isActive" => request.IsDescending
+                        ? query.OrderByDescending(x => x.IsActive).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.IsActive).ThenBy(x => x.Id),
+                    _ => query.OrderBy(x => x.Id),
+                };
+
+                var totalCount = await query.CountAsync(ct);
+                var pageWindow = request.ToPageWindow(totalCount);
+
+                var items = await query
+                    .ApplyPage(pageWindow)
+                    .Select(x => new
+                    {
+                        Id = x.Id,
+                        GameName = x.Game.Name,
+                        x.Name,
+                        x.GameId,
+                        PageUrl = x.Game.PageUrl,
+                        x.Price,
+                        x.IsActive,
+                    })
+                    .ToListAsync(ct);
+
+                return Results.Ok(pageWindow.ToPagedResponse(items));
+            })
+            .WithName("GetPagedWishList")
+            .Produces(StatusCodes.Status200OK);
 
             // GET: /api/wish-list/{id}
             group.MapGet("/{id:long}", async (
@@ -89,7 +152,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 long id,
                 WishListUpdateDto input,
                 ApplicationDbContext db,
-                IMapper mapper, 
+                IMapper mapper,
                 IMemoryCache cache) =>
             {
                 var entity = await db.WishLists.FindAsync(id);
@@ -132,5 +195,11 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
             return app;
         }
+    }
+
+    public sealed record WishListsPageQuery : PagedQuery
+    {
+        public long? GameId { get; init; }
+        public string? Name { get; init; }
     }
 }

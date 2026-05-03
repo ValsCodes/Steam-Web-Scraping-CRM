@@ -1,6 +1,13 @@
-<form [formGroup]="gameForm" (ngSubmit)="onSubmit()" class="general-form">
-  <h2>{{ isEditMode ? 'Edit Game' : 'Create Game' }}</h2>
+<form [formGroup]="gameForm" (ngSubmit)="onSubmit()" class="general-form app-form">
+  <div class="app-form__header">
+    <span class="app-form__eyebrow">Catalog</span>
+    <h2 class="app-form__title">{{ isEditMode ? 'Edit Game' : 'Create Game' }}</h2>
+    <p class="app-form__description">
+      Define the core catalog entry and landing page for this game.
+    </p>
+  </div>
 
+  <div class="app-form__grid">
   <div class="form-group">
     <label>Name *</label>
     <input class="px-2 py-1 w-1/2" formControlName="name" placeholder="Game name" />
@@ -12,7 +19,7 @@
     }
   </div>
 
-    <div class="form-group">
+  <div class="form-group">
     <label>Internal ID</label>
     <input type="number" formControlName="internalId" class="px-2 py-1" />
   </div>
@@ -32,7 +39,7 @@
     </div>
   </div> -->
 
-  <div class="form-group">
+  <div class="form-group form-group--full">
     <label>URL *</label>
     <input class="px-2 py-1 w-full" formControlName="pageUrl" placeholder="https://example.com" />
     @if (gameForm.get('pageUrl')?.touched && gameForm.get('pageUrl')?.invalid) {
@@ -42,9 +49,11 @@
     }
   </div>
 
-  <div class="flex gap-x-2">
+  </div>
+
+  <div class="form-actions">
     <button type="submit" [disabled]="gameForm.invalid || isSubmitting" [class.busy-cursor]="isSubmitting">
-      {{ isEditMode ? 'Save' : 'Create' }}
+      {{ isSubmitting ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save changes' : 'Create game') }}
     </button>
 
     <button type="button" class="form-back-button" (click)="backButtonClicked()">

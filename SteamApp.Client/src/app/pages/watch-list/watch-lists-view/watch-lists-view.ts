@@ -44,6 +44,9 @@ export class WatchListsView implements OnInit, OnDestroy {
   ];
 
   dataSource = new MatTableDataSource<WatchList>([]);
+  isGridLoading = false;
+  pageSize = 25;
+  readonly pageSizeOptions = [10, 25, 50, 100];
   private allItems: WatchList[] = [];
   private readonly deletingIds = new Set<number>();
 
@@ -77,15 +80,27 @@ export class WatchListsView implements OnInit, OnDestroy {
   }
 
   private fetchWatchLists(): void {
-    this.watchListService.getAll().subscribe(items => {
-      this.allItems = items;
+    this.isGridLoading = true;
+    this.cdr.markForCheck();
 
-      this.dataSource.data = items;
-      this.dataSource.paginator = this.paginator;
-      this.dataSource.sort = this.sort;
+    this.watchListService.getAll()
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isGridLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe(items => {
+        this.allItems = items;
 
-      this.applyFilters(this.searchByNameControl.value);
-    });
+        this.dataSource.data = items;
+        this.dataSource.paginator = this.paginator;
+        this.paginator.pageSize = this.pageSize;
+        this.dataSource.sort = this.sort;
+
+        this.applyFilters(this.searchByNameControl.value);
+      });
   }
 
   private applyFilters(name: string): void {
@@ -121,6 +136,22 @@ export class WatchListsView implements OnInit, OnDestroy {
 
   refreshButtonClicked(): void {
     this.fetchWatchLists();
+  }
+
+  pageSizeChanged(value: string | number): void {
+    const pageSize = Number(value);
+    if (Number.isNaN(pageSize) || pageSize <= 0 || this.pageSize === pageSize) {
+      return;
+    }
+
+    this.pageSize = pageSize;
+
+    if (this.paginator) {
+      this.paginator.pageSize = pageSize;
+      this.paginator.firstPage();
+      this.dataSource.data = [...this.dataSource.data];
+      this.cdr.markForCheck();
+    }
   }
 
   createButtonClicked(): void {

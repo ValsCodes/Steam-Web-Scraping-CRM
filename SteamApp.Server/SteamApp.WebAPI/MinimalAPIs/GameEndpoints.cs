@@ -1,10 +1,12 @@
-﻿using AutoMapper;
+using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.Game;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
+using SteamApp.WebAPI.Contracts.Pagination;
 
 namespace SteamApp.WebAPI.MinimalAPIs
 {
@@ -26,6 +28,54 @@ namespace SteamApp.WebAPI.MinimalAPIs
             })
             .WithName("GetAllGames")
             .Produces<List<GameDto>>(StatusCodes.Status200OK);
+
+            // GET: /api/games/paged
+            group.MapGet("/paged", async (
+                ApplicationDbContext db,
+                [AsParameters] GamesPageQuery request,
+                CancellationToken ct) =>
+            {
+                var query = db.Games.AsNoTracking();
+
+                if (!string.IsNullOrWhiteSpace(request.Name))
+                {
+                    var nameFilter = request.Name.Trim();
+                    query = query.Where(x => x.Name != null && x.Name.Contains(nameFilter));
+                }
+
+                query = request.SortBy switch
+                {
+                    "name" => request.IsDescending
+                        ? query.OrderByDescending(x => x.Name).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.Name).ThenBy(x => x.Id),
+                    "pageUrl" => request.IsDescending
+                        ? query.OrderByDescending(x => x.PageUrl).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.PageUrl).ThenBy(x => x.Id),
+                    "internalId" => request.IsDescending
+                        ? query.OrderByDescending(x => x.InternalId).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.InternalId).ThenBy(x => x.Id),
+                    _ => query.OrderBy(x => x.Id),
+                };
+
+                var totalCount = await query.CountAsync(ct);
+                var pageWindow = request.ToPageWindow(totalCount);
+
+                var items = await query
+                    .ApplyPage(pageWindow)
+                    .Select(x => new GameDto
+                    {
+                        Id = x.Id,
+                        Name = x.Name ?? string.Empty,
+                        BaseUrl = x.BaseUrl ?? string.Empty,
+                        PageUrl = x.PageUrl,
+                        InternalId = x.InternalId,
+                    })
+                    .ToListAsync(ct);
+
+                return Results.Ok(pageWindow.ToPagedResponse(items));
+            })
+            .WithName("GetPagedGames")
+            .Produces(StatusCodes.Status200OK);
 
             // GET: /api/games/{id}
             group.MapGet("/{id:long}", async (
@@ -126,5 +176,10 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
             return app;
         }
+    }
+
+    public sealed record GamesPageQuery : PagedQuery
+    {
+        public string? Name { get; init; }
     }
 }

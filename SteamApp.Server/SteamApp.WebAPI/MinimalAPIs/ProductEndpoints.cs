@@ -1,8 +1,10 @@
-﻿using AutoMapper;
+using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SteamApp.Application.DTOs.Product;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
+using SteamApp.WebAPI.Contracts.Pagination;
 
 namespace SteamApp.WebAPI.MinimalAPIs;
 
@@ -31,6 +33,84 @@ public static class ProductEndpoints
         .WithName("GetAllProducts")
         .Produces<List<object>>(StatusCodes.Status200OK);
 
+        // GET: /api/products/paged
+        group.MapGet("/paged", async (
+            ApplicationDbContext db,
+            IMapper mapper,
+            [AsParameters] ProductsPageQuery request,
+            CancellationToken ct) =>
+        {
+            var query = db.Products.AsNoTracking();
+
+            if (request.GameId.HasValue)
+            {
+                query = query.Where(x => x.GameId == request.GameId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Name))
+            {
+                var nameFilter = request.Name.Trim();
+                query = query.Where(x => x.Name != null && x.Name.Contains(nameFilter));
+            }
+
+            if (request.MinRating.HasValue)
+            {
+                query = query.Where(x => x.Rating >= request.MinRating.Value);
+            }
+
+            if (request.TagIds is { Length: > 0 })
+            {
+                foreach (var tagId in request.TagIds.Distinct())
+                {
+                    query = query.Where(x => x.ProductTags.Any(t => t.TagId == tagId));
+                }
+            }
+
+            query = request.SortBy switch
+            {
+                "gameName" => request.IsDescending
+                    ? query.OrderByDescending(x => x.Game.Name).ThenByDescending(x => x.Id)
+                    : query.OrderBy(x => x.Game.Name).ThenBy(x => x.Id),
+                "name" => request.IsDescending
+                    ? query.OrderByDescending(x => x.Name).ThenByDescending(x => x.Id)
+                    : query.OrderBy(x => x.Name).ThenBy(x => x.Id),
+                "tags" => request.IsDescending
+                    ? query.OrderByDescending(x => x.ProductTags
+                            .OrderBy(t => t.Tag.Name)
+                            .Select(t => t.Tag.Name)
+                            .FirstOrDefault())
+                        .ThenByDescending(x => x.Id)
+                    : query.OrderBy(x => x.ProductTags
+                            .OrderBy(t => t.Tag.Name)
+                            .Select(t => t.Tag.Name)
+                            .FirstOrDefault())
+                        .ThenBy(x => x.Id),
+                "rating" => request.IsDescending
+                    ? query.OrderByDescending(x => x.Rating).ThenByDescending(x => x.Id)
+                    : query.OrderBy(x => x.Rating).ThenBy(x => x.Id),
+                "isActive" => request.IsDescending
+                    ? query.OrderByDescending(x => x.IsActive).ThenByDescending(x => x.Id)
+                    : query.OrderBy(x => x.IsActive).ThenBy(x => x.Id),
+                _ => query.OrderBy(x => x.Id),
+            };
+
+            var totalCount = await query.CountAsync(ct);
+            var pageWindow = request.ToPageWindow(totalCount);
+
+            var items = await query
+                .Include(x => x.Game)
+                .Include(x => x.ProductTags)
+                .ThenInclude(x => x.Tag)
+                .ApplyPage(pageWindow)
+                .ToListAsync(ct);
+
+            var dto = mapper.Map<List<ProductDto>>(items);
+
+            return Results.Ok(pageWindow.ToPagedResponse(dto));
+        })
+        .WithName("GetPagedProducts")
+        .Produces(StatusCodes.Status200OK);
+
         // GET: /api/products/{id}
         group.MapGet("/{id:long}", async (
             long id,
@@ -56,9 +136,11 @@ public static class ProductEndpoints
             ApplicationDbContext db,
             IMapper mapper) =>
         {
+            var normalizedInputName = (input.Name ?? string.Empty).Trim().ToLower();
+
             var productExists = await db.Products
                 .AsNoTracking()
-                .AnyAsync(g => g.Name.Trim().ToLower() == input.Name.Trim().ToLower());
+                .AnyAsync(g => (g.Name ?? string.Empty).Trim().ToLower() == normalizedInputName);
 
             if (productExists)
             {
@@ -122,7 +204,7 @@ public static class ProductEndpoints
             var entity = await db.Products.FindAsync(input.Id);
             if (entity is null) { return Results.NotFound(); }
 
-            if(entity.IsActive != input.IsActive)
+            if (entity.IsActive != input.IsActive)
             {
                 entity.IsActive = input.IsActive;
 
@@ -137,4 +219,12 @@ public static class ProductEndpoints
 
         return app;
     }
+}
+
+public sealed record ProductsPageQuery : PagedQuery
+{
+    public long? GameId { get; init; }
+    public string? Name { get; init; }
+    public int? MinRating { get; init; }
+    public long[]? TagIds { get; init; }
 }

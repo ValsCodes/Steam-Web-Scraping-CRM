@@ -1,67 +1,73 @@
-<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form">
-  <h2>{{ isEditMode ? 'Edit Product' : 'Create Product' }}</h2>
-
-  <div class="form-group">
-    <label>Game *</label>
-    <select formControlName="gameId" class="px-2 py-1">
-      <option ngValue="" disabled>Select a game</option>
-      @for (game of games(); track game.id) {
-        <option [ngValue]="game.id">{{ game.name }}</option>
-      }
-    </select>
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form app-form">
+  <div class="app-form__header">
+    <span class="app-form__eyebrow">Catalog</span>
+    <h2 class="app-form__title">{{ isEditMode ? 'Edit Product' : 'Create Product' }}</h2>
+    <p class="app-form__description">
+      Manage product details, activity state, and tag assignments from one shared workflow.
+    </p>
   </div>
 
-  <div class="form-group">
-    <label>Name *</label>
-    <input formControlName="name" class="px-2 py-1 w-1/2" placeholder="Product name" />
-  </div>
-
-  <div class="form-group">
-    <label>Rating</label>
-    <input type="number" formControlName="rating" class="px-2 py-1 w-1/2" placeholder="Rating" />
-  </div>
-
-  <div class="form-group-row checkbox-group">
-    <label>
-      <input type="checkbox" formControlName="isActive" />
-      Active
-    </label>
-  </div>
-
-  <div class="relation-section">
-    <h3>Tags for this Product</h3>
-
-    @if (filteredTags.length === 0) {
-      <p class="relation-empty">No tags available for this game.</p>
-    } @else {
-      <label class="relation-select-all">
-        <input
-          type="checkbox"
-          [checked]="areAllFilteredTagsSelected"
-          [indeterminate]="areSomeFilteredTagsSelected"
-          (change)="toggleAllTags($any($event.target).checked)"
-        />
-        Select all tags
-      </label>
-
-      <div class="relation-grid">
-        @for (tag of filteredTags; track tag.id) {
-          <label>
-            <input
-              type="checkbox"
-              [checked]="isTagSelected(tag.id)"
-              (change)="toggleTag(tag.id, $any($event.target).checked)"
-            />
-            {{ tag.name || 'Unnamed tag' }}
-          </label>
+  <div class="app-form__grid">
+    <div class="form-group">
+      <label>Game *</label>
+      <select formControlName="gameId" class="px-2 py-1">
+        <option ngValue="" disabled>Select a game</option>
+        @for (game of games(); track game.id) {
+          <option [ngValue]="game.id">{{ game.name }}</option>
         }
-      </div>
-    }
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Name *</label>
+      <input formControlName="name" class="px-2 py-1 w-1/2" placeholder="Product name" />
+    </div>
+
+    <div class="form-group">
+      <label>Rating</label>
+      <input type="number" formControlName="rating" class="px-2 py-1 w-1/2" placeholder="Rating" />
+    </div>
+
+    <div class="form-group-row checkbox-group">
+      <label>
+        <input type="checkbox" formControlName="isActive" />
+        Active
+      </label>
+    </div>
+
+    <div class="relation-section">
+      <h3>Tags for this Product</h3>
+
+      @if (filteredTags.length === 0) {
+        <p class="relation-empty">No tags available for this game.</p>
+      } @else {
+        <label class="relation-select-all">
+          <input
+            type="checkbox"
+            [checked]="areAllFilteredTagsSelected"
+            [indeterminate]="areSomeFilteredTagsSelected"
+            (change)="toggleAllTags($any($event.target).checked)" />
+          Select all tags
+        </label>
+
+        <div class="relation-grid">
+          @for (tag of filteredTags; track tag.id) {
+            <label>
+              <input
+                type="checkbox"
+                [checked]="isTagSelected(tag.id)"
+                (change)="toggleTag(tag.id, $any($event.target).checked)" />
+              {{ tag.name || 'Unnamed tag' }}
+            </label>
+          }
+        </div>
+      }
+    </div>
   </div>
 
-  <div class="flex gap-x-2">
+  <div class="form-actions">
     <button type="submit" [disabled]="form.invalid || isSubmitting" [class.busy-cursor]="isSubmitting">
-      {{ isEditMode ? 'Save' : 'Create' }}
+      {{ isSubmitting ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save changes' : 'Create product') }}
     </button>
 
     <button type="button" class="form-back-button" (click)="cancel()">Back</button>

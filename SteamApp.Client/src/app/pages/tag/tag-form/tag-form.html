@@ -1,6 +1,13 @@
-<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form">
-  <h2>{{ isEditMode ? 'Edit Tag' : 'Create Tag' }}</h2>
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form app-form">
+  <div class="app-form__header">
+    <span class="app-form__eyebrow">Organization</span>
+    <h2 class="app-form__title">{{ isEditMode ? 'Edit Tag' : 'Create Tag' }}</h2>
+    <p class="app-form__description">
+      Create a reusable label to organize products inside a specific game catalog.
+    </p>
+  </div>
 
+  <div class="app-form__grid">
   <div class="form-group">
     <label>Game *</label>
     <select formControlName="gameId" class="px-2 py-1">
@@ -20,9 +27,11 @@
     />
   </div>
 
-  <div class="flex gap-x-2">
+  </div>
+
+  <div class="form-actions">
     <button type="submit" [disabled]="form.invalid || isSubmitting" [class.busy-cursor]="isSubmitting">
-      {{ isEditMode ? 'Save' : 'Create' }}
+      {{ isSubmitting ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save changes' : 'Create tag') }}
     </button>
 
     <button type="button" class="form-back-button" (click)="cancel()">Back</button>

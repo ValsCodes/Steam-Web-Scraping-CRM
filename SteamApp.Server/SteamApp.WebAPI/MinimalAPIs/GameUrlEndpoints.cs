@@ -1,10 +1,12 @@
-﻿using AutoMapper;
+using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.GameUrl;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
+using SteamApp.WebAPI.Contracts.Pagination;
 
 namespace SteamApp.WebAPI.MinimalAPIs
 {
@@ -40,6 +42,76 @@ namespace SteamApp.WebAPI.MinimalAPIs
             })
             .WithName("GetAllGameUrls")
             .Produces<List<object>>(StatusCodes.Status200OK);
+
+            // GET: /api/game-urls/paged
+            group.MapGet("/paged", async (
+                ApplicationDbContext db,
+                [AsParameters] GameUrlsPageQuery request,
+                CancellationToken ct) =>
+            {
+                var query = db.GameUrls.AsNoTracking();
+
+                if (request.GameId.HasValue)
+                {
+                    query = query.Where(x => x.GameId == request.GameId.Value);
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.Name))
+                {
+                    var nameFilter = request.Name.Trim();
+                    query = query.Where(x => x.Name != null && x.Name.Contains(nameFilter));
+                }
+
+                query = request.SortBy switch
+                {
+                    "gameName" => request.IsDescending
+                        ? query.OrderByDescending(x => x.Game.Name).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.Game.Name).ThenBy(x => x.Id),
+                    "name" => request.IsDescending
+                        ? query.OrderByDescending(x => x.Name).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.Name).ThenBy(x => x.Id),
+                    "isBatchUrl" => request.IsDescending
+                        ? query.OrderByDescending(x => x.IsBatchUrl).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.IsBatchUrl).ThenBy(x => x.Id),
+                    "startPage" => request.IsDescending
+                        ? query.OrderByDescending(x => x.StartPage).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.StartPage).ThenBy(x => x.Id),
+                    "endPage" => request.IsDescending
+                        ? query.OrderByDescending(x => x.EndPage).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.EndPage).ThenBy(x => x.Id),
+                    "isPixelScrape" => request.IsDescending
+                        ? query.OrderByDescending(x => x.IsPixelScrape).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.IsPixelScrape).ThenBy(x => x.Id),
+                    "isPublicApi" => request.IsDescending
+                        ? query.OrderByDescending(x => x.IsPublicApi).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.IsPublicApi).ThenBy(x => x.Id),
+                    _ => query.OrderBy(x => x.Id),
+                };
+
+                var totalCount = await query.CountAsync(ct);
+                var pageWindow = request.ToPageWindow(totalCount);
+
+                var items = await query
+                    .ApplyPage(pageWindow)
+                    .Select(x => new
+                    {
+                        Id = x.Id,
+                        Name = x.Name,
+                        GameId = x.GameId,
+                        GameName = x.Game.Name,
+                        PartialUrl = x.PartialUrl,
+                        IsBatchUrl = x.IsBatchUrl,
+                        StartPage = x.StartPage,
+                        EndPage = x.EndPage,
+                        IsPixelScrape = x.IsPixelScrape,
+                        IsPublicApi = x.IsPublicApi,
+                    })
+                    .ToListAsync(ct);
+
+                return Results.Ok(pageWindow.ToPagedResponse(items));
+            })
+            .WithName("GetPagedGameUrls")
+            .Produces(StatusCodes.Status200OK);
 
             // GET: /api/game-urls/{id}
             group.MapGet("/{id:long}", async (
@@ -139,5 +211,11 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
             return app;
         }
+    }
+
+    public sealed record GameUrlsPageQuery : PagedQuery
+    {
+        public long? GameId { get; init; }
+        public string? Name { get; init; }
     }
 }
