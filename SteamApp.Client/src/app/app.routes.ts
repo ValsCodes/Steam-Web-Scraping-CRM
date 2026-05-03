@@ -4,6 +4,7 @@ import {
   GamesView,
   GameUrlForm,
   GameUrlsView,
+  HomePage,
   LoginComponent,
   ManualModeV2,
   PixelForm,
@@ -22,6 +23,16 @@ import { AuthGuard } from './services/auth/auth.guard';
 
 export const routes: Routes = [
   {
+    path: '',
+    redirectTo: 'home',
+    pathMatch: 'full',
+  },
+  {
+    path: 'home',
+    component: HomePage,
+    title: 'Home',
+  },
+  {
     path: 'login',
     component: LoginComponent,
     title: 'Login',
@@ -30,8 +41,6 @@ export const routes: Routes = [
     path: '',
     canActivateChild: [AuthGuard],
     children: [
-      { path: '', redirectTo: 'web-scraper', pathMatch: 'full' },
-
       { path: 'web-scraper', component: WebScraperComponent, title: 'Web Scraper' },
       { path: 'manual-mode-v2', component: ManualModeV2, title: 'Manual Mode' },
 

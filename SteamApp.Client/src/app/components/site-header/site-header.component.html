@@ -1,6 +1,7 @@
 <div class="site-header flex items-center justify-between p-4">
-        @if (isLoggedIn) {
         <div class="flex">
+                <a routerLink="/home" routerLinkActive="active">Home</a>
+        @if (isLoggedIn) {
                 <steam-dropdown label="Scraping"
                         [links]="[{ label: 'Web Scraper', route: '/web-scraper' },
                         { label: 'Manual Scraper', route: '/manual-mode-v2' }]"></steam-dropdown>
@@ -13,7 +14,8 @@
                 <a routerLink="/pixels" routerLinkActive="active">Pixels</a>
                 <a routerLink="/wishlist" routerLinkActive="active">Game Wish List</a>
                 <a routerLink="/watch-list" routerLinkActive="active">Custom Watch List</a>
-        </div>}
+        }
+        </div>
         <div class="flex space-x-4 items-center">
                 @if(isLoggedIn)
                 {

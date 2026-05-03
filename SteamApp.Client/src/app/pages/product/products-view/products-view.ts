@@ -6,6 +6,9 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatDialog } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { finalize, Subject, takeUntil } from 'rxjs';
 
@@ -17,7 +20,16 @@ import * as XLSX from 'xlsx';
 @Component({
   selector: 'steam-products-grid',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MatTableModule, MatPaginatorModule, MatSortModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatSortModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+  ],
   templateUrl: './products-view.html',
   styleUrl: './products-view.scss',
 })

@@ -8,6 +8,9 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatDialog } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { WatchList } from '../../../models/watch-list.model';
 import { WatchListService } from '../../../services/watch-list/watch-list.service';
@@ -24,6 +27,9 @@ import * as XLSX from 'xlsx';
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
   ],
   templateUrl: './watch-lists-view.html',
   styleUrl: './watch-lists-view.scss',

@@ -162,6 +162,7 @@
             </section>
 
             <!-- Results -->
+            @if (dataSource.data.length > 0) {
             <section class="rounded-lg border border-slate-300 bg-white shadow-sm">
                 <div class="border-b border-slate-200 px-4 py-3  flex justify-between">
                     <h2 class="text-lg font-semibold text-slate-800">Results</h2>
@@ -172,7 +173,7 @@
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table mat-table [dataSource]="dataSource" matSort class="w-full">
+                    <table mat-table [dataSource]="dataSource" matSort class="w-full app-data-table app-data-table--scraper">
 
                         <!-- Row Number -->
                         <ng-container matColumnDef="rowNumber">
@@ -241,7 +242,9 @@
                         <ng-container matColumnDef="actions">
                             <th mat-header-cell *matHeaderCellDef>Actions</th>
                             <td mat-cell *matCellDef="let element; let i = index">
-                                <!-- Future row actions -->
+                                <div class="table-actions-cell">
+                                    <span class="table-actions-empty">—</span>
+                                </div>
                             </td>
                         </ng-container>
 
@@ -254,6 +257,20 @@
                     <mat-paginator showFirstLastButtons></mat-paginator>
                 </div>
             </section>
+            } @else {
+            <section class="rounded-lg border border-slate-300 bg-white p-8 shadow-sm">
+                <div class="flex min-h-[320px] flex-col items-center justify-center text-center">
+                    <h2 class="text-lg font-semibold text-slate-800">
+                        {{ isLoading() ? 'Scrape In Progress' : 'No Results Yet' }}
+                    </h2>
+                    <p class="mt-2 max-w-md text-sm text-slate-500">
+                        {{ isLoading()
+                          ? 'Results will appear here once the current scrape finishes.'
+                          : 'Select a game and source, then run a scrape to populate the results grid.' }}
+                    </p>
+                </div>
+            </section>
+            }
         </main>
     </div>
 </div>

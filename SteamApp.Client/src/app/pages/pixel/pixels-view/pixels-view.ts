@@ -12,8 +12,13 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatDialog } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltip } from '@angular/material/tooltip';
 
 import { Game, PixelListItem } from '../../../models';
+import { CopyLinkComponent } from '../../../components';
 import { GameService, PixelService } from '../../../services';
 import {
   BehaviorSubject,
@@ -37,6 +42,11 @@ import * as XLSX from 'xlsx';
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+    MatTooltip,
+    CopyLinkComponent,
   ],
   templateUrl: './pixels-view.html',
   styleUrl: './pixels-view.scss',
@@ -206,5 +216,9 @@ export class PixelsView implements OnInit, OnDestroy {
 
     const today = new Date();
     XLSX.writeFile(workbook, `Export_${today.toDateString()}_Pixels.xlsx`);
+  }
+
+  formatRgbValue(pixel: PixelListItem): string {
+    return `rgb(${pixel.redValue}, ${pixel.greenValue}, ${pixel.blueValue})`;
   }
 }

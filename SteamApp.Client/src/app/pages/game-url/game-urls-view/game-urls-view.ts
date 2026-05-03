@@ -6,6 +6,9 @@ import { MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { Game, GameUrl } from '../../../models';
 import { GameService, GameUrlService } from '../../../services';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -24,6 +27,9 @@ import { MatDialog } from '@angular/material/dialog';
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
   ],
   templateUrl: './game-urls-view.html',
   styleUrl: './game-urls-view.scss'

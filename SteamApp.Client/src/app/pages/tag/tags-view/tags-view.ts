@@ -6,6 +6,9 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatDialog } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { GameService, TagService } from '../../../services';
 import { Game, Tag } from '../../../models';
@@ -24,6 +27,9 @@ import * as XLSX from 'xlsx';
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
   ],
   templateUrl: './tags-view.html',
   styleUrl: './tags-view.scss',

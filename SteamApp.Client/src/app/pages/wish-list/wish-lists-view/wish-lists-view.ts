@@ -15,6 +15,9 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatDialog } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { WishList } from '../../../models/wish-list.model';
 import { WishListService } from '../../../services/wish-list/wish-list.service';
@@ -34,6 +37,9 @@ import * as XLSX from 'xlsx';
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
   ],
   templateUrl: './wish-lists-view.html',
   styleUrl: './wish-lists-view.scss',

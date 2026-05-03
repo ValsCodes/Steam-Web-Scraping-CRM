@@ -12,6 +12,9 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatDialog } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { Router } from '@angular/router';
 import { Game } from '../../../models/game.model';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -24,10 +27,14 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'steam-games-view',
+  standalone: true,
   imports: [
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
     CommonModule,
     ReactiveFormsModule,
   ],
