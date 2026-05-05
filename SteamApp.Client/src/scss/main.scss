@@ -242,6 +242,8 @@ input {
   height: 2.25rem !important;
   border: 1px solid #d7e1ee !important;
   border-radius: 0.75rem !important;
+  display: flex;
+  text-align: center;
   background: linear-gradient(180deg, #ffffff 0%, #eef5ff 100%) !important;
   color: #0f172a !important;
   box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
@@ -260,6 +262,8 @@ input {
 }
 
 .table-actions-trigger .mat-icon {
+  display: flex;
+  justify-self: center;
   margin: 0;
 }
 
