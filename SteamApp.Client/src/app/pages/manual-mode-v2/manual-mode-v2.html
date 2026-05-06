@@ -25,6 +25,16 @@
                         </div>
 
                         <div>
+                            <label class="mb-1 block text-sm font-medium text-slate-700">Scraping Mode</label>
+                            <select class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="scrapingModeIdControl">
+                                <option [ngValue]="null">All Scraping Modes</option>
+                                @for (scrapingMode of scrapingModes$ | async; track scrapingMode.id) {
+                                    <option [ngValue]="scrapingMode.id">{{ scrapingMode.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
                             <label class="mb-1 block text-sm font-medium text-slate-700">Game URL</label>
                             <select class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="gameUrlIdControl">
                                 <option [ngValue]="null">Select Game URL</option>
@@ -38,7 +48,7 @@
                             <button
                                 class="button button-small-primary"
                                 (click)="showAllButtonClicked()"
-                                [hidden]="this.selectedGameUrl?.isBatchUrl"
+                                [hidden]="isBatchMode(this.selectedGameUrl)"
                                 [disabled]="gameUrlIdControl.value === null">
                                 Load Products
                             </button>
@@ -95,7 +105,7 @@
                             <button
                                 (click)="openAllButtonClicked()"
                                 class="button button-small-primary"
-                                [hidden]="this.selectedGameUrl?.isBatchUrl === true"
+                                [hidden]="isBatchMode(this.selectedGameUrl)"
                                 [disabled]="true">
                                 Open Loaded Items
                             </button>

@@ -1,5 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using SteamApp.Domain.Entities;
+using SteamApp.Domain.Enums;
 
 namespace SteamApp.Infrastructure.Context;
 
@@ -14,6 +15,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<GameUrlProducts> GameUrlsProducts { get; set; }
     public DbSet<GameUrlPixels> GameUrlsPixels { get; set; }
     public DbSet<GameAddOn> GameAddOns { get; set; }
+    public DbSet<ScrapingMode> ScrapingModes { get; set; }
     public DbSet<Tag> Tags { get; set; }
     public DbSet<ProductTags> ProductTags { get; set; }
 
@@ -22,10 +24,33 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.Entity<Game>();
-        modelBuilder.Entity<GameUrl>();     
+        modelBuilder.Entity<GameUrl>(entity =>
+        {
+            entity.HasOne(g => g.ScrapingMode)
+                  .WithMany(s => s.GameUrls)
+                  .HasForeignKey(g => g.ScrapingModeId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
         modelBuilder.Entity<WatchList>();
         modelBuilder.Entity<WishList>();
         modelBuilder.Entity<GameAddOn>();
+        modelBuilder.Entity<ScrapingMode>();
+        modelBuilder.Entity<WatchList>(entity =>
+        {
+            entity.HasOne(w => w.GameUrl)
+                  .WithMany(g => g.WatchLists)
+                  .HasForeignKey(w => w.GameUrlId);
+
+            entity.HasOne(w => w.Product)
+                  .WithMany(p => p.WatchLists)
+                  .HasForeignKey(w => w.ProductId);
+        });
+
+        modelBuilder.Entity<ScrapingMode>().HasData(
+            new ScrapingMode { Id = (long)ScrapingModeEnum.ManualBatch, Name = "Manual Batch" },
+            new ScrapingMode { Id = (long)ScrapingModeEnum.Batch, Name = "Batch" },
+            new ScrapingMode { Id = (long)ScrapingModeEnum.PixelBatch, Name = "Pixel Batch" },
+            new ScrapingMode { Id = (long)ScrapingModeEnum.PublicApi, Name = "Public API" });
 
         modelBuilder.Entity<Pixel>(entity =>
         {

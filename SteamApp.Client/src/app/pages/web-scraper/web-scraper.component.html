@@ -26,12 +26,23 @@
                         </div>
 
                         <div>
+                            <label class="mb-1 block text-sm font-medium text-slate-700">Scraping Mode</label>
+                            <select class="w-full rounded border border-slate-300 px-3 py-2"
+                                [formControl]="scrapingModeIdControl">
+                                <option [ngValue]="null">All Scraping Modes</option>
+                                @for (mode of scrapingModes(); track mode.id) {
+                                <option [ngValue]="mode.id">{{ mode.name }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
                             <label class="mb-1 block text-sm font-medium text-slate-700">Game URL</label>
                             <select class="w-full rounded border border-slate-300 px-3 py-2"
                                 [formControl]="gameUrlIdControl">
                                 <option [ngValue]="null">Select Game URL</option>
                                 @for (url of gameUrlsFiltered(); track url.id) {
-                                <option [ngValue]="url.id">{{ url.name }}</option>
+                                <option [ngValue]="url.id">{{ url.name || url.partialUrl || 'Unnamed URL' }}</option>
                                 }
                             </select>
                         </div>
@@ -50,28 +61,12 @@
                     <h3 class="mb-4 text-sm font-semibold text-slate-700">2. Choose Mode</h3>
 
                     <div class="flex flex-wrap gap-2">
-                        @if (this.selectedGameUrl()?.isPublicApi) {
-                        <button (click)="setSelectedMode(ScrapingMode.PublicApiScraper)" class="button-small-success"
-                            [class.ring-2]="isModeSelected(ScrapingMode.PublicApiScraper)"
-                            [class.ring-offset-2]="isModeSelected(ScrapingMode.PublicApiScraper)"
-                            title="Duration ~1sec">
-                            Public API
-                        </button>
-                        }
-
-                        @if (this.selectedGameUrl()?.isBatchUrl) {
-                        <button (click)="setSelectedMode(ScrapingMode.Scraper)" class="button-small-success"
-                            [class.ring-2]="isModeSelected(ScrapingMode.Scraper)"
-                            [class.ring-offset-2]="isModeSelected(ScrapingMode.Scraper)" title="Duration ~3sec">
-                            Web Scrape
-                        </button>
-                        }
-
-                        @if (this.selectedGameUrl()?.isPixelScrape) {
-                        <button (click)="setSelectedMode(ScrapingMode.PixelScrape)" class="button-small-success"
-                            [class.ring-2]="isModeSelected(ScrapingMode.PixelScrape)"
-                            [class.ring-offset-2]="isModeSelected(ScrapingMode.PixelScrape)" title="Duration ~30s">
-                            Pixel Scrape
+                        @for (mode of availableModes(); track mode.id) {
+                        <button (click)="setSelectedMode(mode.id)" class="button-small-success"
+                            [class.ring-2]="isModeSelected(mode.id)"
+                            [class.ring-offset-2]="isModeSelected(mode.id)"
+                            title="Run this scrape mode">
+                            {{ mode.name }}
                         </button>
                         }
                     </div>

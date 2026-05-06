@@ -337,12 +337,8 @@ th[mat-header-cell].mat-column-registrationDate,
 td[mat-cell].mat-column-registrationDate,
 th[mat-header-cell].mat-column-isActive,
 td[mat-cell].mat-column-isActive,
-th[mat-header-cell].mat-column-isBatchUrl,
-td[mat-cell].mat-column-isBatchUrl,
-th[mat-header-cell].mat-column-isPublicApi,
-td[mat-cell].mat-column-isPublicApi,
-th[mat-header-cell].mat-column-isPixelScrape,
-td[mat-cell].mat-column-isPixelScrape,
+th[mat-header-cell].mat-column-scrapingModeName,
+td[mat-cell].mat-column-scrapingModeName,
 th[mat-header-cell].mat-column-pageUrl,
 td[mat-cell].mat-column-pageUrl,
 th[mat-header-cell].mat-column-partialUrl,
@@ -366,9 +362,7 @@ th[mat-header-cell].mat-column-startPage .mat-sort-header-container,
 th[mat-header-cell].mat-column-endPage .mat-sort-header-container,
 th[mat-header-cell].mat-column-registrationDate .mat-sort-header-container,
 th[mat-header-cell].mat-column-isActive .mat-sort-header-container,
-th[mat-header-cell].mat-column-isBatchUrl .mat-sort-header-container,
-th[mat-header-cell].mat-column-isPublicApi .mat-sort-header-container,
-th[mat-header-cell].mat-column-isPixelScrape .mat-sort-header-container,
+th[mat-header-cell].mat-column-scrapingModeName .mat-sort-header-container,
 th[mat-header-cell].mat-column-pageUrl .mat-sort-header-container,
 th[mat-header-cell].mat-column-partialUrl .mat-sort-header-container,
 th[mat-header-cell].mat-column-url .mat-sort-header-container,
@@ -416,15 +410,8 @@ td[mat-cell].mat-column-registrationDate {
 
 th[mat-header-cell].mat-column-isActive,
 td[mat-cell].mat-column-isActive,
-th[mat-header-cell].mat-column-isBatchUrl,
-td[mat-cell].mat-column-isBatchUrl,
-th[mat-header-cell].mat-column-isPixelScrape,
-td[mat-cell].mat-column-isPixelScrape {
-  width: 6.5rem;
-}
-
-th[mat-header-cell].mat-column-isPublicApi,
-td[mat-cell].mat-column-isPublicApi {
+th[mat-header-cell].mat-column-scrapingModeName,
+td[mat-cell].mat-column-scrapingModeName {
   width: 8rem;
 }
 

@@ -12,10 +12,10 @@
       <label>Game *</label>
       <select formControlName="gameId" class="px-2 py-1">
         <option ngValue="" disabled>Select a game</option>
-        @for (game of games(); track game.id){
-        <option [ngValue]="game.id">
-          {{ game.name }}
-        </option>
+        @for (game of games(); track game.id) {
+          <option [ngValue]="game.id">
+            {{ game.name }}
+          </option>
         }
       </select>
     </div>
@@ -30,63 +30,58 @@
       <input formControlName="partialUrl" class="px-2 py-1 w-full" placeholder="/market/listings/..." />
     </div>
 
-    <div class="form-group-row checkbox-group">
-      @if (!isPublicApi())
-      {
-      <label>
-        <input type="checkbox" formControlName="isBatchUrl" />
-        Batch URL
-      </label>
-      <label>
-        <input type="checkbox" formControlName="isPixelScrape" />
-        Pixel Scrape
-      </label>
-      }
-      <label>
-        <input type="checkbox" formControlName="isPublicApi" />
-        Public API
-      </label>
+    <div class="form-group">
+      <label>Scraping Mode *</label>
+      <select formControlName="scrapingModeId" class="px-2 py-1">
+        @if (scrapingModes().length === 0) {
+          <option [ngValue]="1">Manual Batch</option>
+        }
+        @for (mode of scrapingModes(); track mode.id) {
+          <option [ngValue]="mode.id">
+            {{ mode.name }}
+          </option>
+        }
+      </select>
     </div>
 
-    @if (isBatchUrl()) {
-    <div class="form-group">
-      <label>Start Page</label>
-      <input type="number" formControlName="startPage" class="px-2 py-1" />
-    </div>
+    @if (isBatchMode()) {
+      <div class="form-group">
+        <label>Start Page</label>
+        <input type="number" formControlName="startPage" class="px-2 py-1" />
+      </div>
 
-    <div class="form-group">
-      <label>End Page</label>
-      <input type="number" formControlName="endPage" class="px-2 py-1" />
-    </div>
+      <div class="form-group">
+        <label>End Page</label>
+        <input type="number" formControlName="endPage" class="px-2 py-1" />
+      </div>
     }
 
-    @if (isPixelScrape()) {
-    <div class="form-group">
-      <label>Pixel X</label>
-      <input type="number" formControlName="pixelX" class="px-2 py-1" />
-    </div>
+    @if (isPixelMode()) {
+      <div class="form-group">
+        <label>Pixel X</label>
+        <input type="number" formControlName="pixelX" class="px-2 py-1" />
+      </div>
 
-    <div class="form-group">
-      <label>Pixel Y</label>
-      <input type="number" formControlName="pixelY" class="px-2 py-1" />
-    </div>
+      <div class="form-group">
+        <label>Pixel Y</label>
+        <input type="number" formControlName="pixelY" class="px-2 py-1" />
+      </div>
 
-    <div class="form-group">
-      <label>Image Width</label>
-      <input type="number" formControlName="pixelImageWidth" class="px-2 py-1" />
-    </div>
+      <div class="form-group">
+        <label>Image Width</label>
+        <input type="number" formControlName="pixelImageWidth" class="px-2 py-1" />
+      </div>
 
-    <div class="form-group">
-      <label>Image Height</label>
-      <input type="number" formControlName="pixelImageHeight" class="px-2 py-1" />
-    </div>
+      <div class="form-group">
+        <label>Image Height</label>
+        <input type="number" formControlName="pixelImageHeight" class="px-2 py-1" />
+      </div>
     }
 
-    @if (!isPublicApi() && !isBatchUrl() && !isPixelScrape()) {
+    @if (isManualMode()) {
       <div class="relation-section">
         <h3>Products for this Game URL</h3>
-        @if (filteredProducts.length === 0)
-        {
+        @if (filteredProducts.length === 0) {
           <p class="relation-empty">No products available for this game.</p>
         }
         @else {
@@ -100,8 +95,7 @@
           </label>
 
           <div class="relation-grid">
-            @for (product of filteredProducts; track product.id)
-            {
+            @for (product of filteredProducts; track product.id) {
               <label>
                 <input
                   type="checkbox"
@@ -115,11 +109,10 @@
       </div>
     }
 
-    @if (isPixelScrape()) {
+    @if (isPixelMode()) {
       <div class="relation-section">
         <h3>Pixels for this Game URL</h3>
-        @if (filteredPixels.length === 0)
-        {
+        @if (filteredPixels.length === 0) {
           <p class="relation-empty">No pixels available for this game.</p>
         }
         @else {
@@ -133,8 +126,7 @@
           </label>
 
           <div class="relation-grid">
-            @for (pixel of filteredPixels; track pixel.id)
-            {
+            @for (pixel of filteredPixels; track pixel.id) {
               <label>
                 <input
                   type="checkbox"

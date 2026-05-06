@@ -9,12 +9,11 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
-import { Game, GameUrl } from '../../../models';
-import { GameService, GameUrlService } from '../../../services';
+import { Game, GameUrl, ScrapingMode } from '../../../models';
+import { GameService, GameUrlService, ScrapingModeService } from '../../../services';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { combineLatest, finalize, startWith, Subject, takeUntil } from 'rxjs';
 import * as XLSX from 'xlsx';
-import { HttpErrorResponse } from '@angular/common/http';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
 
@@ -40,18 +39,18 @@ export class GameUrlsView implements OnInit, OnDestroy {
     'gameName',
     'name',
     'partialUrl',
-    'isBatchUrl',
+    'scrapingModeName',
     'startPage',
     'endPage',
-    'isPixelScrape',
-    'isPublicApi',
     'actions'
   ];
 
   readonly games = signal<readonly Game[]>([]);
+  readonly scrapingModes = signal<readonly ScrapingMode[]>([]);
   private readonly dialog = inject(MatDialog);
 
   readonly gameIdControl = new FormControl<number | null>(null);
+  readonly scrapingModeIdControl = new FormControl<number | null>(null);
   readonly searchByNameFilterControl = new FormControl<string>('', { nonNullable: true });
 
   dataSource = new MatTableDataSource<GameUrl>([]);
@@ -69,6 +68,7 @@ export class GameUrlsView implements OnInit, OnDestroy {
   constructor(
     private readonly gameUrlService: GameUrlService,
     private readonly gameService: GameService,
+    private readonly scrapingModeService: ScrapingModeService,
     private readonly router: Router,
     private readonly cdr: ChangeDetectorRef
   ) {}
@@ -76,20 +76,23 @@ export class GameUrlsView implements OnInit, OnDestroy {
   ngOnInit(): void
   {
     this.loadGames();
+    this.loadScrapingModes();
     this.fetchGameUrls();
 
     combineLatest([
       this.gameIdControl.valueChanges.pipe(startWith(this.gameIdControl.value)),
+      this.scrapingModeIdControl.valueChanges.pipe(startWith(this.scrapingModeIdControl.value)),
       this.searchByNameFilterControl.valueChanges.pipe(startWith(this.searchByNameFilterControl.value)),
     ])
-    .pipe(takeUntil(this.destroy$))
-    .subscribe(([gameId, name]) =>
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(([gameId, scrapingModeId, name]) =>
     {
       const nameFilter = (name ?? '').trim().toLowerCase();
 
       const filtered = this.gameUrls.filter(u =>
       {
         if (gameId !== null && u.gameId !== gameId) { return false; }
+        if (scrapingModeId !== null && u.scrapingModeId !== scrapingModeId) { return false; }
         if (nameFilter && !(u.name ?? '').toLowerCase().includes(nameFilter)) { return false; }
         return true;
       });
@@ -115,11 +118,9 @@ export class GameUrlsView implements OnInit, OnDestroy {
       gameName: x.gameName,
       name: x.name ?? '',
       partialUrl: x.partialUrl ?? '',
-      isBatchUrl: x.isBatchUrl,
+      scrapingMode: x.scrapingModeName ?? '',
       startPage: x.startPage ?? '',
       endPage: x.endPage ?? '',
-      isPixelScrape: x.isPixelScrape,
-      isPublicApi: x.isPublicApi,
     }));
 
     const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -194,6 +195,7 @@ export class GameUrlsView implements OnInit, OnDestroy {
   clearFiltersButtonClicked(): void
   {
     this.gameIdControl.setValue(null, { emitEvent: true });
+    this.scrapingModeIdControl.setValue(null, { emitEvent: true });
     this.searchByNameFilterControl.setValue('', { emitEvent: true });
   }
 
@@ -244,6 +246,16 @@ export class GameUrlsView implements OnInit, OnDestroy {
       .subscribe(games =>
       {
         this.games.set(games);
+      });
+  }
+
+  private loadScrapingModes(): void
+  {
+    this.scrapingModeService.getAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(scrapingModes =>
+      {
+        this.scrapingModes.set([...scrapingModes].sort((a, b) => a.id - b.id));
       });
   }
 }

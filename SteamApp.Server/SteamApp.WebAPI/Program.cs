@@ -171,7 +171,8 @@ public class Program
         builder.Services.AddDbContext<ApplicationDbContext>(opts =>
         {
             opts.UseSqlServer(
-                builder.Configuration.GetConnectionString("DefaultConnection"));
+                builder.Configuration.GetConnectionString("DefaultConnection"),
+                sql => sql.MigrationsAssembly(typeof(Program).Assembly.FullName));
         });
 
         builder.Services.AddAutoMapper(_ => { }, typeof(BaseProfile));
@@ -223,6 +224,7 @@ public class Program
 
         app.MapGameEndpoints();
         app.MapGameUrlEndpoints();
+        app.MapScrapingModeEndpoints();
         app.MapProductEndpoints();
         app.MapPixelEndpoints();
         app.MapWatchListEndpoints();

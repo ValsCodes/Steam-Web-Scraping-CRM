@@ -20,19 +20,24 @@ import * as XLSX from 'xlsx';
 
 import { SteamService } from '../../services/steam/steam.service';
 import { StopwatchComponent } from '../../components';
-import { Game, GameUrl } from '../../models';
+import {
+  Game,
+  GameUrl,
+  ScrapingMode as ScrapingModeLookup,
+  ScrapingModeEnum,
+} from '../../models';
 import { Listing } from '../../models/listing.model';
-import { GameService, GameUrlService } from '../../services';
+import { GameService, GameUrlService, ScrapingModeService } from '../../services';
 import { MatTooltip } from '@angular/material/tooltip';
 
-enum ScrapingMode {
-  Scraper = 1,
-  PublicApiScraper = 2,
-  PixelScrape = 3,
+enum ScraperExecutionMode {
+  WebScrape = ScrapingModeEnum.Batch,
+  PixelScrape = ScrapingModeEnum.PixelBatch,
+  PublicApi = ScrapingModeEnum.PublicApi,
 }
 
-type ScrapingModeItem = {
-  id: ScrapingMode;
+type ScraperExecutionModeItem = {
+  id: ScraperExecutionMode;
   name: string;
 };
 
@@ -58,12 +63,13 @@ export class WebScraperComponent implements AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(StopwatchComponent) stopwatch?: StopwatchComponent;
 
-  readonly ScrapingMode = ScrapingMode;
+  readonly ScraperExecutionMode = ScraperExecutionMode;
 
   private readonly destroyRef = inject(DestroyRef);
   private cancel$ = new Subject<void>();
 
   readonly gameIdControl = new FormControl<number | null>(null);
+  readonly scrapingModeIdControl = new FormControl<number | null>(null);
   readonly gameUrlIdControl = new FormControl<number | null>(null);
 
   readonly selectedGameId = toSignal(
@@ -78,9 +84,27 @@ export class WebScraperComponent implements AfterViewInit {
     { initialValue: null },
   );
 
+  readonly selectedScrapingModeId = toSignal(
+    this.scrapingModeIdControl.valueChanges.pipe(
+      startWith(this.scrapingModeIdControl.value),
+    ),
+    { initialValue: null },
+  );
+
   readonly games = toSignal(this.gameService.getAll(), {
     initialValue: [] as Game[],
   });
+
+  readonly scrapingModes = toSignal(
+    this.scrapingModeService.getAll().pipe(
+      map((modes) =>
+        [...modes]
+          .filter((mode) => mode.id !== 1)
+          .sort((a, b) => a.id - b.id),
+      ),
+    ),
+    { initialValue: [] as ScrapingModeLookup[] },
+  );
 
   readonly selectedGame = computed<Game | null>(() => {
     const urlId = this.selectedGameId();
@@ -94,18 +118,9 @@ export class WebScraperComponent implements AfterViewInit {
     this.gameUrlService.getAll().pipe(
       map((urls): GameUrl[] =>
         urls
-          .filter((x) => x.isBatchUrl || x.isPixelScrape || x.isPublicApi)
-          .map((url): GameUrl => {
-            const baseName = url.name ?? '';
-            const suffix =
-              (url.isBatchUrl ? ' [ Batch ]' : '') +
-              (url.isPixelScrape ? ' [ Pixel ]' : '') +
-              (url.isPublicApi ? ' [ Public API ]' : '');
-
-            return {
-              ...url,
-              name: `${baseName}${suffix}`,
-            };
+          .filter((url) => {
+            const scrapingModeId = url.scrapingModeId ?? null;
+            return scrapingModeId !== null && scrapingModeId !== ScrapingModeEnum.ManualBatch;
           }),
       ),
     ),
@@ -114,10 +129,21 @@ export class WebScraperComponent implements AfterViewInit {
 
   readonly gameUrlsFiltered = computed(() => {
     const gameId = this.selectedGameId();
+    const scrapingModeId = this.selectedScrapingModeId();
     if (gameId === null) {
       return [];
     }
-    return this.gameUrlsAll().filter((u) => u.gameId === gameId);
+    return this.gameUrlsAll().filter((u) => {
+      if (u.gameId !== gameId) {
+        return false;
+      }
+
+      if (scrapingModeId !== null && u.scrapingModeId !== scrapingModeId) {
+        return false;
+      }
+
+      return true;
+    });
   });
 
   readonly selectedGameUrl = computed<GameUrl | null>(() => {
@@ -128,33 +154,17 @@ export class WebScraperComponent implements AfterViewInit {
     return this.gameUrlsFiltered().find((u) => u.id === urlId) ?? null;
   });
 
-  readonly availableModes = computed<ScrapingModeItem[]>(() => {
+  readonly availableModes = computed<ScraperExecutionModeItem[]>(() => {
     const url = this.selectedGameUrl();
     if (!url) {
       return [];
     }
 
-    const modes: ScrapingModeItem[] = [];
-
-    if (url.isBatchUrl) {
-      modes.push({ id: ScrapingMode.Scraper, name: 'Web Scraper' });
-    }
-
-    if (url.isPublicApi) {
-      modes.push({
-        id: ScrapingMode.PublicApiScraper,
-        name: 'Public API Scrape',
-      });
-    }
-
-    if (url.isPixelScrape) {
-      modes.push({ id: ScrapingMode.PixelScrape, name: 'Pixel Scrape' });
-    }
-
-    return modes;
+    const mode = this.getExecutionModeForGameUrl(url);
+    return mode === null ? [] : [mode];
   });
 
-  readonly selectedMode = signal<ScrapingModeItem | null>(null);
+  readonly selectedMode = signal<ScraperExecutionModeItem | null>(null);
   readonly statusLabel = signal<string>('');
   readonly isLoading = signal<boolean>(false);
   readonly pageNumber = signal<number>(1);
@@ -183,10 +193,24 @@ export class WebScraperComponent implements AfterViewInit {
     private readonly cdr: ChangeDetectorRef,
     private readonly gameService: GameService,
     private readonly gameUrlService: GameUrlService,
+    private readonly scrapingModeService: ScrapingModeService,
   ) {
     effect(
       () => {
         void this.selectedGameId();
+        this.gameUrlIdControl.setValue(null, { emitEvent: true });
+        this.selectedMode.set(null);
+        this.pageNumber.set(1);
+        this.dataSource.data = [];
+        this.statusLabel.set('');
+        this.cdr.markForCheck();
+      },
+      { allowSignalWrites: true },
+    );
+
+    effect(
+      () => {
+        void this.selectedScrapingModeId();
         this.gameUrlIdControl.setValue(null, { emitEvent: true });
         this.selectedMode.set(null);
         this.pageNumber.set(1);
@@ -226,7 +250,22 @@ export class WebScraperComponent implements AfterViewInit {
     return id;
   }
 
-  public setSelectedMode(modeId: ScrapingMode): void {
+  private getExecutionModeForGameUrl(
+    url: GameUrl,
+  ): ScraperExecutionModeItem | null {
+    switch (url.scrapingModeId) {
+      case ScraperExecutionMode.WebScrape:
+        return { id: ScraperExecutionMode.WebScrape, name: 'Web Scrape' };
+      case ScraperExecutionMode.PixelScrape:
+        return { id: ScraperExecutionMode.PixelScrape, name: 'Pixel Scrape' };
+      case ScraperExecutionMode.PublicApi:
+        return { id: ScraperExecutionMode.PublicApi, name: 'Public API Scrape' };
+      default:
+        return null;
+    }
+  }
+
+  public setSelectedMode(modeId: ScraperExecutionMode): void {
     const mode = this.availableModes().find((m) => m.id === modeId) ?? null;
     this.selectedMode.set(mode);
 
@@ -238,7 +277,7 @@ export class WebScraperComponent implements AfterViewInit {
     this.statusLabel.set(`Mode selected: ${mode.name}.`);
   }
 
-  public isModeSelected(modeId: ScrapingMode): boolean {
+  public isModeSelected(modeId: ScraperExecutionMode): boolean {
     return this.selectedMode()?.id === modeId;
   }
 
@@ -260,18 +299,18 @@ export class WebScraperComponent implements AfterViewInit {
     this.isLoading.set(false);
   }
 
-  private getRequestForMode(mode: ScrapingMode): Observable<Listing[]> {
+  private getRequestForMode(mode: ScraperExecutionMode): Observable<Listing[]> {
     const gameUrlId = this.requireGameUrlId();
     const page = this.pageNumber();
 
     switch (mode) {
-      case ScrapingMode.Scraper: {
+      case ScraperExecutionMode.WebScrape: {
         return this.steamService.scrapePage(gameUrlId, page);
       }
-      case ScrapingMode.PublicApiScraper: {
+      case ScraperExecutionMode.PublicApi: {
         return this.steamService.scrapeFromPublicApi(gameUrlId, page);
       }
-      case ScrapingMode.PixelScrape: {
+      case ScraperExecutionMode.PixelScrape: {
         return this.steamService.scrapeForPixels(gameUrlId, page);
       }
       default: {
@@ -360,6 +399,7 @@ export class WebScraperComponent implements AfterViewInit {
     this.dataSource.data = [];
     this.statusLabel.set('');
     this.gameIdControl.setValue(null);
+    this.scrapingModeIdControl.setValue(null);
     this.gameUrlIdControl.setValue(null);
     this.selectedMode.set(null);
     this.pageNumber.set(1);

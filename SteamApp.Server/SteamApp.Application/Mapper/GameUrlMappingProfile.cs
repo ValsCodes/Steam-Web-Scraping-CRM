@@ -8,7 +8,10 @@ namespace SteamApp.Application.Mapper
     {
         public GameUrlMappingProfile()
         {
-            CreateMap<GameUrl, GameUrlDto>();
+            CreateMap<GameUrl, GameUrlDto>()
+                .ForMember(
+                    d => d.ScrapingModeName,
+                    o => o.MapFrom(s => s.ScrapingMode != null ? s.ScrapingMode.Name : null));
 
             CreateMap<GameUrlCreateDto, GameUrl>()
                 .ForMember(d => d.Id, o => o.Ignore());

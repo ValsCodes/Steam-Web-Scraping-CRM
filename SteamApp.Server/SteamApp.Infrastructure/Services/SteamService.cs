@@ -7,6 +7,7 @@ using SteamApp.Application.JsonObjects;
 using SteamApp.Application.Repositories;
 using SteamApp.Application.Services;
 using SteamApp.Domain.Common;
+using SteamApp.Domain.Enums;
 using SteamApp.Infrastructure.Utilities;
 using System.Collections.ObjectModel;
 using System.Drawing;
@@ -20,7 +21,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
     {
         var gameUrl = await steamRepository.GetGameUrl(gamerUrlId);
 
-        if (gameUrl == null || !gameUrl.IsBatchUrl)
+        if (gameUrl == null || !IsBatchScrapingMode(gameUrl.ScrapingModeId))
         {
             throw new Exception("Game URL is missing or not configured for Batch Scraping.");
         }
@@ -47,7 +48,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
 
         var gameUrl = await steamRepository.GetGameUrl(gameUrlId);
 
-        if (gameUrl == null || !gameUrl.IsPublicApi)
+        if (gameUrl == null || !IsPublicApiScrapingMode(gameUrl.ScrapingModeId))
         {
             throw new Exception("Game URL is not configured for public API Scrape.");
         }
@@ -69,7 +70,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
 
         var gameUrl = await steamRepository.GetGameUrl(gameUrlId);
 
-        if (gameUrl == null || !gameUrl.IsPixelScrape)
+        if (gameUrl == null || !IsPixelScrapingMode(gameUrl.ScrapingModeId))
         {
             throw new Exception("Game URL is not configured for public API Scrape.");
         }
@@ -208,7 +209,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
     //{
     //    var gameUrl = await steamRepository.GetGameUrl(gamerUrlId);
 
-    //    if (gameUrl == null || !gameUrl.IsPixelScrape || gameUrl.PixelX == null || gameUrl.PixelY == null)
+    //    if (gameUrl == null || !IsPixelScrapingMode(gameUrl.ScrapingModeId) || gameUrl.PixelX == null || gameUrl.PixelY == null)
     //    {
     //        throw new Exception("Game URL is not configured for pixel scrape or pixel coordinates are missing.");
     //    }
@@ -243,6 +244,22 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
     #endregion
 
     #region Private Methods
+    private static bool IsBatchScrapingMode(long? scrapingModeId)
+    {
+        return scrapingModeId == (long)ScrapingModeEnum.Batch ||
+               scrapingModeId == (long)ScrapingModeEnum.PixelBatch;
+    }
+
+    private static bool IsPixelScrapingMode(long? scrapingModeId)
+    {
+        return scrapingModeId == (long)ScrapingModeEnum.PixelBatch;
+    }
+
+    private static bool IsPublicApiScrapingMode(long? scrapingModeId)
+    {
+        return scrapingModeId == (long)ScrapingModeEnum.PublicApi;
+    }
+
     public static double ParseSteamPrice(IWebElement el, bool preferCentsAttribute)
     {
         if (preferCentsAttribute)

@@ -10,7 +10,9 @@
 
         public string GameUrlName { get; set; } = null!;
 
-        public bool IsBatchUrl { get; set; }
+        public long? ScrapingModeId { get; set; }
+
+        public string? ScrapingModeName { get; set; }
 
         public string FullUrl { get; set; } = null!;
     }

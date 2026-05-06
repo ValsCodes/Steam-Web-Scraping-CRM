@@ -10,6 +10,16 @@ namespace SteamApp.Domain.Entities
         [Column("id")]
         public long Id { get; set; }
 
+        [Column("GameUrlId")]
+        [ForeignKey(nameof(GameUrl))]
+        public long? GameUrlId { get; set; }
+        public GameUrl? GameUrl { get; set; }
+
+        [Column("ProductId")]
+        [ForeignKey(nameof(Product))]
+        public long? ProductId { get; set; }
+        public Product? Product { get; set; }
+
         [Column("url")]
         public string? Url { get; set; }
 

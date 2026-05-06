@@ -3,7 +3,8 @@ export interface GameUrlProduct {
   productName: string;
   gameUrlId: number;
   gameUrlName: string;
-  isBatchUrl: boolean;
+  scrapingModeId?: number | null;
+  scrapingModeName?: string | null;
   fullUrl: string;
   tags: string[];
   isActive: boolean;

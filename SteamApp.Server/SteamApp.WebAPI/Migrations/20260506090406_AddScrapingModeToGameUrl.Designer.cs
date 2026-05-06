@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SteamApp.Infrastructure.Context;
 
@@ -11,9 +12,11 @@ using SteamApp.Infrastructure.Context;
 namespace SteamApp.WebAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260506090406_AddScrapingModeToGameUrl")]
+    partial class AddScrapingModeToGameUrl
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -96,6 +99,18 @@ namespace SteamApp.WebAPI.Migrations
                     b.Property<long>("GameId")
                         .HasColumnType("bigint")
                         .HasColumnName("game_id");
+
+                    b.Property<bool>("IsBatchUrl")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_batch_url");
+
+                    b.Property<bool>("IsPixelScrape")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_pixel_scrape");
+
+                    b.Property<bool>("IsPublicApi")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_public_api");
 
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)")
@@ -275,28 +290,6 @@ namespace SteamApp.WebAPI.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("scraping_mode");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1L,
-                            Name = "Manual Batch"
-                        },
-                        new
-                        {
-                            Id = 2L,
-                            Name = "Batch"
-                        },
-                        new
-                        {
-                            Id = 3L,
-                            Name = "Pixel Batch"
-                        },
-                        new
-                        {
-                            Id = 4L,
-                            Name = "Public API"
-                        });
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.Tag", b =>
@@ -333,8 +326,7 @@ namespace SteamApp.WebAPI.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long?>("GameUrlId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("GameUrlId");
+                        .HasColumnType("bigint");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit")
@@ -345,8 +337,7 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnName("name");
 
                     b.Property<long?>("ProductId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("ProductId");
+                        .HasColumnType("bigint");
 
                     b.Property<DateOnly>("RegistrationDate")
                         .HasColumnType("date")
