@@ -67,10 +67,10 @@ export class WishListForm implements OnInit {
     private loadGames(): void {
       this.gameService.getAll().subscribe({
         next: (games) => {
-          this.games = games;
+          this.games = games.filter((game) => game.isActive);
   
           this.gameNameById.clear();
-          for (const game of games) {
+          for (const game of this.games) {
             this.gameNameById.set(game.id, game.name);
           }
         },

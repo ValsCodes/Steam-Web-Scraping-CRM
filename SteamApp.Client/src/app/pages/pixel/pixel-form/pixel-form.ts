@@ -50,7 +50,7 @@ export class PixelForm implements OnInit {
 
   private loadGames(): void {
     this.gameService.getAll().subscribe(games => {
-      this.games = games;
+      this.games = games.filter(game => game.isActive);
     });
   }
 

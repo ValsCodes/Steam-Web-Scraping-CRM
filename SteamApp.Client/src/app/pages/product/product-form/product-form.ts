@@ -20,6 +20,7 @@ export class ProductForm implements OnInit {
   isEditMode = false;
   productId?: number;
   isSubmitting = false;
+  readonly ratingOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
   readonly games = signal<readonly Game[]>([]);
   readonly tags = signal<readonly Tag[]>([]);
@@ -123,8 +124,13 @@ export class ProductForm implements OnInit {
   }
 
   private loadLookupData(): void {
-    this.gameService.getAll().subscribe(games => this.games.set(games));
-    this.tagService.getAll().subscribe(tags => this.tags.set(tags));
+    this.gameService
+      .getAll()
+      .subscribe(games => this.games.set(games.filter(game => game.isActive)));
+
+    this.tagService
+      .getAll()
+      .subscribe(tags => this.tags.set(tags.filter(tag => tag.isActive)));
   }
 
   private loadProduct(id: number): void {

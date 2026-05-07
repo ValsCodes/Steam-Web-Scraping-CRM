@@ -41,7 +41,7 @@ import { finalize } from 'rxjs';
   styleUrl: './games-view.scss',
 })
 export class GamesView implements OnInit {
-  displayedColumns: string[] = ['name', 'pageUrl', 'internalId', 'isActive', 'actions'];
+  displayedColumns: string[] = ['name', 'internalId', 'isActive', 'actions'];
 
   searchByName = new FormControl<string>('', { nonNullable: true });
 

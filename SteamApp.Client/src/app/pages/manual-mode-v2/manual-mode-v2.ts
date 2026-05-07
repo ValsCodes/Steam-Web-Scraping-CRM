@@ -44,6 +44,7 @@ import { MatTooltip } from "@angular/material/tooltip";
 export class ManualModeV2 implements OnInit, OnDestroy {
   currentIndex: number | null = 1;
   batchSize: number | null = 1;
+  readonly ratingOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
   readonly games$ = new BehaviorSubject<readonly Game[]>([]);
   readonly scrapingModes$ = new BehaviorSubject<readonly ScrapingMode[]>([]);
@@ -369,8 +370,8 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       .getAll()
       .pipe(takeUntil(this.destroy$))
       .subscribe((games) => {
-        this.games = games;
-        this.games$.next(games);
+        this.games = games.filter((game) => game.isActive);
+        this.games$.next(this.games);
         this.cdr.markForCheck();
       });
   }
@@ -395,6 +396,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((urls) => {
         this.gameUrlsAll = urls
+          .filter((url) => url.isActive)
           .filter((url) => url.scrapingModeId !== ScrapingModeEnum.PublicApi);
 
         this.applySourceFilters(this.gameIdControl.value, this.scrapingModeIdControl.value);
@@ -406,7 +408,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       .getAll()
       .pipe(takeUntil(this.destroy$))
       .subscribe((tags) => {
-        this.gameTagsAll = tags;
+        this.gameTagsAll = tags.filter((tag) => tag.isActive);
         this.applySourceFilters(this.gameIdControl.value, this.scrapingModeIdControl.value);
       });
   }

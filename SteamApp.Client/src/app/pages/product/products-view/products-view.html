@@ -42,7 +42,12 @@
 
     <div class="filter-group">
       <label>Rating</label>
-      <input class="px-2 py-1" type="number" placeholder="Filter by rating" [formControl]="searchByRatingFilterControl" />
+      <select class="px-2 py-1" [formControl]="searchByRatingFilterControl">
+        <option [ngValue]="null">All</option>
+        @for (rating of ratingOptions; track rating) {
+          <option [ngValue]="rating">{{ rating }}</option>
+        }
+      </select>
     </div>
 
     <div class="filter-group min-w-[220px]">

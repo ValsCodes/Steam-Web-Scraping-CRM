@@ -10,10 +10,15 @@ export class AuthGuard implements CanActivate, CanActivateChild  {
     if (this.auth.isLoggedIn()) {
       return true;
     }
+
+    if (this.auth.hasToken()) {
+      return this.router.createUrlTree(['/session-expired']);
+    }
+
     return this.router.createUrlTree(['/login']);
   }
 
-    canActivateChild(): boolean | UrlTree {
+  canActivateChild(): boolean | UrlTree {
     return this.canActivate();
   }
 }

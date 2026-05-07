@@ -53,7 +53,7 @@ import * as XLSX from 'xlsx';
   styleUrl: './pixels-view.scss',
 })
 export class PixelsView implements OnInit, OnDestroy {
-  displayedColumns: string[] = ['gameName', 'name', 'rgb', 'isActive', 'actions'];
+  displayedColumns: string[] = ['gameName', 'name', 'isActive', 'actions'];
 
   readonly games$ = new BehaviorSubject<readonly Game[]>([]);
 

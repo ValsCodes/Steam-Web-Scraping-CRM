@@ -23,8 +23,6 @@ export class AuthService {
 
   login(clientId: string, clientSecret: string) {
     const url = `${this.endpoint}token`;
-
-
     return this.http.post<TokenResponse>(url, { clientId, clientSecret }).pipe(
       tap(res => {
         localStorage.setItem(this.tokenKey, res.token);
@@ -35,15 +33,26 @@ export class AuthService {
 
   logout(): void {
     localStorage.removeItem(this.tokenKey);
-    this.loggedInSubject.next(false);
+    this.setLoggedInState(false);
+  }
+
+  expireSession(): void {
+    localStorage.removeItem(this.tokenKey);
+    this.setLoggedInState(false);
   }
 
   getToken(): string | null {
     return localStorage.getItem(this.tokenKey);
   }
 
+  hasToken(): boolean {
+    return this.getToken() !== null;
+  }
+
   isLoggedIn(): boolean {
-    return this.loggedInSubject.value;
+    const loggedIn = this.hasValidToken();
+    this.setLoggedInState(loggedIn);
+    return loggedIn;
   }
 
   private hasValidToken(): boolean {
@@ -62,6 +71,12 @@ export class AuthService {
     }
 
     return payload.exp * 1000 - Date.now();
+  }
+
+  private setLoggedInState(isLoggedIn: boolean): void {
+    if (this.loggedInSubject.value !== isLoggedIn) {
+      this.loggedInSubject.next(isLoggedIn);
+    }
   }
 
   private getTokenPayload(): { exp?: number } | null {

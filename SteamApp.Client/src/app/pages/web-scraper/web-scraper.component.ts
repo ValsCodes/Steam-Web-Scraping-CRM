@@ -91,9 +91,14 @@ export class WebScraperComponent implements AfterViewInit {
     { initialValue: null },
   );
 
-  readonly games = toSignal(this.gameService.getAll(), {
+  readonly games = toSignal(
+    this.gameService.getAll().pipe(
+      map((games) => games.filter((game) => game.isActive)),
+    ),
+    {
     initialValue: [] as Game[],
-  });
+    },
+  );
 
   readonly scrapingModes = toSignal(
     this.scrapingModeService.getAll().pipe(
@@ -118,6 +123,7 @@ export class WebScraperComponent implements AfterViewInit {
     this.gameUrlService.getAll().pipe(
       map((urls): GameUrl[] =>
         urls
+          .filter((url) => url.isActive)
           .filter((url) => {
             const scrapingModeId = url.scrapingModeId ?? null;
             return scrapingModeId !== null && scrapingModeId !== ScrapingModeEnum.ManualBatch;
@@ -160,8 +166,7 @@ export class WebScraperComponent implements AfterViewInit {
       return [];
     }
 
-    const mode = this.getExecutionModeForGameUrl(url);
-    return mode === null ? [] : [mode];
+    return this.getExecutionModesForGameUrl(url);
   });
 
   readonly selectedMode = signal<ScraperExecutionModeItem | null>(null);
@@ -250,18 +255,21 @@ export class WebScraperComponent implements AfterViewInit {
     return id;
   }
 
-  private getExecutionModeForGameUrl(
+  private getExecutionModesForGameUrl(
     url: GameUrl,
-  ): ScraperExecutionModeItem | null {
+  ): ScraperExecutionModeItem[] {
     switch (url.scrapingModeId) {
       case ScraperExecutionMode.WebScrape:
-        return { id: ScraperExecutionMode.WebScrape, name: 'Web Scrape' };
+        return [{ id: ScraperExecutionMode.WebScrape, name: 'Web Scrape' }];
       case ScraperExecutionMode.PixelScrape:
-        return { id: ScraperExecutionMode.PixelScrape, name: 'Pixel Scrape' };
+        return [
+          { id: ScraperExecutionMode.WebScrape, name: 'Web Scrape' },
+          { id: ScraperExecutionMode.PixelScrape, name: 'Pixel Scrape' },
+        ];
       case ScraperExecutionMode.PublicApi:
-        return { id: ScraperExecutionMode.PublicApi, name: 'Public API Scrape' };
+        return [{ id: ScraperExecutionMode.PublicApi, name: 'Public API Scrape' }];
       default:
-        return null;
+        return [];
     }
   }
 

@@ -49,6 +49,7 @@ export class ProductsView implements OnInit, OnDestroy {
   readonly searchByNameFilterControl = new FormControl<string>('', { nonNullable: true });
   readonly searchByRatingFilterControl = new FormControl<number | null>(null, { nonNullable: true });
   readonly tagIdControl = new FormControl<number | null>(null);
+  readonly ratingOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
   readonly games = signal<readonly Game[]>([]);
   readonly products = signal<readonly Product[]>([]);

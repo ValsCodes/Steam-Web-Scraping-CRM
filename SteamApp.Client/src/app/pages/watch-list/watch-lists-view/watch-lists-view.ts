@@ -37,7 +37,6 @@ import * as XLSX from 'xlsx';
 export class WatchListsView implements OnInit, OnDestroy {
   displayedColumns: string[] = [
     'name',
-    'url',
     'registrationDate',
     'isActive',
     'actions',

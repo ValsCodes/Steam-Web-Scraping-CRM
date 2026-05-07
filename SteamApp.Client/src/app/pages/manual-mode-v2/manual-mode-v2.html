@@ -183,11 +183,14 @@
 
                             <div>
                                 <label class="mb-1 block text-sm font-medium text-slate-700">Rating</label>
-                                <input
+                                <select
                                     class="w-full rounded border border-slate-300 px-3 py-2"
-                                    type="number"
-                                    placeholder="Filter by rating"
-                                    [formControl]="searchByRatingFilterControl" />
+                                    [formControl]="searchByRatingFilterControl">
+                                    <option [ngValue]="null">All</option>
+                                    @for (rating of ratingOptions; track rating) {
+                                        <option [ngValue]="rating">{{ rating }}</option>
+                                    }
+                                </select>
                             </div>
 
                             <div>

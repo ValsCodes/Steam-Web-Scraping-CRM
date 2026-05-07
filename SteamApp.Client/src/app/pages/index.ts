@@ -3,6 +3,7 @@ export { WebScraperComponent } from './web-scraper/web-scraper.component';
 export { ManualModeV2 } from './manual-mode-v2/manual-mode-v2';
 export { LoginComponent } from './login/login.component';
 export { HomePage } from './home/home-page';
+export { SessionExpiredPage } from './session-expired/session-expired-page';
 
 // Games
 export { GamesView } from './game/games-view/games-view';

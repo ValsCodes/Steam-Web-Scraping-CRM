@@ -11,6 +11,7 @@ import {
   PixelsView,
   ProductForm,
   ProductsView,
+  SessionExpiredPage,
   TagForm,
   TagsView,
   WatchListForm,
@@ -36,6 +37,11 @@ export const routes: Routes = [
     path: 'login',
     component: LoginComponent,
     title: 'Login',
+  },
+  {
+    path: 'session-expired',
+    component: SessionExpiredPage,
+    title: 'Session Expired',
   },
   {
     path: '',

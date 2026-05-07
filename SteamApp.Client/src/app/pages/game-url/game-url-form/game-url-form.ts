@@ -299,9 +299,18 @@ export class GameUrlForm implements OnInit {
   }
 
   private loadLookupData(): void {
-    this.gameService.getAll().subscribe((games) => this.games.set(games));
-    this.productService.getAll().subscribe((products) => this.products.set(products));
-    this.pixelService.getAll().subscribe((pixels) => this.pixels.set(pixels));
+    this.gameService
+      .getAll()
+      .subscribe((games) => this.games.set(games.filter((game) => game.isActive)));
+
+    this.productService
+      .getAll()
+      .subscribe((products) => this.products.set(products.filter((product) => product.isActive)));
+
+    this.pixelService
+      .getAll()
+      .subscribe((pixels) => this.pixels.set(pixels.filter((pixel) => pixel.isActive)));
+
     this.scrapingModeService.getAll().subscribe((modes) => {
       this.scrapingModes.set([...modes].sort((a, b) => a.id - b.id));
     });

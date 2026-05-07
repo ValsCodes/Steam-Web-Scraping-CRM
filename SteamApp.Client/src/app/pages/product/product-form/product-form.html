@@ -25,7 +25,12 @@
 
     <div class="form-group">
       <label>Rating</label>
-      <input type="number" formControlName="rating" class="px-2 py-1 w-1/2" placeholder="Rating" />
+      <select formControlName="rating" class="px-2 py-1 w-1/2">
+        <option [ngValue]="null">Select rating</option>
+        @for (rating of ratingOptions; track rating) {
+          <option [ngValue]="rating">{{ rating }}</option>
+        }
+      </select>
     </div>
 
     <div class="form-group-row checkbox-group">

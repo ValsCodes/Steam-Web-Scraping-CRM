@@ -48,7 +48,6 @@ export class WishListsView implements OnInit, OnDestroy {
   displayedColumns: string[] = [
     'gameName',
     'name',
-    'pageUrl',
     'price',
     'isActive',
     'actions',
