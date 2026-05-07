@@ -54,6 +54,9 @@ namespace SteamApp.WebAPI.MinimalAPIs
                     "internalId" => request.IsDescending
                         ? query.OrderByDescending(x => x.InternalId).ThenByDescending(x => x.Id)
                         : query.OrderBy(x => x.InternalId).ThenBy(x => x.Id),
+                    "isActive" => request.IsDescending
+                        ? query.OrderByDescending(x => x.IsActive).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.IsActive).ThenBy(x => x.Id),
                     _ => query.OrderBy(x => x.Id),
                 };
 
@@ -69,6 +72,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                         BaseUrl = x.BaseUrl ?? string.Empty,
                         PageUrl = x.PageUrl,
                         InternalId = x.InternalId,
+                        IsActive = x.IsActive,
                     })
                     .ToListAsync(ct);
 
@@ -171,6 +175,30 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 return Results.NoContent();
             })
             .WithName("DeleteGame")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status404NotFound);
+
+            // PATCH: /api/games/{id}
+            group.MapPatch("/{id:long}", async (
+                GameUpdateStatusDto input,
+                ApplicationDbContext db,
+                IMemoryCache cache) =>
+            {
+                var entity = await db.Games.FindAsync(input.Id);
+                if (entity is null) { return Results.NotFound(); }
+
+                if (entity.IsActive != input.IsActive)
+                {
+                    entity.IsActive = input.IsActive;
+                    await db.SaveChangesAsync();
+                }
+
+                var cacheKey = string.Format(CacheKeys.Game, input.Id);
+                cache.Remove(cacheKey);
+
+                return Results.NoContent();
+            })
+            .WithName("UpdateGameStatus")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
 

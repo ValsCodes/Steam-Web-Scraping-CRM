@@ -11,7 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 
 import { GameService, TagService } from '../../../services';
-import { Game, Tag } from '../../../models';
+import { Game, Tag, UpdateTagStatus } from '../../../models';
 import { BehaviorSubject, combineLatest, finalize, startWith, Subject, takeUntil } from 'rxjs';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
@@ -35,7 +35,7 @@ import * as XLSX from 'xlsx';
   styleUrl: './tags-view.scss',
 })
 export class TagsView implements OnInit, OnDestroy {
-  displayedColumns: string[] = ['gameName', 'name', 'actions'];
+  displayedColumns: string[] = ['gameName', 'name', 'isActive', 'actions'];
 
   readonly games$ = new BehaviorSubject<readonly Game[]>([]);
   private readonly destroy$ = new Subject<void>();
@@ -49,6 +49,7 @@ export class TagsView implements OnInit, OnDestroy {
   readonly pageSizeOptions = [10, 25, 50, 100];
   private tags: Tag[] = [];
   private readonly deletingIds = new Set<number>();
+  private readonly statusUpdatingIds = new Set<number>();
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -155,6 +156,38 @@ export class TagsView implements OnInit, OnDestroy {
     this.router.navigate(['/tags/edit', id]);
   }
 
+  activeButtonClicked(tag: Tag): void {
+    if (this.isStatusUpdating(tag.id)) {
+      return;
+    }
+
+    const nextIsActive = !tag.isActive;
+
+    const input: UpdateTagStatus = {
+      id: tag.id,
+      isActive: nextIsActive,
+    };
+
+    this.statusUpdatingIds.add(tag.id);
+
+    this.tagService
+      .updateStatus(input)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.statusUpdatingIds.delete(tag.id);
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe(() => {
+        this.tags = this.tags.map((x) =>
+          x.id === tag.id ? { ...x, isActive: nextIsActive } : x,
+        );
+
+        this.applyFilters(this.gameIdControl.value, this.searchByNameFilterControl.value);
+      });
+  }
+
   deleteButtonClicked(id: number): void {
     if (this.isDeleting(id)) {
       return;
@@ -199,6 +232,10 @@ export class TagsView implements OnInit, OnDestroy {
     return this.deletingIds.has(id);
   }
 
+  isStatusUpdating(id: number): boolean {
+    return this.statusUpdatingIds.has(id);
+  }
+
   clearFiltersButtonClicked(): void {
     this.gameIdControl.setValue(null);
     this.searchByNameFilterControl.setValue('');
@@ -210,6 +247,7 @@ export class TagsView implements OnInit, OnDestroy {
   const dataToExport = this.dataSource.data.map(x => ({
     Game: x.gameName,
     Name: x.name ?? '',
+    IsActive: x.isActive,
   }));
 
   const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);

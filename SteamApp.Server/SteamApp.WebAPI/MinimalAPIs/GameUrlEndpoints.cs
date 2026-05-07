@@ -37,7 +37,8 @@ namespace SteamApp.WebAPI.MinimalAPIs
                         PixelX = x.PixelX,
                         PixelY = x.PixelY,
                         PixelImageWidth = x.PixelImageWidth,
-                        PixelImageHeight = x.PixelImageHeight
+                        PixelImageHeight = x.PixelImageHeight,
+                        IsActive = x.IsActive
                     })
                     .ToListAsync();
 
@@ -82,6 +83,9 @@ namespace SteamApp.WebAPI.MinimalAPIs
                     "endPage" => request.IsDescending
                         ? query.OrderByDescending(x => x.EndPage).ThenByDescending(x => x.Id)
                         : query.OrderBy(x => x.EndPage).ThenBy(x => x.Id),
+                    "isActive" => request.IsDescending
+                        ? query.OrderByDescending(x => x.IsActive).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.IsActive).ThenBy(x => x.Id),
                     _ => query.OrderBy(x => x.Id),
                 };
 
@@ -104,7 +108,8 @@ namespace SteamApp.WebAPI.MinimalAPIs
                         PixelX = x.PixelX,
                         PixelY = x.PixelY,
                         PixelImageWidth = x.PixelImageWidth,
-                        PixelImageHeight = x.PixelImageHeight
+                        PixelImageHeight = x.PixelImageHeight,
+                        IsActive = x.IsActive
                     })
                     .ToListAsync(ct);
 
@@ -229,6 +234,30 @@ namespace SteamApp.WebAPI.MinimalAPIs
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
 
+            // PATCH: /api/game-urls/{id}
+            group.MapPatch("/{id:long}", async (
+                GameUrlUpdateStatusDto input,
+                ApplicationDbContext db,
+                IMemoryCache cache) =>
+            {
+                var entity = await db.GameUrls.FindAsync(input.Id);
+                if (entity is null) { return Results.NotFound(); }
+
+                if (entity.IsActive != input.IsActive)
+                {
+                    entity.IsActive = input.IsActive;
+                    await db.SaveChangesAsync();
+                }
+
+                var cacheKey = string.Format(CacheKeys.GameUrl, input.Id);
+                cache.Remove(cacheKey);
+
+                return Results.NoContent();
+            })
+            .WithName("UpdateGameUrlStatus")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status404NotFound);
+
             return app;
         }
 
@@ -247,7 +276,8 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 PixelX = x.PixelX,
                 PixelY = x.PixelY,
                 PixelImageWidth = x.PixelImageWidth,
-                PixelImageHeight = x.PixelImageHeight
+                PixelImageHeight = x.PixelImageHeight,
+                IsActive = x.IsActive
             });
         }
 

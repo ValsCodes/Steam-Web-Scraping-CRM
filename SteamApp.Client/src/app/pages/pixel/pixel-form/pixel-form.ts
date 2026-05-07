@@ -26,6 +26,7 @@ export class PixelForm implements OnInit {
     redValue: [0, [Validators.required, Validators.min(0), Validators.max(255)]],
     greenValue: [0, [Validators.required, Validators.min(0), Validators.max(255)]],
     blueValue: [0, [Validators.required, Validators.min(0), Validators.max(255)]],
+    isActive: [true],
   });
 
   constructor(
@@ -61,6 +62,7 @@ export class PixelForm implements OnInit {
         redValue: pixel.redValue,
         greenValue: pixel.greenValue,
         blueValue: pixel.blueValue,
+        isActive: pixel.isActive,
       });
     });
   }

@@ -7,5 +7,7 @@ namespace SteamApp.Application.DTOs.Tag
         [Required]
         [MaxLength(255)]
         public string Name { get; set; } = null!;
+
+        public bool? IsActive { get; set; }
     }
 }

@@ -19,7 +19,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 
-import { WishList } from '../../../models/wish-list.model';
+import { UpdateWishListStatus, WishList } from '../../../models/wish-list.model';
 import { WishListService } from '../../../services/wish-list/wish-list.service';
 import { GameService, SteamService } from '../../../services';
 import { Game, WhishListResponse } from '../../../models';
@@ -73,6 +73,7 @@ export class WishListsView implements OnInit, OnDestroy {
   isChecking: boolean = false;
   checkingId: number | null = null;
   private readonly deletingIds = new Set<number>();
+  private readonly statusUpdatingIds = new Set<number>();
 
   private readonly destroy$ = new Subject<void>();
   private readonly cancelCheck$ = new Subject<void>();
@@ -217,6 +218,38 @@ export class WishListsView implements OnInit, OnDestroy {
     this.router.navigate(['/wishlist/edit', id]);
   }
 
+  activeButtonClicked(item: WishList): void {
+    if (this.isStatusUpdating(item.id)) {
+      return;
+    }
+
+    const nextIsActive = !item.isActive;
+
+    const input: UpdateWishListStatus = {
+      id: item.id,
+      isActive: nextIsActive,
+    };
+
+    this.statusUpdatingIds.add(item.id);
+
+    this.wishListService
+      .updateStatus(input)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.statusUpdatingIds.delete(item.id);
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe(() => {
+        this.wishLists = this.wishLists.map((x) =>
+          x.id === item.id ? { ...x, isActive: nextIsActive } : x,
+        );
+
+        this.applyFilters(this.gameIdControl.value, this.searchByNameFilterControl.value);
+      });
+  }
+
   deleteButtonClicked(id: number): void {
     if (this.isDeleting(id)) {
       return;
@@ -319,6 +352,10 @@ export class WishListsView implements OnInit, OnDestroy {
 
   isDeleting(id: number): boolean {
     return this.deletingIds.has(id);
+  }
+
+  isStatusUpdating(id: number): boolean {
+    return this.statusUpdatingIds.has(id);
   }
 
   private formatCurrentPrice(price: number): string {

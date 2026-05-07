@@ -16,6 +16,5 @@ public class GameMappingProfile : Profile
 
         CreateMap<GameUpdateDto, Game>()
             .ForMember(dest => dest.Id, opt => opt.Ignore());
-
     }
 }

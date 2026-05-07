@@ -120,8 +120,8 @@
               mat-icon-button
               class="table-actions-trigger"
               [matMenuTriggerFor]="wishListActionsMenu"
-              [disabled]="isDeleting(row.id) || checkingId === row.id"
-              [class.busy-cursor]="isDeleting(row.id) || checkingId === row.id"
+              [disabled]="isDeleting(row.id) || checkingId === row.id || isStatusUpdating(row.id)"
+              [class.busy-cursor]="isDeleting(row.id) || checkingId === row.id || isStatusUpdating(row.id)"
               aria-label="Open wish list actions">
               <mat-icon>more_horiz</mat-icon>
             </button>
@@ -130,8 +130,16 @@
               <button
                 type="button"
                 mat-menu-item
+                (click)="activeButtonClicked(row)"
+                [disabled]="isDeleting(row.id) || checkingId === row.id || isStatusUpdating(row.id)">
+                <span>{{ row.isActive ? 'Deactivate' : 'Activate' }}</span>
+              </button>
+
+              <button
+                type="button"
+                mat-menu-item
                 (click)="checkButtonClicked(row.id)"
-                [disabled]="isDeleting(row.id) || checkingId === row.id">
+                [disabled]="isDeleting(row.id) || checkingId === row.id || isStatusUpdating(row.id)">
                 <span>Check Now</span>
               </button>
 
@@ -139,7 +147,7 @@
                 type="button"
                 mat-menu-item
                 (click)="editButtonClicked(row.id)"
-                [disabled]="isDeleting(row.id) || checkingId === row.id">
+                [disabled]="isDeleting(row.id) || checkingId === row.id || isStatusUpdating(row.id)">
                 <span>Edit</span>
               </button>
 
@@ -148,7 +156,7 @@
                 mat-menu-item
                 class="table-actions-menu__danger"
                 (click)="deleteButtonClicked(row.id)"
-                [disabled]="isDeleting(row.id) || checkingId === row.id">
+                [disabled]="isDeleting(row.id) || checkingId === row.id || isStatusUpdating(row.id)">
                 <span>Delete</span>
               </button>
             </mat-menu>

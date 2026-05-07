@@ -12,5 +12,6 @@
         public int? PixelY { get; set; }
         public int? PixelImageWidth { get; set; }
         public int? PixelImageHeight { get; set; }
+        public bool? IsActive { get; set; }
     }
 }

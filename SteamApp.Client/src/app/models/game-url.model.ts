@@ -12,6 +12,7 @@ export interface GameUrl {
   pixelY?: number | null;
   pixelImageWidth?: number | null;
   pixelImageHeight?: number | null;
+  isActive: boolean;
 }
 
 export interface CreateGameUrl {
@@ -25,6 +26,7 @@ export interface CreateGameUrl {
   pixelY?: number | null;
   pixelImageWidth?: number | null;
   pixelImageHeight?: number | null;
+  isActive: boolean;
 }
 
 export interface UpdateGameUrl {
@@ -37,4 +39,10 @@ export interface UpdateGameUrl {
   pixelY?: number | null;
   pixelImageWidth?: number | null;
   pixelImageHeight?: number | null;
+  isActive?: boolean | null;
+}
+
+export interface UpdateGameUrlStatus {
+  id: number;
+  isActive: boolean;
 }

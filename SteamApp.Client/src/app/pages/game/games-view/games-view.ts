@@ -16,14 +16,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { Router } from '@angular/router';
-import { Game } from '../../../models/game.model';
+import { Game, UpdateGameStatus } from '../../../models/game.model';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { GameService } from '../../../services/game/game.service';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import * as XLSX from 'xlsx';
 import { finalize } from 'rxjs';
-import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'steam-games-view',
@@ -42,7 +41,7 @@ import { HttpErrorResponse } from '@angular/common/http';
   styleUrl: './games-view.scss',
 })
 export class GamesView implements OnInit {
-  displayedColumns: string[] = ['name', 'pageUrl', 'internalId', 'actions'];
+  displayedColumns: string[] = ['name', 'pageUrl', 'internalId', 'isActive', 'actions'];
 
   searchByName = new FormControl<string>('', { nonNullable: true });
 
@@ -67,6 +66,7 @@ export class GamesView implements OnInit {
   readonly dataSource = new MatTableDataSource<Game>([]);
   private readonly dialog = inject(MatDialog);
   private readonly deletingIds = new Set<number>();
+  private readonly statusUpdatingIds = new Set<number>();
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -93,7 +93,12 @@ export class GamesView implements OnInit {
   }
 
   exportButtonClicked(): void {
-    const dataToExport = this.dataSource.data;
+    const dataToExport = this.dataSource.data.map((game) => ({
+      name: game.name,
+      pageUrl: game.pageUrl,
+      internalId: game.internalId,
+      isActive: game.isActive,
+    }));
 
     const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook: XLSX.WorkBook = XLSX.utils.book_new();
@@ -159,6 +164,35 @@ export class GamesView implements OnInit {
     this.router.navigate(['/games/edit', id]);
   }
 
+  activeButtonClicked(game: Game): void {
+    if (this.isStatusUpdating(game.id)) {
+      return;
+    }
+
+    const nextIsActive = !game.isActive;
+
+    const input: UpdateGameStatus = {
+      id: game.id,
+      isActive: nextIsActive,
+    };
+
+    this.statusUpdatingIds.add(game.id);
+
+    this.gameService
+      .updateStatus(input)
+      .pipe(
+        finalize(() => {
+          this.statusUpdatingIds.delete(game.id);
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe(() => {
+        this.games.set(
+          this.games().map((x) => (x.id === game.id ? { ...x, isActive: nextIsActive } : x)),
+        );
+      });
+  }
+
   deleteButtonClicked(id: number): void {
     if (this.isDeleting(id)) {
       return;
@@ -202,5 +236,9 @@ export class GamesView implements OnInit {
 
   isDeleting(id: number): boolean {
     return this.deletingIds.has(id);
+  }
+
+  isStatusUpdating(id: number): boolean {
+    return this.statusUpdatingIds.has(id);
   }
 }

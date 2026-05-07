@@ -57,6 +57,9 @@ public static class TagsEndpoints
                 "name" => request.IsDescending
                     ? query.OrderByDescending(x => x.Name).ThenByDescending(x => x.Id)
                     : query.OrderBy(x => x.Name).ThenBy(x => x.Id),
+                "isActive" => request.IsDescending
+                    ? query.OrderByDescending(x => x.IsActive).ThenByDescending(x => x.Id)
+                    : query.OrderBy(x => x.IsActive).ThenBy(x => x.Id),
                 _ => query.OrderBy(x => x.Id),
             };
 
@@ -71,6 +74,7 @@ public static class TagsEndpoints
                     GameId = x.GameId,
                     GameName = x.Game.Name ?? string.Empty,
                     Name = x.Name,
+                    IsActive = x.IsActive,
                 })
                 .ToListAsync(ct);
 
@@ -169,6 +173,27 @@ public static class TagsEndpoints
 
             db.Tags.Remove(entity);
             await db.SaveChangesAsync();
+
+            return Results.NoContent();
+        });
+
+        // PATCH: /api/tags/{id}
+        group.MapPatch("/{id:long}", async (
+            TagUpdateStatusDto input,
+            ApplicationDbContext db) =>
+        {
+            var entity = await db.Tags.FindAsync(input.Id);
+
+            if (entity is null)
+            {
+                return Results.NotFound();
+            }
+
+            if (entity.IsActive != input.IsActive)
+            {
+                entity.IsActive = input.IsActive;
+                await db.SaveChangesAsync();
+            }
 
             return Results.NoContent();
         });

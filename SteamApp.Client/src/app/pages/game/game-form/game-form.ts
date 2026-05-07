@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { finalize, Observable } from 'rxjs';
 
-import { Game } from '../../../models/game.model';
+import { CreateGame, UpdateGame } from '../../../models/game.model';
 import { GameService } from '../../../services/game/game.service';
 
 
@@ -33,7 +33,8 @@ export class GameForm implements OnInit {
       name: ['', Validators.required],
       //baseUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\//)]],
       pageUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\//)]],
-      internalId: [0]
+      internalId: [0],
+      isActive: [true],
     });
 
     const idParam = this.route.snapshot.paramMap.get('id');
@@ -52,6 +53,7 @@ export class GameForm implements OnInit {
         //baseUrl: game.baseUrl,  
         pageUrl: game.pageUrl,
         internalId: game.internalId,
+        isActive: game.isActive,
       });
     });
   }
@@ -61,12 +63,14 @@ export class GameForm implements OnInit {
       return;
     }
 
-    const payload = this.gameForm.value as Omit<Game, 'id'>;
     this.isSubmitting = true;
 
+    const createPayload = this.gameForm.getRawValue() as CreateGame;
+    const updatePayload = this.gameForm.getRawValue() as UpdateGame;
+
     const request$: Observable<unknown> = this.isEditMode && this.gameId
-      ? this.gameService.update(this.gameId, payload)
-      : this.gameService.create(payload);
+      ? this.gameService.update(this.gameId, updatePayload)
+      : this.gameService.create(createPayload);
 
     request$
       .pipe(finalize(() => {

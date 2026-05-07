@@ -156,6 +156,26 @@ namespace SteamApp.WebAPI.MinimalAPIs
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
 
+            // PATCH: /api/watch-list/{id}
+            group.MapPatch("/{id:long}", async (
+                WatchListUpdateStatusDto input,
+                ApplicationDbContext db) =>
+            {
+                var entity = await db.WatchList.FindAsync(input.Id);
+                if (entity is null) { return Results.NotFound(); }
+
+                if (entity.IsActive != input.IsActive)
+                {
+                    entity.IsActive = input.IsActive;
+                    await db.SaveChangesAsync();
+                }
+
+                return Results.NoContent();
+            })
+            .WithName("UpdateWatchListStatus")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status404NotFound);
+
             return app;
         }
     }

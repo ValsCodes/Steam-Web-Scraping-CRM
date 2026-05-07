@@ -30,6 +30,7 @@ import {
 } from 'rxjs';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
+import { UpdatePixelStatus } from '../../../models';
 
 import * as XLSX from 'xlsx';
 
@@ -52,7 +53,7 @@ import * as XLSX from 'xlsx';
   styleUrl: './pixels-view.scss',
 })
 export class PixelsView implements OnInit, OnDestroy {
-  displayedColumns: string[] = ['gameName', 'name', 'rgb', 'actions'];
+  displayedColumns: string[] = ['gameName', 'name', 'rgb', 'isActive', 'actions'];
 
   readonly games$ = new BehaviorSubject<readonly Game[]>([]);
 
@@ -67,6 +68,7 @@ export class PixelsView implements OnInit, OnDestroy {
   readonly pageSizeOptions = [10, 25, 50, 100];
   private pixels: PixelListItem[] = [];
   private readonly deletingIds = new Set<number>();
+  private readonly statusUpdatingIds = new Set<number>();
 
   private readonly destroy$ = new Subject<void>();
 
@@ -185,6 +187,38 @@ export class PixelsView implements OnInit, OnDestroy {
     this.router.navigate(['/pixels/edit', id]);
   }
 
+  activeButtonClicked(pixel: PixelListItem): void {
+    if (this.isStatusUpdating(pixel.id)) {
+      return;
+    }
+
+    const nextIsActive = !pixel.isActive;
+
+    const input: UpdatePixelStatus = {
+      id: pixel.id,
+      isActive: nextIsActive,
+    };
+
+    this.statusUpdatingIds.add(pixel.id);
+
+    this.pixelService
+      .updateStatus(input)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.statusUpdatingIds.delete(pixel.id);
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe(() => {
+        this.pixels = this.pixels.map((x) =>
+          x.id === pixel.id ? { ...x, isActive: nextIsActive } : x,
+        );
+
+        this.applyFilters(this.gameIdControl.value, this.searchByNameFilterControl.value);
+      });
+  }
+
   deleteButtonClicked(id: number): void {
     if (this.isDeleting(id)) {
       return;
@@ -229,6 +263,10 @@ export class PixelsView implements OnInit, OnDestroy {
     return this.deletingIds.has(id);
   }
 
+  isStatusUpdating(id: number): boolean {
+    return this.statusUpdatingIds.has(id);
+  }
+
   clearFiltersButtonClicked(): void {
     this.gameIdControl.setValue(null);
     this.searchByNameFilterControl.setValue('');
@@ -239,6 +277,7 @@ export class PixelsView implements OnInit, OnDestroy {
       Game: x.gameName ?? '',
       Name: x.name ?? '',
       RGB: `rgb(${x.redValue}, ${x.greenValue}, ${x.blueValue})`,
+      IsActive: x.isActive,
     }));
 
     const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);

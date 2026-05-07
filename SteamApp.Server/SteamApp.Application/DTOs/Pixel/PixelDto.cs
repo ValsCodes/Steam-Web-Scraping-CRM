@@ -8,5 +8,6 @@
         public long GreenValue { get; set; }
         public long BlueValue { get; set; }
         public long GameId { get; set; }
+        public bool IsActive { get; set; }
     }
 }

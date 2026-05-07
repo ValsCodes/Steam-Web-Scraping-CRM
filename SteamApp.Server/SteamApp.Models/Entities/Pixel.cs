@@ -28,6 +28,9 @@ namespace SteamApp.Domain.Entities
         [Column("b_value")]
         public long BlueValue { get; set; }
 
+        [Column("is_active")]
+        public bool IsActive { get; set; }
+
         public ICollection<GameUrlPixels> GameUrlsPixels { get; set; } = [];
     }
 }

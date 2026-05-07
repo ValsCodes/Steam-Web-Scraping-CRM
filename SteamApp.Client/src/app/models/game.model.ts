@@ -4,6 +4,7 @@ export interface Game {
   baseUrl: string;
   pageUrl: string | null;
   internalId: number | null;
+  isActive: boolean;
 }
 
 export interface CreateGame {
@@ -11,6 +12,7 @@ export interface CreateGame {
   baseUrl: string;
   pageUrl: string | null;
   internalId: number | null;
+  isActive: boolean;
 }
 
 export interface UpdateGame {
@@ -18,4 +20,10 @@ export interface UpdateGame {
   baseUrl: string;
   pageUrl: string | null;
   internalId: number | null;
+  isActive?: boolean | null;
+}
+
+export interface UpdateGameStatus {
+  id: number;
+  isActive: boolean;
 }

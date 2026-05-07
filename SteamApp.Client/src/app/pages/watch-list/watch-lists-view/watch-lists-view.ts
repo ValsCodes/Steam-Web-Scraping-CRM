@@ -12,7 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 
-import { WatchList } from '../../../models/watch-list.model';
+import { UpdateWatchListStatus, WatchList } from '../../../models/watch-list.model';
 import { WatchListService } from '../../../services/watch-list/watch-list.service';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 
@@ -49,6 +49,7 @@ export class WatchListsView implements OnInit, OnDestroy {
   readonly pageSizeOptions = [10, 25, 50, 100];
   private allItems: WatchList[] = [];
   private readonly deletingIds = new Set<number>();
+  private readonly statusUpdatingIds = new Set<number>();
 
   readonly searchByNameControl = new FormControl<string>('', { nonNullable: true });
 
@@ -162,6 +163,38 @@ export class WatchListsView implements OnInit, OnDestroy {
     this.router.navigate(['/watch-list/edit', id]);
   }
 
+  activeButtonClicked(item: WatchList): void {
+    if (this.isStatusUpdating(item.id)) {
+      return;
+    }
+
+    const nextIsActive = !item.isActive;
+
+    const input: UpdateWatchListStatus = {
+      id: item.id,
+      isActive: nextIsActive,
+    };
+
+    this.statusUpdatingIds.add(item.id);
+
+    this.watchListService
+      .updateStatus(input)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.statusUpdatingIds.delete(item.id);
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe(() => {
+        this.allItems = this.allItems.map((x) =>
+          x.id === item.id ? { ...x, isActive: nextIsActive } : x,
+        );
+
+        this.applyFilters(this.searchByNameControl.value);
+      });
+  }
+
   deleteButtonClicked(id: number): void {
     if (this.isDeleting(id)) {
       return;
@@ -204,5 +237,9 @@ export class WatchListsView implements OnInit, OnDestroy {
 
   isDeleting(id: number): boolean {
     return this.deletingIds.has(id);
+  }
+
+  isStatusUpdating(id: number): boolean {
+    return this.statusUpdatingIds.has(id);
   }
 }

@@ -6,7 +6,8 @@ import { catchError } from 'rxjs/operators';
 import {
   WishList,
   CreateWishList,
-  UpdateWishList
+  UpdateWishList,
+  UpdateWishListStatus,
 } from '../../models/wish-list.model';
 
 import { handleError } from '../error-handler';
@@ -42,6 +43,12 @@ export class WishListService {
   update(id: number, input: UpdateWishList): Observable<void> {
     return this.http
       .put<void>(`${this.baseUrl}/${id}`, input)
+      .pipe(catchError(handleError));
+  }
+
+  updateStatus(input: UpdateWishListStatus): Observable<void> {
+    return this.http
+      .patch<void>(`${this.baseUrl}/${input.id}`, input)
       .pipe(catchError(handleError));
   }
 

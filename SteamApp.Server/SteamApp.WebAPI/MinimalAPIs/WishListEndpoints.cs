@@ -193,6 +193,30 @@ namespace SteamApp.WebAPI.MinimalAPIs
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
 
+            // PATCH: /api/wish-list/{id}
+            group.MapPatch("/{id:long}", async (
+                WishListUpdateStatusDto input,
+                ApplicationDbContext db,
+                IMemoryCache cache) =>
+            {
+                var entity = await db.WishLists.FindAsync(input.Id);
+                if (entity is null) { return Results.NotFound(); }
+
+                if (entity.IsActive != input.IsActive)
+                {
+                    entity.IsActive = input.IsActive;
+                    await db.SaveChangesAsync();
+                }
+
+                var cacheKey = string.Format(CacheKeys.WishListItem, entity.Id);
+                cache.Remove(cacheKey);
+
+                return Results.NoContent();
+            })
+            .WithName("UpdateWishListStatus")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status404NotFound);
+
             return app;
         }
     }

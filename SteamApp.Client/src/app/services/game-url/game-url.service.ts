@@ -6,7 +6,8 @@ import { catchError } from 'rxjs/operators';
 import {
   GameUrl,
   CreateGameUrl,
-  UpdateGameUrl
+  UpdateGameUrl,
+  UpdateGameUrlStatus,
 } from '../../models/game-url.model';
 
 import { handleError } from '../error-handler';
@@ -42,6 +43,12 @@ export class GameUrlService {
   update(id: number, input: UpdateGameUrl): Observable<void> {
     return this.http
       .put<void>(`${this.baseUrl}/${id}`, input)
+      .pipe(catchError(handleError));
+  }
+
+  updateStatus(input: UpdateGameUrlStatus): Observable<void> {
+    return this.http
+      .patch<void>(`${this.baseUrl}/${input.id}`, input)
       .pipe(catchError(handleError));
   }
 

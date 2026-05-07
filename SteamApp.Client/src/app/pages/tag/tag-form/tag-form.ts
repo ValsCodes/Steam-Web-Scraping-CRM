@@ -22,6 +22,7 @@ export class TagForm implements OnInit {
   form = this.fb.nonNullable.group({
     gameId: [0],
     name: [''],
+    isActive: [true],
   });
 
   games: Game[] = [];
@@ -52,6 +53,7 @@ export class TagForm implements OnInit {
       this.form.patchValue({
         gameId: tag.gameId,
         name: tag.name ?? '',
+        isActive: tag.isActive,
       });
 
       this.form.controls.gameId.disable();
@@ -79,6 +81,7 @@ export class TagForm implements OnInit {
     const request$: Observable<unknown> = this.isEditMode && this.tagId
       ? this.tagService.update(this.tagId, {
           name: this.form.controls.name.value,
+          isActive: this.form.controls.isActive.value,
         } as UpdateTag)
       : this.tagService.create(this.form.getRawValue() as CreateTag);
 

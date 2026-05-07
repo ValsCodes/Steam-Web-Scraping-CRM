@@ -19,5 +19,8 @@ public sealed class Tag
     [Column("name")]
     public string? Name { get; set; }
 
+    [Column("is_active")]
+    public bool IsActive { get; set; }
+
     public ICollection<ProductTags> ProductTags { get; set; } = [];
 }

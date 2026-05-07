@@ -93,10 +93,17 @@
         </td>
       </ng-container>
 
-       <ng-container matColumnDef="internalId">
+      <ng-container matColumnDef="internalId">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Internal ID</th>
         <td mat-cell *matCellDef="let game">
           {{ game.internalId }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="isActive">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Active</th>
+        <td mat-cell *matCellDef="let game">
+          <input type="checkbox" [checked]="game.isActive" disabled />
         </td>
       </ng-container>
 
@@ -109,14 +116,26 @@
               mat-icon-button
               class="table-actions-trigger"
               [matMenuTriggerFor]="gameActionsMenu"
-              [disabled]="isDeleting(game.id)"
-              [class.busy-cursor]="isDeleting(game.id)"
+              [disabled]="isDeleting(game.id) || isStatusUpdating(game.id)"
+              [class.busy-cursor]="isDeleting(game.id) || isStatusUpdating(game.id)"
               aria-label="Open game actions">
               <mat-icon>more_horiz</mat-icon>
             </button>
 
             <mat-menu #gameActionsMenu="matMenu" xPosition="before" panelClass="table-actions-menu">
-              <button type="button" mat-menu-item (click)="editButtonClicked(game.id)" [disabled]="isDeleting(game.id)">
+              <button
+                type="button"
+                mat-menu-item
+                (click)="activeButtonClicked(game)"
+                [disabled]="isDeleting(game.id) || isStatusUpdating(game.id)">
+                <span>{{ game.isActive ? 'Deactivate' : 'Activate' }}</span>
+              </button>
+
+              <button
+                type="button"
+                mat-menu-item
+                (click)="editButtonClicked(game.id)"
+                [disabled]="isDeleting(game.id) || isStatusUpdating(game.id)">
                 <span>Edit</span>
               </button>
 
@@ -125,7 +144,7 @@
                 mat-menu-item
                 class="table-actions-menu__danger"
                 (click)="deleteButtonClicked(game.id)"
-                [disabled]="isDeleting(game.id)">
+                [disabled]="isDeleting(game.id) || isStatusUpdating(game.id)">
                 <span>Delete</span>
               </button>
             </mat-menu>

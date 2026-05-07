@@ -31,6 +31,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                         e.GreenValue,
                         e.BlueValue,
                         e.GameId,
+                        e.IsActive,
                         GameName = e.Game.Name
                     })
                     .ToListAsync();
@@ -67,6 +68,9 @@ namespace SteamApp.WebAPI.MinimalAPIs
                     "name" => request.IsDescending
                         ? query.OrderByDescending(x => x.Name).ThenByDescending(x => x.Id)
                         : query.OrderBy(x => x.Name).ThenBy(x => x.Id),
+                    "isActive" => request.IsDescending
+                        ? query.OrderByDescending(x => x.IsActive).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.IsActive).ThenBy(x => x.Id),
                     _ => query.OrderBy(x => x.Id),
                 };
 
@@ -83,6 +87,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                         x.GreenValue,
                         x.BlueValue,
                         x.GameId,
+                        x.IsActive,
                         GameName = x.Game.Name,
                     })
                     .ToListAsync(ct);
@@ -181,6 +186,30 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 return Results.NoContent();
             })
             .WithName("DeletePixel")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status404NotFound);
+
+            // PATCH: /api/pixels/{id}
+            group.MapPatch("/{id:long}", async (
+                PixelUpdateStatusDto input,
+                ApplicationDbContext db,
+                IMemoryCache cache) =>
+            {
+                var entity = await db.Pixels.FindAsync(input.Id);
+                if (entity is null) { return Results.NotFound(); }
+
+                if (entity.IsActive != input.IsActive)
+                {
+                    entity.IsActive = input.IsActive;
+                    await db.SaveChangesAsync();
+                }
+
+                var cacheKey = string.Format(CacheKeys.Game, entity.GameId);
+                cache.Remove(cacheKey);
+
+                return Results.NoContent();
+            })
+            .WithName("UpdatePixelStatus")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
 

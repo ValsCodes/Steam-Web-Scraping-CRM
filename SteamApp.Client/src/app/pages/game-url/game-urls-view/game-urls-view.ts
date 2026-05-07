@@ -9,7 +9,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
-import { Game, GameUrl, ScrapingMode } from '../../../models';
+import { Game, GameUrl, ScrapingMode, UpdateGameUrlStatus } from '../../../models';
 import { GameService, GameUrlService, ScrapingModeService } from '../../../services';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { combineLatest, finalize, startWith, Subject, takeUntil } from 'rxjs';
@@ -42,6 +42,7 @@ export class GameUrlsView implements OnInit, OnDestroy {
     'scrapingModeName',
     'startPage',
     'endPage',
+    'isActive',
     'actions'
   ];
 
@@ -59,6 +60,7 @@ export class GameUrlsView implements OnInit, OnDestroy {
   readonly pageSizeOptions = [10, 25, 50, 100];
   private gameUrls: GameUrl[] = [];
   private readonly deletingIds = new Set<number>();
+  private readonly statusUpdatingIds = new Set<number>();
 
   private readonly destroy$ = new Subject<void>();
 
@@ -85,20 +87,9 @@ export class GameUrlsView implements OnInit, OnDestroy {
       this.searchByNameFilterControl.valueChanges.pipe(startWith(this.searchByNameFilterControl.value)),
     ])
       .pipe(takeUntil(this.destroy$))
-      .subscribe(([gameId, scrapingModeId, name]) =>
-    {
-      const nameFilter = (name ?? '').trim().toLowerCase();
-
-      const filtered = this.gameUrls.filter(u =>
-      {
-        if (gameId !== null && u.gameId !== gameId) { return false; }
-        if (scrapingModeId !== null && u.scrapingModeId !== scrapingModeId) { return false; }
-        if (nameFilter && !(u.name ?? '').toLowerCase().includes(nameFilter)) { return false; }
-        return true;
+      .subscribe(([gameId, scrapingModeId, name]) => {
+        this.applyFilters(gameId, scrapingModeId, name);
       });
-
-      this.dataSource.data = filtered;
-    });
   }
 
   ngOnDestroy(): void
@@ -121,6 +112,7 @@ export class GameUrlsView implements OnInit, OnDestroy {
       scrapingMode: x.scrapingModeName ?? '',
       startPage: x.startPage ?? '',
       endPage: x.endPage ?? '',
+      isActive: x.isActive,
     }));
 
     const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -144,6 +136,42 @@ export class GameUrlsView implements OnInit, OnDestroy {
   editButtonClicked(id: number): void
   {
     this.router.navigate(['/game-urls/edit', id]);
+  }
+
+  activeButtonClicked(gameUrl: GameUrl): void {
+    if (this.isStatusUpdating(gameUrl.id)) {
+      return;
+    }
+
+    const nextIsActive = !gameUrl.isActive;
+
+    const input: UpdateGameUrlStatus = {
+      id: gameUrl.id,
+      isActive: nextIsActive,
+    };
+
+    this.statusUpdatingIds.add(gameUrl.id);
+
+    this.gameUrlService
+      .updateStatus(input)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.statusUpdatingIds.delete(gameUrl.id);
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe(() => {
+        this.gameUrls = this.gameUrls.map((x) =>
+          x.id === gameUrl.id ? { ...x, isActive: nextIsActive } : x,
+        );
+
+        this.applyFilters(
+          this.gameIdControl.value,
+          this.scrapingModeIdControl.value,
+          this.searchByNameFilterControl.value,
+        );
+      });
   }
 
   deleteButtonClicked(id: number): void {
@@ -192,6 +220,11 @@ export class GameUrlsView implements OnInit, OnDestroy {
     return this.deletingIds.has(id);
   }
 
+  isStatusUpdating(id: number): boolean
+  {
+    return this.statusUpdatingIds.has(id);
+  }
+
   clearFiltersButtonClicked(): void
   {
     this.gameIdControl.setValue(null, { emitEvent: true });
@@ -231,11 +264,16 @@ export class GameUrlsView implements OnInit, OnDestroy {
       .subscribe(urls =>
       {
         this.gameUrls = urls;
-        this.dataSource.data = urls;
 
         this.dataSource.paginator = this.paginator;
         this.paginator.pageSize = this.pageSize;
         this.dataSource.sort = this.sort;
+
+        this.applyFilters(
+          this.gameIdControl.value,
+          this.scrapingModeIdControl.value,
+          this.searchByNameFilterControl.value,
+        );
       });
   }
 
@@ -257,5 +295,23 @@ export class GameUrlsView implements OnInit, OnDestroy {
       {
         this.scrapingModes.set([...scrapingModes].sort((a, b) => a.id - b.id));
       });
+  }
+
+  private applyFilters(
+    gameId: number | null,
+    scrapingModeId: number | null,
+    name: string,
+  ): void {
+    const nameFilter = (name ?? '').trim().toLowerCase();
+
+    const filtered = this.gameUrls.filter((u) => {
+      if (gameId !== null && u.gameId !== gameId) { return false; }
+      if (scrapingModeId !== null && u.scrapingModeId !== scrapingModeId) { return false; }
+      if (nameFilter && !(u.name ?? '').toLowerCase().includes(nameFilter)) { return false; }
+      return true;
+    });
+
+    this.dataSource.data = filtered;
+    this.cdr.markForCheck();
   }
 }

@@ -105,14 +105,26 @@
               mat-icon-button
               class="table-actions-trigger"
               [matMenuTriggerFor]="watchListActionsMenu"
-              [disabled]="isDeleting(row.id)"
-              [class.busy-cursor]="isDeleting(row.id)"
+              [disabled]="isDeleting(row.id) || isStatusUpdating(row.id)"
+              [class.busy-cursor]="isDeleting(row.id) || isStatusUpdating(row.id)"
               aria-label="Open watch list actions">
               <mat-icon>more_horiz</mat-icon>
             </button>
 
             <mat-menu #watchListActionsMenu="matMenu" xPosition="before" panelClass="table-actions-menu">
-              <button type="button" mat-menu-item (click)="editButtonClicked(row.id)" [disabled]="isDeleting(row.id)">
+              <button
+                type="button"
+                mat-menu-item
+                (click)="activeButtonClicked(row)"
+                [disabled]="isDeleting(row.id) || isStatusUpdating(row.id)">
+                <span>{{ row.isActive ? 'Deactivate' : 'Activate' }}</span>
+              </button>
+
+              <button
+                type="button"
+                mat-menu-item
+                (click)="editButtonClicked(row.id)"
+                [disabled]="isDeleting(row.id) || isStatusUpdating(row.id)">
                 <span>Edit</span>
               </button>
 
@@ -121,7 +133,7 @@
                 mat-menu-item
                 class="table-actions-menu__danger"
                 (click)="deleteButtonClicked(row.id)"
-                [disabled]="isDeleting(row.id)">
+                [disabled]="isDeleting(row.id) || isStatusUpdating(row.id)">
                 <span>Delete</span>
               </button>
             </mat-menu>
