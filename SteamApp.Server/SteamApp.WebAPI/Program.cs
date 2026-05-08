@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -9,6 +10,7 @@ using SteamApp.Application.Repositories;
 using SteamApp.Application.Services;
 using SteamApp.Domain.ValueObjects.Authentication;
 using SteamApp.Infrastructure.Context;
+using SteamApp.Infrastructure.Identity;
 using SteamApp.Infrastructure.Repositories;
 using SteamApp.Infrastructure.Services;
 using SteamApp.WebAPI.Jobs;
@@ -92,6 +94,26 @@ public class Program
                 };
             });
 
+        builder.Services
+            .AddIdentityCore<ApplicationUser>(opts =>
+            {
+                opts.User.RequireUniqueEmail = true;
+
+                opts.Password.RequiredLength = 8;
+                opts.Password.RequireDigit = true;
+                opts.Password.RequireLowercase = true;
+                opts.Password.RequireUppercase = true;
+                opts.Password.RequireNonAlphanumeric = false;
+
+                opts.Lockout.AllowedForNewUsers = true;
+                opts.Lockout.MaxFailedAccessAttempts = 5;
+                opts.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+            })
+            .AddRoles<IdentityRole>()
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddSignInManager()
+            .AddDefaultTokenProviders();
+
         builder.Services.AddAuthorization(opts =>
         {
             opts.AddPolicy("InternalJob", policy =>
@@ -174,6 +196,7 @@ public class Program
                 : builder.Configuration.GetSection("Mailstrap"));
 
         builder.Services.AddScoped<IEmailService, EmailService>();
+        builder.Services.AddScoped<IdentitySchemaInitializer>();
         builder.Services.AddScoped<ISteamRepository, SteamRepository>();
         builder.Services.AddScoped<ISteamService, SteamService>();
         builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
@@ -194,6 +217,16 @@ public class Program
         });
 
         var app = builder.Build();
+
+        using (var scope = app.Services.CreateScope())
+        {
+            var identitySchemaInitializer = scope.ServiceProvider
+                .GetRequiredService<IdentitySchemaInitializer>();
+
+            identitySchemaInitializer.EnsureCreatedAsync()
+                .GetAwaiter()
+                .GetResult();
+        }
 
         if (app.Environment.IsDevelopment())
         {

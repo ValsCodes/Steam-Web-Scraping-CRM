@@ -6,8 +6,36 @@ span {
   position: sticky;
   top: 0;
   z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
   background-color: #171d25;
   color: white;
+}
+
+.site-header__nav,
+.site-header__session {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.site-header__nav {
+  flex-wrap: wrap;
+}
+
+.site-header__session {
+  flex-shrink: 0;
+}
+
+.site-header__user {
+  max-width: 18rem;
+  overflow: hidden;
+  color: #bbf7d0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 a {
@@ -30,4 +58,15 @@ a.active {
 [routerLink],
 [routerLinkActive] {
   cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .site-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .site-header__session {
+    flex-wrap: wrap;
+  }
 }

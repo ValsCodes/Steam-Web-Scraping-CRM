@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="DotNetSeleniumExtras.WaitHelpers" Version="3.11.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.15" />
     <PackageReference Include="Microsoft.AspNetCore.JsonPatch" Version="9.0.15" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.15" />
     <PackageReference Include="Selenium.Support" Version="4.43.0" />

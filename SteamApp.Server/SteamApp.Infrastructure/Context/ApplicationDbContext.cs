@@ -1,10 +1,14 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
+using SteamApp.Infrastructure.Identity;
 
 namespace SteamApp.Infrastructure.Context;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    : IdentityDbContext<ApplicationUser, IdentityRole, string>(options)
 {
     public DbSet<Game> Games { get; set; }
     public DbSet<GameUrl> GameUrls { get; set; }

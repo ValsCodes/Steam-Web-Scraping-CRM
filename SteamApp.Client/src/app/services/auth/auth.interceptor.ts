@@ -20,7 +20,7 @@ export class AuthInterceptor implements HttpInterceptor {
     req: HttpRequest<unknown>,
     next: HttpHandler
   ): Observable<HttpEvent<unknown>> {
-    if (this.isAuthTokenRequest(req.url)) {
+    if (this.isAuthRequest(req.url)) {
       return next.handle(req);
     }
 
@@ -54,8 +54,8 @@ export class AuthInterceptor implements HttpInterceptor {
     );
   }
 
-  private isAuthTokenRequest(url: string): boolean {
-    return url.toLowerCase().includes('/api/auth/token');
+  private isAuthRequest(url: string): boolean {
+    return url.toLowerCase().includes('/api/auth/');
   }
 
   private handleExpiredSession(): void {
