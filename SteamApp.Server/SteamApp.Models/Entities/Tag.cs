@@ -14,7 +14,7 @@ public sealed class Tag
     [ForeignKey(nameof(Game))]
     public long GameId { get; set; }
     [InverseProperty(nameof(Game.Tags))]
-    public Game Game { get; set; }
+    public Game Game { get; set; } = null!;
 
     [Column("name")]
     public string? Name { get; set; }

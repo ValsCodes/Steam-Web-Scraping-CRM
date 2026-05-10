@@ -9,7 +9,7 @@ namespace SteamApp.WebAPI.MinimalAPIs;
 
 public static class GameUrlProductsEndpoints
 {
-    public static IEnumerable<string> Tags { get; private set; }
+    public static IEnumerable<string> Tags { get; private set; } = [];
 
     public static WebApplication MapGameUrlProductsEndpoints(this WebApplication app)
     {
@@ -32,7 +32,9 @@ public static class GameUrlProductsEndpoints
                     x.GameUrl.ScrapingModeId,
                     ScrapingModeName = x.GameUrl.ScrapingMode != null ? x.GameUrl.ScrapingMode.Name : null,
                     Tags = x.Product.ProductTags.Select(y => y.Tag.Name),
-                    FullUrl = x.GameUrl.PartialUrl + UrlUtilities.UrlEncode(x.Product.Name),
+                    FullUrl = x.Product.Name != null
+                        ? x.GameUrl.PartialUrl + UrlUtilities.UrlEncode(x.Product.Name)
+                        : x.GameUrl.PartialUrl,
                     x.Product.IsActive,
                     x.Product.Rating,
                 })
@@ -75,7 +77,9 @@ public static class GameUrlProductsEndpoints
                     x.GameUrl.ScrapingModeId,
                     ScrapingModeName = x.GameUrl.ScrapingMode != null ? x.GameUrl.ScrapingMode.Name : null,
                     Tags = x.Product.ProductTags.Select(y => y.Tag.Name),
-                    FullUrl = x.GameUrl.PartialUrl + UrlUtilities.UrlEncode(x.Product.Name),
+                    FullUrl = x.Product.Name != null
+                        ? x.GameUrl.PartialUrl + UrlUtilities.UrlEncode(x.Product.Name)
+                        : x.GameUrl.PartialUrl,
                     x.Product.IsActive,
                     x.Product.Rating,
 

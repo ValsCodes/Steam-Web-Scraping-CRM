@@ -7,13 +7,16 @@ public class IdentitySchemaInitializer(
     ApplicationDbContext dbContext,
     ILogger<IdentitySchemaInitializer> logger)
 {
+
+    // In a production application, you would typically use EF Core Migrations to manage your database schema.
     public async Task EnsureCreatedAsync(CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Ensuring ASP.NET Identity tables exist.");
 
-        await dbContext.Database.ExecuteSqlRawAsync(
-            IdentitySchemaSql,
-            cancellationToken);
+        //logger.LogInformation("Ensuring ASP.NET Identity tables exist.");
+
+        //await dbContext.Database.ExecuteSqlRawAsync(
+        //    IdentitySchemaSql,
+        //    cancellationToken);
     }
 
     private const string IdentitySchemaSql = """

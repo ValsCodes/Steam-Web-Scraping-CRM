@@ -4,7 +4,7 @@ namespace SteamApp.Application.DTOs.Game
 {
     public class GameDto : BaseDto
     {
-        public string BaseUrl { get; set; }
+        public string BaseUrl { get; set; } = string.Empty;
 
         public string? PageUrl { get; set; }
 

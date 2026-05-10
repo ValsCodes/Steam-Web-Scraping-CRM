@@ -5,9 +5,9 @@
         public string? PageUrl { get; set; }
         public string? Name { get; set; }
         public double Price { get; set; }
-        public string PixelName { get; set; }
+        public string PixelName { get; set; } = string.Empty;
         public string? ImageUrl { get; set; }
-        public string ListingUrl { get; set; }
+        public string ListingUrl { get; set; } = string.Empty;
         public short Quantity { get; set; }
         public bool IsPainted { get; set; }
         public string? PaintText { get; set; }

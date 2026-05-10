@@ -11,13 +11,13 @@ namespace SteamApp.Domain.Entities
         public long Id { get; set; }
 
         [Column("name")]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [Column("game_id")]
         [ForeignKey(nameof(Game))]
         public long GameId { get; set; }
         [InverseProperty(nameof(Game.Pixels))]
-        public Game Game { get; set; }
+        public Game Game { get; set; } = null!;
 
         [Column("r_value")]
         public long RedValue { get; set; }

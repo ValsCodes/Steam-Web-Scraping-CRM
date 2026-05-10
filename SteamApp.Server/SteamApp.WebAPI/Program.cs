@@ -1,7 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -48,13 +47,13 @@ public class Program
         }
 
         string[] required =
-        {
+        [
             "ConnectionStrings:DefaultConnection",
             "JwtSettings:Key",
             "JwtSettings:Issuer",
             "JwtSettings:Audience",
             "JwtSettings:DurationMinutes"
-        };
+        ];
 
         foreach (var key in required)
         {
@@ -76,7 +75,7 @@ public class Program
 
         var clients = builder.Configuration
             .GetSection("Clients")
-            .Get<List<ClientDefinition>>() ?? new List<ClientDefinition>();
+            .Get<List<ClientDefinition>>() ?? [];
 
         ValidateJwtSettings(jwt);
         ValidateClientDefinitions(clients, builder.Environment);
@@ -157,7 +156,7 @@ public class Program
 
         var allowedOrigins = builder.Configuration
             .GetSection("Cors:AllowedOrigins")
-            .Get<string[]>() ?? Array.Empty<string>();
+            .Get<string[]>() ?? [];
 
         ValidateCorsOrigins(allowedOrigins, builder.Environment);
 
@@ -424,6 +423,9 @@ public class Program
         IConfiguration configuration,
         IHostEnvironment environment)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(environment);
+
         if (environment.IsDevelopment())
         {
             return;
@@ -445,6 +447,9 @@ public class Program
         IReadOnlyList<string> allowedOrigins,
         IHostEnvironment environment)
     {
+        ArgumentNullException.ThrowIfNull(allowedOrigins);
+        ArgumentNullException.ThrowIfNull(environment);
+
         if (environment.IsDevelopment() && allowedOrigins.Count == 0)
         {
             return;

@@ -33,7 +33,7 @@ public class SteamController(
 
                 var cacheKey = string.Format(CacheKeys.ScrapePage, gamerUrlId, page);
 
-                if (cache.TryGetValue(cacheKey, out object cached))
+                if (cache.TryGetValue(cacheKey, out object? cached))
                 {
                     return Ok(cached);
                 }
@@ -60,7 +60,7 @@ public class SteamController(
             {
                 var cacheKey = string.Format(CacheKeys.ScrapePublic, gameUrlId, page);
 
-                if (cache.TryGetValue(cacheKey, out object cached))
+                if (cache.TryGetValue(cacheKey, out object? cached))
                 {
                     return Ok(cached);
                 }
@@ -87,7 +87,7 @@ public class SteamController(
             {
                 var cacheKey = string.Format(CacheKeys.ScrapePixels, gameUrlId, page);
 
-                if (cache.TryGetValue(cacheKey, out object cached))
+                if (cache.TryGetValue(cacheKey, out object? cached))
                 {
                     return Ok(cached);
                 }

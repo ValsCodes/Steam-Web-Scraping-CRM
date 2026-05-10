@@ -11,12 +11,12 @@ namespace SteamApp.Domain.Entities
         [ForeignKey(nameof(GameUrl))]
         public long GameUrlId { get; set; }
         [InverseProperty(nameof(GameUrl.GameUrlsPixels))]
-        public GameUrl GameUrl { get; set; }
+        public GameUrl GameUrl { get; set; } = null!;
 
         [Column("pixel_id")]
         [ForeignKey(nameof(Pixel))]
         public long PixelId { get; set; }
         [InverseProperty(nameof(Pixel.GameUrlsPixels))]
-        public Pixel Pixel { get; set; }
+        public Pixel Pixel { get; set; } = null!;
     }
 }

@@ -14,9 +14,9 @@ public class SteamRepository(ApplicationDbContext dbContext, IMemoryCache cache)
 
         var cacheKey = string.Format(CacheKeys.GameUrl, gameUrlId);
 
-        if (cache.TryGetValue(cacheKey, out object cached))
+        if (cache.TryGetValue<GameUrl>(cacheKey, out var cached) && cached is not null)
         {
-            return (GameUrl)cached;
+            return cached;
         }
 
         var gameUrl = await dbContext.GameUrls
@@ -42,9 +42,9 @@ public class SteamRepository(ApplicationDbContext dbContext, IMemoryCache cache)
     {
         var cacheKey = string.Format(CacheKeys.Game, gameId);
 
-        if (cache.TryGetValue(cacheKey, out object cached))
+        if (cache.TryGetValue<Game>(cacheKey, out var cached) && cached is not null)
         {
-            return (Game)cached;
+            return cached;
         }
 
         var game = await dbContext.Games.AsNoTracking()
@@ -53,7 +53,7 @@ public class SteamRepository(ApplicationDbContext dbContext, IMemoryCache cache)
 
         if (game is null)
         {
-            throw new Exception($"Game with id {game} not found.");
+            throw new Exception($"Game with id {gameId} not found.");
 
         }
 

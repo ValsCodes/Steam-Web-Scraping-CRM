@@ -5,7 +5,7 @@
 namespace SteamApp.WebAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class gameurlname : Migration
+    public partial class GameUrlName : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

@@ -12,7 +12,7 @@ namespace SteamApp.WebAPI.Services;
 
 public class WishlistService(IWishlistRepository repository, IMapper mapper) : IWishlistService
 {
-    public async Task<WhishListResponse?> CheckWishlistItem(long wishListId)
+    public async Task<WhishListResponse> CheckWishlistItem(long wishListId)
     {
         var wishList = await repository.GetAsync(wishListId, CancellationToken.None);
         if (wishList == null)
@@ -52,7 +52,7 @@ public class WishlistService(IWishlistRepository repository, IMapper mapper) : I
         }
 
         // Prefer discounted price if present; otherwise base price.
-        double finalPrice = SteamService.ParseSteamPrice(gamePriceEl!, preferCentsAttribute: true);
+        double finalPrice = SteamService.ParseSteamPrice(discountPriceEl ?? gamePriceEl!, preferCentsAttribute: true);
 
         return new WhishListResponse
         {

@@ -11,11 +11,11 @@ public class ProductTags
     [ForeignKey(nameof(Tag))]
     public long TagId { get; set; }
     [InverseProperty(nameof(Tag.ProductTags))]
-    public Tag Tag { get; set; }
+    public Tag Tag { get; set; } = null!;
 
     [Column("product_id")]
     [ForeignKey(nameof(Product))]
     public long ProductId { get; set; }
     [InverseProperty(nameof(Product.ProductTags))]
-    public Product Product { get; set; }
+    public Product Product { get; set; } = null!;
 }

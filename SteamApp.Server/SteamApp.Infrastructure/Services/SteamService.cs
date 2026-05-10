@@ -63,6 +63,11 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
 
     public async Task<IEnumerable<WatchItemDto>> ScrapeWithPixels(long gameUrlId, short page)
     {
+        if (!OperatingSystem.IsWindowsVersionAtLeast(6, 1))
+        {
+            throw new PlatformNotSupportedException("Pixel scraping uses System.Drawing and is only supported on Windows.");
+        }
+
         if (page < 0 || page > 500)
         {
             throw new ArgumentOutOfRangeException("Page is either negative or greater than 500.");
@@ -102,7 +107,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
 
         var results = new List<WatchItemDto>();
 
-        using IWebDriver driver = new ChromeDriver(options);
+        using var driver = new ChromeDriver(options);
 
         driver.Navigate().GoToUrl(url);
 
@@ -119,7 +124,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
 
             string srcImage = listing.ImageUrl!.Replace($"/{gameUrl.PixelImageWidth}fx{gameUrl.PixelImageHeight}f", string.Empty);
 
-            using HttpClient client = new HttpClient();
+            using HttpClient client = new();
             byte[] bytes = await client.GetByteArrayAsync(srcImage);
 
             using var ms = new MemoryStream(bytes);
@@ -280,7 +285,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         }
 
         // Keep only digits and decimal separators
-        string cleaned = new string(text.Where(c => char.IsDigit(c) || c == ',' || c == '.').ToArray());
+        string cleaned = new([.. text.Where(c => char.IsDigit(c) || c == ',' || c == '.')]);
 
         // Normalize to invariant decimal format
         if (cleaned.Contains(',') && !cleaned.Contains('.'))
@@ -367,7 +372,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
     {
         var listing = new WatchItemDto
         {
-            ListingUrl = anchor.GetAttribute(Constants.HREF)
+            ListingUrl = anchor.GetAttribute(Constants.HREF) ?? string.Empty
         };
 
         // Find the main container div for the listing
@@ -386,14 +391,25 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         var quantitySpan = listingDiv.FindElement(
             By.XPath($".//span[contains(@class,'{Constants.MARKET_LISTING_NUM_LISTING_QTY}') and @{Constants.DATA_QTY}]")
         );
-        listing.Quantity = short.Parse(quantitySpan.GetAttribute(Constants.DATA_QTY));
+        var quantityRaw = quantitySpan.GetAttribute(Constants.DATA_QTY);
+        if (!short.TryParse(quantityRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var quantity))
+        {
+            throw new FormatException($"Could not parse listing quantity: '{quantityRaw}'");
+        }
+
+        listing.Quantity = quantity;
 
         // Extract the price, convert it, and assign it
         var priceSpan = listingDiv.FindElement(
             By.XPath($".//span[contains(@class,'{Constants.NORMAL_PRICE}') and @{Constants.DATA_PRICE}]")
         );
         var nonConvertedPrice = priceSpan.GetAttribute(Constants.DATA_PRICE);
-        listing.Price = double.Parse(nonConvertedPrice) / 100;
+        if (!double.TryParse(nonConvertedPrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var priceInCents))
+        {
+            throw new FormatException($"Could not parse listing price: '{nonConvertedPrice}'");
+        }
+
+        listing.Price = priceInCents / 100;
 
         return listing;
     }
@@ -408,12 +424,8 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
 
         var jsonString = JsonUtilities.FormatJsonStringForDeserialization(jsonResponse);
         var result = JsonUtilities.DeserializeFormattedJsonString<ListingDetails>(jsonString);
-        if (result == null)
-        {
-            throw new Exception("Failed to deserialize JSON.");
-        }
 
-        return result.Results!;
+        return result == null ? throw new Exception("Failed to deserialize JSON.") : (IEnumerable<Result>)result.Results!;
     }
 
     #endregion

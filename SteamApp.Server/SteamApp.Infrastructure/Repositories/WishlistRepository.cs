@@ -13,9 +13,9 @@ public class WishlistRepository(ApplicationDbContext dbContext, IMemoryCache cac
     {
         var cacheKey = string.Format(CacheKeys.WishListItem, id);
 
-        if (cache.TryGetValue(cacheKey, out object cached))
+        if (cache.TryGetValue<WishList>(cacheKey, out var cached) && cached is not null)
         {
-            return (WishList)cached;
+            return cached;
         }
 
         var wishList = await dbContext.WishLists.AsNoTracking()
@@ -24,7 +24,7 @@ public class WishlistRepository(ApplicationDbContext dbContext, IMemoryCache cac
 
         if (wishList is null)
         {
-            throw new Exception($"WishList with id {wishList} not found.");
+            throw new Exception($"WishList with id {id} not found.");
         }
 
         cache.Set(cacheKey, wishList, TimeSpan.FromMinutes(1));

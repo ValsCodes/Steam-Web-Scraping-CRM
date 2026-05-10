@@ -17,7 +17,7 @@ namespace SteamApp.Domain.Entities
         [ForeignKey(nameof(Game))]
         public long GameId { get; set; }
         [InverseProperty(nameof(Game.GameAddOns))]
-        public Game Game { get; set; }
+        public Game Game { get; set; } = null!;
 
         [Column("price")]
         public double? Price { get; set; }
