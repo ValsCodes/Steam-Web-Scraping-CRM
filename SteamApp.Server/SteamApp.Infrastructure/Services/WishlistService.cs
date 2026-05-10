@@ -4,9 +4,9 @@ using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using SeleniumExtras.WaitHelpers;
 using SteamApp.Application.DTOs.WishListItem;
-using SteamApp.Application.Repositories;
 using SteamApp.Application.Services;
 using SteamApp.Infrastructure.Services;
+using SteamApp.Interfaces.Repositories;
 
 namespace SteamApp.WebAPI.Services;
 

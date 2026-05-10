@@ -1,9 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using SteamApp.Application.Caching;
-using SteamApp.Application.Repositories;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
+using SteamApp.Interfaces.Repositories;
+
 
 namespace SteamApp.Infrastructure.Repositories;
 

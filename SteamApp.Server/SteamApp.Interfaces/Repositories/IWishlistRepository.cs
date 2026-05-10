@@ -1,7 +1,7 @@
 ﻿using SteamApp.Domain.Entities;
 
-namespace SteamApp.Application.Repositories
-{
+namespace SteamApp.Interfaces.Repositories
+{   
     public interface IWishlistRepository
     {
         Task<WishList?> GetAsync(long id, CancellationToken ct);

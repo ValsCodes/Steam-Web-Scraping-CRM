@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SteamApp.Application\SteamApp.Application.csproj" />
+    <ProjectReference Include="..\SteamApp.Interfaces\SteamApp.Interfaces.csproj" />
     <ProjectReference Include="..\SteamApp.Models\SteamApp.Domain.csproj" />
   </ItemGroup>
 

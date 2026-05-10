@@ -1,6 +1,6 @@
 ﻿using SteamApp.Domain.Entities;
 
-namespace SteamApp.Application.Repositories
+namespace SteamApp.Interfaces.Repositories
 {
     public interface ISteamRepository
     {

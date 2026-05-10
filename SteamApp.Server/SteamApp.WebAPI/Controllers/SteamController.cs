@@ -5,6 +5,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using SteamApp.Application.Caching;
 using SteamApp.Application.Services;
+using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI.Security;
 
 namespace SteamApp.WebAPI.Controllers;
