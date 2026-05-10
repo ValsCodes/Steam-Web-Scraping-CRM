@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamApp.Application", "..\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamApp.Interfaces", "..\SteamApp.Interfaces\SteamApp.Interfaces.csproj", "{5B1453EF-165F-44A5-8F75-A51A75D2E4E5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamApp.IntegrationTests", "..\SteamApp.IntegrationTests\SteamApp.IntegrationTests.csproj", "{F953B745-7A26-4715-BC2C-115A6A7AFB60}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,12 +49,17 @@ Global
 		{5B1453EF-165F-44A5-8F75-A51A75D2E4E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5B1453EF-165F-44A5-8F75-A51A75D2E4E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5B1453EF-165F-44A5-8F75-A51A75D2E4E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F953B745-7A26-4715-BC2C-115A6A7AFB60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F953B745-7A26-4715-BC2C-115A6A7AFB60}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F953B745-7A26-4715-BC2C-115A6A7AFB60}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F953B745-7A26-4715-BC2C-115A6A7AFB60}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{4AA67631-44D7-47C2-96DE-4C5697348CC7} = {23836989-55FB-4545-AEAB-13FDE514F01A}
+		{F953B745-7A26-4715-BC2C-115A6A7AFB60} = {23836989-55FB-4545-AEAB-13FDE514F01A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1E283A1D-69BE-484E-966A-0C1326A61517}

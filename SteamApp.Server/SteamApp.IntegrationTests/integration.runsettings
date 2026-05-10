@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <ResultsDirectory>C:\Users\Val\source\repos\_Angular\SteamApp\SteamApp.Server\SteamApp.IntegrationTests\TestResults</ResultsDirectory>
+  </RunConfiguration>
+  <NUnit>
+    <WorkDirectory>C:\Users\Val\source\repos\_Angular\SteamApp\SteamApp.Server\SteamApp.IntegrationTests\TestResults</WorkDirectory>
+    <TestOutputXml>C:\Users\Val\source\repos\_Angular\SteamApp\SteamApp.Server\SteamApp.IntegrationTests\TestResults</TestOutputXml>
+  </NUnit>
+</RunSettings>
