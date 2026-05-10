@@ -1,5 +1,5 @@
-using NUnit.Framework;
 using Microsoft.AspNetCore.Mvc.Testing;
+using NUnit.Framework;
 
 [assembly: NonParallelizable]
 [assembly: WebApplicationFactoryContentRoot(
