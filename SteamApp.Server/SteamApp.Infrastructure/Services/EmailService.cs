@@ -6,12 +6,26 @@ using System.Text.Json.Serialization;
 
 namespace SteamApp.Infrastructure.Services;
 
-public class EmailService(IOptions<EmailOptions> options) : IEmailService
+public class EmailService : IEmailService
 {
-    private static readonly HttpClient HttpClient = new()
+    private static readonly HttpClient SharedHttpClient = new()
     {
         BaseAddress = new Uri("https://sandbox.api.mailtrap.io/")
     };
+
+    private readonly IOptions<EmailOptions> options;
+    private readonly HttpClient httpClient;
+
+    public EmailService(IOptions<EmailOptions> options)
+        : this(options, SharedHttpClient)
+    {
+    }
+
+    internal EmailService(IOptions<EmailOptions> options, HttpClient httpClient)
+    {
+        this.options = options;
+        this.httpClient = httpClient;
+    }
 
     public async Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
     {
@@ -31,7 +45,7 @@ public class EmailService(IOptions<EmailOptions> options) : IEmailService
                     Category: "Integration Test",
                     Text: message.Body));
 
-            using var response = await HttpClient.SendAsync(request, cancellationToken);
+            using var response = await httpClient.SendAsync(request, cancellationToken);
             response.EnsureSuccessStatusCode();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

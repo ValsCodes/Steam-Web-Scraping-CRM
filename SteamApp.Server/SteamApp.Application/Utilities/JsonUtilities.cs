@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace SteamApp.Infrastructure.Utilities
+namespace SteamApp.Application.Utilities
 {
     public static class JsonUtilities
     {

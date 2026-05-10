@@ -2,7 +2,7 @@
 using SteamApp.Application.DTOs.GameUrlProduct;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
-using SteamApp.Infrastructure.Utilities;
+using SteamApp.Application.Utilities;
 using SteamApp.WebAPI.Security;
 
 namespace SteamApp.WebAPI.MinimalAPIs;

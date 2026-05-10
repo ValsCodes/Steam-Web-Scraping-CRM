@@ -88,7 +88,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 IMapper mapper) =>
             {
                 var entity = await db.WatchList
-                    .FirstAsync(w => w.Id == id);
+                    .FirstOrDefaultAsync(w => w.Id == id);
 
                 if (entity is null) { return Results.NotFound(); }
 

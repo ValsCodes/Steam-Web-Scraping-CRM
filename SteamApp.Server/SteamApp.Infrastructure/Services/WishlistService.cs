@@ -46,13 +46,7 @@ public class WishlistService(IWishlistRepository repository, IMapper mapper) : I
         IWebElement? gamePriceEl = driver.FindElements(By.CssSelector(".game_purchase_price.price")).FirstOrDefault();
         IWebElement? discountPriceEl = driver.FindElements(By.CssSelector(".discount_final_price")).FirstOrDefault();
 
-        if (gamePriceEl == null && discountPriceEl == null)
-        {
-            throw new Exception("No Price element was found.");
-        }
-
-        // Prefer discounted price if present; otherwise base price.
-        double finalPrice = SteamService.ParseSteamPrice(discountPriceEl ?? gamePriceEl!, preferCentsAttribute: true);
+        double finalPrice = SelectFinalPrice(gamePriceEl, discountPriceEl);
 
         return new WhishListResponse
         {
@@ -74,5 +68,19 @@ public class WishlistService(IWishlistRepository repository, IMapper mapper) : I
         var wishList = await repository.GetAsync(id, ct);
 
         return mapper.Map<WishListDto>(wishList);
+    }
+
+    internal static double SelectFinalPrice(
+        IWebElement? gamePriceEl,
+        IWebElement? discountPriceEl)
+    {
+        if (gamePriceEl == null && discountPriceEl == null)
+        {
+            throw new Exception("No Price element was found.");
+        }
+
+        return SteamService.ParseSteamPrice(
+            discountPriceEl ?? gamePriceEl!,
+            preferCentsAttribute: true);
     }
 }
