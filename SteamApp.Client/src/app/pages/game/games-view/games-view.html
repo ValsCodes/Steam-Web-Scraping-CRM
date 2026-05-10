@@ -29,8 +29,10 @@
 
     <div class="filter-toolbar">
       <div class="filter-group">
-        <label>Name</label>
+        <label for="games-filter-name">Name</label>
         <input
+          id="games-filter-name"
+          name="gamesFilterName"
           class="px-2 py-1"
           type="text"
           placeholder="Filter by name"
@@ -45,8 +47,10 @@
       <div class="filter-toolbar__spacer" aria-hidden="true"></div>
 
       <div class="filter-group filter-group--page-size">
-        <label>Items per page</label>
+        <label for="games-page-size">Items per page</label>
         <select
+          id="games-page-size"
+          name="gamesPageSize"
           class="px-2 py-1"
           [value]="pageSize"
           [disabled]="isGridLoading"
@@ -100,7 +104,13 @@
       <ng-container matColumnDef="isActive">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Active</th>
         <td mat-cell *matCellDef="let game">
-          <input type="checkbox" [checked]="game.isActive" disabled />
+          <input
+            [attr.id]="'game-active-' + game.id"
+            name="gameActiveStatus"
+            type="checkbox"
+            [checked]="game.isActive"
+            [attr.aria-label]="'Game active status for ' + (game.name || game.id)"
+            disabled />
         </td>
       </ng-container>
 

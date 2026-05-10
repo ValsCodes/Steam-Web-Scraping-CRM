@@ -9,18 +9,22 @@
 
   <div class="app-form__grid">
   <div class="form-group">
-    <label>Game *</label>
-    <select formControlName="gameId" class="px-2 py-1">
-      <option value="" disabled>Select a game</option>
-      <option *ngFor="let game of games" [value]="game.id">
+    <label for="tag-game-id">Game *</label>
+    <select id="tag-game-id" name="gameId" formControlName="gameId" class="px-2 py-1">
+      <option [ngValue]="null" disabled>Select a game</option>
+      @for (game of games(); track game.id) {
+      <option [ngValue]="game.id">
         {{ game.name }}
       </option>
+      }
     </select>
   </div>
 
   <div class="form-group">
-    <label>Name *</label>
+    <label for="tag-name">Name *</label>
     <input
+      id="tag-name"
+      name="name"
       formControlName="name"
       class="px-2 py-1 w-1/2"
       placeholder="Tag name"
@@ -29,7 +33,7 @@
 
   <div class="form-group-row checkbox-group">
     <label>
-      <input type="checkbox" formControlName="isActive" />
+      <input id="tag-is-active" name="isActive" type="checkbox" formControlName="isActive" />
       Active
     </label>
   </div>

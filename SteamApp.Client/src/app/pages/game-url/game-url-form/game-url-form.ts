@@ -1,8 +1,9 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, forkJoin, of, switchMap } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import {
   CreateGameUrl,
@@ -36,6 +37,8 @@ const DEFAULT_PIXEL_IMAGE_HEIGHT = 62;
   styleUrl: './game-url-form.scss',
 })
 export class GameUrlForm implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   isEditMode = false;
   gameUrlId?: number;
   isSubmitting = false;
@@ -60,7 +63,7 @@ export class GameUrlForm implements OnInit {
   private initialPixelIds: number[] = [];
 
   form = this.fb.nonNullable.group({
-    gameId: [0, Validators.required],
+    gameId: [null as number | null, [Validators.required, Validators.min(1)]],
     name: [''],
     partialUrl: [''],
     scrapingModeId: [1, Validators.required],
@@ -89,13 +92,17 @@ export class GameUrlForm implements OnInit {
   ngOnInit(): void {
     this.syncSelectedScrapingMode();
 
-    this.form.controls.scrapingModeId.valueChanges.subscribe(() => {
-      this.syncSelectedScrapingMode();
-    });
+    this.form.controls.scrapingModeId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.syncSelectedScrapingMode();
+      });
 
-    this.form.controls.gameId.valueChanges.subscribe(() => {
-      this.pruneSelectedRelations();
-    });
+    this.form.controls.gameId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.pruneSelectedRelations();
+      });
 
     this.loadLookupData();
 
@@ -103,6 +110,7 @@ export class GameUrlForm implements OnInit {
     if (idParam) {
       this.isEditMode = true;
       this.gameUrlId = Number(idParam);
+      this.form.controls.gameId.disable({ emitEvent: false });
       this.loadGameUrl(this.gameUrlId);
     }
   }
@@ -239,9 +247,12 @@ export class GameUrlForm implements OnInit {
           .pipe(switchMap((created) => this.syncRelations(created.id)));
 
     request$
-      .pipe(finalize(() => {
-        this.isSubmitting = false;
-      }))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.isSubmitting = false;
+        }),
+      )
       .subscribe(() => {
         this.router.navigate(['/game-urls']);
       });
@@ -301,19 +312,25 @@ export class GameUrlForm implements OnInit {
   private loadLookupData(): void {
     this.gameService
       .getAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((games) => this.games.set(games.filter((game) => game.isActive)));
 
     this.productService
       .getAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((products) => this.products.set(products.filter((product) => product.isActive)));
 
     this.pixelService
       .getAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((pixels) => this.pixels.set(pixels.filter((pixel) => pixel.isActive)));
 
-    this.scrapingModeService.getAll().subscribe((modes) => {
-      this.scrapingModes.set([...modes].sort((a, b) => a.id - b.id));
-    });
+    this.scrapingModeService
+      .getAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((modes) => {
+        this.scrapingModes.set([...modes].sort((a, b) => a.id - b.id));
+      });
   }
 
   private loadGameUrl(id: number): void {
@@ -336,13 +353,13 @@ export class GameUrlForm implements OnInit {
           });
 
           this.syncSelectedScrapingMode();
-          this.form.controls.gameId.disable();
 
           return forkJoin({
             products: this.gameUrlProductService.existsByGameUrl(id),
             pixels: this.gameUrlPixelService.existsByGameUrl(id),
           });
         }),
+        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(({ products, pixels }) => {
         this.initialProductIds = products.map((x) => x.productId);
@@ -355,12 +372,13 @@ export class GameUrlForm implements OnInit {
 
   private buildCreatePayload(): CreateGameUrl {
     const raw = this.form.getRawValue();
+    const gameId = this.requireGameId();
     const scrapingModeId = raw.scrapingModeId ?? ScrapingModeEnum.ManualBatch;
     const isBatchMode = scrapingModeId === ScrapingModeEnum.Batch || scrapingModeId === ScrapingModeEnum.PixelBatch;
     const isPixelMode = scrapingModeId === ScrapingModeEnum.PixelBatch;
 
     return {
-      gameId: raw.gameId,
+      gameId,
       name: raw.name,
       scrapingModeId,
       partialUrl: raw.partialUrl,
@@ -372,6 +390,15 @@ export class GameUrlForm implements OnInit {
       pixelImageWidth: isPixelMode ? raw.pixelImageWidth : null,
       pixelImageHeight: isPixelMode ? raw.pixelImageHeight : null,
     };
+  }
+
+  private requireGameId(): number {
+    const gameId = this.form.controls.gameId.value;
+    if (gameId === null || gameId < 1) {
+      throw new Error('Game is required.');
+    }
+
+    return gameId;
   }
 
   private buildUpdatePayload(payload: CreateGameUrl): UpdateGameUrl {

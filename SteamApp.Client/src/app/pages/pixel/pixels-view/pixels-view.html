@@ -26,8 +26,8 @@
 
   <div class="filter-toolbar">
     <div class="filter-group">
-      <label>Game</label>
-      <select class="px-2 py-1" [formControl]="gameIdControl">
+      <label for="pixels-filter-game">Game</label>
+      <select id="pixels-filter-game" name="pixelsFilterGame" class="px-2 py-1" [formControl]="gameIdControl">
         <option [ngValue]="null">All</option>
         @for (g of games$ | async; track g.id) {
           <option [ngValue]="g.id">{{ g.name }}</option>
@@ -36,8 +36,10 @@
     </div>
 
     <div class="filter-group">
-      <label>Name</label>
+      <label for="pixels-filter-name">Name</label>
       <input
+        id="pixels-filter-name"
+        name="pixelsFilterName"
         class="px-2 py-1"
         type="text"
         placeholder="Filter by name"
@@ -51,8 +53,10 @@
     <div class="filter-toolbar__spacer" aria-hidden="true"></div>
 
     <div class="filter-group filter-group--page-size">
-      <label>Items per page</label>
+      <label for="pixels-page-size">Items per page</label>
       <select
+        id="pixels-page-size"
+        name="pixelsPageSize"
         class="px-2 py-1"
         [value]="pageSize"
         [disabled]="isGridLoading"
@@ -107,7 +111,13 @@
       <ng-container matColumnDef="isActive">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Active</th>
         <td mat-cell *matCellDef="let row">
-          <input type="checkbox" [checked]="row.isActive" disabled />
+          <input
+            [attr.id]="'pixel-active-' + row.id"
+            name="pixelActiveStatus"
+            type="checkbox"
+            [checked]="row.isActive"
+            [attr.aria-label]="'Pixel active status for ' + (row.name || row.id)"
+            disabled />
         </td>
       </ng-container>
 

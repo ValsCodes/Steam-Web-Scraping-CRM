@@ -26,8 +26,8 @@
 
   <div class="filter-toolbar">
     <div class="filter-group">
-      <label>Game</label>
-      <select class="px-2 py-1" [formControl]="gameIdControl">
+      <label for="products-filter-game">Game</label>
+      <select id="products-filter-game" name="productsFilterGame" class="px-2 py-1" [formControl]="gameIdControl">
         <option [ngValue]="null">All</option>
         @for (g of games(); track g.id) {
           <option [ngValue]="g.id">{{ g.name }}</option>
@@ -36,13 +36,13 @@
     </div>
 
     <div class="filter-group">
-      <label>Product Name</label>
-      <input class="px-2 py-1" type="text" placeholder="Filter by name" [formControl]="searchByNameFilterControl" />
+      <label for="products-filter-name">Product Name</label>
+      <input id="products-filter-name" name="productsFilterName" class="px-2 py-1" type="text" placeholder="Filter by name" [formControl]="searchByNameFilterControl" />
     </div>
 
     <div class="filter-group">
-      <label>Rating</label>
-      <select class="px-2 py-1" [formControl]="searchByRatingFilterControl">
+      <label for="products-filter-rating">Rating</label>
+      <select id="products-filter-rating" name="productsFilterRating" class="px-2 py-1" [formControl]="searchByRatingFilterControl">
         <option [ngValue]="null">All</option>
         @for (rating of ratingOptions; track rating) {
           <option [ngValue]="rating">{{ rating }}</option>
@@ -51,8 +51,8 @@
     </div>
 
     <div class="filter-group min-w-[220px]">
-      <label>Tags</label>
-      <select class="px-2 py-1" [formControl]="tagIdControl" [disabled]="gameTagsFilter().length === 0" (change)="onTagSelectedFromSelect()">
+      <label for="products-filter-tag">Tags</label>
+      <select id="products-filter-tag" name="productsFilterTag" class="px-2 py-1" [formControl]="tagIdControl" (change)="onTagSelectedFromSelect()">
         <option [ngValue]="null">Select a tag</option>
         @for (tag of gameTagsFilter(); track tag.id) {
           <option [ngValue]="tag.id">{{ tag.name }}</option>
@@ -65,8 +65,10 @@
     <div class="filter-toolbar__spacer" aria-hidden="true"></div>
 
     <div class="filter-group filter-group--page-size">
-      <label>Items per page</label>
+      <label for="products-page-size">Items per page</label>
       <select
+        id="products-page-size"
+        name="productsPageSize"
         class="px-2 py-1"
         [value]="pageSize"
         [disabled]="isGridLoading"
@@ -83,7 +85,7 @@
       @for (filter of tagsFilter(); track filter) {
         <div class="tag-chip">
           <span>{{ filter }}</span>
-          <button type="button" (click)="removeFilter(filter)">×</button>
+          <button type="button" (click)="removeFilter(filter)">&times;</button>
         </div>
       }
     </div>
@@ -125,7 +127,15 @@
 
       <ng-container matColumnDef="isActive">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Active</th>
-        <td mat-cell *matCellDef="let row"><input type="checkbox" [checked]="row.isActive" disabled /></td>
+        <td mat-cell *matCellDef="let row">
+          <input
+            [attr.id]="'product-active-' + row.id"
+            name="productActiveStatus"
+            type="checkbox"
+            [checked]="row.isActive"
+            [attr.aria-label]="'Product active status for ' + (row.name || row.id)"
+            disabled />
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="actions">

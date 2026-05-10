@@ -47,8 +47,8 @@ export class ProductsView implements OnInit, OnDestroy {
 
   readonly gameIdControl = new FormControl<number | null>(null);
   readonly searchByNameFilterControl = new FormControl<string>('', { nonNullable: true });
-  readonly searchByRatingFilterControl = new FormControl<number | null>(null, { nonNullable: true });
-  readonly tagIdControl = new FormControl<number | null>(null);
+  readonly searchByRatingFilterControl = new FormControl<number | null>(null);
+  readonly tagIdControl = new FormControl<number | null>({ value: null, disabled: true });
   readonly ratingOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
   readonly games = signal<readonly Game[]>([]);
@@ -64,8 +64,20 @@ export class ProductsView implements OnInit, OnDestroy {
   pageSize = 25;
   readonly pageSizeOptions = [10, 25, 50, 100];
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+  private paginator?: MatPaginator;
+  private sort?: MatSort;
+
+  @ViewChild(MatPaginator)
+  set matPaginator(paginator: MatPaginator | undefined) {
+    this.paginator = paginator;
+    this.attachTableControls();
+  }
+
+  @ViewChild(MatSort)
+  set matSort(sort: MatSort | undefined) {
+    this.sort = sort;
+    this.attachTableControls();
+  }
 
   constructor(
     private readonly productService: ProductService,
@@ -124,11 +136,13 @@ export class ProductsView implements OnInit, OnDestroy {
 
     if (gameId === null) {
       this.gameTagsFilter.set([]);
+      this.syncTagControlState();
       this.loadFilteredProducts();
       return;
     }
 
     this.gameTagsFilter.set(this.gameTagsAll().filter(tag => tag.gameId === gameId));
+    this.syncTagControlState();
     this.loadFilteredProducts();
   }
 
@@ -146,10 +160,8 @@ export class ProductsView implements OnInit, OnDestroy {
       )
       .subscribe(products => {
         this.products.set(products);
-        this.dataSource.data = products;
-        this.dataSource.paginator = this.paginator;
-        this.paginator.pageSize = this.pageSize;
-        this.dataSource.sort = this.sort;
+        this.loadFilteredProducts();
+        this.attachTableControls();
       });
   }
 
@@ -247,6 +259,7 @@ export class ProductsView implements OnInit, OnDestroy {
         },
       })
       .afterClosed()
+      .pipe(takeUntil(this.destroy$))
       .subscribe((confirmed: boolean) => {
         if (!confirmed) {
           return;
@@ -257,6 +270,7 @@ export class ProductsView implements OnInit, OnDestroy {
 
         this.productService.delete(id)
           .pipe(
+            takeUntil(this.destroy$),
             finalize(() => {
               this.deletingIds.delete(id);
               this.cdr.markForCheck();
@@ -298,6 +312,7 @@ export class ProductsView implements OnInit, OnDestroy {
 
     this.gameTagsFilter.set(this.gameTagsFilter().filter(t => t.id !== tag.id));
     this.tagIdControl.setValue(null, { emitEvent: false });
+    this.syncTagControlState();
 
     this.loadFilteredProducts();
   }
@@ -320,6 +335,7 @@ export class ProductsView implements OnInit, OnDestroy {
     });
 
     this.dataSource.data = filtered;
+    this.paginator?.firstPage();
   }
 
   clearFiltersButtonClicked(): void {
@@ -330,6 +346,7 @@ export class ProductsView implements OnInit, OnDestroy {
     this.tagsFilter.set([]);
     this.tagIdControl.setValue(null, { emitEvent: false });
     this.gameTagsFilter.set([]);
+    this.syncTagControlState();
 
     this.loadFilteredProducts();
   }
@@ -350,7 +367,28 @@ export class ProductsView implements OnInit, OnDestroy {
       );
     }
 
+    this.syncTagControlState();
     this.loadFilteredProducts();
+  }
+
+  private attachTableControls(): void {
+    if (this.paginator) {
+      this.dataSource.paginator = this.paginator;
+      this.paginator.pageSize = this.pageSize;
+    }
+
+    if (this.sort) {
+      this.dataSource.sort = this.sort;
+    }
+  }
+
+  private syncTagControlState(): void {
+    if (this.gameTagsFilter().length === 0) {
+      this.tagIdControl.disable({ emitEvent: false });
+      return;
+    }
+
+    this.tagIdControl.enable({ emitEvent: false });
   }
 
   openInNewTab(id: number): void {

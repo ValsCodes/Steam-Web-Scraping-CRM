@@ -21,8 +21,8 @@
 
   <div class="filter-toolbar">
     <div class="filter-group">
-      <label>Game</label>
-      <select class="px-2 py-1" [formControl]="gameIdControl">
+      <label for="wish-lists-filter-game">Game</label>
+      <select id="wish-lists-filter-game" name="wishListsFilterGame" class="px-2 py-1" [formControl]="gameIdControl">
         <option [ngValue]="null">All</option>
         @for (g of games$ | async; track g.id) {
         <option [ngValue]="g.id">{{ g.name }}</option>
@@ -31,8 +31,8 @@
     </div>
 
     <div class="filter-group">
-      <label>Name</label>
-      <input class="px-2 py-1" type="text" placeholder="Filter by name" [formControl]="searchByNameFilterControl" />
+      <label for="wish-lists-filter-name">Name</label>
+      <input id="wish-lists-filter-name" name="wishListsFilterName" class="px-2 py-1" type="text" placeholder="Filter by name" [formControl]="searchByNameFilterControl" />
     </div>
 
     <button (click)="clearFiltersButtonClicked()" class="button button-small-danger">
@@ -42,8 +42,8 @@
     <div class="filter-toolbar__spacer" aria-hidden="true"></div>
 
     <div class="filter-group filter-group--page-size">
-      <label>Items per page</label>
-      <select class="px-2 py-1" [value]="pageSize" [disabled]="isGridLoading"
+      <label for="wish-lists-page-size">Items per page</label>
+      <select id="wish-lists-page-size" name="wishListsPageSize" class="px-2 py-1" [value]="pageSize" [disabled]="isGridLoading"
         (change)="pageSizeChanged($any($event.target).value)">
         @for (size of pageSizeOptions; track size) {
         <option [value]="size">{{ size }}</option>
@@ -94,7 +94,13 @@
       <ng-container matColumnDef="isActive">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Active</th>
         <td mat-cell *matCellDef="let row">
-          <input type="checkbox" [checked]="row.isActive" disabled />
+          <input
+            [attr.id]="'wish-list-active-' + row.id"
+            name="wishListActiveStatus"
+            type="checkbox"
+            [checked]="row.isActive"
+            [attr.aria-label]="'Wish list active status for ' + (row.name || row.id)"
+            disabled />
         </td>
       </ng-container>
 

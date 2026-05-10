@@ -9,8 +9,8 @@
 
   <div class="app-form__grid">
   <div class="form-group">
-    <label>Name *</label>
-    <input class="px-2 py-1 w-1/2" formControlName="name" placeholder="Game name" />
+    <label for="game-name">Name *</label>
+    <input id="game-name" name="name" class="px-2 py-1 w-1/2" formControlName="name" placeholder="Game name" />
     @if(gameForm.get('name')?.touched && gameForm.get('name')?.invalid)
     {
     <div class="error">
@@ -20,8 +20,8 @@
   </div>
 
   <div class="form-group">
-    <label>Internal ID</label>
-    <input type="number" formControlName="internalId" class="px-2 py-1" />
+    <label for="game-internal-id">Internal ID</label>
+    <input id="game-internal-id" name="internalId" type="number" formControlName="internalId" class="px-2 py-1" />
   </div>
 
   <!-- <div class="form-group">
@@ -40,8 +40,8 @@
   </div> -->
 
   <div class="form-group form-group--full">
-    <label>URL *</label>
-    <input class="px-2 py-1 w-full" formControlName="pageUrl" placeholder="https://example.com" />
+    <label for="game-page-url">URL *</label>
+    <input id="game-page-url" name="pageUrl" class="px-2 py-1 w-full" formControlName="pageUrl" placeholder="https://example.com" />
     @if (gameForm.get('pageUrl')?.touched && gameForm.get('pageUrl')?.invalid) {
     <div class="error">
       Valid URL is required.
@@ -51,7 +51,7 @@
 
   <div class="form-group-row checkbox-group">
     <label>
-      <input type="checkbox" formControlName="isActive" />
+      <input id="game-is-active" name="isActive" type="checkbox" formControlName="isActive" />
       Active
     </label>
   </div>

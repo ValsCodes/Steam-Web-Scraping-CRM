@@ -9,8 +9,10 @@
 
   <div class="app-form__grid">
     <div class="form-group form-group--full">
-      <label>URL *</label>
+      <label for="watch-list-url">URL *</label>
       <input
+        id="watch-list-url"
+        name="url"
         type="text"
         formControlName="url"
         class="px-2 py-1 w-full"
@@ -18,8 +20,10 @@
     </div>
 
     <div class="form-group">
-      <label>Name *</label>
+      <label for="watch-list-name">Name *</label>
       <input
+        id="watch-list-name"
+        name="name"
         type="text"
         formControlName="name"
         class="px-2 py-1 w-full"
@@ -27,8 +31,10 @@
     </div>
 
     <div class="form-group">
-      <label>Registration Date</label>
+      <label for="watch-list-registration-date">Registration Date</label>
       <input
+        id="watch-list-registration-date"
+        name="registrationDate"
         type="date"
         formControlName="registrationDate"
         class="px-2 py-1 w-full" />
@@ -36,7 +42,7 @@
 
     <div class="form-group checkbox-group">
       <label>
-        <input type="checkbox" formControlName="isActive" />
+        <input id="watch-list-is-active" name="isActive" type="checkbox" formControlName="isActive" />
         Active
       </label>
     </div>

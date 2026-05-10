@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { finalize, Observable } from 'rxjs';
+import { finalize, map, Observable } from 'rxjs';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 
 import { GameService, TagService } from '../../../services';
 import { Game, CreateTag, UpdateTag } from '../../../models';
@@ -15,18 +16,24 @@ import { Game, CreateTag, UpdateTag } from '../../../models';
   styleUrl: './tag-form.scss',
 })
 export class TagForm implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   isEditMode = false;
   tagId?: number;
   isSubmitting = false;
 
   form = this.fb.nonNullable.group({
-    gameId: [0],
-    name: [''],
+    gameId: [null as number | null, [Validators.required, Validators.min(1)]],
+    name: ['', Validators.required],
     isActive: [true],
   });
 
-  games: Game[] = [];
-  gameNameById = new Map<number, string>();
+  readonly games = toSignal(
+    this.gameService.getAll().pipe(
+      map(games => games.filter(game => game.isActive)),
+    ),
+    { initialValue: [] as Game[] },
+  );
 
   constructor(
     private fb: FormBuilder,
@@ -39,36 +46,25 @@ export class TagForm implements OnInit {
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');
 
-    this.loadGames();
-
     if (idParam) {
       this.isEditMode = true;
       this.tagId = Number(idParam);
+      this.form.controls.gameId.disable({ emitEvent: false });
       this.loadTag(this.tagId);
     }
   }
 
   private loadTag(id: number): void {
-    this.tagService.getById(id).subscribe(tag => {
-      this.form.patchValue({
-        gameId: tag.gameId,
-        name: tag.name ?? '',
-        isActive: tag.isActive,
+    this.tagService
+      .getById(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(tag => {
+        this.form.patchValue({
+          gameId: tag.gameId,
+          name: tag.name ?? '',
+          isActive: tag.isActive,
+        });
       });
-
-      this.form.controls.gameId.disable();
-    });
-  }
-
-  private loadGames(): void {
-    this.gameService.getAll().subscribe(games => {
-      this.games = games.filter(game => game.isActive);
-
-      this.gameNameById.clear();
-      for (const game of this.games) {
-        this.gameNameById.set(game.id, game.name);
-      }
-    });
   }
 
   onSubmit(): void {
@@ -86,9 +82,12 @@ export class TagForm implements OnInit {
       : this.tagService.create(this.form.getRawValue() as CreateTag);
 
     request$
-      .pipe(finalize(() => {
-        this.isSubmitting = false;
-      }))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.isSubmitting = false;
+        }),
+      )
       .subscribe(() => {
         this.router.navigate(['/tags']);
       });

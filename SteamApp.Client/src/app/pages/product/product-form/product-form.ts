@@ -1,8 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, forkJoin, of, switchMap } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { GameService, ProductService } from '../../../services';
 import { CreateProduct, Game, Tag, UpdateProduct } from '../../../models';
@@ -17,6 +18,8 @@ import { ProductTagService } from '../../../services/product-tag/product-tag.ser
   styleUrl: './product-form.scss',
 })
 export class ProductForm implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   isEditMode = false;
   productId?: number;
   isSubmitting = false;
@@ -29,8 +32,8 @@ export class ProductForm implements OnInit {
   private initialTagIds: number[] = [];
 
   form = this.fb.nonNullable.group({
-    gameId: [0, Validators.required],
-    name: [''],
+    gameId: [null as number | null, [Validators.required, Validators.min(1)]],
+    name: ['', Validators.required],
     rating: [null as number | null],
     isActive: [true],
   });
@@ -48,15 +51,18 @@ export class ProductForm implements OnInit {
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');
 
-    this.form.controls.gameId.valueChanges.subscribe(() => {
-      this.pruneSelectedTags();
-    });
+    this.form.controls.gameId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.pruneSelectedTags();
+      });
 
     this.loadLookupData();
 
     if (idParam) {
       this.isEditMode = true;
       this.productId = Number(idParam);
+      this.form.controls.gameId.disable({ emitEvent: false });
       this.loadProduct(this.productId);
     }
   }
@@ -126,10 +132,12 @@ export class ProductForm implements OnInit {
   private loadLookupData(): void {
     this.gameService
       .getAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(games => this.games.set(games.filter(game => game.isActive)));
 
     this.tagService
       .getAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(tags => this.tags.set(tags.filter(tag => tag.isActive)));
   }
 
@@ -145,10 +153,9 @@ export class ProductForm implements OnInit {
             isActive: product.isActive ?? false,
           });
 
-          this.form.controls.gameId.disable();
-
           return this.productTagService.getByProduct(id);
         }),
+        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(productTags => {
         this.initialTagIds = productTags.map(x => x.tagId);
@@ -176,9 +183,12 @@ export class ProductForm implements OnInit {
           .pipe(switchMap(created => this.syncProductTags(created.id)));
 
     request$
-      .pipe(finalize(() => {
-        this.isSubmitting = false;
-      }))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.isSubmitting = false;
+        }),
+      )
       .subscribe(() => {
         this.router.navigate(['/products']);
       });

@@ -9,9 +9,9 @@
 
   <div class="app-form__grid">
     <div class="form-group">
-      <label>Game *</label>
-      <select formControlName="gameId" class="px-2 py-1">
-        <option ngValue="" disabled>Select a game</option>
+      <label for="game-url-game-id">Game *</label>
+      <select id="game-url-game-id" name="gameId" formControlName="gameId" class="px-2 py-1">
+        <option [ngValue]="null" disabled>Select a game</option>
         @for (game of games(); track game.id) {
           <option [ngValue]="game.id">
             {{ game.name }}
@@ -21,18 +21,18 @@
     </div>
 
     <div class="form-group">
-      <label>Name *</label>
-      <input formControlName="name" class="px-2 py-1 w-1/2" placeholder="Special item" />
+      <label for="game-url-name">Name *</label>
+      <input id="game-url-name" name="name" formControlName="name" class="px-2 py-1 w-1/2" placeholder="Special item" />
     </div>
 
     <div class="form-group form-group--full">
-      <label>URL *</label>
-      <input formControlName="partialUrl" class="px-2 py-1 w-full" placeholder="/market/listings/..." />
+      <label for="game-url-partial-url">URL *</label>
+      <input id="game-url-partial-url" name="partialUrl" formControlName="partialUrl" class="px-2 py-1 w-full" placeholder="/market/listings/..." />
     </div>
 
     <div class="form-group">
-      <label>Scraping Mode *</label>
-      <select formControlName="scrapingModeId" class="px-2 py-1">
+      <label for="game-url-scraping-mode-id">Scraping Mode *</label>
+      <select id="game-url-scraping-mode-id" name="scrapingModeId" formControlName="scrapingModeId" class="px-2 py-1">
         @if (scrapingModes().length === 0) {
           <option [ngValue]="1">Manual Batch</option>
         }
@@ -46,42 +46,42 @@
 
     <div class="form-group-row checkbox-group">
       <label>
-        <input type="checkbox" formControlName="isActive" />
+        <input id="game-url-is-active" name="isActive" type="checkbox" formControlName="isActive" />
         Active
       </label>
     </div>
 
     @if (isBatchMode()) {
       <div class="form-group">
-        <label>Start Page</label>
-        <input type="number" formControlName="startPage" class="px-2 py-1" />
+        <label for="game-url-start-page">Start Page</label>
+        <input id="game-url-start-page" name="startPage" type="number" formControlName="startPage" class="px-2 py-1" />
       </div>
 
       <div class="form-group">
-        <label>End Page</label>
-        <input type="number" formControlName="endPage" class="px-2 py-1" />
+        <label for="game-url-end-page">End Page</label>
+        <input id="game-url-end-page" name="endPage" type="number" formControlName="endPage" class="px-2 py-1" />
       </div>
     }
 
     @if (isPixelMode()) {
       <div class="form-group">
-        <label>Pixel X</label>
-        <input type="number" formControlName="pixelX" class="px-2 py-1" />
+        <label for="game-url-pixel-x">Pixel X</label>
+        <input id="game-url-pixel-x" name="pixelX" type="number" formControlName="pixelX" class="px-2 py-1" />
       </div>
 
       <div class="form-group">
-        <label>Pixel Y</label>
-        <input type="number" formControlName="pixelY" class="px-2 py-1" />
+        <label for="game-url-pixel-y">Pixel Y</label>
+        <input id="game-url-pixel-y" name="pixelY" type="number" formControlName="pixelY" class="px-2 py-1" />
       </div>
 
       <div class="form-group">
-        <label>Image Width</label>
-        <input type="number" formControlName="pixelImageWidth" class="px-2 py-1" />
+        <label for="game-url-pixel-image-width">Image Width</label>
+        <input id="game-url-pixel-image-width" name="pixelImageWidth" type="number" formControlName="pixelImageWidth" class="px-2 py-1" />
       </div>
 
       <div class="form-group">
-        <label>Image Height</label>
-        <input type="number" formControlName="pixelImageHeight" class="px-2 py-1" />
+        <label for="game-url-pixel-image-height">Image Height</label>
+        <input id="game-url-pixel-image-height" name="pixelImageHeight" type="number" formControlName="pixelImageHeight" class="px-2 py-1" />
       </div>
     }
 
@@ -94,6 +94,8 @@
         @else {
           <label class="relation-select-all">
             <input
+              id="game-url-products-select-all"
+              name="gameUrlProductsSelectAll"
               type="checkbox"
               [checked]="areAllFilteredProductsSelected"
               [indeterminate]="areSomeFilteredProductsSelected"
@@ -105,6 +107,8 @@
             @for (product of filteredProducts; track product.id) {
               <label>
                 <input
+                  [attr.id]="'game-url-product-' + product.id"
+                  [attr.name]="'gameUrlProduct' + product.id"
                   type="checkbox"
                   [checked]="isProductSelected(product.id)"
                   (change)="toggleProduct(product.id, $any($event.target).checked)" />
@@ -125,6 +129,8 @@
         @else {
           <label class="relation-select-all">
             <input
+              id="game-url-pixels-select-all"
+              name="gameUrlPixelsSelectAll"
               type="checkbox"
               [checked]="areAllFilteredPixelsSelected"
               [indeterminate]="areSomeFilteredPixelsSelected"
@@ -136,6 +142,8 @@
             @for (pixel of filteredPixels; track pixel.id) {
               <label>
                 <input
+                  [attr.id]="'game-url-pixel-' + pixel.id"
+                  [attr.name]="'gameUrlPixel' + pixel.id"
                   type="checkbox"
                   [checked]="isPixelSelected(pixel.id)"
                   (change)="togglePixel(pixel.id, $any($event.target).checked)" />

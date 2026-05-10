@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { finalize, Observable } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { CreateGame, UpdateGame } from '../../../models/game.model';
 import { GameService } from '../../../services/game/game.service';
@@ -16,6 +17,8 @@ import { GameService } from '../../../services/game/game.service';
   styleUrl: './game-form.scss',
 })
 export class GameForm implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   gameForm!: FormGroup;
   isEditMode = false;
   gameId?: number;
@@ -47,15 +50,18 @@ export class GameForm implements OnInit {
   }
 
   private loadGame(id: number): void {
-    this.gameService.getById(id).subscribe(game => {
-      this.gameForm.patchValue({
-        name: game.name,
-        //baseUrl: game.baseUrl,  
-        pageUrl: game.pageUrl,
-        internalId: game.internalId,
-        isActive: game.isActive,
+    this.gameService
+      .getById(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(game => {
+        this.gameForm.patchValue({
+          name: game.name,
+          //baseUrl: game.baseUrl,
+          pageUrl: game.pageUrl,
+          internalId: game.internalId,
+          isActive: game.isActive,
+        });
       });
-    });
   }
 
   onSubmit(): void {
@@ -73,9 +79,12 @@ export class GameForm implements OnInit {
       : this.gameService.create(createPayload);
 
     request$
-      .pipe(finalize(() => {
-        this.isSubmitting = false;
-      }))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.isSubmitting = false;
+        }),
+      )
       .subscribe(() => {
         this.router.navigate(['/games']);
       });

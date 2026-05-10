@@ -1,5 +1,4 @@
 import {
-  AfterViewInit,
   ChangeDetectorRef,
   Component,
   DestroyRef,
@@ -58,9 +57,22 @@ type ScraperExecutionModeItem = {
   styleUrl: './web-scraper.component.scss',
   providers: [SteamService],
 })
-export class WebScraperComponent implements AfterViewInit {
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+export class WebScraperComponent {
+  private paginator?: MatPaginator;
+  private sort?: MatSort;
+
+  @ViewChild(MatPaginator)
+  set matPaginator(paginator: MatPaginator | undefined) {
+    this.paginator = paginator;
+    this.attachTableControls();
+  }
+
+  @ViewChild(MatSort)
+  set matSort(sort: MatSort | undefined) {
+    this.sort = sort;
+    this.attachTableControls();
+  }
+
   @ViewChild(StopwatchComponent) stopwatch?: StopwatchComponent;
 
   readonly ScraperExecutionMode = ScraperExecutionMode;
@@ -96,7 +108,7 @@ export class WebScraperComponent implements AfterViewInit {
       map((games) => games.filter((game) => game.isActive)),
     ),
     {
-    initialValue: [] as Game[],
+      initialValue: [] as Game[],
     },
   );
 
@@ -200,51 +212,35 @@ export class WebScraperComponent implements AfterViewInit {
     private readonly gameUrlService: GameUrlService,
     private readonly scrapingModeService: ScrapingModeService,
   ) {
-    effect(
-      () => {
-        void this.selectedGameId();
-        this.gameUrlIdControl.setValue(null, { emitEvent: true });
-        this.selectedMode.set(null);
-        this.pageNumber.set(1);
-        this.dataSource.data = [];
-        this.statusLabel.set('');
-        this.cdr.markForCheck();
-      },
-      { allowSignalWrites: true },
-    );
+    effect(() => {
+      void this.selectedGameId();
+      this.gameUrlIdControl.setValue(null, { emitEvent: true });
+      this.selectedMode.set(null);
+      this.pageNumber.set(1);
+      this.dataSource.data = [];
+      this.statusLabel.set('');
+      this.cdr.markForCheck();
+    });
 
-    effect(
-      () => {
-        void this.selectedScrapingModeId();
-        this.gameUrlIdControl.setValue(null, { emitEvent: true });
-        this.selectedMode.set(null);
-        this.pageNumber.set(1);
-        this.dataSource.data = [];
-        this.statusLabel.set('');
-        this.cdr.markForCheck();
-      },
-      { allowSignalWrites: true },
-    );
+    effect(() => {
+      void this.selectedScrapingModeId();
+      this.gameUrlIdControl.setValue(null, { emitEvent: true });
+      this.selectedMode.set(null);
+      this.pageNumber.set(1);
+      this.dataSource.data = [];
+      this.statusLabel.set('');
+      this.cdr.markForCheck();
+    });
 
-    effect(
-      () => {
-        void this.selectedGameUrl();
-        this.selectedMode.set(null);
-        this.pageNumber.set(1);
-        this.cancelActiveRequest();
-        this.dataSource.data = [];
-        this.statusLabel.set('');
-        this.cdr.markForCheck();
-      },
-      { allowSignalWrites: true },
-    );
-  }
-
-  ngAfterViewInit(): void {
-    this.dataSource.paginator = this.paginator;
-    this.dataSource.paginator.pageSize = 10;
-    this.dataSource.paginator.pageSizeOptions = [10, 25, 50];
-    this.dataSource.sort = this.sort;
+    effect(() => {
+      void this.selectedGameUrl();
+      this.selectedMode.set(null);
+      this.pageNumber.set(1);
+      this.cancelActiveRequest();
+      this.dataSource.data = [];
+      this.statusLabel.set('');
+      this.cdr.markForCheck();
+    });
   }
 
   private requireGameUrlId(): number {
@@ -357,6 +353,7 @@ export class WebScraperComponent implements AfterViewInit {
       .subscribe({
         next: (response: Listing[]) => {
           this.dataSource.data = response ?? [];
+          this.attachTableControls();
           this.statusLabel.set(
             `Successfully ran ${selectedMode.name} on page ${this.pageNumber()}.`,
           );
@@ -449,5 +446,17 @@ export class WebScraperComponent implements AfterViewInit {
         this.selectedGame()!.internalId!.toString(),
       ) ?? ''
     );
+  }
+
+  private attachTableControls(): void {
+    this.dataSource.paginator = this.paginator ?? null;
+    this.dataSource.sort = this.sort ?? null;
+
+    if (!this.paginator) {
+      return;
+    }
+
+    this.paginator.pageSize = 10;
+    this.paginator.pageSizeOptions = [10, 25, 50];
   }
 }

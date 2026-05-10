@@ -9,20 +9,20 @@
 
   <div class="app-form__grid">
     <div class="form-group">
-      <label>Game *</label>
-      <select formControlName="gameId" class="px-2 py-1">
-        <option value="" disabled>Select a game</option>
-        <ng-container *ngFor="let game of games">
-          <option [value]="game.id">
-            {{ game.name }}
-          </option>
-        </ng-container>
+      <label for="pixel-game-id">Game *</label>
+      <select id="pixel-game-id" name="gameId" formControlName="gameId" class="px-2 py-1">
+        <option [ngValue]="null" disabled>Select a game</option>
+        @for (game of games(); track game.id) {
+          <option [ngValue]="game.id">{{ game.name }}</option>
+        }
       </select>
     </div>
 
     <div class="form-group">
-      <label>Name *</label>
+      <label for="pixel-name">Name *</label>
       <input
+        id="pixel-name"
+        name="name"
         type="text"
         formControlName="name"
         class="px-2 py-1"
@@ -30,8 +30,10 @@
     </div>
 
     <div class="form-group">
-      <label>Red (0-255) *</label>
+      <label for="pixel-red-value">Red (0-255) *</label>
       <input
+        id="pixel-red-value"
+        name="redValue"
         type="number"
         formControlName="redValue"
         class="px-2 py-1"
@@ -40,8 +42,10 @@
     </div>
 
     <div class="form-group">
-      <label>Green (0-255) *</label>
+      <label for="pixel-green-value">Green (0-255) *</label>
       <input
+        id="pixel-green-value"
+        name="greenValue"
         type="number"
         formControlName="greenValue"
         class="px-2 py-1"
@@ -50,8 +54,10 @@
     </div>
 
     <div class="form-group">
-      <label>Blue (0-255) *</label>
+      <label for="pixel-blue-value">Blue (0-255) *</label>
       <input
+        id="pixel-blue-value"
+        name="blueValue"
         type="number"
         formControlName="blueValue"
         class="px-2 py-1"
@@ -61,14 +67,15 @@
 
     <div class="form-group-row checkbox-group">
       <label>
-        <input type="checkbox" formControlName="isActive" />
+        <input id="pixel-is-active" name="isActive" type="checkbox" formControlName="isActive" />
         Active
       </label>
     </div>
 
     <div class="form-group app-form__full">
-      <label>Color Preview</label>
+      <span id="pixel-color-preview-label">Color Preview</span>
       <div
+        aria-labelledby="pixel-color-preview-label"
         class="color-preview"
         title="Pixel Color"
         [style.backgroundColor]="'rgb(' +

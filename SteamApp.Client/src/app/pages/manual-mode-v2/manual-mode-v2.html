@@ -15,8 +15,8 @@
 
                     <div class="flex flex-col gap-4">
                         <div>
-                            <label class="mb-1 block text-sm font-medium text-slate-700">Game</label>
-                            <select class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="gameIdControl">
+                            <label for="manual-mode-game-id" class="mb-1 block text-sm font-medium text-slate-700">Game</label>
+                            <select id="manual-mode-game-id" name="manualModeGameId" class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="gameIdControl">
                                 <option [ngValue]="null">Select Game</option>
                                 @for (game of games$ | async; track game.id) {
                                     <option [ngValue]="game.id">{{ game.name }}</option>
@@ -25,8 +25,8 @@
                         </div>
 
                         <div>
-                            <label class="mb-1 block text-sm font-medium text-slate-700">Scraping Mode</label>
-                            <select class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="scrapingModeIdControl">
+                            <label for="manual-mode-scraping-mode-id" class="mb-1 block text-sm font-medium text-slate-700">Scraping Mode</label>
+                            <select id="manual-mode-scraping-mode-id" name="manualModeScrapingModeId" class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="scrapingModeIdControl">
                                 <option [ngValue]="null">All Scraping Modes</option>
                                 @for (scrapingMode of scrapingModes$ | async; track scrapingMode.id) {
                                     <option [ngValue]="scrapingMode.id">{{ scrapingMode.name }}</option>
@@ -35,8 +35,8 @@
                         </div>
 
                         <div>
-                            <label class="mb-1 block text-sm font-medium text-slate-700">Game URL</label>
-                            <select class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="gameUrlIdControl">
+                            <label for="manual-mode-game-url-id" class="mb-1 block text-sm font-medium text-slate-700">Game URL</label>
+                            <select id="manual-mode-game-url-id" name="manualModeGameUrlId" class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="gameUrlIdControl">
                                 <option [ngValue]="null">Select Game URL</option>
                                 @for (url of gameUrlsFiltered$ | async; track url.id) {
                                     <option [ngValue]="url.id">{{ url.name }}</option>
@@ -72,8 +72,10 @@
 
                     <div class="flex flex-col gap-4">
                         <div>
-                            <label class="mb-1 block text-sm font-medium text-slate-700">Current Item</label>
+                            <label for="manual-mode-current-item" class="mb-1 block text-sm font-medium text-slate-700">Current Item</label>
                             <input
+                                id="manual-mode-current-item"
+                                name="manualModeCurrentItem"
                                 class="w-full rounded border border-slate-300 px-3 py-2"
                                 type="number"
                                 [value]="currentIndex"
@@ -81,8 +83,10 @@
                         </div>
 
                         <div>
-                            <label class="mb-1 block text-sm font-medium text-slate-700">Batch Size</label>
+                            <label for="manual-mode-batch-size" class="mb-1 block text-sm font-medium text-slate-700">Batch Size</label>
                             <input
+                                id="manual-mode-batch-size"
+                                name="manualModeBatchSize"
                                 class="w-full rounded border border-slate-300 px-3 py-2"
                                 type="number"
                                 [value]="batchSize"
@@ -173,8 +177,10 @@
                     <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                         <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 flex-1">
                             <div>
-                                <label class="mb-1 block text-sm font-medium text-slate-700">Product Name</label>
+                                <label for="manual-mode-filter-name" class="mb-1 block text-sm font-medium text-slate-700">Product Name</label>
                                 <input
+                                    id="manual-mode-filter-name"
+                                    name="manualModeFilterName"
                                     class="w-full rounded border border-slate-300 px-3 py-2"
                                     type="text"
                                     placeholder="Filter by name"
@@ -182,8 +188,10 @@
                             </div>
 
                             <div>
-                                <label class="mb-1 block text-sm font-medium text-slate-700">Rating</label>
+                                <label for="manual-mode-filter-rating" class="mb-1 block text-sm font-medium text-slate-700">Rating</label>
                                 <select
+                                    id="manual-mode-filter-rating"
+                                    name="manualModeFilterRating"
                                     class="w-full rounded border border-slate-300 px-3 py-2"
                                     [formControl]="searchByRatingFilterControl">
                                     <option [ngValue]="null">All</option>
@@ -194,8 +202,8 @@
                             </div>
 
                             <div>
-                                <label class="mb-1 block text-sm font-medium text-slate-700">Tags</label>
-                                <select class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="tagSelectControl">
+                                <label for="manual-mode-filter-tag" class="mb-1 block text-sm font-medium text-slate-700">Tags</label>
+                                <select id="manual-mode-filter-tag" name="manualModeFilterTag" class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="tagSelectControl">
                                     <option [ngValue]="null">Select Tag</option>
                                     @for (tag of gameTagsFilter; track tag.id) {
                                         <option [ngValue]="tag">{{ tag.name }}</option>

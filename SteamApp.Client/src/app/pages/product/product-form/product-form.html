@@ -9,9 +9,9 @@
 
   <div class="app-form__grid">
     <div class="form-group">
-      <label>Game *</label>
-      <select formControlName="gameId" class="px-2 py-1">
-        <option ngValue="" disabled>Select a game</option>
+      <label for="product-game-id">Game *</label>
+      <select id="product-game-id" name="gameId" formControlName="gameId" class="px-2 py-1">
+        <option [ngValue]="null" disabled>Select a game</option>
         @for (game of games(); track game.id) {
           <option [ngValue]="game.id">{{ game.name }}</option>
         }
@@ -19,13 +19,13 @@
     </div>
 
     <div class="form-group">
-      <label>Name *</label>
-      <input formControlName="name" class="px-2 py-1 w-1/2" placeholder="Product name" />
+      <label for="product-name">Name *</label>
+      <input id="product-name" name="name" formControlName="name" class="px-2 py-1 w-1/2" placeholder="Product name" />
     </div>
 
     <div class="form-group">
-      <label>Rating</label>
-      <select formControlName="rating" class="px-2 py-1 w-1/2">
+      <label for="product-rating">Rating</label>
+      <select id="product-rating" name="rating" formControlName="rating" class="px-2 py-1 w-1/2">
         <option [ngValue]="null">Select rating</option>
         @for (rating of ratingOptions; track rating) {
           <option [ngValue]="rating">{{ rating }}</option>
@@ -35,7 +35,7 @@
 
     <div class="form-group-row checkbox-group">
       <label>
-        <input type="checkbox" formControlName="isActive" />
+        <input id="product-is-active" name="isActive" type="checkbox" formControlName="isActive" />
         Active
       </label>
     </div>
@@ -48,6 +48,8 @@
       } @else {
         <label class="relation-select-all">
           <input
+            id="product-tags-select-all"
+            name="productTagsSelectAll"
             type="checkbox"
             [checked]="areAllFilteredTagsSelected"
             [indeterminate]="areSomeFilteredTagsSelected"
@@ -59,6 +61,8 @@
           @for (tag of filteredTags; track tag.id) {
             <label>
               <input
+                [attr.id]="'product-tag-' + tag.id"
+                [attr.name]="'productTag' + tag.id"
                 type="checkbox"
                 [checked]="isTagSelected(tag.id)"
                 (change)="toggleTag(tag.id, $any($event.target).checked)" />

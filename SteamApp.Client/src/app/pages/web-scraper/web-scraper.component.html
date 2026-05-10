@@ -15,8 +15,8 @@
 
                     <div class="flex flex-col gap-4">
                         <div>
-                            <label class="mb-1 block text-sm font-medium text-slate-700">Game</label>
-                            <select class="w-full rounded border border-slate-300 px-3 py-2"
+                            <label for="web-scraper-game-id" class="mb-1 block text-sm font-medium text-slate-700">Game</label>
+                            <select id="web-scraper-game-id" name="webScraperGameId" class="w-full rounded border border-slate-300 px-3 py-2"
                                 [formControl]="gameIdControl">
                                 <option [ngValue]="null">Select Game</option>
                                 @for (game of games(); track game.id) {
@@ -26,8 +26,8 @@
                         </div>
 
                         <div>
-                            <label class="mb-1 block text-sm font-medium text-slate-700">Scraping Mode</label>
-                            <select class="w-full rounded border border-slate-300 px-3 py-2"
+                            <label for="web-scraper-scraping-mode-id" class="mb-1 block text-sm font-medium text-slate-700">Scraping Mode</label>
+                            <select id="web-scraper-scraping-mode-id" name="webScraperScrapingModeId" class="w-full rounded border border-slate-300 px-3 py-2"
                                 [formControl]="scrapingModeIdControl">
                                 <option [ngValue]="null">All Scraping Modes</option>
                                 @for (mode of scrapingModes(); track mode.id) {
@@ -37,8 +37,8 @@
                         </div>
 
                         <div>
-                            <label class="mb-1 block text-sm font-medium text-slate-700">Game URL</label>
-                            <select class="w-full rounded border border-slate-300 px-3 py-2"
+                            <label for="web-scraper-game-url-id" class="mb-1 block text-sm font-medium text-slate-700">Game URL</label>
+                            <select id="web-scraper-game-url-id" name="webScraperGameUrlId" class="w-full rounded border border-slate-300 px-3 py-2"
                                 [formControl]="gameUrlIdControl">
                                 <option [ngValue]="null">Select Game URL</option>
                                 @for (url of gameUrlsFiltered(); track url.id) {
@@ -88,7 +88,7 @@
                                 Page Number
                             </label>
 
-                            <input [ngModel]="pageNumber()" (ngModelChange)="onPageNumberChange($event)"
+                            <input id="page-number" name="pageNumber" [ngModel]="pageNumber()" (ngModelChange)="onPageNumberChange($event)"
                                 class="input-style w-full max-w-[140px]" type="number" min="1" step="1"
                                 title="Enter a positive number" />
                         </div>
