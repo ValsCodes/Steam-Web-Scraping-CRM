@@ -6,6 +6,7 @@ using SteamApp.Application.DTOs.WatchListItem;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
 using SteamApp.WebAPI.Contracts.Pagination;
+using SteamApp.WebAPI.Security;
 
 namespace SteamApp.WebAPI.MinimalAPIs
 {
@@ -15,7 +16,8 @@ namespace SteamApp.WebAPI.MinimalAPIs
         {
             var group = app.MapGroup("api/watch-list")
                            .WithTags("WatchList")
-                           .RequireAuthorization();
+                           .RequireAuthorization(SecurityPolicies.ApiUser)
+                           .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
 
             // GET: /api/watch-list
             group.MapGet("/", async (

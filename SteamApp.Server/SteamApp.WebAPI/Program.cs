@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi;
 using Newtonsoft.Json.Serialization;
 using SteamApp.Application.Mapper;
@@ -16,13 +19,18 @@ using SteamApp.Infrastructure.Services;
 using SteamApp.WebAPI.Jobs;
 using SteamApp.WebAPI.Jobs.Base;
 using SteamApp.WebAPI.MinimalAPIs;
+using SteamApp.WebAPI.Security;
 using SteamApp.WebAPI.Services;
 using System.Text;
+using System.Threading.RateLimiting;
 
 namespace SteamApp.WebAPI;
 
 public class Program
 {
+    private const int MinJwtSigningKeyBytes = 32;
+    private const int MaxJwtDurationMinutes = 120;
+
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
@@ -45,7 +53,7 @@ public class Program
             "JwtSettings:Key",
             "JwtSettings:Issuer",
             "JwtSettings:Audience",
-            "InternalClient:ClientSecret"
+            "JwtSettings:DurationMinutes"
         };
 
         foreach (var key in required)
@@ -69,6 +77,10 @@ public class Program
         var clients = builder.Configuration
             .GetSection("Clients")
             .Get<List<ClientDefinition>>() ?? new List<ClientDefinition>();
+
+        ValidateJwtSettings(jwt);
+        ValidateClientDefinitions(clients, builder.Environment);
+        ValidateHostFilteringConfiguration(builder.Configuration, builder.Environment);
 
         builder.Services.AddSingleton<IReadOnlyList<ClientDefinition>>(clients);
 
@@ -116,9 +128,22 @@ public class Program
 
         builder.Services.AddAuthorization(opts =>
         {
-            opts.AddPolicy("InternalJob", policy =>
+            opts.DefaultPolicy = BuildApiAuthorizationPolicy();
+            opts.FallbackPolicy = opts.DefaultPolicy;
+
+            opts.AddPolicy(SecurityPolicies.ApiUser, policy =>
             {
-                policy.RequireClaim("scope", "internal");
+                policy.RequireAuthenticatedUser();
+                policy.RequireClaim(
+                    "scope",
+                    SecurityPolicies.UserScope,
+                    SecurityPolicies.InternalScope);
+            });
+
+            opts.AddPolicy(SecurityPolicies.InternalJob, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireClaim("scope", SecurityPolicies.InternalScope);
             });
         });
 
@@ -133,6 +158,8 @@ public class Program
         var allowedOrigins = builder.Configuration
             .GetSection("Cors:AllowedOrigins")
             .Get<string[]>() ?? Array.Empty<string>();
+
+        ValidateCorsOrigins(allowedOrigins, builder.Environment);
 
         builder.Services.AddCors(opts =>
         {
@@ -152,9 +179,55 @@ public class Program
                 }
 
                 policy.WithOrigins(allowedOrigins)
-                      .AllowAnyMethod()
-                      .AllowAnyHeader();
+                      .WithMethods(
+                          HttpMethods.Get,
+                          HttpMethods.Post,
+                          HttpMethods.Put,
+                          HttpMethods.Patch,
+                          HttpMethods.Delete)
+                      .WithHeaders(
+                          HeaderNames.Accept,
+                          HeaderNames.Authorization,
+                          HeaderNames.ContentType);
             });
+        });
+
+        builder.Services.AddRateLimiter(opts =>
+        {
+            opts.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            opts.AddPolicy(SecurityPolicies.AuthRateLimit, context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    GetRemoteAddressPartitionKey(context),
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 10,
+                        QueueLimit = 0,
+                        Window = TimeSpan.FromMinutes(1)
+                    }));
+
+            opts.AddPolicy(SecurityPolicies.ApiRateLimit, context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    GetUserOrRemoteAddressPartitionKey(context),
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 120,
+                        QueueLimit = 0,
+                        Window = TimeSpan.FromMinutes(1)
+                    }));
+
+            opts.AddPolicy(SecurityPolicies.ExpensiveApiRateLimit, context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    GetUserOrRemoteAddressPartitionKey(context),
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 20,
+                        QueueLimit = 0,
+                        Window = TimeSpan.FromMinutes(1)
+                    }));
         });
 
         builder.Services.AddEndpointsApiExplorer();
@@ -218,12 +291,13 @@ public class Program
 
         var app = builder.Build();
 
-        using (var scope = app.Services.CreateScope())
+        if (ShouldEnsureIdentitySchema(app.Configuration, app.Environment))
         {
-            var identitySchemaInitializer = scope.ServiceProvider
-                .GetRequiredService<IdentitySchemaInitializer>();
+            using var scope = app.Services.CreateScope();
 
-            identitySchemaInitializer.EnsureCreatedAsync()
+            scope.ServiceProvider
+                .GetRequiredService<IdentitySchemaInitializer>()
+                .EnsureCreatedAsync()
                 .GetAwaiter()
                 .GetResult();
         }
@@ -238,10 +312,16 @@ public class Program
                     "SteamApp API v1");
             });
         }
+        else
+        {
+            app.UseHsts();
+        }
 
+        app.UseSecurityHeaders();
         app.UseHttpsRedirection();
         app.UseCors("FrontendCors");
         app.UseAuthentication();
+        app.UseRateLimiter();
         app.UseAuthorization();
 
         app.MapControllers();
@@ -259,5 +339,157 @@ public class Program
         app.MapGameUrlPixelsEndpoints();
 
         app.Run();
+    }
+
+    private static AuthorizationPolicy BuildApiAuthorizationPolicy()
+    {
+        return new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
+            .RequireAuthenticatedUser()
+            .RequireClaim(
+                "scope",
+                SecurityPolicies.UserScope,
+                SecurityPolicies.InternalScope)
+            .Build();
+    }
+
+    private static void ValidateJwtSettings(JwtSettings jwt)
+    {
+        var keyLength = Encoding.UTF8.GetByteCount(jwt.Key);
+
+        if (keyLength < MinJwtSigningKeyBytes)
+        {
+            throw new InvalidOperationException(
+                $"JwtSettings:Key must be at least {MinJwtSigningKeyBytes} bytes for HS256 signing.");
+        }
+
+        if (jwt.DurationMinutes <= 0 || jwt.DurationMinutes > MaxJwtDurationMinutes)
+        {
+            throw new InvalidOperationException(
+                $"JwtSettings:DurationMinutes must be between 1 and {MaxJwtDurationMinutes}.");
+        }
+    }
+
+    private static void ValidateClientDefinitions(
+        IReadOnlyList<ClientDefinition> clients,
+        IHostEnvironment environment)
+    {
+        var duplicateClientId = clients
+            .Where(client => !string.IsNullOrWhiteSpace(client.ClientId))
+            .GroupBy(client => client.ClientId, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1);
+
+        if (duplicateClientId != null)
+        {
+            throw new InvalidOperationException(
+                $"Duplicate client definition found for client id '{duplicateClientId.Key}'.");
+        }
+
+        foreach (var client in clients)
+        {
+            if (string.IsNullOrWhiteSpace(client.ClientId))
+            {
+                throw new InvalidOperationException("Client definitions must include ClientId.");
+            }
+
+            if (client.AllowedScope is not SecurityPolicies.UserScope and not SecurityPolicies.InternalScope)
+            {
+                throw new InvalidOperationException(
+                    $"Client '{client.ClientId}' has unsupported AllowedScope '{client.AllowedScope}'.");
+            }
+
+            var hasPlainTextSecret = !string.IsNullOrWhiteSpace(client.ClientSecret);
+            var hasHashedSecret = !string.IsNullOrWhiteSpace(client.ClientSecretHash);
+
+            if (!hasPlainTextSecret && !hasHashedSecret)
+            {
+                throw new InvalidOperationException(
+                    $"Client '{client.ClientId}' must define ClientSecretHash.");
+            }
+
+            if (hasHashedSecret && !IsSha256HexHash(client.ClientSecretHash!))
+            {
+                throw new InvalidOperationException(
+                    $"Client '{client.ClientId}' ClientSecretHash must be a SHA-256 hex hash.");
+            }
+
+            if (!environment.IsDevelopment() && !hasHashedSecret)
+            {
+                throw new InvalidOperationException(
+                    $"Client '{client.ClientId}' must use ClientSecretHash outside Development.");
+            }
+        }
+    }
+
+    private static void ValidateHostFilteringConfiguration(
+        IConfiguration configuration,
+        IHostEnvironment environment)
+    {
+        if (environment.IsDevelopment())
+        {
+            return;
+        }
+
+        var allowedHosts = configuration["AllowedHosts"];
+        var hosts = allowedHosts?.Split(
+            [';', ','],
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
+
+        if (hosts.Length == 0 || hosts.Any(host => host == "*"))
+        {
+            throw new InvalidOperationException(
+                "AllowedHosts must list explicit host names outside Development.");
+        }
+    }
+
+    private static void ValidateCorsOrigins(
+        IReadOnlyList<string> allowedOrigins,
+        IHostEnvironment environment)
+    {
+        if (environment.IsDevelopment() && allowedOrigins.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var origin in allowedOrigins)
+        {
+            if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri) ||
+                string.IsNullOrWhiteSpace(uri.Host))
+            {
+                throw new InvalidOperationException(
+                    $"Cors:AllowedOrigins contains an invalid origin: '{origin}'.");
+            }
+
+            if (!environment.IsDevelopment() &&
+                !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Cors:AllowedOrigins must use HTTPS outside Development: '{origin}'.");
+            }
+        }
+    }
+
+    private static bool IsSha256HexHash(string value)
+    {
+        return value.Length == 64 &&
+               value.All(Uri.IsHexDigit);
+    }
+
+    private static bool ShouldEnsureIdentitySchema(
+        IConfiguration configuration,
+        IHostEnvironment environment)
+    {
+        return configuration.GetValue<bool?>("Database:EnsureIdentitySchemaOnStartup")
+               ?? environment.IsDevelopment();
+    }
+
+    private static string GetRemoteAddressPartitionKey(HttpContext context)
+    {
+        return context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    }
+
+    private static string GetUserOrRemoteAddressPartitionKey(HttpContext context)
+    {
+        return context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+               ?? GetRemoteAddressPartitionKey(context);
     }
 }

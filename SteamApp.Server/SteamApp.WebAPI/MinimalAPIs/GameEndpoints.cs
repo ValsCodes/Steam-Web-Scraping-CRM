@@ -7,6 +7,7 @@ using SteamApp.Application.DTOs.Game;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
 using SteamApp.WebAPI.Contracts.Pagination;
+using SteamApp.WebAPI.Security;
 
 namespace SteamApp.WebAPI.MinimalAPIs
 {
@@ -16,7 +17,8 @@ namespace SteamApp.WebAPI.MinimalAPIs
         {
             var group = app.MapGroup("api/games")
                .WithTags("Games")
-               .RequireAuthorization();
+               .RequireAuthorization(SecurityPolicies.ApiUser)
+               .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
 
             // GET: /api/games
             group.MapGet("/", async (

@@ -1,15 +1,18 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using SteamApp.Application.Caching;
 using SteamApp.Application.Services;
+using SteamApp.WebAPI.Security;
 
 namespace SteamApp.WebAPI.Controllers;
 
 [ApiController]
 [Route("steam")]
-[Authorize]
+[Authorize(Policy = SecurityPolicies.ApiUser)]
+[EnableRateLimiting(SecurityPolicies.ExpensiveApiRateLimit)]
 public class SteamController(
     ISteamService steamService,
     IWishlistService wishlistService,

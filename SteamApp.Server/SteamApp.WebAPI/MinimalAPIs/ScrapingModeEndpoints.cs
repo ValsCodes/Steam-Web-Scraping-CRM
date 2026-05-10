@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SteamApp.Application.DTOs.ScrapingMode;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
+using SteamApp.WebAPI.Security;
 
 namespace SteamApp.WebAPI.MinimalAPIs;
 
@@ -12,7 +13,8 @@ public static class ScrapingModeEndpoints
     {
         var group = app.MapGroup("api/scraping-modes")
                        .WithTags("ScrapingModes")
-                       .RequireAuthorization();
+                       .RequireAuthorization(SecurityPolicies.ApiUser)
+                       .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
 
         group.MapGet("/", async (
             ApplicationDbContext db,

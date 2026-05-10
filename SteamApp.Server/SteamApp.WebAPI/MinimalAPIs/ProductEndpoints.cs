@@ -5,6 +5,7 @@ using SteamApp.Application.DTOs.Product;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
 using SteamApp.WebAPI.Contracts.Pagination;
+using SteamApp.WebAPI.Security;
 
 namespace SteamApp.WebAPI.MinimalAPIs;
 
@@ -14,7 +15,8 @@ public static class ProductEndpoints
     {
         var group = app.MapGroup("api/products")
                        .WithTags("Products")
-                       .RequireAuthorization();
+                       .RequireAuthorization(SecurityPolicies.ApiUser)
+                       .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
 
         // GET: /api/products
         group.MapGet("/", async (

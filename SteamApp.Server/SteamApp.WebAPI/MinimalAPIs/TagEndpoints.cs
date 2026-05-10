@@ -5,6 +5,7 @@ using SteamApp.Application.DTOs.Tag;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
 using SteamApp.WebAPI.Contracts.Pagination;
+using SteamApp.WebAPI.Security;
 
 namespace SteamApp.WebAPI.MinimalAPIs;
 
@@ -14,7 +15,8 @@ public static class TagsEndpoints
     {
         var group = app.MapGroup("api/tags")
                        .WithTags("Tags")
-                       .RequireAuthorization();
+                       .RequireAuthorization(SecurityPolicies.ApiUser)
+                       .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
 
         // GET: /api/tags
         group.MapGet("/", async (

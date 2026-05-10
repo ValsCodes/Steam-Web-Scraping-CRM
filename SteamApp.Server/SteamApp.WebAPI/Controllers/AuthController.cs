@@ -2,30 +2,36 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using SteamApp.Domain.ValueObjects.Authentication;
 using SteamApp.Infrastructure.Identity;
+using SteamApp.WebAPI.Security;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace SteamApp.WebAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting(SecurityPolicies.AuthRateLimit)]
 public class AuthController(
     JwtSettings jwtSettings,
     IReadOnlyList<ClientDefinition> clients,
     UserManager<ApplicationUser> userManager,
-    SignInManager<ApplicationUser> signInManager) : ControllerBase
+    SignInManager<ApplicationUser> signInManager,
+    IConfiguration configuration,
+    IHostEnvironment environment) : ControllerBase
 {
     [HttpPost("token")]
     [AllowAnonymous]
     public IActionResult Token([FromBody] TokenRequest req)
     {
-        var client = clients.SingleOrDefault(c =>
+        var client = clients.FirstOrDefault(c =>
             c.ClientId == req.ClientId &&
-            c.ClientSecret == req.ClientSecret);
+            ClientSecretMatches(c, req.ClientSecret));
 
         if (client == null)
             return Unauthorized("Invalid client credentials.");
@@ -43,6 +49,11 @@ public class AuthController(
     [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] RegisterRequest req)
     {
+        if (!RegistrationIsEnabled())
+        {
+            return NotFound();
+        }
+
         var userName = string.IsNullOrWhiteSpace(req.UserName)
             ? req.Email
             : req.UserName.Trim();
@@ -126,6 +137,58 @@ public class AuthController(
             Token = new JwtSecurityTokenHandler().WriteToken(token),
             ExpiresAtUtc = expiresAtUtc
         };
+    }
+
+    private bool RegistrationIsEnabled()
+    {
+        return environment.IsDevelopment() ||
+               configuration.GetValue("Authentication:AllowRegistration", false);
+    }
+
+    private static bool ClientSecretMatches(
+        ClientDefinition client,
+        string providedSecret)
+    {
+        if (string.IsNullOrWhiteSpace(providedSecret))
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(client.ClientSecretHash))
+        {
+            var providedHash = Convert.ToHexString(
+                SHA256.HashData(Encoding.UTF8.GetBytes(providedSecret)));
+
+            return FixedTimeEquals(
+                client.ClientSecretHash,
+                providedHash,
+                normalizeHex: true);
+        }
+
+        return FixedTimeEquals(client.ClientSecret, providedSecret);
+    }
+
+    private static bool FixedTimeEquals(
+        string? expected,
+        string provided,
+        bool normalizeHex = false)
+    {
+        if (string.IsNullOrWhiteSpace(expected))
+        {
+            return false;
+        }
+
+        if (normalizeHex)
+        {
+            expected = expected.ToUpperInvariant();
+            provided = provided.ToUpperInvariant();
+        }
+
+        var expectedBytes = Encoding.UTF8.GetBytes(expected);
+        var providedBytes = Encoding.UTF8.GetBytes(provided);
+
+        return expectedBytes.Length == providedBytes.Length &&
+               CryptographicOperations.FixedTimeEquals(expectedBytes, providedBytes);
     }
 
     private static ModelStateDictionary CreateModelState(IdentityResult result)

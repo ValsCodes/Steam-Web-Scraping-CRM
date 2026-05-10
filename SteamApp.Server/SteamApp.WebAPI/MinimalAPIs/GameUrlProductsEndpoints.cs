@@ -3,6 +3,7 @@ using SteamApp.Application.DTOs.GameUrlProduct;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
 using SteamApp.Infrastructure.Utilities;
+using SteamApp.WebAPI.Security;
 
 namespace SteamApp.WebAPI.MinimalAPIs;
 
@@ -14,7 +15,8 @@ public static class GameUrlProductsEndpoints
     {
         var group = app.MapGroup("api/game-url-products")
                        .WithTags("GameUrlProducts")
-                       .RequireAuthorization();
+                       .RequireAuthorization(SecurityPolicies.ApiUser)
+                       .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
 
         // GET: /api/game-url-products
         group.MapGet("/", async (ApplicationDbContext db) =>

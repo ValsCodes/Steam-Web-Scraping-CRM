@@ -7,6 +7,7 @@ using SteamApp.Application.DTOs.Pixel;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
 using SteamApp.WebAPI.Contracts.Pagination;
+using SteamApp.WebAPI.Security;
 
 namespace SteamApp.WebAPI.MinimalAPIs
 {
@@ -16,7 +17,8 @@ namespace SteamApp.WebAPI.MinimalAPIs
         {
             var group = app.MapGroup("api/pixels")
                            .WithTags("Pixels")
-                           .RequireAuthorization();
+                           .RequireAuthorization(SecurityPolicies.ApiUser)
+                           .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
 
             // GET: /api/pixels
             group.MapGet("/", async (ApplicationDbContext db) =>
