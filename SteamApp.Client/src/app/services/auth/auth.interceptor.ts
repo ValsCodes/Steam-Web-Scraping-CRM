@@ -8,6 +8,7 @@ import {
 import { Observable, catchError, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
 import { Router } from '@angular/router';
+import * as g from '../general-data';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
@@ -20,7 +21,7 @@ export class AuthInterceptor implements HttpInterceptor {
     req: HttpRequest<unknown>,
     next: HttpHandler
   ): Observable<HttpEvent<unknown>> {
-    if (this.isAuthRequest(req.url)) {
+    if (this.isAuthRequest(req.url) || !this.isApiRequest(req.url)) {
       return next.handle(req);
     }
 
@@ -55,7 +56,28 @@ export class AuthInterceptor implements HttpInterceptor {
   }
 
   private isAuthRequest(url: string): boolean {
-    return url.toLowerCase().includes('/api/auth/');
+    const requestUrl = this.toUrl(url);
+    return requestUrl?.pathname.toLowerCase().startsWith('/api/auth/') ?? false;
+  }
+
+  private isApiRequest(url: string): boolean {
+    const requestUrl = this.toUrl(url);
+    const apiBaseUrl = this.toUrl(g.localHost);
+
+    if (!requestUrl || !apiBaseUrl || requestUrl.origin !== apiBaseUrl.origin) {
+      return false;
+    }
+
+    const path = requestUrl.pathname.toLowerCase();
+    return path.startsWith('/api/') || path.startsWith('/steam/');
+  }
+
+  private toUrl(url: string): URL | null {
+    try {
+      return new URL(url, window.location.origin);
+    } catch {
+      return null;
+    }
   }
 
   private handleExpiredSession(): void {

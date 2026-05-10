@@ -25,6 +25,7 @@ import { GameService, SteamService } from '../../../services';
 import { Game, WhishListResponse } from '../../../models';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import { StatusDialogComponent } from '../../../components/status-dialog.component';
+import { safeExternalUrl } from '../../../common';
 
 import * as XLSX from 'xlsx';
 
@@ -45,6 +46,8 @@ import * as XLSX from 'xlsx';
   styleUrl: './wish-lists-view.scss',
 })
 export class WishListsView implements OnInit, OnDestroy {
+  readonly safeExternalUrl = safeExternalUrl;
+
   displayedColumns: string[] = [
     'gameName',
     'name',

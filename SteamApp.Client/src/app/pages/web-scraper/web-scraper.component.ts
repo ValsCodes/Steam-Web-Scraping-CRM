@@ -28,6 +28,7 @@ import {
 import { Listing } from '../../models/listing.model';
 import { GameService, GameUrlService, ScrapingModeService } from '../../services';
 import { MatTooltip } from '@angular/material/tooltip';
+import { getListingUrl, safeExternalImageUrl, safeExternalUrl } from '../../common';
 
 enum ScraperExecutionMode {
   WebScrape = ScrapingModeEnum.Batch,
@@ -58,6 +59,8 @@ type ScraperExecutionModeItem = {
   providers: [SteamService],
 })
 export class WebScraperComponent {
+  readonly safeExternalImageUrl = safeExternalImageUrl;
+
   private paginator?: MatPaginator;
   private sort?: MatSort;
 
@@ -104,22 +107,24 @@ export class WebScraperComponent {
   );
 
   readonly games = toSignal(
-    this.gameService.getAll().pipe(
-      map((games) => games.filter((game) => game.isActive)),
-    ),
+    this.gameService
+      .getAll()
+      .pipe(map((games) => games.filter((game) => game.isActive))),
     {
       initialValue: [] as Game[],
     },
   );
 
   readonly scrapingModes = toSignal(
-    this.scrapingModeService.getAll().pipe(
-      map((modes) =>
-        [...modes]
-          .filter((mode) => mode.id !== 1)
-          .sort((a, b) => a.id - b.id),
+    this.scrapingModeService
+      .getAll()
+      .pipe(
+        map((modes) =>
+          [...modes]
+            .filter((mode) => mode.id !== 1)
+            .sort((a, b) => a.id - b.id),
+        ),
       ),
-    ),
     { initialValue: [] as ScrapingModeLookup[] },
   );
 
@@ -138,7 +143,10 @@ export class WebScraperComponent {
           .filter((url) => url.isActive)
           .filter((url) => {
             const scrapingModeId = url.scrapingModeId ?? null;
-            return scrapingModeId !== null && scrapingModeId !== ScrapingModeEnum.ManualBatch;
+            return (
+              scrapingModeId !== null &&
+              scrapingModeId !== ScrapingModeEnum.ManualBatch
+            );
           }),
       ),
     ),
@@ -263,7 +271,9 @@ export class WebScraperComponent {
           { id: ScraperExecutionMode.PixelScrape, name: 'Pixel Scrape' },
         ];
       case ScraperExecutionMode.PublicApi:
-        return [{ id: ScraperExecutionMode.PublicApi, name: 'Public API Scrape' }];
+        return [
+          { id: ScraperExecutionMode.PublicApi, name: 'Public API Scrape' },
+        ];
       default:
         return [];
     }
@@ -431,21 +441,34 @@ export class WebScraperComponent {
     );
   }
 
-  getListingUrl(): string {
+  getSafeShowPageUrl(): string | null {
+    return safeExternalUrl(this.getShowPageUrl());
+  }
+
+  getSafeListingUrl(listingName: string | null | undefined): string | null {
     if (
       this.selectedGame() === null ||
       this.selectedGame()?.internalId === null ||
       this.selectedGame()?.internalId! <= 0
     ) {
-      return '';
+      return null;
     }
 
-    return (
-      'https://steamcommunity.com/market/listings/{0}/'?.replace(
-        '{0}',
-        this.selectedGame()!.internalId!.toString(),
-      ) ?? ''
+    const name = listingName?.trim();
+
+    if (!name) {
+      return null;
+    }
+
+    const url = getListingUrl(
+      this.selectedGame()?.internalId,
+      encodeURIComponent(name),
     );
+    if (url === '') {
+      return null;
+    }
+
+    return safeExternalUrl(url);
   }
 
   private attachTableControls(): void {

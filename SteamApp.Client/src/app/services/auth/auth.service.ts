@@ -22,6 +22,7 @@ export interface CurrentUser {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly tokenKey = 'access_token';
+  private accessToken: string | null = null;
   private readonly endpoint = `${g.localHost.replace(/\/$/, '')}/api/Auth/`;
 
   private readonly loggedInSubject =
@@ -32,18 +33,13 @@ export class AuthService {
   readonly loggedIn$ = this.loggedInSubject.asObservable();
   readonly currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    this.clearPersistedToken();
+  }
 
   login(emailOrUserName: string, password: string) {
     const url = `${this.endpoint}login`;
     return this.http.post<TokenResponse>(url, { emailOrUserName, password }).pipe(
-      tap(res => this.storeSession(res.token))
-    );
-  }
-
-  loginWithClientCredentials(clientId: string, clientSecret: string) {
-    const url = `${this.endpoint}token`;
-    return this.http.post<TokenResponse>(url, { clientId, clientSecret }).pipe(
       tap(res => this.storeSession(res.token))
     );
   }
@@ -56,17 +52,17 @@ export class AuthService {
   }
 
   logout(): void {
-    localStorage.removeItem(this.tokenKey);
+    this.clearSessionToken();
     this.setSessionState(false);
   }
 
   expireSession(): void {
-    localStorage.removeItem(this.tokenKey);
+    this.clearSessionToken();
     this.setSessionState(false);
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.tokenKey);
+    return this.accessToken;
   }
 
   hasToken(): boolean {
@@ -102,7 +98,8 @@ export class AuthService {
   }
 
   private storeSession(token: string): void {
-    localStorage.setItem(this.tokenKey, token);
+    this.accessToken = token;
+    this.clearPersistedToken();
     this.setSessionState(true);
   }
 
@@ -116,7 +113,7 @@ export class AuthService {
   }
 
   private getTokenPayload(): Record<string, unknown> | null {
-    const token = localStorage.getItem(this.tokenKey);
+    const token = this.getToken();
     if (!token) {
       return null;
     }
@@ -192,5 +189,15 @@ export class AuthService {
       .padEnd(Math.ceil(value.length / 4) * 4, '=');
 
     return atob(base64);
+  }
+
+  private clearSessionToken(): void {
+    this.accessToken = null;
+    this.clearPersistedToken();
+  }
+
+  private clearPersistedToken(): void {
+    localStorage.removeItem(this.tokenKey);
+    sessionStorage.removeItem(this.tokenKey);
   }
 }

@@ -10,6 +10,7 @@ namespace SteamApp.Application.Mapper
         {
             CreateMap<Product, ProductDto>()
                 .ForMember(dest => dest.GameName, opt => opt.MapFrom(src => src.Game.Name))
+                .ForMember(dest => dest.GameInternalId, opt => opt.MapFrom(src => src.Game.InternalId))
                 .ForMember(dest => dest.Tags, opt => opt.MapFrom(src =>  src.ProductTags.Select(x => x.Tag.Name).ToArray()));
 
             CreateMap<ProductCreateDto, Product>()

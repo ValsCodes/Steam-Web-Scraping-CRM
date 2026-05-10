@@ -108,9 +108,13 @@
       <ng-container matColumnDef="partialUrl">
         <th mat-header-cell *matHeaderCellDef>Partial URL</th>
         <td mat-cell *matCellDef="let row">
-          <a [href]="row.partialUrl" [title]="row.partialUrl" target="_blank" rel="noopener noreferrer">
+          @if (safeExternalUrl(row.partialUrl); as partialUrl) {
+          <a [href]="partialUrl" [title]="partialUrl" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">
             <p><b>&lt;-- Link --&gt;</b></p>
           </a>
+          } @else {
+          -
+          }
         </td>
       </ng-container>
 

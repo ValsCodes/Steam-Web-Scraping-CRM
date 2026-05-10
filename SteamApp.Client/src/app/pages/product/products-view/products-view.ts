@@ -16,6 +16,7 @@ import { GameService, ProductService, TagService } from '../../../services';
 import { Game, Product, Tag, UpdateProductStatus } from '../../../models';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import * as XLSX from 'xlsx';
+import { getListingUrl, safeExternalUrl } from '../../../common';
 
 @Component({
   selector: 'steam-products-grid',
@@ -43,6 +44,7 @@ export class ProductsView implements OnInit, OnDestroy {
     'actions',
   ];
 
+  readonly safeExternalUrl = safeExternalUrl;
   private readonly destroy$ = new Subject<void>();
 
   readonly gameIdControl = new FormControl<number | null>(null);
@@ -391,7 +393,31 @@ export class ProductsView implements OnInit, OnDestroy {
     this.tagIdControl.enable({ emitEvent: false });
   }
 
+  getSafeListingUrl(listingName: string | null | undefined, internalGameId: number | null | undefined): string | null {
+      if ( internalGameId === null || internalGameId === undefined || internalGameId <= 0 ) {
+        return null;
+      }
+  
+      const name = listingName?.trim();
+  
+      if (!name) {
+        return  null;
+      }
+  
+      const url = getListingUrl(
+        internalGameId,
+        encodeURIComponent(name),
+      );
+      if (url === '') {
+        return null;
+      }
+
+      console.log(url)
+  
+      return url;
+    }
+
   openInNewTab(id: number): void {
-    window.open(`products/edit/${id}`, '_blank');
+    window.open(`/products/edit/${id}`, '_blank', 'noopener,noreferrer');
   }
 }

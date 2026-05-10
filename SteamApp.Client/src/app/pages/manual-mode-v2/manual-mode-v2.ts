@@ -27,6 +27,7 @@ import {
 } from '../../services';
 import { CopyLinkComponent } from '../../components';
 import { MatTooltip } from "@angular/material/tooltip";
+import { openSafeExternalUrl, safeExternalUrl } from '../../common';
 
 @Component({
   selector: 'steam-manual-mode-v2',
@@ -42,6 +43,8 @@ import { MatTooltip } from "@angular/material/tooltip";
   styleUrl: './manual-mode-v2.scss',
 })
 export class ManualModeV2 implements OnInit, OnDestroy {
+  readonly safeExternalUrl = safeExternalUrl;
+
   currentIndex: number | null = 1;
   batchSize: number | null = 1;
   readonly ratingOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
@@ -205,14 +208,13 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     let blocked = false;
 
     for (let i = 0; i < this.productsFiltered.length && i < 5; i++) {
-      const newWindow = window.open(this.productsFiltered[i].fullUrl, '_blank');
-      if (!newWindow || newWindow.closed) {
+      if (!openSafeExternalUrl(this.productsFiltered[i].fullUrl)) {
         blocked = true;
       }
     }
 
     if (blocked) {
-      alert('Pop-ups were blocked. Please enable pop-ups for this website.');
+      alert('Some links were not opened because they are not trusted HTTPS URLs.');
     }
   }
 
@@ -244,9 +246,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
           String(currentIndex),
         );
 
-        const newWindow = window.open(url, '_blank');
-
-        if (!newWindow || newWindow.closed) {
+        if (!openSafeExternalUrl(url)) {
           blocked = true;
         }
       }
@@ -256,19 +256,14 @@ export class ManualModeV2 implements OnInit, OnDestroy {
           break;
         }
 
-        const newWindow = window.open(
-          this.productsFiltered[currentIndex - 1].fullUrl,
-          '_blank',
-        );
-
-        if (!newWindow || newWindow.closed) {
+        if (!openSafeExternalUrl(this.productsFiltered[currentIndex - 1].fullUrl)) {
           blocked = true;
         }
       }
     }
 
     if (blocked) {
-      alert('Pop-ups were blocked. Please enable pop-ups for this website.');
+      alert('Some links were not opened because they are not trusted HTTPS URLs.');
     }
 
     this.currentIndex = currentIndex;

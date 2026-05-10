@@ -6,7 +6,7 @@
 @each $size, $pad in $button-sizes {
   @each $key, $hex in $button-colors {
     .button-#{$size}-#{$key} {
-      $text-col: if($key == warning, black, white);
+      $text-col: if(sass($key == warning): black; else: white);
       @include btn-variant($key, $pad, $text-col);
     }
   }

@@ -15,6 +15,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { UpdateWatchListStatus, WatchList } from '../../../models/watch-list.model';
 import { WatchListService } from '../../../services/watch-list/watch-list.service';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
+import { safeExternalUrl } from '../../../common';
 
 import * as XLSX from 'xlsx';
 
@@ -35,6 +36,8 @@ import * as XLSX from 'xlsx';
   styleUrl: './watch-lists-view.scss',
 })
 export class WatchListsView implements OnInit, OnDestroy {
+  readonly safeExternalUrl = safeExternalUrl;
+
   displayedColumns: string[] = [
     'name',
     'registrationDate',

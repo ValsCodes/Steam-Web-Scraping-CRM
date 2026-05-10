@@ -103,10 +103,13 @@
                                 Next Page
                             </button>
 
-                            <a [href]="getShowPageUrl()" [matTooltip]="getShowPageUrl()"
+                            <a [attr.href]="getSafeShowPageUrl()" [matTooltip]="getSafeShowPageUrl() ?? 'Unsafe URL blocked'"
                                 class="button-small-info inline-flex items-center"
-                                [class.pointer-events-none]="selectedGameUrl() == null"
-                                [class.opacity-50]="selectedGameUrl() == null" target="_blank">
+                                [class.pointer-events-none]="getSafeShowPageUrl() == null"
+                                [class.opacity-50]="getSafeShowPageUrl() == null"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                referrerpolicy="no-referrer">
                                 Show Page
                             </a>
                         </div>
@@ -183,13 +186,20 @@
                             <th mat-header-cell *matHeaderCellDef mat-sort-header>Item</th>
                             <td mat-cell *matCellDef="let listing; let i = index">
                         
-                                <a href="{{getListingUrl()}}{{listing.name}}" matTooltip="{{getListingUrl()}}{{listing.name}}">
+                                <a
+                                    [attr.href]="getSafeListingUrl(listing.name)"
+                                    [matTooltip]="getSafeListingUrl(listing.name) ?? 'Unsafe URL blocked'"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    referrerpolicy="no-referrer">
                                     <div class="flex items-center">
                         
-                                        @if(listing.imageUrl !== null)
+                                        @if(safeExternalImageUrl(listing.imageUrl); as imageUrl)
                                         {
-                                        <img [src]="listing.imageUrl" [alt]="listing.name || 'Item image'" width="64" height="64"
-                                            style="width: 64px; height: 64px; object-fit: cover;" [matTooltip]="listing.imageUrl">
+                                        <img [src]="imageUrl" [alt]="listing.name || 'Item image'" width="64" height="64"
+                                            style="width: 64px; height: 64px; object-fit: cover;" [matTooltip]="imageUrl"
+                                            referrerpolicy="no-referrer"
+                                            loading="lazy">
                                         }                     
                                         {{ listing.name }}                        
                                     </div>

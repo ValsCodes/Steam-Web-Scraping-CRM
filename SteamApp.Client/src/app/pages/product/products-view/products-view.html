@@ -3,19 +3,12 @@
     <h2 class="text-2xl font-semibold text-gray-500">Products</h2>
 
     <div class="flex gap-x-2">
-      <button
-        (click)="refreshButtonClicked()"
-        class="button button-small-secondary"
-        [disabled]="isGridLoading"
-        [class.busy-cursor]="isGridLoading"
-        title="Reload current data">
+      <button (click)="refreshButtonClicked()" class="button button-small-secondary" [disabled]="isGridLoading"
+        [class.busy-cursor]="isGridLoading" title="Reload current data">
         {{ isGridLoading ? 'Loading...' : 'Refresh' }}
       </button>
 
-      <button
-        (click)="exportButtonClicked()"
-        class="button button-small-primary"
-        [disabled]="isGridLoading"
+      <button (click)="exportButtonClicked()" class="button button-small-primary" [disabled]="isGridLoading"
         title="Export current data to Excel">
         Export
       </button>
@@ -30,32 +23,35 @@
       <select id="products-filter-game" name="productsFilterGame" class="px-2 py-1" [formControl]="gameIdControl">
         <option [ngValue]="null">All</option>
         @for (g of games(); track g.id) {
-          <option [ngValue]="g.id">{{ g.name }}</option>
+        <option [ngValue]="g.id">{{ g.name }}</option>
         }
       </select>
     </div>
 
     <div class="filter-group">
       <label for="products-filter-name">Product Name</label>
-      <input id="products-filter-name" name="productsFilterName" class="px-2 py-1" type="text" placeholder="Filter by name" [formControl]="searchByNameFilterControl" />
+      <input id="products-filter-name" name="productsFilterName" class="px-2 py-1" type="text"
+        placeholder="Filter by name" [formControl]="searchByNameFilterControl" />
     </div>
 
     <div class="filter-group">
       <label for="products-filter-rating">Rating</label>
-      <select id="products-filter-rating" name="productsFilterRating" class="px-2 py-1" [formControl]="searchByRatingFilterControl">
+      <select id="products-filter-rating" name="productsFilterRating" class="px-2 py-1"
+        [formControl]="searchByRatingFilterControl">
         <option [ngValue]="null">All</option>
         @for (rating of ratingOptions; track rating) {
-          <option [ngValue]="rating">{{ rating }}</option>
+        <option [ngValue]="rating">{{ rating }}</option>
         }
       </select>
     </div>
 
     <div class="filter-group min-w-[220px]">
       <label for="products-filter-tag">Tags</label>
-      <select id="products-filter-tag" name="productsFilterTag" class="px-2 py-1" [formControl]="tagIdControl" (change)="onTagSelectedFromSelect()">
+      <select id="products-filter-tag" name="productsFilterTag" class="px-2 py-1" [formControl]="tagIdControl"
+        (change)="onTagSelectedFromSelect()">
         <option [ngValue]="null">Select a tag</option>
         @for (tag of gameTagsFilter(); track tag.id) {
-          <option [ngValue]="tag.id">{{ tag.name }}</option>
+        <option [ngValue]="tag.id">{{ tag.name }}</option>
         }
       </select>
     </div>
@@ -66,42 +62,35 @@
 
     <div class="filter-group filter-group--page-size">
       <label for="products-page-size">Items per page</label>
-      <select
-        id="products-page-size"
-        name="productsPageSize"
-        class="px-2 py-1"
-        [value]="pageSize"
-        [disabled]="isGridLoading"
-        (change)="pageSizeChanged($any($event.target).value)">
+      <select id="products-page-size" name="productsPageSize" class="px-2 py-1" [value]="pageSize"
+        [disabled]="isGridLoading" (change)="pageSizeChanged($any($event.target).value)">
         @for (size of pageSizeOptions; track size) {
-          <option [value]="size">{{ size }}</option>
+        <option [value]="size">{{ size }}</option>
         }
       </select>
     </div>
   </div>
 
   @if (tagsFilter().length > 0) {
-    <div class="tag-chip-row">
-      @for (filter of tagsFilter(); track filter) {
-        <div class="tag-chip">
-          <span>{{ filter }}</span>
-          <button type="button" (click)="removeFilter(filter)">&times;</button>
-        </div>
-      }
+  <div class="tag-chip-row">
+    @for (filter of tagsFilter(); track filter) {
+    <div class="tag-chip">
+      <span>{{ filter }}</span>
+      <button type="button" (click)="removeFilter(filter)">&times;</button>
     </div>
+    }
+  </div>
   }
 
-  <div
-    class="table-container table-container--with-loading"
-    [class.table-container--loading]="isGridLoading"
+  <div class="table-container table-container--with-loading" [class.table-container--loading]="isGridLoading"
     [attr.aria-busy]="isGridLoading">
     @if (isGridLoading) {
-      <div class="grid-loading-overlay" role="status" aria-live="polite">
-        <div class="grid-loading-card">
-          <span class="grid-loading-spinner" aria-hidden="true"></span>
-          <span>Loading products...</span>
-        </div>
+    <div class="grid-loading-overlay" role="status" aria-live="polite">
+      <div class="grid-loading-card">
+        <span class="grid-loading-spinner" aria-hidden="true"></span>
+        <span>Loading products...</span>
       </div>
+    </div>
     }
 
     <table mat-table [dataSource]="dataSource" matSort class="app-data-table">
@@ -112,7 +101,21 @@
 
       <ng-container matColumnDef="name">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
-        <td mat-cell *matCellDef="let row">{{ row.name || '—' }}</td>
+        <td mat-cell *matCellDef="let row">
+          <!-- @if (getSafeListingUrl(row.gameInternalId, row.name); as pageUrl) {
+            <a
+              [href]="pageUrl"
+              [title]="pageUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              referrerpolicy="no-referrer">
+              {{ row.name }}
+            </a>
+          } @else {
+            {{ row.name }}
+          } -->
+          {{ row.name }}
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="tags">
@@ -128,13 +131,8 @@
       <ng-container matColumnDef="isActive">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Active</th>
         <td mat-cell *matCellDef="let row">
-          <input
-            [attr.id]="'product-active-' + row.id"
-            name="productActiveStatus"
-            type="checkbox"
-            [checked]="row.isActive"
-            [attr.aria-label]="'Product active status for ' + (row.name || row.id)"
-            disabled />
+          <input [attr.id]="'product-active-' + row.id" name="productActiveStatus" type="checkbox"
+            [checked]="row.isActive" [attr.aria-label]="'Product active status for ' + (row.name || row.id)" disabled />
         </td>
       </ng-container>
 
@@ -142,48 +140,30 @@
         <th mat-header-cell *matHeaderCellDef>Actions</th>
         <td mat-cell *matCellDef="let row">
           <div class="table-actions-cell">
-            <button
-              type="button"
-              mat-icon-button
-              class="table-actions-trigger"
-              [matMenuTriggerFor]="productActionsMenu"
+            <button type="button" mat-icon-button class="table-actions-trigger" [matMenuTriggerFor]="productActionsMenu"
               [disabled]="isDeleting(row.id) || isStatusUpdating(row.id)"
-              [class.busy-cursor]="isDeleting(row.id) || isStatusUpdating(row.id)"
-              aria-label="Open product actions">
+              [class.busy-cursor]="isDeleting(row.id) || isStatusUpdating(row.id)" aria-label="Open product actions">
               <mat-icon>more_horiz</mat-icon>
             </button>
 
             <mat-menu #productActionsMenu="matMenu" xPosition="before" panelClass="table-actions-menu">
-              <button
-                type="button"
-                mat-menu-item
-                (click)="activeButtonClicked(row)"
+              <button type="button" mat-menu-item (click)="activeButtonClicked(row)"
                 [disabled]="isDeleting(row.id) || isStatusUpdating(row.id)">
                 <span>{{ row.isActive === true ? 'Deactivate' : 'Activate' }}</span>
               </button>
 
-              <button
-                type="button"
-                mat-menu-item
-                (click)="editButtonClicked(row.id)"
+              <button type="button" mat-menu-item (click)="editButtonClicked(row.id)"
                 [disabled]="isDeleting(row.id) || isStatusUpdating(row.id)">
                 <span>Edit</span>
               </button>
 
-              <button
-                type="button"
-                mat-menu-item
-                (click)="openInNewTab(row.id)"
+              <button type="button" mat-menu-item (click)="openInNewTab(row.id)"
                 [disabled]="isDeleting(row.id) || isStatusUpdating(row.id)">
                 <span>Open Edit In New Tab</span>
               </button>
 
-              <button
-                type="button"
-                mat-menu-item
-                class="table-actions-menu__danger"
-                (click)="deleteButtonClicked(row.id)"
-                [disabled]="isDeleting(row.id) || isStatusUpdating(row.id)">
+              <button type="button" mat-menu-item class="table-actions-menu__danger"
+                (click)="deleteButtonClicked(row.id)" [disabled]="isDeleting(row.id) || isStatusUpdating(row.id)">
                 <span>Delete</span>
               </button>
             </mat-menu>
@@ -195,10 +175,7 @@
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
 
-    <mat-paginator
-      showFirstLastButtons
-      [disabled]="isGridLoading"
-      [hidePageSize]="true"
+    <mat-paginator showFirstLastButtons [disabled]="isGridLoading" [hidePageSize]="true"
       [pageSize]="pageSize"></mat-paginator>
   </div>
 </div>

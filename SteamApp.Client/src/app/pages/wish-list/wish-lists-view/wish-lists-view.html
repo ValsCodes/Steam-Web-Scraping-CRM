@@ -67,8 +67,8 @@
       <ng-container matColumnDef="gameName">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Game</th>
         <td mat-cell *matCellDef="let row">
-          @if (row.pageUrl) {
-          <a [href]="row.pageUrl" [title]="row.pageUrl" target="_blank" rel="noopener noreferrer">
+          @if (safeExternalUrl(row.pageUrl); as pageUrl) {
+          <a [href]="pageUrl" [title]="pageUrl" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">
             {{ row.gameName }}
           </a>
           } @else {

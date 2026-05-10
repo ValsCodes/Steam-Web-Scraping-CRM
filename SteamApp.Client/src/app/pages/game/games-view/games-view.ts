@@ -23,6 +23,7 @@ import { GameService } from '../../../services/game/game.service';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import * as XLSX from 'xlsx';
 import { finalize } from 'rxjs';
+import { safeExternalUrl } from '../../../common';
 
 @Component({
   selector: 'steam-games-view',
@@ -41,6 +42,8 @@ import { finalize } from 'rxjs';
   styleUrl: './games-view.scss',
 })
 export class GamesView implements OnInit {
+  readonly safeExternalUrl = safeExternalUrl;
+
   displayedColumns: string[] = ['name', 'internalId', 'isActive', 'actions'];
 
   searchByName = new FormControl<string>('', { nonNullable: true });
