@@ -1,15 +1,21 @@
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { startWith, Subject, takeUntil } from 'rxjs';
+import { finalize, startWith, Subject, takeUntil } from 'rxjs';
 
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatDialog } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 
-import { WatchList } from '../../../models/watch-list.model';
+import { UpdateWatchListStatus, WatchList } from '../../../models/watch-list.model';
 import { WatchListService } from '../../../services/watch-list/watch-list.service';
+import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
+import { safeExternalUrl } from '../../../common';
 
 import * as XLSX from 'xlsx';
 
@@ -22,21 +28,30 @@ import * as XLSX from 'xlsx';
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
   ],
   templateUrl: './watch-lists-view.html',
   styleUrl: './watch-lists-view.scss',
 })
 export class WatchListsView implements OnInit, OnDestroy {
+  readonly safeExternalUrl = safeExternalUrl;
+
   displayedColumns: string[] = [
     'name',
-    'url',
     'registrationDate',
     'isActive',
     'actions',
   ];
 
   dataSource = new MatTableDataSource<WatchList>([]);
+  isGridLoading = false;
+  pageSize = 25;
+  readonly pageSizeOptions = [10, 25, 50, 100];
   private allItems: WatchList[] = [];
+  private readonly deletingIds = new Set<number>();
+  private readonly statusUpdatingIds = new Set<number>();
 
   readonly searchByNameControl = new FormControl<string>('', { nonNullable: true });
 
@@ -48,6 +63,8 @@ export class WatchListsView implements OnInit, OnDestroy {
   constructor(
     private readonly watchListService: WatchListService,
     private readonly router: Router,
+    private readonly cdr: ChangeDetectorRef,
+    private readonly dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -66,15 +83,27 @@ export class WatchListsView implements OnInit, OnDestroy {
   }
 
   private fetchWatchLists(): void {
-    this.watchListService.getAll().subscribe(items => {
-      this.allItems = items;
+    this.isGridLoading = true;
+    this.cdr.markForCheck();
 
-      this.dataSource.data = items;
-      this.dataSource.paginator = this.paginator;
-      this.dataSource.sort = this.sort;
+    this.watchListService.getAll()
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isGridLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe(items => {
+        this.allItems = items;
 
-      this.applyFilters(this.searchByNameControl.value);
-    });
+        this.dataSource.data = items;
+        this.dataSource.paginator = this.paginator;
+        this.paginator.pageSize = this.pageSize;
+        this.dataSource.sort = this.sort;
+
+        this.applyFilters(this.searchByNameControl.value);
+      });
   }
 
   private applyFilters(name: string): void {
@@ -108,6 +137,26 @@ export class WatchListsView implements OnInit, OnDestroy {
     XLSX.writeFile(workbook, `Export_${today.toDateString()}_WatchList.xlsx`);
   }
 
+  refreshButtonClicked(): void {
+    this.fetchWatchLists();
+  }
+
+  pageSizeChanged(value: string | number): void {
+    const pageSize = Number(value);
+    if (Number.isNaN(pageSize) || pageSize <= 0 || this.pageSize === pageSize) {
+      return;
+    }
+
+    this.pageSize = pageSize;
+
+    if (this.paginator) {
+      this.paginator.pageSize = pageSize;
+      this.paginator.firstPage();
+      this.dataSource.data = [...this.dataSource.data];
+      this.cdr.markForCheck();
+    }
+  }
+
   createButtonClicked(): void {
     this.router.navigate(['/watch-list/create']);
   }
@@ -116,13 +165,83 @@ export class WatchListsView implements OnInit, OnDestroy {
     this.router.navigate(['/watch-list/edit', id]);
   }
 
-  deleteButtonClicked(id: number): void {
-    if (!confirm('Delete this watch list item?')) {
+  activeButtonClicked(item: WatchList): void {
+    if (this.isStatusUpdating(item.id)) {
       return;
     }
 
-    this.watchListService.delete(id).subscribe(() => {
-      this.fetchWatchLists();
-    });
+    const nextIsActive = !item.isActive;
+
+    const input: UpdateWatchListStatus = {
+      id: item.id,
+      isActive: nextIsActive,
+    };
+
+    this.statusUpdatingIds.add(item.id);
+
+    this.watchListService
+      .updateStatus(input)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.statusUpdatingIds.delete(item.id);
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe(() => {
+        this.allItems = this.allItems.map((x) =>
+          x.id === item.id ? { ...x, isActive: nextIsActive } : x,
+        );
+
+        this.applyFilters(this.searchByNameControl.value);
+      });
+  }
+
+  deleteButtonClicked(id: number): void {
+    if (this.isDeleting(id)) {
+      return;
+    }
+
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '420px',
+        data: {
+          title: 'Delete Watch List Item',
+          subtitle: 'This action cannot be undone.',
+          message: 'Are you sure you want to delete this watch list item?',
+          confirmText: 'Delete',
+          cancelText: 'Cancel',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) {
+          return;
+        }
+
+        this.deletingIds.add(id);
+        this.cdr.markForCheck();
+
+        this.watchListService.delete(id)
+          .pipe(
+            finalize(() => {
+              this.deletingIds.delete(id);
+              this.cdr.markForCheck();
+            }),
+          )
+          .subscribe({
+            next: () => {
+              this.fetchWatchLists();
+            },
+          });
+      });
+  }
+
+  isDeleting(id: number): boolean {
+    return this.deletingIds.has(id);
+  }
+
+  isStatusUpdating(id: number): boolean {
+    return this.statusUpdatingIds.has(id);
   }
 }

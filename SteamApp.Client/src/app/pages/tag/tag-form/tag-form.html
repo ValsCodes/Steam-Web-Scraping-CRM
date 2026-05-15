@@ -1,30 +1,50 @@
-<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form">
-  <h2>{{ isEditMode ? 'Edit Tag' : 'Create Tag' }}</h2>
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form app-form">
+  <div class="app-form__header">
+    <span class="app-form__eyebrow">Organization</span>
+    <h2 class="app-form__title">{{ isEditMode ? 'Edit Tag' : 'Create Tag' }}</h2>
+    <p class="app-form__description">
+      Create a reusable label to organize products inside a specific game catalog.
+    </p>
+  </div>
 
+  <div class="app-form__grid">
   <div class="form-group">
-    <label>Game *</label>
-    <select formControlName="gameId" class="px-2 py-1">
-      <option value="" disabled>Select a game</option>
-      <option *ngFor="let game of games" [value]="game.id">
+    <label for="tag-game-id">Game *</label>
+    <select id="tag-game-id" name="gameId" formControlName="gameId" class="px-2 py-1">
+      <option [ngValue]="null" disabled>Select a game</option>
+      @for (game of games(); track game.id) {
+      <option [ngValue]="game.id">
         {{ game.name }}
       </option>
+      }
     </select>
   </div>
 
   <div class="form-group">
-    <label>Name *</label>
+    <label for="tag-name">Name *</label>
     <input
+      id="tag-name"
+      name="name"
       formControlName="name"
       class="px-2 py-1 w-1/2"
       placeholder="Tag name"
     />
   </div>
 
-  <div class="flex gap-x-2">
-    <button type="submit" [disabled]="form.invalid">
-      {{ isEditMode ? 'Save' : 'Create' }}
+  <div class="form-group-row checkbox-group">
+    <label>
+      <input id="tag-is-active" name="isActive" type="checkbox" formControlName="isActive" />
+      Active
+    </label>
+  </div>
+
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" [disabled]="form.invalid || isSubmitting" [class.busy-cursor]="isSubmitting">
+      {{ isSubmitting ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save changes' : 'Create tag') }}
     </button>
 
-    <button type="return" (click)="cancel()">Back</button>
+    <button type="button" class="form-back-button" (click)="cancel()">Back</button>
   </div>
 </form>

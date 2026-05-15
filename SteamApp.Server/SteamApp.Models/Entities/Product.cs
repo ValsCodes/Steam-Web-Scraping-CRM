@@ -14,7 +14,7 @@ public sealed class Product
     [ForeignKey(nameof(Game))]
     public long GameId { get; set; }
     [InverseProperty(nameof(Game.Products))]
-    public Game Game { get; set; }
+    public Game Game { get; set; } = null!;
 
     [Column("name")]
     public string? Name { get; set; }
@@ -28,4 +28,6 @@ public sealed class Product
     public ICollection<GameUrlProducts> GameUrlsProducts { get; set; } = [];
 
     public ICollection<ProductTags> ProductTags { get; set; } = [];
+
+    public ICollection<WatchList> WatchLists { get; set; } = [];
 }

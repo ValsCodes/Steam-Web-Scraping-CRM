@@ -1,28 +1,116 @@
-<form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="general-form w-[20rem] flex flex-col">
-  <h2>Login</h2>
+<form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="general-form login-form">
+  <div class="login-form__header">
+    <h2>{{ pageTitle }}</h2>
 
-  <div class="form-group">
-    <input
-      class="px-2 py-1"
-      formControlName="clientId"
-      required
-      placeholder="Client ID">
+    <div class="login-form__switch" role="group" aria-label="Authentication mode">
+      <button
+        type="button"
+        [class.active]="mode === 'login'"
+        (click)="setMode('login')">
+        Login
+      </button>
+      <button
+        type="button"
+        [class.active]="isRegisterMode"
+        (click)="setMode('register')">
+        Register
+      </button>
+    </div>
   </div>
 
+  @if (!isRegisterMode) {
+    <div class="form-group">
+      <label for="emailOrUserName">Email or username</label>
+      <input
+        id="emailOrUserName"
+        autocomplete="username"
+        formControlName="emailOrUserName"
+        placeholder="Email or username">
+    </div>
+  } @else {
+    <div class="login-form__name-grid">
+      <div class="form-group">
+        <label for="firstName">First name</label>
+        <input
+          id="firstName"
+          autocomplete="given-name"
+          formControlName="firstName"
+          placeholder="First name">
+      </div>
+
+      <div class="form-group">
+        <label for="lastName">Last name</label>
+        <input
+          id="lastName"
+          autocomplete="family-name"
+          formControlName="lastName"
+          placeholder="Last name">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input
+        id="email"
+        type="email"
+        autocomplete="email"
+        formControlName="email"
+        placeholder="Email">
+    </div>
+
+    <div class="form-group">
+      <label for="phone">Phone</label>
+      <input
+        id="phone"
+        type="tel"
+        autocomplete="tel"
+        formControlName="phone"
+        placeholder="Phone">
+    </div>
+
+    <div class="form-group">
+      <label for="userName">Username</label>
+      <input
+        id="userName"
+        autocomplete="username"
+        formControlName="userName"
+        placeholder="Username">
+    </div>
+  }
+
   <div class="form-group">
+    <label for="password">Password</label>
     <input
-      class="px-2 py-1"
+      id="password"
       type="password"
-      formControlName="clientSecret"
-      required
-      placeholder="Client Secret">
+      [attr.autocomplete]="isRegisterMode ? 'new-password' : 'current-password'"
+      formControlName="password"
+      placeholder="Password">
   </div>
 
-  <button class="w-1/2" type="submit" [disabled]="isSubmitting">
-    Log In
+  @if (isRegisterMode) {
+    <ul class="password-requirements" aria-label="Password requirements">
+      @for (requirement of passwordRequirements; track requirement.label) {
+        <li [class.met]="requirement.isMet">{{ requirement.label }}</li>
+      }
+    </ul>
+
+    <div class="form-group">
+      <label for="confirmPassword">Confirm password</label>
+      <input
+        id="confirmPassword"
+        type="password"
+        autocomplete="new-password"
+        formControlName="confirmPassword"
+        placeholder="Confirm password">
+    </div>
+  }
+
+  <button class="login-form__submit" type="submit" [disabled]="isSubmitting">
+    {{ submitLabel }}
   </button>
 
   @if (error) {
-    <p>{{ error }}</p>
+    <p class="error login-form__error">{{ error }}</p>
   }
 </form>

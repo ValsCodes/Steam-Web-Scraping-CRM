@@ -1,0 +1,240 @@
+:host {
+  display: block;
+  min-height: calc(100vh - 8rem);
+  background: #f4f7fb;
+}
+
+.profile-page {
+  width: min(1120px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 3rem;
+  color: #111827;
+}
+
+.profile-page__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+
+  span {
+    color: #0f766e;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 2rem;
+    line-height: 1.15;
+    letter-spacing: 0;
+  }
+}
+
+.profile-page__loading {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.5rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.profile-page__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.85fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.profile-panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid #d7e1ee;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+
+  h3 {
+    margin: 0;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid #e5e7eb;
+    color: #111827;
+    font-size: 1.15rem;
+    line-height: 1.2;
+    letter-spacing: 0;
+  }
+
+  input {
+    width: 100%;
+    min-height: 2.9rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    background: #fbfcfd;
+    color: #111827;
+    font: inherit;
+    outline: none;
+    transition:
+      border-color 160ms ease,
+      box-shadow 160ms ease,
+      background 160ms ease;
+  }
+
+  input:focus {
+    border-color: #0f766e;
+    background: #ffffff;
+    box-shadow: 0 0 0 0.2rem rgba(15, 118, 110, 0.16);
+  }
+
+  label {
+    color: #263241;
+    font-size: 0.92rem;
+    font-weight: 700;
+  }
+}
+
+.profile-panel--danger {
+  border-color: #fecaca;
+}
+
+.profile-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.profile-panel__full {
+  grid-column: 1 / -1;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+  padding-top: 0.4rem;
+
+  button {
+    min-height: 2.75rem;
+    padding: 0.65rem 1rem;
+    border: 1px solid #116b46;
+    border-radius: 0.5rem;
+    background: #1f7a4a;
+    color: #ffffff;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  button:hover:not(:disabled) {
+    background: #239456;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
+
+  .profile-actions__secondary {
+    border-color: #64748b;
+    background: #ffffff;
+    color: #334155;
+  }
+
+  .profile-actions__secondary:hover:not(:disabled) {
+    background: #f1f5f9;
+  }
+
+  .profile-actions__danger {
+    border-color: #b91c1c;
+    background: #dc2626;
+  }
+
+  .profile-actions__danger:hover:not(:disabled) {
+    background: #b91c1c;
+  }
+}
+
+.password-requirements {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin: -0.15rem 0 0;
+  padding: 0.8rem;
+  border: 1px solid #dce5ed;
+  border-radius: 0.5rem;
+  list-style: none;
+  background: #f8fafc;
+  color: #8c1d1d;
+  font-size: 0.88rem;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  li::before {
+    content: "";
+    width: 0.45rem;
+    height: 0.45rem;
+    flex: 0 0 0.45rem;
+    border-radius: 50%;
+    background: #d44747;
+  }
+
+  li.met {
+    color: #1f7a3f;
+  }
+
+  li.met::before {
+    background: #2f9e54;
+  }
+}
+
+.profile-status {
+  margin: 0;
+  padding: 0.8rem 0.9rem;
+  border-radius: 0.5rem;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+.profile-status--success {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.profile-status--error {
+  border: 1px solid #fecaca;
+  background: #fff5f5;
+  color: #991b1b;
+}
+
+@media (max-width: 900px) {
+  .profile-page__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .profile-page {
+    width: min(100% - 1rem, 1120px);
+    padding-top: 1rem;
+  }
+
+  .profile-panel__grid,
+  .password-requirements {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-actions button {
+    width: 100%;
+  }
+}

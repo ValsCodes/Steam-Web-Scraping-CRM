@@ -3,8 +3,13 @@ export interface Listing {
   price: number;
   imageUrl: string;
   quantity: number;
-  color: string;
+  pixelName: string;
   linkUrl: string;
+  pageUrl: string;
+  redValue: number | null;
+  blueValue: number | null;
+  greenValue: number | null;
+  isPainted: boolean;
 }
 
 export interface WhishListResponse {

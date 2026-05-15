@@ -1,0 +1,27 @@
+<footer class="site-footer">
+  <div class="site-footer__inner">
+    <div class="site-footer__brand">
+      <h3>Steam Web Scraping CRM</h3>
+      <p>
+        Centralized administration for Steam market sources, catalog metadata,
+        monitoring, and scraping workflows.
+      </p>
+    </div>
+
+    <nav class="site-footer__nav" aria-label="Primary footer navigation">
+      <a routerLink="/home">Home</a>
+      <a routerLink="/pricing">Pricing</a>
+      @if (loggedIn$ | async) {
+        <a routerLink="/web-scraper">Web Scraper</a>
+        <a routerLink="/games">Games</a>
+        <a routerLink="/products">Products</a>
+        <a routerLink="/wishlist">Wish List</a>
+        <a routerLink="/watch-list">Watch List</a>
+      }
+    </nav>
+
+    <div class="site-footer__meta">
+      <span>Angular client, .NET API, SQL persistence, and worker-backed monitoring.</span>
+    </div>
+  </div>
+</footer>

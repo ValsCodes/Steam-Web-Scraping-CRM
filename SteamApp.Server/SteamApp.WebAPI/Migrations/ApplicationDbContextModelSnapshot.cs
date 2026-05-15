@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using SteamApp.WebAPI.Context;
+using SteamApp.Infrastructure.Context;
 
 #nullable disable
 
@@ -17,10 +17,143 @@ namespace SteamApp.WebAPI.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.11")
+                .HasAnnotation("ProductVersion", "9.0.15")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("NormalizedName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("RoleNameIndex")
+                        .HasFilter("[NormalizedName] IS NOT NULL");
+
+                    b.ToTable("AspNetRoles", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RoleId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("AspNetRoleClaims", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AspNetUserClaims", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
+                {
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ProviderKey")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ProviderDisplayName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("LoginProvider", "ProviderKey");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AspNetUserLogins", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("RoleId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("AspNetUserRoles", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("UserId", "LoginProvider", "Name");
+
+                    b.ToTable("AspNetUserTokens", (string)null);
+                });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.Game", b =>
                 {
@@ -38,6 +171,10 @@ namespace SteamApp.WebAPI.Migrations
                     b.Property<long?>("InternalId")
                         .HasColumnType("bigint")
                         .HasColumnName("internal_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)")
@@ -97,17 +234,9 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("game_id");
 
-                    b.Property<bool>("IsBatchUrl")
+                    b.Property<bool>("IsActive")
                         .HasColumnType("bit")
-                        .HasColumnName("is_batch_url");
-
-                    b.Property<bool>("IsPixelScrape")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_pixel_scrape");
-
-                    b.Property<bool>("IsPublicApi")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_public_api");
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)")
@@ -133,6 +262,10 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("int")
                         .HasColumnName("pixel_y");
 
+                    b.Property<long?>("ScrapingModeId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("scraping_mode_id");
+
                     b.Property<int?>("StartPage")
                         .HasColumnType("int")
                         .HasColumnName("start_page");
@@ -140,6 +273,8 @@ namespace SteamApp.WebAPI.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("GameId");
+
+                    b.HasIndex("ScrapingModeId");
 
                     b.ToTable("game_url");
                 });
@@ -198,6 +333,10 @@ namespace SteamApp.WebAPI.Migrations
                     b.Property<long>("GreenValue")
                         .HasColumnType("bigint")
                         .HasColumnName("g_value");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -264,6 +403,47 @@ namespace SteamApp.WebAPI.Migrations
                     b.ToTable("product_tags");
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.ScrapingMode", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("scraping_mode");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            Name = "Manual Batch"
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            Name = "Batch"
+                        },
+                        new
+                        {
+                            Id = 3L,
+                            Name = "Pixel Batch"
+                        },
+                        new
+                        {
+                            Id = 4L,
+                            Name = "Public API"
+                        });
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.Tag", b =>
                 {
                     b.Property<long>("Id")
@@ -276,6 +456,10 @@ namespace SteamApp.WebAPI.Migrations
                     b.Property<long>("GameId")
                         .HasColumnType("bigint")
                         .HasColumnName("game_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)")
@@ -298,7 +482,8 @@ namespace SteamApp.WebAPI.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long?>("GameUrlId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("GameUrlId");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit")
@@ -309,7 +494,8 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnName("name");
 
                     b.Property<long?>("ProductId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("ProductId");
 
                     b.Property<DateOnly>("RegistrationDate")
                         .HasColumnType("date")
@@ -360,6 +546,130 @@ namespace SteamApp.WebAPI.Migrations
                     b.ToTable("wish_list");
                 });
 
+            modelBuilder.Entity("SteamApp.Infrastructure.Identity.ApplicationUser", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("AccessFailedCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("FirstName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("LastName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("LockoutEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset?>("LockoutEnd")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("NormalizedUserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("PhoneNumberConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("SecurityStamp")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedEmail")
+                        .HasDatabaseName("EmailIndex");
+
+                    b.HasIndex("NormalizedUserName")
+                        .IsUnique()
+                        .HasDatabaseName("UserNameIndex")
+                        .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
+                {
+                    b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
+                {
+                    b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
+                {
+                    b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.GameAddOn", b =>
                 {
                     b.HasOne("SteamApp.Domain.Entities.Game", "Game")
@@ -379,7 +689,14 @@ namespace SteamApp.WebAPI.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("SteamApp.Domain.Entities.ScrapingMode", "ScrapingMode")
+                        .WithMany("GameUrls")
+                        .HasForeignKey("ScrapingModeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Game");
+
+                    b.Navigation("ScrapingMode");
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.GameUrlPixels", b =>
@@ -474,13 +791,17 @@ namespace SteamApp.WebAPI.Migrations
 
             modelBuilder.Entity("SteamApp.Domain.Entities.WatchList", b =>
                 {
-                    b.HasOne("SteamApp.Domain.Entities.GameUrl", null)
+                    b.HasOne("SteamApp.Domain.Entities.GameUrl", "GameUrl")
                         .WithMany("WatchLists")
                         .HasForeignKey("GameUrlId");
 
-                    b.HasOne("SteamApp.Domain.Entities.Product", null)
+                    b.HasOne("SteamApp.Domain.Entities.Product", "Product")
                         .WithMany("WatchLists")
                         .HasForeignKey("ProductId");
+
+                    b.Navigation("GameUrl");
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.WishList", b =>
@@ -530,6 +851,11 @@ namespace SteamApp.WebAPI.Migrations
                     b.Navigation("ProductTags");
 
                     b.Navigation("WatchLists");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.ScrapingMode", b =>
+                {
+                    b.Navigation("GameUrls");
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.Tag", b =>

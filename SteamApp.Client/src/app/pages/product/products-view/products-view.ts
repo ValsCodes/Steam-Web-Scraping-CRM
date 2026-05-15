@@ -1,21 +1,36 @@
-import { Component, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatDialog } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { Subject, takeUntil } from 'rxjs';
+import { finalize, Subject, takeUntil } from 'rxjs';
 
 import { GameService, ProductService, TagService } from '../../../services';
 import { Game, Product, Tag, UpdateProductStatus } from '../../../models';
+import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import * as XLSX from 'xlsx';
+import { getListingUrl, safeExternalUrl } from '../../../common';
 
 @Component({
   selector: 'steam-products-grid',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MatTableModule, MatPaginatorModule, MatSortModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatSortModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+  ],
   templateUrl: './products-view.html',
   styleUrl: './products-view.scss',
 })
@@ -29,29 +44,50 @@ export class ProductsView implements OnInit, OnDestroy {
     'actions',
   ];
 
+  readonly safeExternalUrl = safeExternalUrl;
   private readonly destroy$ = new Subject<void>();
 
   readonly gameIdControl = new FormControl<number | null>(null);
   readonly searchByNameFilterControl = new FormControl<string>('', { nonNullable: true });
-  readonly searchByRatingFilterControl = new FormControl<number | null>(null, { nonNullable: true });
-  readonly tagIdControl = new FormControl<number | null>(null);
+  readonly searchByRatingFilterControl = new FormControl<number | null>(null);
+  readonly tagIdControl = new FormControl<number | null>({ value: null, disabled: true });
+  readonly ratingOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
   readonly games = signal<readonly Game[]>([]);
   readonly products = signal<readonly Product[]>([]);
   readonly gameTagsAll = signal<readonly Tag[]>([]);
   readonly gameTagsFilter = signal<readonly Tag[]>([]);
   readonly tagsFilter = signal<readonly string[]>([]);
+  private readonly deletingIds = new Set<number>();
+  private readonly statusUpdatingIds = new Set<number>();
 
   dataSource = new MatTableDataSource<Product>([]);
+  isGridLoading = false;
+  pageSize = 25;
+  readonly pageSizeOptions = [10, 25, 50, 100];
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+  private paginator?: MatPaginator;
+  private sort?: MatSort;
+
+  @ViewChild(MatPaginator)
+  set matPaginator(paginator: MatPaginator | undefined) {
+    this.paginator = paginator;
+    this.attachTableControls();
+  }
+
+  @ViewChild(MatSort)
+  set matSort(sort: MatSort | undefined) {
+    this.sort = sort;
+    this.attachTableControls();
+  }
 
   constructor(
     private readonly productService: ProductService,
     private readonly gameService: GameService,
     private readonly tagsService: TagService,
     private readonly router: Router,
+    private readonly cdr: ChangeDetectorRef,
+    private readonly dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -102,21 +138,33 @@ export class ProductsView implements OnInit, OnDestroy {
 
     if (gameId === null) {
       this.gameTagsFilter.set([]);
+      this.syncTagControlState();
       this.loadFilteredProducts();
       return;
     }
 
     this.gameTagsFilter.set(this.gameTagsAll().filter(tag => tag.gameId === gameId));
+    this.syncTagControlState();
     this.loadFilteredProducts();
   }
 
   fetchProducts(): void {
-    this.productService.getAll().subscribe(products => {
-      this.products.set(products);
-      this.dataSource.data = products;
-      this.dataSource.paginator = this.paginator;
-      this.dataSource.sort = this.sort;
-    });
+    this.isGridLoading = true;
+    this.cdr.markForCheck();
+
+    this.productService.getAll()
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isGridLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe(products => {
+        this.products.set(products);
+        this.loadFilteredProducts();
+        this.attachTableControls();
+      });
   }
 
 
@@ -137,6 +185,26 @@ export class ProductsView implements OnInit, OnDestroy {
     XLSX.writeFile(workbook, `Export_${today.toDateString()}_Products.xlsx`);
   }
 
+  refreshButtonClicked(): void {
+    this.fetchProducts();
+  }
+
+  pageSizeChanged(value: string | number): void {
+    const pageSize = Number(value);
+    if (Number.isNaN(pageSize) || pageSize <= 0 || this.pageSize === pageSize) {
+      return;
+    }
+
+    this.pageSize = pageSize;
+
+    if (this.paginator) {
+      this.paginator.pageSize = pageSize;
+      this.paginator.firstPage();
+      this.dataSource.data = [...this.dataSource.data];
+      this.cdr.markForCheck();
+    }
+  }
+
   createButtonClicked(): void {
     this.router.navigate(['/products/create']);
   }
@@ -146,6 +214,10 @@ export class ProductsView implements OnInit, OnDestroy {
   }
 
   activeButtonClicked(product: Product): void {
+    if (this.isStatusUpdating(product.id)) {
+      return;
+    }
+
     const nextIsActive = !product.isActive;
 
     const input: UpdateProductStatus = {
@@ -153,9 +225,16 @@ export class ProductsView implements OnInit, OnDestroy {
       isActive: nextIsActive,
     };
 
+    this.statusUpdatingIds.add(product.id);
+
     this.productService
       .updateStatus(input)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.statusUpdatingIds.delete(product.id);
+        }),
+      )
       .subscribe(() => {
         this.products.set(
           this.products().map(p => (p.id === product.id ? { ...p, isActive: nextIsActive } : p)),
@@ -166,14 +245,53 @@ export class ProductsView implements OnInit, OnDestroy {
   }
 
   deleteButtonClicked(id: number): void {
-    if (!confirm('Delete this product?')) {
+    if (this.isDeleting(id)) {
       return;
     }
 
-    this.productService.delete(id).subscribe(() => {
-      this.fetchProducts();
-      this.loadFilteredProducts();
-    });
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '420px',
+        data: {
+          title: 'Delete Product',
+          subtitle: 'This action cannot be undone.',
+          message: 'Are you sure you want to delete this Product?',
+          confirmText: 'Delete',
+          cancelText: 'Cancel',
+        },
+      })
+      .afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) {
+          return;
+        }
+
+        this.deletingIds.add(id);
+        this.cdr.markForCheck();
+
+        this.productService.delete(id)
+          .pipe(
+            takeUntil(this.destroy$),
+            finalize(() => {
+              this.deletingIds.delete(id);
+              this.cdr.markForCheck();
+            }),
+          )
+          .subscribe({
+            next: () => {
+              this.fetchProducts();
+            },
+          });
+      });
+  }
+
+  isDeleting(id: number): boolean {
+    return this.deletingIds.has(id);
+  }
+
+  isStatusUpdating(id: number): boolean {
+    return this.statusUpdatingIds.has(id);
   }
 
   onTagSelectedFromSelect(): void {
@@ -196,6 +314,7 @@ export class ProductsView implements OnInit, OnDestroy {
 
     this.gameTagsFilter.set(this.gameTagsFilter().filter(t => t.id !== tag.id));
     this.tagIdControl.setValue(null, { emitEvent: false });
+    this.syncTagControlState();
 
     this.loadFilteredProducts();
   }
@@ -218,6 +337,7 @@ export class ProductsView implements OnInit, OnDestroy {
     });
 
     this.dataSource.data = filtered;
+    this.paginator?.firstPage();
   }
 
   clearFiltersButtonClicked(): void {
@@ -228,6 +348,7 @@ export class ProductsView implements OnInit, OnDestroy {
     this.tagsFilter.set([]);
     this.tagIdControl.setValue(null, { emitEvent: false });
     this.gameTagsFilter.set([]);
+    this.syncTagControlState();
 
     this.loadFilteredProducts();
   }
@@ -248,10 +369,55 @@ export class ProductsView implements OnInit, OnDestroy {
       );
     }
 
+    this.syncTagControlState();
     this.loadFilteredProducts();
   }
 
+  private attachTableControls(): void {
+    if (this.paginator) {
+      this.dataSource.paginator = this.paginator;
+      this.paginator.pageSize = this.pageSize;
+    }
+
+    if (this.sort) {
+      this.dataSource.sort = this.sort;
+    }
+  }
+
+  private syncTagControlState(): void {
+    if (this.gameTagsFilter().length === 0) {
+      this.tagIdControl.disable({ emitEvent: false });
+      return;
+    }
+
+    this.tagIdControl.enable({ emitEvent: false });
+  }
+
+  getSafeListingUrl(listingName: string | null | undefined, internalGameId: number | null | undefined): string | null {
+      if ( internalGameId === null || internalGameId === undefined || internalGameId <= 0 ) {
+        return null;
+      }
+  
+      const name = listingName?.trim();
+  
+      if (!name) {
+        return  null;
+      }
+  
+      const url = getListingUrl(
+        internalGameId,
+        encodeURIComponent(name),
+      );
+      if (url === '') {
+        return null;
+      }
+
+      console.log(url)
+  
+      return url;
+    }
+
   openInNewTab(id: number): void {
-    window.open(`products/edit/${id}`, '_blank');
+    window.open(`/products/edit/${id}`, '_blank', 'noopener,noreferrer');
   }
 }

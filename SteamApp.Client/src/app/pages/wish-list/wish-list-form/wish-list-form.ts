@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { finalize, map, Observable } from 'rxjs';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { GameService, WishListService } from '../../../services';
 import { CreateWishList, Game, UpdateWishList } from '../../../models';
 
@@ -17,15 +19,25 @@ import { CreateWishList, Game, UpdateWishList } from '../../../models';
   styleUrl: './wish-list-form.scss'
 })
 export class WishListForm implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   isEditMode = false;
   wishListId?: number;
+  isSubmitting = false;
 
   form = this.fb.nonNullable.group({
-    gameId: [0, Validators.required],
+    gameId: [null as number | null, [Validators.required, Validators.min(1)]],
     price: [null as number | null],
     isActive: [true],
-    name: [null as string | null],
+    name: ['', Validators.required],
   });
+
+  readonly games = toSignal(
+    this.gameService.getAll().pipe(
+      map(games => games.filter(game => game.isActive)),
+    ),
+    { initialValue: [] as Game[] },
+  );
 
   constructor(
     private fb: FormBuilder,
@@ -37,66 +49,54 @@ export class WishListForm implements OnInit {
 
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');
-    this.loadGames();
 
     if (idParam) {
       this.isEditMode = true;
       this.wishListId = Number(idParam);
+      this.form.controls.gameId.disable({ emitEvent: false });
       this.loadWishList(this.wishListId);
     }
   }
 
   private loadWishList(id: number): void {
-    this.wishListService.getById(id).subscribe(item => {
-      this.form.patchValue({
-        gameId: item.gameId,
-        price: item.price,
-        isActive: item.isActive,
-        name: item.name,  
+    this.wishListService
+      .getById(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(item => {
+        this.form.patchValue({
+          gameId: item.gameId,
+          price: item.price,
+          isActive: item.isActive,
+          name: item.name ?? '',
+        });
       });
-    });
-
-    this.form.controls.gameId.disable();
   }
 
-    games: Game[] = [];
-    gameNameById = new Map<number, string>();
-  
-    private loadGames(): void {
-      this.gameService.getAll().subscribe({
-        next: (games) => {
-          this.games = games;
-  
-          this.gameNameById.clear();
-          for (const game of games) {
-            this.gameNameById.set(game.id, game.name);
-          }
-        },
-      });
-    }
-
   onSubmit(): void {
-    if (this.form.invalid) {
+    if (this.form.invalid || this.isSubmitting) {
       return;
     }
 
-    if (this.isEditMode && this.wishListId) {
-      const update: UpdateWishList = {
-        price: this.form.controls.price.value,
-        isActive: this.form.controls.isActive.value,
-        name: this.form.controls.name.value,
-      };
+    this.isSubmitting = true;
 
-      this.wishListService.update(this.wishListId, update).subscribe(() => {
+    const request$: Observable<unknown> = this.isEditMode && this.wishListId
+      ? this.wishListService.update(this.wishListId, {
+          price: this.form.controls.price.value,
+          isActive: this.form.controls.isActive.value,
+          name: this.form.controls.name.value,
+        } as UpdateWishList)
+      : this.wishListService.create(this.form.getRawValue() as CreateWishList);
+
+    request$
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.isSubmitting = false;
+        }),
+      )
+      .subscribe(() => {
         this.router.navigate(['/wishlist']);
       });
-    } else {
-      const create: CreateWishList = this.form.getRawValue();
-
-      this.wishListService.create(create).subscribe(() => {
-        this.router.navigate(['/wishlist']);
-      });
-    }
   }
 
   cancel(): void {

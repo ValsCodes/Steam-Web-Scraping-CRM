@@ -1,15 +1,35 @@
-import { HttpErrorResponse } from "@angular/common/http";
-import { Observable, throwError } from "rxjs";
+// error-handler.ts
+import { HttpErrorResponse } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { ErrorDialogBridge } from './error-dialog-bridge';
 
-  export function handleError(error: HttpErrorResponse): Observable<never>{
-    let errorMessage = '';
-    if (error.error instanceof ErrorEvent) {
-      errorMessage = `An error occurred: ${error.error.message}`;
-    } else {
-      errorMessage = `Server returned code: ${error.status}, error message is: ${error.message}`;
-    }
+export function handleError(error: HttpErrorResponse | Error): Observable<never> {
+  const errorMessage = getErrorMessage(error);
+
+  if (errorMessage) {
     console.error(errorMessage);
-    return throwError(
-      () => new Error('Something went wrong; please try again later.')
+    ErrorDialogBridge.open(errorMessage);
+  }
+
+  return throwError(() => error);
+}
+
+function getErrorMessage(error: HttpErrorResponse | Error): string {
+  if (error instanceof HttpErrorResponse) {
+    if (error.status === 401) {
+      return '';
+    }
+
+    if (error.error instanceof ErrorEvent) {
+      return `An error occurred: ${error.error.message}`;
+    }
+
+    return (
+      error.error?.message ??
+      error.error?.error ??
+      `Server returned code: ${error.status}, error message is: ${error.message}`
     );
   }
+
+  return error.message || 'Something went wrong.';
+}

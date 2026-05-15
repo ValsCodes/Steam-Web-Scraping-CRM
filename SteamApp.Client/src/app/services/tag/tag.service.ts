@@ -6,7 +6,8 @@ import { catchError } from 'rxjs/operators';
 import {
   Tag,
   CreateTag,
-  UpdateTag
+  UpdateTag,
+  UpdateTagStatus,
 } from '../../models/index';
 
 import { handleError } from '../error-handler';
@@ -48,6 +49,12 @@ export class TagService {
   update(id: number, input: UpdateTag): Observable<void> {
     return this.http
       .put<void>(`${this.baseUrl}/${id}`, input)
+      .pipe(catchError(handleError));
+  }
+
+  updateStatus(input: UpdateTagStatus): Observable<void> {
+    return this.http
+      .patch<void>(`${this.baseUrl}/${input.id}`, input)
       .pipe(catchError(handleError));
   }
 

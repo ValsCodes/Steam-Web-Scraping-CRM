@@ -1,30 +1,33 @@
-# See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
+# Build context: SteamApp.Server
+# Example:
+#   docker build -f SteamApp.WebAPI/Dockerfile -t steamapp-server:local .
 
-# This stage is used when running from VS in fast mode (Default for Debug configuration)
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-USER $APP_UID
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
 EXPOSE 8080
-EXPOSE 8081
+ENV ASPNETCORE_URLS=http://+:8080
 
-
-# This stage is used to build the service project
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["SteamAppServer.csproj", "."]
-RUN dotnet restore "./SteamAppServer.csproj"
-COPY . .
-WORKDIR "/src/."
-RUN dotnet build "./SteamAppServer.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
-# This stage is used to publish the service project to be copied to the final stage
+COPY ["SteamApp.WebAPI/SteamApp.WebAPI.csproj", "SteamApp.WebAPI/"]
+COPY ["SteamApp.Infrastructure/SteamApp.Infrastructure.csproj", "SteamApp.Infrastructure/"]
+COPY ["SteamApp.Interfaces/SteamApp.Interfaces.csproj", "SteamApp.Interfaces/"]
+COPY ["SteamApp.Application/SteamApp.Application.csproj", "SteamApp.Application/"]
+COPY ["SteamApp.Models/SteamApp.Domain.csproj", "SteamApp.Models/"]
+RUN dotnet restore "SteamApp.WebAPI/SteamApp.WebAPI.csproj"
+
+COPY . .
+WORKDIR "/src/SteamApp.WebAPI"
+RUN dotnet build "SteamApp.WebAPI.csproj" -c $BUILD_CONFIGURATION -o /app/build --no-restore
+
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./SteamAppServer.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "SteamApp.WebAPI.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false --no-restore
 
-# This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "SteamAppServer.dll"]
+USER $APP_UID
+ENTRYPOINT ["dotnet", "SteamApp.WebAPI.dll"]

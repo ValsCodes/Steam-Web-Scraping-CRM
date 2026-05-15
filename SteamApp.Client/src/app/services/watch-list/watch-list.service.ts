@@ -6,7 +6,8 @@ import { catchError } from 'rxjs/operators';
 import {
   WatchList,
   CreateWatchList,
-  UpdateWatchList
+  UpdateWatchList,
+  UpdateWatchListStatus,
 } from '../../models/watch-list.model';
 
 import { handleError } from '../error-handler';
@@ -42,6 +43,12 @@ export class WatchListService {
   update(id: number, input: UpdateWatchList): Observable<void> {
     return this.http
       .put<void>(`${this.baseUrl}/${id}`, input)
+      .pipe(catchError(handleError));
+  }
+
+  updateStatus(input: UpdateWatchListStatus): Observable<void> {
+    return this.http
+      .patch<void>(`${this.baseUrl}/${input.id}`, input)
       .pipe(catchError(handleError));
   }
 

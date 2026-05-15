@@ -2,7 +2,7 @@
 {
     public class WhishListResponse
     {
-        public string GameName { get; set; }
+        public string GameName { get; set; } = string.Empty;
 
         public bool IsPriceReached { get; set; }
 

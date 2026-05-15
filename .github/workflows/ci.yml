@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - web_scraper_v3
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: 9.0.x
+  NODE_VERSION: 22.x
+  SOLUTION_PATH: SteamApp.Server/SteamApp.WebAPI/SteamApp.sln
+  UNIT_TEST_PROJECT: SteamApp.Server/SteamApp.Tests/SteamApp.Tests.csproj
+  INTEGRATION_TEST_PROJECT: SteamApp.Server/SteamApp.IntegrationTests/SteamApp.IntegrationTests.csproj
+  CLIENT_DIR: SteamApp.Client
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ${{ env.CLIENT_DIR }}/package-lock.json
+
+      - name: Restore .NET dependencies
+        run: dotnet restore $env:SOLUTION_PATH
+
+      - name: Build .NET solution
+        run: dotnet build $env:SOLUTION_PATH --configuration Release --no-restore -v:m
+
+      - name: Install client dependencies
+        working-directory: ${{ env.CLIENT_DIR }}
+        run: npm ci
+
+      - name: Build Angular client
+        working-directory: ${{ env.CLIENT_DIR }}
+        run: npm run build -- --configuration production
+
+      - name: Run Angular client unit tests
+        working-directory: ${{ env.CLIENT_DIR }}
+        run: npm run test:unit
+
+      - name: Run Angular client integration tests
+        working-directory: ${{ env.CLIENT_DIR }}
+        run: npm run test:integration
+
+      - name: Run unit tests
+        run: >
+          dotnet test $env:UNIT_TEST_PROJECT
+          --configuration Release
+          --no-build
+          --verbosity normal
+          --logger "trx;LogFileName=unit-tests.trx"
+          --results-directory TestResults/unit
+
+      - name: Run integration tests
+        run: >
+          dotnet test $env:INTEGRATION_TEST_PROJECT
+          --configuration Release
+          --no-build
+          --verbosity normal
+          --logger "trx;LogFileName=integration-tests.trx"
+          --results-directory TestResults/integration
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-test-results
+          path: TestResults/**/*.trx
+          if-no-files-found: ignore

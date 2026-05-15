@@ -1,7 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using SteamApp.WebAPI.Context;
 using SteamApp.Domain.Entities;
 using SteamApp.Application.DTOs;
+using SteamApp.Infrastructure.Context;
+using SteamApp.WebAPI.Security;
 
 namespace SteamApp.WebAPI.MinimalAPIs;
 
@@ -11,7 +12,8 @@ public static class ProductTagsEndpoints
     {
         var group = app.MapGroup("api/product-tags")
                        .WithTags("ProductTags")
-                       .RequireAuthorization();
+                       .RequireAuthorization(SecurityPolicies.ApiUser)
+                       .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
 
         // GET: /api/product-tags
         group.MapGet("/", async (ApplicationDbContext db) =>

@@ -22,5 +22,8 @@
 
         // Wishlist Item
         public const string WishListItem = "wish-list-item:{0}";
+
+        // Background Job
+        public const string WishListBackgroundJob = "v1:background-job-check-wishlist:{0}";
     }
 }

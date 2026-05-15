@@ -1,14 +1,19 @@
-﻿using SteamApp.Infrastructure;
-using SteamApp.Infrastructure.Services;
-using SteamApp.WebApiClient;
-
+﻿using Microsoft.Extensions.Caching.Memory;
+using SteamApp.Application.Caching;
+using SteamApp.Application.Services;
+using SteamApp.Interfaces;
+using SteamApp.Interfaces.Services;
 namespace SteamApp.WebAPI.Jobs;
 
-public class WishlistCheckJob(ILogger<WishlistCheckJob> log, SteamApiClient apiClient, IEmailService emailSerivce) : IJobService
+public class WishlistCheckJob(
+    ILogger<WishlistCheckJob> log, 
+    IEmailService emailSerivce, 
+    IMemoryCache cache, 
+    IWishlistService wishlistService) : IJobService
 {
     public async Task RunAsync(CancellationToken ct)
     {
-        var wishList = await apiClient.WishList.GetAllAsync(ct);
+        var wishList = await wishlistService.GetAllAsync(ct);
 
         await Task.Delay(400, ct);
 
@@ -16,10 +21,19 @@ public class WishlistCheckJob(ILogger<WishlistCheckJob> log, SteamApiClient apiC
         {
             try
             {
-                var result = await apiClient.Steam.CheckWishlistItem(item.Id);
+                var cacheKey = string.Format(CacheKeys.WishListBackgroundJob, item.Id);
+
+                if (cache.TryGetValue(cacheKey, out var cached))
+                {
+                    continue;
+                }
+
+                var result = await wishlistService.CheckWishlistItem(item.Id);
 
                 if (result != null && result.IsPriceReached)
                 {
+                    cache.Set(cacheKey, result, TimeSpan.FromHours(12));
+
                     await emailSerivce.SendAsync(new EmailMessage(To: "ivailo1224@gmail.com",
                                      Subject: $"Wishlist item {result.GameName} Price has been reached!",
                                      Body: $"{result.GameName} is currently at {result.CurrentPrice} EUR"), ct);

@@ -1,8 +1,21 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  NavigationCancel,
+  NavigationEnd,
+  NavigationError,
+  NavigationStart,
+  Router,
+  RouterOutlet,
+} from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SiteHeaderComponent } from './components/site-header/site-header.component';
 import { MatPaginatorModule } from '@angular/material/paginator';
+import { SiteFooter } from "./components/site-footer/site-footer";
+import { ErrorDialogService } from './services/error-dialog.service';
+import { ErrorDialogBridge } from './services/error-dialog-bridge';
+import { LoadingStateService } from './services/loading/loading-state.service';
+import { SeoMetaService } from './services/seo/seo-meta.service';
 
 @Component({
   selector: 'app-root',
@@ -12,11 +25,41 @@ import { MatPaginatorModule } from '@angular/material/paginator';
     FormsModule,
     SiteHeaderComponent,
     MatPaginatorModule,
+    SiteFooter
 ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })
 export class AppComponent {
+  private readonly destroyRef = inject(DestroyRef);
 
-  title = 'steam-app-angular-client';
+  title = 'Steam Web Scraping CRM';
+
+  public constructor(
+    errorDialogService: ErrorDialogService,
+    router: Router,
+    loadingState: LoadingStateService,
+    seoMeta: SeoMetaService,
+  ) {
+    ErrorDialogBridge.initialize(errorDialogService);
+
+    router.events
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((event) => {
+        if (event instanceof NavigationStart) {
+          loadingState.begin();
+          return;
+        }
+
+        if (event instanceof NavigationEnd) {
+          loadingState.end();
+          seoMeta.applyRouteSeo(router.routerState.snapshot.root, event.urlAfterRedirects);
+          return;
+        }
+
+        if (event instanceof NavigationCancel || event instanceof NavigationError) {
+          loadingState.end();
+        }
+      });
+  }
 }

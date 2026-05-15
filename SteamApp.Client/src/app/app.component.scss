@@ -1,4 +1,15 @@
-* {
-    margin: 0;
-    padding: 0;
+:host {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell__content {
+  display: block;
+  flex: 1 0 auto;
+}
+
+steam-site-header,
+steam-site-footer {
+  display: block;
 }

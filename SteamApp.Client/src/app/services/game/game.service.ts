@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
-import { Game, CreateGame, UpdateGame } from '../../models/game.model';
+import { Game, CreateGame, UpdateGame, UpdateGameStatus } from '../../models/game.model';
 import { handleError } from '../error-handler';
 import * as g from '../general-data';
 
@@ -40,9 +40,15 @@ export class GameService {
       .pipe(catchError(handleError));
   }
 
+  updateStatus(input: UpdateGameStatus): Observable<void> {
+    return this.http
+      .patch<void>(`${this.baseUrl}/${input.id}`, input)
+      .pipe(catchError(handleError));
+  }
+
   delete(id: number): Observable<void> {
     return this.http
       .delete<void>(`${this.baseUrl}/${id}`)
-      .pipe(catchError(handleError));
+       .pipe(catchError(handleError));
   }
 }

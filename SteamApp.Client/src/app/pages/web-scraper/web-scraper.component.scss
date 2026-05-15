@@ -16,3 +16,12 @@
     padding: 1rem;
     border-radius: 0.375rem;
 }
+
+.filter-toolbar {
+    display: block;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}

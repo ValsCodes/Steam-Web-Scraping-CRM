@@ -17,22 +17,22 @@ namespace SteamApp.Domain.Entities
         [ForeignKey(nameof(Game))]
         public long GameId { get; set; }
         [InverseProperty(nameof(Game.GameUrls))]
-        public Game Game { get; set; }
+        public Game Game { get; set; } = null!;
+
+        [Column("scraping_mode_id")]
+        [ForeignKey(nameof(ScrapingMode))]
+        public long? ScrapingModeId { get; set; }
+        [InverseProperty(nameof(ScrapingMode.GameUrls))]
+        public ScrapingMode? ScrapingMode { get; set; }
 
         [Column("partial_url")]
         public string? PartialUrl { get; set; }
-
-        [Column("is_batch_url")]
-        public bool IsBatchUrl { get; set; }
 
         [Column("start_page")]
         public int? StartPage { get; set; }
 
         [Column("end_page")]
         public int? EndPage { get; set; }
-
-        [Column("is_pixel_scrape")]
-        public bool IsPixelScrape { get; set; }
 
         [Column("pixel_x")]
         public int? PixelX { get; set; }
@@ -46,11 +46,13 @@ namespace SteamApp.Domain.Entities
         [Column("pixel_image_height")]
         public int? PixelImageHeight{ get; set; }
 
-        [Column("is_public_api")]
-        public bool IsPublicApi { get; set; }
+        [Column("is_active")]
+        public bool IsActive { get; set; }
 
         public ICollection<GameUrlPixels> GameUrlsPixels { get; set; } = [];
 
         public ICollection<GameUrlProducts> GameUrlsProducts { get; set; } = [];
+
+        public ICollection<WatchList> WatchLists { get; set; } = [];
     }
 }

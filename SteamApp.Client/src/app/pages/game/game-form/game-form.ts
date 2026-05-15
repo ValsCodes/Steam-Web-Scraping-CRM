@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { finalize, Observable } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-import { Game } from '../../../models/game.model';
+import { CreateGame, UpdateGame } from '../../../models/game.model';
 import { GameService } from '../../../services/game/game.service';
 
 
@@ -15,9 +17,12 @@ import { GameService } from '../../../services/game/game.service';
   styleUrl: './game-form.scss',
 })
 export class GameForm implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   gameForm!: FormGroup;
   isEditMode = false;
   gameId?: number;
+  isSubmitting = false;
 
   constructor(
     private fb: FormBuilder,
@@ -30,7 +35,9 @@ export class GameForm implements OnInit {
     this.gameForm = this.fb.group({
       name: ['', Validators.required],
       //baseUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\//)]],
-      pageUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\//)]]
+      pageUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\//)]],
+      internalId: [0],
+      isActive: [true],
     });
 
     const idParam = this.route.snapshot.paramMap.get('id');
@@ -43,31 +50,44 @@ export class GameForm implements OnInit {
   }
 
   private loadGame(id: number): void {
-    this.gameService.getById(id).subscribe(game => {
-      this.gameForm.patchValue({
-        name: game.name,
-        //baseUrl: game.baseUrl,  
-        pageUrl: game.pageUrl
+    this.gameService
+      .getById(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(game => {
+        this.gameForm.patchValue({
+          name: game.name,
+          //baseUrl: game.baseUrl,
+          pageUrl: game.pageUrl,
+          internalId: game.internalId,
+          isActive: game.isActive,
+        });
       });
-    });
   }
 
   onSubmit(): void {
-    if (this.gameForm.invalid) {
+    if (this.gameForm.invalid || this.isSubmitting) {
       return;
     }
 
-    const payload = this.gameForm.value as Omit<Game, 'id'>;
+    this.isSubmitting = true;
 
-    if (this.isEditMode && this.gameId) {
-      this.gameService.update(this.gameId, payload).subscribe(() => {
+    const createPayload = this.gameForm.getRawValue() as CreateGame;
+    const updatePayload = this.gameForm.getRawValue() as UpdateGame;
+
+    const request$: Observable<unknown> = this.isEditMode && this.gameId
+      ? this.gameService.update(this.gameId, updatePayload)
+      : this.gameService.create(createPayload);
+
+    request$
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.isSubmitting = false;
+        }),
+      )
+      .subscribe(() => {
         this.router.navigate(['/games']);
       });
-    } else {
-      this.gameService.create(payload).subscribe(() => {
-        this.router.navigate(['/games']);
-      });
-    }
   }
 
   backButtonClicked(): void {

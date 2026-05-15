@@ -3,44 +3,46 @@ export interface GameUrl {
   name?: string | null;
   gameId: number;
   gameName: string;
+  scrapingModeId?: number | null;
+  scrapingModeName?: string | null;
   partialUrl?: string | null;
-  isBatchUrl: boolean;
   startPage?: number | null;
   endPage?: number | null;
-  isPixelScrape: boolean;
   pixelX?: number | null;
   pixelY?: number | null;
   pixelImageWidth?: number | null;
   pixelImageHeight?: number | null;
-  isPublicApi: boolean;
+  isActive: boolean;
 }
 
 export interface CreateGameUrl {
   gameId: number;
   name?: string | null;
+  scrapingModeId: number;
   partialUrl?: string | null;
-  isBatchUrl: boolean;
   startPage?: number | null;
   endPage?: number | null;
-  isPixelScrape: boolean;
   pixelX?: number | null;
   pixelY?: number | null;
   pixelImageWidth?: number | null;
   pixelImageHeight?: number | null;
-  isPublicApi: boolean;
-
+  isActive: boolean;
 }
 
 export interface UpdateGameUrl {
   partialUrl?: string | null;
   name?: string | null;
-  isBatchUrl: boolean;
+  scrapingModeId: number;
   startPage?: number | null;
   endPage?: number | null;
-  isPixelScrape: boolean;
   pixelX?: number | null;
   pixelY?: number | null;
   pixelImageWidth?: number | null;
   pixelImageHeight?: number | null;
-  isPublicApi: boolean;
+  isActive?: boolean | null;
+}
+
+export interface UpdateGameUrlStatus {
+  id: number;
+  isActive: boolean;
 }

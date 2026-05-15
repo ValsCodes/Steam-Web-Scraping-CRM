@@ -5,11 +5,16 @@ import { Router } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatDialog } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { GameService, TagService } from '../../../services';
-import { Game, Tag } from '../../../models';
-import { BehaviorSubject, combineLatest, startWith, Subject, takeUntil } from 'rxjs';
+import { Game, Tag, UpdateTagStatus } from '../../../models';
+import { BehaviorSubject, combineLatest, finalize, startWith, Subject, takeUntil } from 'rxjs';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 
 import * as XLSX from 'xlsx';
 
@@ -22,12 +27,15 @@ import * as XLSX from 'xlsx';
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
   ],
   templateUrl: './tags-view.html',
   styleUrl: './tags-view.scss',
 })
 export class TagsView implements OnInit, OnDestroy {
-  displayedColumns: string[] = ['gameName', 'name', 'actions'];
+  displayedColumns: string[] = ['gameName', 'name', 'isActive', 'actions'];
 
   readonly games$ = new BehaviorSubject<readonly Game[]>([]);
   private readonly destroy$ = new Subject<void>();
@@ -36,7 +44,12 @@ export class TagsView implements OnInit, OnDestroy {
   readonly searchByNameFilterControl = new FormControl<string>('', { nonNullable: true });
 
   dataSource = new MatTableDataSource<Tag>([]);
+  isGridLoading = false;
+  pageSize = 25;
+  readonly pageSizeOptions = [10, 25, 50, 100];
   private tags: Tag[] = [];
+  private readonly deletingIds = new Set<number>();
+  private readonly statusUpdatingIds = new Set<number>();
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -46,6 +59,7 @@ export class TagsView implements OnInit, OnDestroy {
     private readonly router: Router,
     private readonly gameService: GameService,
     private readonly cdr: ChangeDetectorRef,
+    private readonly dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -81,15 +95,27 @@ export class TagsView implements OnInit, OnDestroy {
   }
 
   fetchTags(): void {
-    this.tagService.getAll().subscribe(tags => {
-      this.tags = tags;
+    this.isGridLoading = true;
+    this.cdr.markForCheck();
 
-      this.dataSource.data = tags;
-      this.dataSource.paginator = this.paginator;
-      this.dataSource.sort = this.sort;
+    this.tagService.getAll()
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isGridLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe(tags => {
+        this.tags = tags;
 
-      this.applyFilters(this.gameIdControl.value, this.searchByNameFilterControl.value);
-    });
+        this.dataSource.data = tags;
+        this.dataSource.paginator = this.paginator;
+        this.paginator.pageSize = this.pageSize;
+        this.dataSource.sort = this.sort;
+
+        this.applyFilters(this.gameIdControl.value, this.searchByNameFilterControl.value);
+      });
   }
 
   private loadGames(): void {
@@ -106,18 +132,108 @@ export class TagsView implements OnInit, OnDestroy {
     this.router.navigate(['/tags/create']);
   }
 
+  refreshButtonClicked(): void {
+    this.fetchTags();
+  }
+
+  pageSizeChanged(value: string | number): void {
+    const pageSize = Number(value);
+    if (Number.isNaN(pageSize) || pageSize <= 0 || this.pageSize === pageSize) {
+      return;
+    }
+
+    this.pageSize = pageSize;
+
+    if (this.paginator) {
+      this.paginator.pageSize = pageSize;
+      this.paginator.firstPage();
+      this.dataSource.data = [...this.dataSource.data];
+      this.cdr.markForCheck();
+    }
+  }
+
   editButtonClicked(id: number): void {
     this.router.navigate(['/tags/edit', id]);
   }
 
-  deleteButtonClicked(id: number): void {
-    if (!confirm('Delete this tag?')) {
+  activeButtonClicked(tag: Tag): void {
+    if (this.isStatusUpdating(tag.id)) {
       return;
     }
 
-    this.tagService.delete(id).subscribe(() => {
-      this.fetchTags();
-    });
+    const nextIsActive = !tag.isActive;
+
+    const input: UpdateTagStatus = {
+      id: tag.id,
+      isActive: nextIsActive,
+    };
+
+    this.statusUpdatingIds.add(tag.id);
+
+    this.tagService
+      .updateStatus(input)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.statusUpdatingIds.delete(tag.id);
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe(() => {
+        this.tags = this.tags.map((x) =>
+          x.id === tag.id ? { ...x, isActive: nextIsActive } : x,
+        );
+
+        this.applyFilters(this.gameIdControl.value, this.searchByNameFilterControl.value);
+      });
+  }
+
+  deleteButtonClicked(id: number): void {
+    if (this.isDeleting(id)) {
+      return;
+    }
+
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '420px',
+        data: {
+          title: 'Delete Tag',
+          subtitle: 'This action cannot be undone.',
+          message: 'Are you sure you want to delete this Tag?',
+          confirmText: 'Delete',
+          cancelText: 'Cancel',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) {
+          return;
+        }
+
+        this.deletingIds.add(id);
+        this.cdr.markForCheck();
+
+        this.tagService.delete(id)
+          .pipe(
+            finalize(() => {
+              this.deletingIds.delete(id);
+              this.cdr.markForCheck();
+            }),
+          )
+          .subscribe({
+            next: () => {
+              this.fetchTags();
+            },
+          });
+      });
+  }
+
+  isDeleting(id: number): boolean {
+    return this.deletingIds.has(id);
+  }
+
+  isStatusUpdating(id: number): boolean {
+    return this.statusUpdatingIds.has(id);
   }
 
   clearFiltersButtonClicked(): void {
@@ -131,6 +247,7 @@ export class TagsView implements OnInit, OnDestroy {
   const dataToExport = this.dataSource.data.map(x => ({
     Game: x.gameName,
     Name: x.name ?? '',
+    IsActive: x.isActive,
   }));
 
   const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);

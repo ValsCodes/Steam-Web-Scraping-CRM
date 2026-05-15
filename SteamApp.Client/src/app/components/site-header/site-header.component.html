@@ -1,31 +1,42 @@
-<div class="site-header flex items-center justify-between p-4">
-        @if (isLoggedIn) {
-        <div class="flex">
-                <steam-dropdown label="Scraping"
-                        [links]="[{ label: 'Web Scraper', route: '/web-scraper' },
-                        { label: 'Manual Scraper', route: '/manual-mode-v2' }]"></steam-dropdown>
-                        <a routerLink="/games" routerLinkActive="active">Games</a>
+<div class="site-header">
+  <nav class="site-header__nav" aria-label="Primary navigation">
+    <a routerLink="/home" routerLinkActive="active">Home</a>
+    <a routerLink="/pricing" routerLinkActive="active">Pricing</a>
 
-                        <a routerLink="/game-urls" routerLinkActive="active">Game URLs</a>
+    @if (isLoggedIn) {
+      <steam-dropdown
+        label="Scraping"
+        [links]="[
+          { label: 'Web Scraper', route: '/web-scraper' },
+          { label: 'Manual Scraper', route: '/manual-mode-v2' }
+        ]">
+      </steam-dropdown>
+      <a routerLink="/games" routerLinkActive="active">Games</a>
+      <a routerLink="/game-urls" routerLinkActive="active">Game URLs</a>
+      <a routerLink="/products" routerLinkActive="active">Products</a>
+      <a routerLink="/tags" routerLinkActive="active">Tags</a>
+      <a routerLink="/pixels" routerLinkActive="active">Pixels</a>
+      <a routerLink="/wishlist" routerLinkActive="active">Game Wish List</a>
+      <a routerLink="/watch-list" routerLinkActive="active">Custom Watch List</a>
+    }
+  </nav>
 
-                        <a routerLink="/products" routerLinkActive="active">Products</a>
-<a routerLink="/tags" routerLinkActive="active">Tags</a>
-                <a routerLink="/pixels" routerLinkActive="active">Pixels</a>
-                <a routerLink="/wishlist" routerLinkActive="active">Game Wish List</a>
-                <a routerLink="/watch-list" routerLinkActive="active">Custom Watch List</a>
-        </div>}
-        <div class="flex space-x-4 items-center">
-                @if(isLoggedIn)
-                {
-                <app-countdown-timer [initialMs]="expiration" [showControls]="false" [startOnLoad]="true"
-                        comment="Remaining Session"></app-countdown-timer>
-                <span class="self-center text-green-600">Signed In ✅</span>
-                <a href="#" (click)="logout($event)">Logout</a>
-                }
-                @else
-                {
-                <a routerLink="/login" routerLinkActive="active">Login</a>
-                }
-        </div>
+  <div class="site-header__session">
+    @if(isLoggedIn) {
+      <app-countdown-timer
+        [initialMs]="expiration"
+        [showControls]="false"
+        [startOnLoad]="true"
+        comment="Remaining Session">
+      </app-countdown-timer>
+      <span class="site-header__user">
+        Signed in as {{ currentUser?.displayName ?? 'User' }}
+      </span>
+      <a routerLink="/profile" routerLinkActive="active">Profile</a>
+      <a href="#" (click)="logout($event)">Logout</a>
+    } @else {
+      <a routerLink="/login" routerLinkActive="active">Login</a>
+    }
+  </div>
 </div>
 <hr>

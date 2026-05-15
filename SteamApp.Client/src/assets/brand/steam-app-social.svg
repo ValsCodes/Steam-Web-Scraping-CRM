@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Steam Web Scraping CRM</title>
+  <desc id="desc">Social sharing image for the Steam Web Scraping CRM.</desc>
+  <rect width="1200" height="630" fill="#f8fafc"/>
+  <rect x="72" y="72" width="1056" height="486" rx="28" fill="#0f172a"/>
+  <rect x="112" y="116" width="256" height="398" rx="18" fill="#111827"/>
+  <rect x="408" y="116" width="680" height="398" rx="18" fill="#172033"/>
+  <path d="M458 380h560" stroke="#334155" stroke-width="18" stroke-linecap="round"/>
+  <path d="M188 394h112" stroke="#38bdf8" stroke-width="18" stroke-linecap="round"/>
+  <path d="M188 448h142" stroke="#a7f3d0" stroke-width="18" stroke-linecap="round"/>
+  <path d="M188 184h106" stroke="#e2e8f0" stroke-width="18" stroke-linecap="round"/>
+  <path d="M188 238h142" stroke="#94a3b8" stroke-width="18" stroke-linecap="round"/>
+  <path d="M462 350l110-126 118 76 116-148 160 88" fill="none" stroke="#38bdf8" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="462" cy="350" r="22" fill="#1d4ed8" stroke="#e0f2fe" stroke-width="10"/>
+  <circle cx="572" cy="224" r="22" fill="#0891b2" stroke="#e0f2fe" stroke-width="10"/>
+  <circle cx="690" cy="300" r="22" fill="#059669" stroke="#e0f2fe" stroke-width="10"/>
+  <circle cx="806" cy="152" r="22" fill="#f59e0b" stroke="#e0f2fe" stroke-width="10"/>
+  <circle cx="966" cy="240" r="22" fill="#dc2626" stroke="#e0f2fe" stroke-width="10"/>
+  <text x="456" y="462" fill="#f8fafc" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="700">Steam Web Scraping CRM</text>
+  <text x="456" y="512" fill="#cbd5e1" font-family="Arial, Helvetica, sans-serif" font-size="28">Market source control, scraping workflows, and monitoring.</text>
+</svg>

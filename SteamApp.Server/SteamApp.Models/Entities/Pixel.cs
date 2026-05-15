@@ -11,13 +11,13 @@ namespace SteamApp.Domain.Entities
         public long Id { get; set; }
 
         [Column("name")]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [Column("game_id")]
         [ForeignKey(nameof(Game))]
         public long GameId { get; set; }
         [InverseProperty(nameof(Game.Pixels))]
-        public Game Game { get; set; }
+        public Game Game { get; set; } = null!;
 
         [Column("r_value")]
         public long RedValue { get; set; }
@@ -27,6 +27,9 @@ namespace SteamApp.Domain.Entities
 
         [Column("b_value")]
         public long BlueValue { get; set; }
+
+        [Column("is_active")]
+        public bool IsActive { get; set; }
 
         public ICollection<GameUrlPixels> GameUrlsPixels { get; set; } = [];
     }

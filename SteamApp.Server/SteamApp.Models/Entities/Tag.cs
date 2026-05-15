@@ -14,10 +14,13 @@ public sealed class Tag
     [ForeignKey(nameof(Game))]
     public long GameId { get; set; }
     [InverseProperty(nameof(Game.Tags))]
-    public Game Game { get; set; }
+    public Game Game { get; set; } = null!;
 
     [Column("name")]
     public string? Name { get; set; }
+
+    [Column("is_active")]
+    public bool IsActive { get; set; }
 
     public ICollection<ProductTags> ProductTags { get; set; } = [];
 }

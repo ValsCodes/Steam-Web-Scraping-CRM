@@ -13,9 +13,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamApp.Tests", "..\SteamA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamApp.Domain", "..\SteamApp.Models\SteamApp.Domain.csproj", "{07F3FDBD-871A-47AD-8912-6083BD3D4082}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamApp.WebApiClient", "..\SteamApp.WebApiClient\SteamApp.WebApiClient.csproj", "{2BE861C8-13D6-452D-93B1-943121BBD9AC}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamApp.Application", "..\SteamApp.Application\SteamApp.Application.csproj", "{B9C3912D-62D7-424F-8F6D-0E75E367DEBC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamApp.Interfaces", "..\SteamApp.Interfaces\SteamApp.Interfaces.csproj", "{5B1453EF-165F-44A5-8F75-A51A75D2E4E5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamApp.IntegrationTests", "..\SteamApp.IntegrationTests\SteamApp.IntegrationTests.csproj", "{F953B745-7A26-4715-BC2C-115A6A7AFB60}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamApp.E2ETests", "..\SteamApp.E2ETests\SteamApp.E2ETests.csproj", "{B5B1C530-85AC-4D39-AE2B-E34FEAD29424}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,20 +43,30 @@ Global
 		{07F3FDBD-871A-47AD-8912-6083BD3D4082}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{07F3FDBD-871A-47AD-8912-6083BD3D4082}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{07F3FDBD-871A-47AD-8912-6083BD3D4082}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2BE861C8-13D6-452D-93B1-943121BBD9AC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2BE861C8-13D6-452D-93B1-943121BBD9AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2BE861C8-13D6-452D-93B1-943121BBD9AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2BE861C8-13D6-452D-93B1-943121BBD9AC}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B9C3912D-62D7-424F-8F6D-0E75E367DEBC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B9C3912D-62D7-424F-8F6D-0E75E367DEBC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B9C3912D-62D7-424F-8F6D-0E75E367DEBC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B9C3912D-62D7-424F-8F6D-0E75E367DEBC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B1453EF-165F-44A5-8F75-A51A75D2E4E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B1453EF-165F-44A5-8F75-A51A75D2E4E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B1453EF-165F-44A5-8F75-A51A75D2E4E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B1453EF-165F-44A5-8F75-A51A75D2E4E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F953B745-7A26-4715-BC2C-115A6A7AFB60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F953B745-7A26-4715-BC2C-115A6A7AFB60}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F953B745-7A26-4715-BC2C-115A6A7AFB60}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F953B745-7A26-4715-BC2C-115A6A7AFB60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B5B1C530-85AC-4D39-AE2B-E34FEAD29424}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B5B1C530-85AC-4D39-AE2B-E34FEAD29424}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B5B1C530-85AC-4D39-AE2B-E34FEAD29424}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B5B1C530-85AC-4D39-AE2B-E34FEAD29424}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{4AA67631-44D7-47C2-96DE-4C5697348CC7} = {23836989-55FB-4545-AEAB-13FDE514F01A}
+		{F953B745-7A26-4715-BC2C-115A6A7AFB60} = {23836989-55FB-4545-AEAB-13FDE514F01A}
+		{B5B1C530-85AC-4D39-AE2B-E34FEAD29424} = {23836989-55FB-4545-AEAB-13FDE514F01A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1E283A1D-69BE-484E-966A-0C1326A61517}

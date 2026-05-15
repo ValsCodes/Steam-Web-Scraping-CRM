@@ -7,13 +7,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.JsonPatch" Version="9.0.11" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.2" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
+    <PackageReference Include="DotNetSeleniumExtras.WaitHelpers" Version="3.11.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.15" />
+    <PackageReference Include="Microsoft.AspNetCore.JsonPatch" Version="9.0.15" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.15" />
+    <PackageReference Include="Selenium.Support" Version="4.43.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.15" />
+    <PackageReference Include="MailKit" Version="4.16.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\SteamApp.Application\SteamApp.Application.csproj" />
+    <ProjectReference Include="..\SteamApp.Interfaces\SteamApp.Interfaces.csproj" />
     <ProjectReference Include="..\SteamApp.Models\SteamApp.Domain.csproj" />
   </ItemGroup>
 

@@ -5,7 +5,8 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using SteamApp.WebAPI.Context;
+using SteamApp.Infrastructure.Context;
+
 
 #nullable disable
 
@@ -13,7 +14,7 @@ namespace SteamApp.WebAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20260120212257_game-url-name")]
-    partial class gameurlname
+    partial class GameUrlName
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

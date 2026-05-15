@@ -11,12 +11,12 @@ namespace SteamApp.Domain.Entities
         [ForeignKey(nameof(GameUrl))]
         public long GameUrlId { get; set; }
         [InverseProperty(nameof(GameUrl.GameUrlsProducts))]
-        public GameUrl GameUrl { get; set; }
+        public GameUrl GameUrl { get; set; } = null!;
 
         [Column("product_id")]
         [ForeignKey(nameof(Product))]
         public long ProductId { get; set; }
         [InverseProperty(nameof(Product.GameUrlsProducts))]
-        public Product Product { get; set; }
+        public Product Product { get; set; } = null!;
     }
 }

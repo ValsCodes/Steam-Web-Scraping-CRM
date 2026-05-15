@@ -285,6 +285,10 @@ FakesAssemblies/
 .ntvs_analysis.dat
 node_modules/
 
+# Local Docker Compose environment files
+env/*.env
+!env/*.env.example
+
 # Visual Studio 6 build log
 *.plg
 

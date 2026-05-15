@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/integration",
+    "target": "ES2016",
+    "types": [
+      "jest",
+      "node"
+    ]
+  },
+  "include": [
+    "setup-jest.ts",
+    "src/**/*.integration.test.ts",
+    "src/**/*.d.ts"
+  ]
+}

@@ -1,20 +1,40 @@
-import { Component, OnInit, ViewChild, signal, computed, effect } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ViewChild,
+  signal,
+  computed,
+  effect,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatDialog } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { Router } from '@angular/router';
-import { Game } from '../../../models/game.model';
+import { Game, UpdateGameStatus } from '../../../models/game.model';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { GameService } from '../../../services/game/game.service';
+import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import * as XLSX from 'xlsx';
+import { finalize } from 'rxjs';
+import { safeExternalUrl } from '../../../common';
 
 @Component({
   selector: 'steam-games-view',
+  standalone: true,
   imports: [
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
     CommonModule,
     ReactiveFormsModule,
   ],
@@ -22,13 +42,18 @@ import * as XLSX from 'xlsx';
   styleUrl: './games-view.scss',
 })
 export class GamesView implements OnInit {
-  displayedColumns: string[] = ['name', 'pageUrl', 'actions'];
+  readonly safeExternalUrl = safeExternalUrl;
+
+  displayedColumns: string[] = ['name', 'internalId', 'isActive', 'actions'];
 
   searchByName = new FormControl<string>('', { nonNullable: true });
 
   // signals
   readonly games = signal<readonly Game[]>([]);
   readonly nameFilter = signal<string>('');
+  isGridLoading = false;
+  pageSize = 25;
+  readonly pageSizeOptions = [10, 25, 50, 100];
 
   readonly gamesFiltered = computed<readonly Game[]>(() => {
     const filter = this.nameFilter().trim().toLowerCase();
@@ -38,10 +63,13 @@ export class GamesView implements OnInit {
       return list;
     }
 
-    return list.filter(g => g.name.toLowerCase().includes(filter));
+    return list.filter((g) => g.name.toLowerCase().includes(filter));
   });
 
   readonly dataSource = new MatTableDataSource<Game>([]);
+  private readonly dialog = inject(MatDialog);
+  private readonly deletingIds = new Set<number>();
+  private readonly statusUpdatingIds = new Set<number>();
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -49,6 +77,7 @@ export class GamesView implements OnInit {
   constructor(
     private readonly gameService: GameService,
     private readonly router: Router,
+    private readonly cdr: ChangeDetectorRef,
   ) {
     effect(() => {
       this.dataSource.data = [...this.gamesFiltered()];
@@ -67,7 +96,12 @@ export class GamesView implements OnInit {
   }
 
   exportButtonClicked(): void {
-    const dataToExport = this.dataSource.data;
+    const dataToExport = this.dataSource.data.map((game) => ({
+      name: game.name,
+      pageUrl: game.pageUrl,
+      internalId: game.internalId,
+      isActive: game.isActive,
+    }));
 
     const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook: XLSX.WorkBook = XLSX.utils.book_new();
@@ -77,15 +111,47 @@ export class GamesView implements OnInit {
     XLSX.writeFile(workbook, `Export_${today.toDateString()}_Games.xlsx`);
   }
 
-  fetchGames(): void {
-    this.gameService.getAll().subscribe({
-      next: (games) => {
-        this.games.set(games);
+  refreshButtonClicked(): void {
+    this.fetchGames();
+  }
 
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.sort = this.sort;
-      },
-    });
+  pageSizeChanged(value: string | number): void {
+    const pageSize = Number(value);
+    if (Number.isNaN(pageSize) || pageSize <= 0 || this.pageSize === pageSize) {
+      return;
+    }
+
+    this.pageSize = pageSize;
+
+    if (this.paginator) {
+      this.paginator.pageSize = pageSize;
+      this.paginator.firstPage();
+      this.dataSource.data = [...this.dataSource.data];
+      this.cdr.markForCheck();
+    }
+  }
+
+  fetchGames(): void {
+    this.isGridLoading = true;
+    this.cdr.markForCheck();
+
+    this.gameService
+      .getAll()
+      .pipe(
+        finalize(() => {
+          this.isGridLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: (games) => {
+          this.games.set(games);
+
+          this.dataSource.paginator = this.paginator;
+          this.paginator.pageSize = this.pageSize;
+          this.dataSource.sort = this.sort;
+        },
+      });
   }
 
   clearFilters(): void {
@@ -101,9 +167,81 @@ export class GamesView implements OnInit {
     this.router.navigate(['/games/edit', id]);
   }
 
+  activeButtonClicked(game: Game): void {
+    if (this.isStatusUpdating(game.id)) {
+      return;
+    }
+
+    const nextIsActive = !game.isActive;
+
+    const input: UpdateGameStatus = {
+      id: game.id,
+      isActive: nextIsActive,
+    };
+
+    this.statusUpdatingIds.add(game.id);
+
+    this.gameService
+      .updateStatus(input)
+      .pipe(
+        finalize(() => {
+          this.statusUpdatingIds.delete(game.id);
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe(() => {
+        this.games.set(
+          this.games().map((x) => (x.id === game.id ? { ...x, isActive: nextIsActive } : x)),
+        );
+      });
+  }
+
   deleteButtonClicked(id: number): void {
-    this.gameService.delete(id).subscribe({
-      next: () => this.fetchGames(),
-    });
+    if (this.isDeleting(id)) {
+      return;
+    }
+
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '420px',
+        data: {
+          title: 'Delete Game',
+          subtitle: 'This action cannot be undone.',
+          message: 'Are you sure you want to delete this Game?',
+          confirmText: 'Delete',
+          cancelText: 'Cancel',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) {
+          return;
+        }
+
+        this.deletingIds.add(id);
+        this.cdr.markForCheck();
+
+        this.gameService
+          .delete(id)
+          .pipe(
+            finalize(() => {
+              this.deletingIds.delete(id);
+              this.cdr.markForCheck();
+            }),
+          )
+          .subscribe({
+            next: () => {
+              this.fetchGames();
+            },
+          });
+      });
+  }
+
+  isDeleting(id: number): boolean {
+    return this.deletingIds.has(id);
+  }
+
+  isStatusUpdating(id: number): boolean {
+    return this.statusUpdatingIds.has(id);
   }
 }

@@ -1,0 +1,46 @@
+<div class="pricing">
+  <section class="pricing__hero">
+    <span class="pricing__eyebrow">Subscription Plans</span>
+    <h1>Choose the right operating level for Steam market intelligence.</h1>
+    <p>
+      Start with a focused setup, then scale into richer scraping, monitoring, exports, and
+      worker-backed automation as your workflow grows.
+    </p>
+  </section>
+
+  <section class="pricing__section" aria-labelledby="pricing-plans-heading">
+    <div class="pricing__heading">
+      <span>Plans</span>
+      <h2 id="pricing-plans-heading">Three tiers for catalog, scraping, and monitoring work</h2>
+    </div>
+
+    <div class="plans">
+      @for (plan of plans; track plan.name) {
+        <article
+          class="plan"
+          [class.plan--free]="plan.accent === 'free'"
+          [class.plan--tier1]="plan.accent === 'tier1'"
+          [class.plan--tier3]="plan.accent === 'tier2'"
+          [class.plan--recommended]="plan.recommended"
+        >
+          @if (plan.recommended) {
+            <span class="plan__badge">Recommended</span>
+          }
+
+          <div class="plan__header">
+            <h3>{{ plan.name }}</h3>
+            <p>{{ plan.description }}</p>
+          </div>
+
+          <ul class="plan__benefits">
+            @for (benefit of plan.benefits; track benefit) {
+              <li>{{ benefit }}</li>
+            }
+          </ul>
+
+          <a class="plan__cta" routerLink="/login">{{ plan.cta }}</a>
+        </article>
+      }
+    </div>
+  </section>
+</div>

@@ -1,7 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SteamApp.Application.DTOs.GameUrlPixel;
 using SteamApp.Domain.Entities;
-using SteamApp.WebAPI.Context;
+using SteamApp.Infrastructure.Context;
+using SteamApp.WebAPI.Security;
 
 namespace SteamApp.WebAPI.MinimalAPIs;
 
@@ -11,7 +12,8 @@ public static class GameUrlPixelsEndpoints
     {
         var group = app.MapGroup("api/game-url-pixels")
                        .WithTags("GameUrlPixels")
-                       .RequireAuthorization();
+                       .RequireAuthorization(SecurityPolicies.ApiUser)
+                       .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
 
         // GET: /api/game-url-pixels
         group.MapGet("/", async (ApplicationDbContext db) =>

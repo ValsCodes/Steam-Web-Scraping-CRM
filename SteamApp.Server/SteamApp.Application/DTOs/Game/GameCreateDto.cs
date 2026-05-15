@@ -2,9 +2,14 @@
 {
     public class GameCreateDto
     {
-        public string Name { get; set; }
-        public string BaseUrl { get; set; }
+        public string Name { get; set; } = string.Empty;
+
+        public string BaseUrl { get; set; } = string.Empty;
 
         public string? PageUrl { get; set; }
+
+        public long? InternalId { get; set; }
+
+        public bool IsActive { get; set; }
     }
 }

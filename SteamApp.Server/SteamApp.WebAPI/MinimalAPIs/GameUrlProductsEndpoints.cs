@@ -1,20 +1,22 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SteamApp.Application.DTOs.GameUrlProduct;
 using SteamApp.Domain.Entities;
-using SteamApp.WebAPI.Context;
-using SteamApp.WebAPI.Helpers;
+using SteamApp.Infrastructure.Context;
+using SteamApp.Application.Utilities;
+using SteamApp.WebAPI.Security;
 
 namespace SteamApp.WebAPI.MinimalAPIs;
 
 public static class GameUrlProductsEndpoints
 {
-    public static IEnumerable<string> Tags { get; private set; }
+    public static IEnumerable<string> Tags { get; private set; } = [];
 
     public static WebApplication MapGameUrlProductsEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("api/game-url-products")
                        .WithTags("GameUrlProducts")
-                       .RequireAuthorization();
+                       .RequireAuthorization(SecurityPolicies.ApiUser)
+                       .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
 
         // GET: /api/game-url-products
         group.MapGet("/", async (ApplicationDbContext db) =>
@@ -27,9 +29,12 @@ public static class GameUrlProductsEndpoints
                     ProductName = x.Product.Name,
                     x.GameUrlId,
                     GameUrlName = x.GameUrl.Name,
-                    x.GameUrl.IsBatchUrl,
+                    x.GameUrl.ScrapingModeId,
+                    ScrapingModeName = x.GameUrl.ScrapingMode != null ? x.GameUrl.ScrapingMode.Name : null,
                     Tags = x.Product.ProductTags.Select(y => y.Tag.Name),
-                    FullUrl = x.GameUrl.PartialUrl + UrlUtilities.UrlEncode(x.Product.Name),
+                    FullUrl = x.Product.Name != null
+                        ? x.GameUrl.PartialUrl + UrlUtilities.UrlEncode(x.Product.Name)
+                        : x.GameUrl.PartialUrl,
                     x.Product.IsActive,
                     x.Product.Rating,
                 })
@@ -69,8 +74,12 @@ public static class GameUrlProductsEndpoints
                     ProductName = x.Product.Name,
                     x.GameUrlId,
                     GameUrlName = x.GameUrl.Name,
+                    x.GameUrl.ScrapingModeId,
+                    ScrapingModeName = x.GameUrl.ScrapingMode != null ? x.GameUrl.ScrapingMode.Name : null,
                     Tags = x.Product.ProductTags.Select(y => y.Tag.Name),
-                    FullUrl = x.GameUrl.PartialUrl + UrlUtilities.UrlEncode(x.Product.Name),
+                    FullUrl = x.Product.Name != null
+                        ? x.GameUrl.PartialUrl + UrlUtilities.UrlEncode(x.Product.Name)
+                        : x.GameUrl.PartialUrl,
                     x.Product.IsActive,
                     x.Product.Rating,
 

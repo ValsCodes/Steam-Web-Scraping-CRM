@@ -7,6 +7,7 @@ export interface Product {
   isActive: boolean;
   tags: string[];
   rating?: number | null;
+  gameInternalId?: number | null;
 }
 
 export interface CreateProduct {

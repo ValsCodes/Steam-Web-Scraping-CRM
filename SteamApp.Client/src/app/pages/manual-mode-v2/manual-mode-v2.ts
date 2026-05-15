@@ -10,14 +10,24 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { BehaviorSubject, startWith, Subject, takeUntil } from 'rxjs';
 import * as XLSX from 'xlsx';
 
-import { Game, GameUrl, GameUrlProduct, Tag } from '../../models';
+import {
+  Game,
+  GameUrl,
+  GameUrlProduct,
+  ScrapingMode,
+  ScrapingModeEnum,
+  Tag,
+} from '../../models';
 import {
   GameService,
   GameUrlProductService,
   GameUrlService,
+  ScrapingModeService,
   TagService,
 } from '../../services';
 import { CopyLinkComponent } from '../../components';
+import { MatTooltip } from "@angular/material/tooltip";
+import { openSafeExternalUrl, safeExternalUrl } from '../../common';
 
 @Component({
   selector: 'steam-manual-mode-v2',
@@ -27,15 +37,20 @@ import { CopyLinkComponent } from '../../components';
     CommonModule,
     ReactiveFormsModule,
     CopyLinkComponent,
-  ],
+    MatTooltip
+],
   templateUrl: './manual-mode-v2.html',
   styleUrl: './manual-mode-v2.scss',
 })
 export class ManualModeV2 implements OnInit, OnDestroy {
-  currentIndex: number | null = null;
-  batchSize: number | null = null;
+  readonly safeExternalUrl = safeExternalUrl;
+
+  currentIndex: number | null = 1;
+  batchSize: number | null = 1;
+  readonly ratingOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
   readonly games$ = new BehaviorSubject<readonly Game[]>([]);
+  readonly scrapingModes$ = new BehaviorSubject<readonly ScrapingMode[]>([]);
   readonly gameUrlsFiltered$ = new BehaviorSubject<readonly GameUrl[]>([]);
 
   selectedGameUrl: GameUrl | null = null;
@@ -44,6 +59,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   productsFiltered: GameUrlProduct[] = [];
 
   readonly gameIdControl = new FormControl<number | null>(null);
+  readonly scrapingModeIdControl = new FormControl<number | null>(null);
   readonly gameUrlIdControl = new FormControl<number | null>(null);
 
   readonly searchByNameFilterControl = new FormControl<string>('', {
@@ -70,19 +86,27 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     private readonly gameService: GameService,
     private readonly gameUrlService: GameUrlService,
     private readonly gameUrlProductService: GameUrlProductService,
+    private readonly scrapingModeService: ScrapingModeService,
     private readonly tagsService: TagService,
     private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.loadGames();
+    this.loadScrapingModes();
     this.loadGameUrls();
     this.loadGameTags();
 
     this.gameIdControl.valueChanges
       .pipe(startWith(this.gameIdControl.value), takeUntil(this.destroy$))
       .subscribe((gameId) => {
-        this.applyGameFilter(gameId);
+        this.applySourceFilters(gameId, this.scrapingModeIdControl.value);
+      });
+
+    this.scrapingModeIdControl.valueChanges
+      .pipe(startWith(this.scrapingModeIdControl.value), takeUntil(this.destroy$))
+      .subscribe((scrapingModeId) => {
+        this.applySourceFilters(this.gameIdControl.value, scrapingModeId);
       });
 
     this.gameUrlIdControl.valueChanges
@@ -101,8 +125,9 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
         this.clearBatchButtonClicked();
 
-        if (this.selectedGameUrl?.isBatchUrl) {
-          this.currentIndex = this.selectedGameUrl.startPage ?? null;
+        const selectedGameUrl = this.selectedGameUrl;
+        if (this.isBatchMode(selectedGameUrl)) {
+          this.currentIndex = selectedGameUrl?.startPage ?? null;
           this.batchSize = this.currentIndex === null ? null : 5;
         }
 
@@ -151,6 +176,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
   clearButtonClicked(): void {
     this.gameIdControl.setValue(null);
+    this.scrapingModeIdControl.setValue(null);
     this.gameUrlIdControl.setValue(null);
 
     this.products = [];
@@ -182,14 +208,13 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     let blocked = false;
 
     for (let i = 0; i < this.productsFiltered.length && i < 5; i++) {
-      const newWindow = window.open(this.productsFiltered[i].fullUrl, '_blank');
-      if (!newWindow || newWindow.closed) {
+      if (!openSafeExternalUrl(this.productsFiltered[i].fullUrl)) {
         blocked = true;
       }
     }
 
     if (blocked) {
-      alert('Pop-ups were blocked. Please enable pop-ups for this website.');
+      alert('Some links were not opened because they are not trusted HTTPS URLs.');
     }
   }
 
@@ -209,20 +234,19 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
     let blocked = false;
 
-    if (this.selectedGameUrl?.isBatchUrl === true) {
+    const selectedGameUrl = this.selectedGameUrl;
+    if (this.isBatchMode(selectedGameUrl)) {
       for (; currentIndex < toPage; currentIndex++) {
         if (currentIndex - 1 > toPage || currentIndex < 0) {
           break;
         }
 
-        const url = (this.selectedGameUrl.partialUrl ?? '').replace(
+        const url = (selectedGameUrl?.partialUrl ?? '').replace(
           '{0}',
           String(currentIndex),
         );
 
-        const newWindow = window.open(url, '_blank');
-
-        if (!newWindow || newWindow.closed) {
+        if (!openSafeExternalUrl(url)) {
           blocked = true;
         }
       }
@@ -232,19 +256,14 @@ export class ManualModeV2 implements OnInit, OnDestroy {
           break;
         }
 
-        const newWindow = window.open(
-          this.productsFiltered[currentIndex - 1].fullUrl,
-          '_blank',
-        );
-
-        if (!newWindow || newWindow.closed) {
+        if (!openSafeExternalUrl(this.productsFiltered[currentIndex - 1].fullUrl)) {
           blocked = true;
         }
       }
     }
 
     if (blocked) {
-      alert('Pop-ups were blocked. Please enable pop-ups for this website.');
+      alert('Some links were not opened because they are not trusted HTTPS URLs.');
     }
 
     this.currentIndex = currentIndex;
@@ -334,13 +353,34 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     return product.productId;
   }
 
+  isBatchMode(gameUrl: GameUrl | null): boolean {
+    return (
+      gameUrl?.scrapingModeId === ScrapingModeEnum.Batch ||
+      gameUrl?.scrapingModeId === ScrapingModeEnum.PixelBatch
+    );
+  }
+
   private loadGames(): void {
     this.gameService
       .getAll()
       .pipe(takeUntil(this.destroy$))
       .subscribe((games) => {
-        this.games = games;
-        this.games$.next(games);
+        this.games = games.filter((game) => game.isActive);
+        this.games$.next(this.games);
+        this.cdr.markForCheck();
+      });
+  }
+
+  private loadScrapingModes(): void {
+    this.scrapingModeService
+      .getAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((scrapingModes) => {
+        this.scrapingModes$.next(
+          [...scrapingModes]
+            .filter((mode) => mode.id !== ScrapingModeEnum.PublicApi)
+            .sort((a, b) => a.id - b.id),
+        );
         this.cdr.markForCheck();
       });
   }
@@ -351,15 +391,10 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((urls) => {
         this.gameUrlsAll = urls
-          .filter((url) => url.isPublicApi === false)
-          .map((url) => {
-            if (url.isBatchUrl === true) {
-              return { ...url, name: `${url.name} - [ Batch ]` };
-            }
-            return url;
-          });
+          .filter((url) => url.isActive)
+          .filter((url) => url.scrapingModeId !== ScrapingModeEnum.PublicApi);
 
-        this.applyGameFilter(this.gameIdControl.value);
+        this.applySourceFilters(this.gameIdControl.value, this.scrapingModeIdControl.value);
       });
   }
 
@@ -368,12 +403,12 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       .getAll()
       .pipe(takeUntil(this.destroy$))
       .subscribe((tags) => {
-        this.gameTagsAll = tags;
-        this.applyGameFilter(this.gameIdControl.value);
+        this.gameTagsAll = tags.filter((tag) => tag.isActive);
+        this.applySourceFilters(this.gameIdControl.value, this.scrapingModeIdControl.value);
       });
   }
 
-  private applyGameFilter(gameId: number | null): void {
+  private applySourceFilters(gameId: number | null, scrapingModeId: number | null): void {
     this.tagsFilter = [];
     this.tagSelectControl.setValue(null, { emitEvent: false });
 
@@ -392,7 +427,17 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       return;
     }
 
-    const urls = this.gameUrlsAll.filter((url) => url.gameId === gameId);
+    const urls = this.gameUrlsAll.filter((url) => {
+      if (url.gameId !== gameId) {
+        return false;
+      }
+
+      if (scrapingModeId !== null && url.scrapingModeId !== scrapingModeId) {
+        return false;
+      }
+
+      return true;
+    });
     this.gameUrlsFiltered$.next(urls);
 
     this.gameTagsFilter = this.gameTagsAll.filter((tag) => tag.gameId === gameId);

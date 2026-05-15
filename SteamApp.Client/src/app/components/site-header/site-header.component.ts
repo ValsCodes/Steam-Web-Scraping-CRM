@@ -3,7 +3,7 @@ import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
 
-import { AuthService } from '../../services/auth/auth.service';
+import { AuthService, CurrentUser } from '../../services/auth/auth.service';
 import { CountdownTimerComponent } from '../countdown-timer.component';
 import { DropdownComponent } from '../dropdown/dropdown.component';
 
@@ -24,6 +24,7 @@ export class SiteHeaderComponent implements OnInit, OnDestroy {
 
   isLoggedIn = false;
   expiration = 0;
+  currentUser: CurrentUser | null = null;
 
   constructor(
     private readonly auth: AuthService,
@@ -38,6 +39,12 @@ export class SiteHeaderComponent implements OnInit, OnDestroy {
         this.expiration = loggedIn
           ? this.auth.getTimeBeforeExpiration()
           : 0;
+      });
+
+    this.auth.currentUser$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((user) => {
+        this.currentUser = user;
       });
   }
 

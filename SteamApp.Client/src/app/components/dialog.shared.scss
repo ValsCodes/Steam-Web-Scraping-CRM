@@ -1,0 +1,85 @@
+/* dialog.shared.scss */
+.dialog {
+  padding: 24px;
+  max-width: 460px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.icon-wrap.error {
+  background: #fdecea;
+  color: #b3261e;
+}
+
+.icon-wrap.success {
+  background: #eaf7ee;
+  color: #1e8e3e;
+}
+
+.icon-wrap.info {
+  background: #eaf4fd;
+  color: #1d4ed8;
+}
+
+.icon-wrap.warn {
+  background: #fff4e5;
+  color: #b26a00;
+}
+
+.icon-wrap mat-icon {
+  font-size: 26px;
+  width: 26px;
+  height: 26px;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #1f1f1f;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.message-box {
+  margin-top: 8px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #f8f8f8;
+  border: 1px solid #e5e5e5;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+button {
+  min-width: 92px;
+}

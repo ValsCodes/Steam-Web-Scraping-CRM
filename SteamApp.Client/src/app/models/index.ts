@@ -9,6 +9,7 @@ export * from './game-url-product.model';
 export * from './tag.model';
 export * from './product-tag.model';
 export * from './game-url-pixel.model';
+export * from './scraping-mode.model';
 
 
 

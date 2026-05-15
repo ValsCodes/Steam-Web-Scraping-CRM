@@ -1,10 +1,13 @@
-﻿using AutoMapper;
+using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.Game;
 using SteamApp.Domain.Entities;
-using SteamApp.WebAPI.Context;
+using SteamApp.Infrastructure.Context;
+using SteamApp.WebAPI.Contracts.Pagination;
+using SteamApp.WebAPI.Security;
 
 namespace SteamApp.WebAPI.MinimalAPIs
 {
@@ -14,7 +17,8 @@ namespace SteamApp.WebAPI.MinimalAPIs
         {
             var group = app.MapGroup("api/games")
                .WithTags("Games")
-               .RequireAuthorization();
+               .RequireAuthorization(SecurityPolicies.ApiUser)
+               .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
 
             // GET: /api/games
             group.MapGet("/", async (
@@ -26,6 +30,58 @@ namespace SteamApp.WebAPI.MinimalAPIs
             })
             .WithName("GetAllGames")
             .Produces<List<GameDto>>(StatusCodes.Status200OK);
+
+            // GET: /api/games/paged
+            group.MapGet("/paged", async (
+                ApplicationDbContext db,
+                [AsParameters] GamesPageQuery request,
+                CancellationToken ct) =>
+            {
+                var query = db.Games.AsNoTracking();
+
+                if (!string.IsNullOrWhiteSpace(request.Name))
+                {
+                    var nameFilter = request.Name.Trim();
+                    query = query.Where(x => x.Name != null && x.Name.Contains(nameFilter));
+                }
+
+                query = request.SortBy switch
+                {
+                    "name" => request.IsDescending
+                        ? query.OrderByDescending(x => x.Name).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.Name).ThenBy(x => x.Id),
+                    "pageUrl" => request.IsDescending
+                        ? query.OrderByDescending(x => x.PageUrl).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.PageUrl).ThenBy(x => x.Id),
+                    "internalId" => request.IsDescending
+                        ? query.OrderByDescending(x => x.InternalId).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.InternalId).ThenBy(x => x.Id),
+                    "isActive" => request.IsDescending
+                        ? query.OrderByDescending(x => x.IsActive).ThenByDescending(x => x.Id)
+                        : query.OrderBy(x => x.IsActive).ThenBy(x => x.Id),
+                    _ => query.OrderBy(x => x.Id),
+                };
+
+                var totalCount = await query.CountAsync(ct);
+                var pageWindow = request.ToPageWindow(totalCount);
+
+                var items = await query
+                    .ApplyPage(pageWindow)
+                    .Select(x => new GameDto
+                    {
+                        Id = x.Id,
+                        Name = x.Name ?? string.Empty,
+                        BaseUrl = x.BaseUrl ?? string.Empty,
+                        PageUrl = x.PageUrl,
+                        InternalId = x.InternalId,
+                        IsActive = x.IsActive,
+                    })
+                    .ToListAsync(ct);
+
+                return Results.Ok(pageWindow.ToPagedResponse(items));
+            })
+            .WithName("GetPagedGames")
+            .Produces(StatusCodes.Status200OK);
 
             // GET: /api/games/{id}
             group.MapGet("/{id:long}", async (
@@ -65,7 +121,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 long id,
                 GameUpdateDto input,
                 ApplicationDbContext db,
-                IMapper mapper, 
+                IMapper mapper,
                 IMemoryCache cache) =>
             {
                 var entity = await db.Games.FindAsync(id);
@@ -89,10 +145,30 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 long id,
                 ApplicationDbContext db, IMemoryCache cache) =>
             {
-                var entity = await db.Games.FindAsync(id);
-                if (entity is null) { return Results.NotFound(); }
+                var exists = await db.Games
+                   .Where(x => x.Id == id)
+                   .Select(x => new
+                   {
+                       HasDependencies =
+                           x.GameUrls.Any() ||
+                           x.Products.Any() ||
+                           x.WishLists.Any() ||
+                           x.Tags.Any() ||
+                           x.Pixels.Any()
+                   })
+                   .FirstOrDefaultAsync();
 
-                db.Games.Remove(entity);
+                if (exists is null)
+                {
+                    return Results.NotFound();
+                }
+
+                if (exists.HasDependencies)
+                {
+                    return Results.BadRequest(new { message = "Game cannot be deleted" });
+                }
+
+                db.Games.Remove(new Game { Id = id });
                 await db.SaveChangesAsync();
 
                 var cacheKey = string.Format(CacheKeys.Game, id);
@@ -104,7 +180,36 @@ namespace SteamApp.WebAPI.MinimalAPIs
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
 
+            // PATCH: /api/games/{id}
+            group.MapPatch("/{id:long}", async (
+                GameUpdateStatusDto input,
+                ApplicationDbContext db,
+                IMemoryCache cache) =>
+            {
+                var entity = await db.Games.FindAsync(input.Id);
+                if (entity is null) { return Results.NotFound(); }
+
+                if (entity.IsActive != input.IsActive)
+                {
+                    entity.IsActive = input.IsActive;
+                    await db.SaveChangesAsync();
+                }
+
+                var cacheKey = string.Format(CacheKeys.Game, input.Id);
+                cache.Remove(cacheKey);
+
+                return Results.NoContent();
+            })
+            .WithName("UpdateGameStatus")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status404NotFound);
+
             return app;
         }
+    }
+
+    public sealed record GamesPageQuery : PagedQuery
+    {
+        public string? Name { get; init; }
     }
 }

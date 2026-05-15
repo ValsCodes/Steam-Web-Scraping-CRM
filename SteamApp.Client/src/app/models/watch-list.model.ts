@@ -19,3 +19,8 @@ export interface UpdateWatchList {
   registrationDate: string;
   isActive: boolean;
 }
+
+export interface UpdateWatchListStatus {
+  id: number;
+  isActive: boolean;
+}

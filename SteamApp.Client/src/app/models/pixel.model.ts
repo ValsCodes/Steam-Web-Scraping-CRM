@@ -5,6 +5,7 @@ export interface Pixel {
   greenValue: number;
   blueValue: number;
   gameId: number;
+  isActive: boolean;
 }
 
 export interface PixelListItem extends Pixel {
@@ -17,6 +18,7 @@ export interface CreatePixel {
   greenValue: number;
   blueValue: number;
   gameId: number;
+  isActive: boolean;
 }
 
 export interface UpdatePixel {
@@ -25,4 +27,10 @@ export interface UpdatePixel {
   greenValue: number;
   blueValue: number;
   gameId: number;
+  isActive?: boolean | null;
+}
+
+export interface UpdatePixelStatus {
+  id: number;
+  isActive: boolean;
 }

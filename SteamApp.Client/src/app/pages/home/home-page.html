@@ -1,0 +1,142 @@
+<div class="home-shell">
+  <section class="hero">
+    <div class="hero__content">
+      <div class="hero__eyebrow">Steam Web Scraping CRM</div>
+      <h1>Operate Steam market intelligence from one control surface.</h1>
+      <p class="hero__lead">
+        Manage source configuration, catalog metadata, wish and watch monitoring,
+        and scraping workflows through the Angular workspace backed by the .NET API.
+      </p>
+
+      <div class="hero__actions">
+        <a routerLink="/web-scraper" class="hero__button hero__button--primary">
+          Open Web Scraper
+        </a>
+        <a routerLink="/games" class="hero__button hero__button--secondary">
+          Open Catalog
+        </a>
+      </div>
+    </div>
+
+    <div class="hero__panel">
+      @for (card of spotlightCards; track card.title) {
+        <a
+          [routerLink]="card.route"
+          class="spotlight-card"
+          [class.spotlight-card--catalog]="card.accent === 'catalog'"
+          [class.spotlight-card--ops]="card.accent === 'ops'"
+          [class.spotlight-card--scrape]="card.accent === 'scrape'">
+          <span class="spotlight-card__category">{{ card.category }}</span>
+          <strong>{{ card.title }}</strong>
+          <p>{{ card.description }}</p>
+          <span class="spotlight-card__cta">{{ card.cta }}</span>
+        </a>
+      }
+    </div>
+  </section>
+
+  <section class="section section--compact">
+    <div class="section__heading">
+      <span class="section__eyebrow">Platform Summary</span>
+      <h2>Built for configuration, monitoring, and scraping operations</h2>
+      <p>
+        The product documentation describes SteamApp as an operational platform
+        for flexible source configuration, relation-driven administration,
+        filter-first analysis, Excel export, and backend automation.
+      </p>
+    </div>
+
+    <div class="principles">
+      <article class="principle">
+        <h3>Catalog and Configuration</h3>
+        <p>
+          Keep games, URLs, products, pixels, and tags aligned so each scraping
+          scenario starts from a reliable source model.
+        </p>
+      </article>
+
+      <article class="principle">
+        <h3>Operational Monitoring</h3>
+        <p>
+          Use wish and watch logic to track price conditions and reduce repetitive
+          manual monitoring work.
+        </p>
+      </article>
+
+      <article class="principle">
+        <h3>Scraping and Analysis</h3>
+        <p>
+          Run page, public API, and pixel-based workflows, then review and export
+          the results from the admin UI.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__heading">
+      <span class="section__eyebrow">Core Workspaces</span>
+      <h2>Jump into the part of the platform you need right now</h2>
+    </div>
+
+    <div class="workspace-grid">
+      @for (workspace of workspaces; track workspace.title) {
+        <a
+          [routerLink]="workspace.route"
+          class="workspace-card"
+          [class.workspace-card--catalog]="workspace.accent === 'catalog'"
+          [class.workspace-card--ops]="workspace.accent === 'ops'"
+          [class.workspace-card--scrape]="workspace.accent === 'scrape'">
+          <span class="workspace-card__category">{{ workspace.category }}</span>
+          <h3>{{ workspace.title }}</h3>
+          <p>{{ workspace.description }}</p>
+          <span class="workspace-card__cta">{{ workspace.cta }}</span>
+        </a>
+      }
+    </div>
+  </section>
+
+  <section class="section section--split">
+    <div class="section__heading">
+      <span class="section__eyebrow">Critical Flows</span>
+      <h2>Common paths mapped directly from the project docs</h2>
+    </div>
+
+    <div class="workflow-grid">
+      @for (workflow of workflows; track workflow.title) {
+        <article class="workflow-card">
+          <h3>{{ workflow.title }}</h3>
+          <p>{{ workflow.summary }}</p>
+
+          <ol>
+            @for (step of workflow.steps; track step) {
+              <li>{{ step }}</li>
+            }
+          </ol>
+        </article>
+      }
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__heading">
+      <span class="section__eyebrow">Architecture</span>
+      <h2>Frontend, API, and workers aligned around one domain model</h2>
+      <p>
+        The current repository separates the Angular client, ASP.NET Core API,
+        and SQL-backed infrastructure so UI workflows, protected endpoints, and
+        background processing stay cleanly bounded.
+      </p>
+    </div>
+
+    <div class="architecture-grid">
+      @for (card of architectureCards; track card.title) {
+        <article class="architecture-card">
+          <h3>{{ card.title }}</h3>
+          <span>{{ card.subtitle }}</span>
+          <p>{{ card.description }}</p>
+        </article>
+      }
+    </div>
+  </section>
+</div>

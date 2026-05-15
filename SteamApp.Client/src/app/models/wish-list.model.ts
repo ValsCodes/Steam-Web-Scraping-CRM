@@ -20,3 +20,8 @@ export interface UpdateWishList {
   name?: string | null;
   isActive: boolean;
 }
+
+export interface UpdateWishListStatus {
+  id: number;
+  isActive: boolean;
+}

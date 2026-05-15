@@ -7,69 +7,323 @@ import * as g from '../general-data';
 
 export interface TokenResponse {
   token: string;
+  tokenType?: string;
+  expiresAtUtc?: string;
+}
+
+export interface CurrentUser {
+  id: string | null;
+  displayName: string;
+  firstName: string | null;
+  lastName: string | null;
+  userName: string | null;
+  email: string | null;
+  phone: string | null;
+  clientId: string | null;
+  scope: string | null;
+}
+
+export interface UserProfile {
+  id: string;
+  displayName: string;
+  firstName: string | null;
+  lastName: string | null;
+  userName: string | null;
+  email: string | null;
+  phone: string | null;
+}
+
+export interface UpdateUserProfileRequest {
+  firstName: string | null;
+  lastName: string | null;
+  userName: string | null;
+  email: string;
+  phone: string | null;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface DeleteUserRequest {
+  password: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly tokenKey = 'access_token';
-  private readonly endpoint = `${g.localHost}api/Auth/`;
+  private accessToken: string | null = null;
+  private readonly endpoint = `${g.localHost.replace(/\/$/, '')}/api/Auth/`;
 
   private readonly loggedInSubject =
     new BehaviorSubject<boolean>(this.hasValidToken());
+  private readonly currentUserSubject =
+    new BehaviorSubject<CurrentUser | null>(this.getCurrentUserFromToken());
 
   readonly loggedIn$ = this.loggedInSubject.asObservable();
+  readonly currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    this.clearPersistedToken();
+  }
 
-  login(clientId: string, clientSecret: string) {
-    const url = `${this.endpoint}token`;
+  login(emailOrUserName: string, password: string) {
+    const url = `${this.endpoint}login`;
+    return this.http.post<TokenResponse>(url, { emailOrUserName, password }).pipe(
+      tap(res => this.storeSession(res.token))
+    );
+  }
 
-    console.log(url)
+  register(
+    email: string,
+    userName: string | null,
+    password: string,
+    firstName: string | null = null,
+    lastName: string | null = null,
+    phone: string | null = null,
+  ) {
+    const url = `${this.endpoint}register`;
+    return this.http.post<TokenResponse>(url, {
+      firstName,
+      lastName,
+      email,
+      phone,
+      userName,
+      password,
+    }).pipe(
+      tap(res => this.storeSession(res.token))
+    );
+  }
 
-    return this.http.post<TokenResponse>(url, { clientId, clientSecret }).pipe(
-      tap(res => {
-        localStorage.setItem(this.tokenKey, res.token);
-        this.loggedInSubject.next(true);
-      })
+  getProfile() {
+    return this.http.get<UserProfile>(`${this.endpoint}profile`).pipe(
+      tap(profile => this.publishCurrentUserFromProfile(profile)),
+    );
+  }
+
+  updateProfile(request: UpdateUserProfileRequest) {
+    return this.http.put<UserProfile>(`${this.endpoint}profile`, request).pipe(
+      tap(profile => this.publishCurrentUserFromProfile(profile)),
+    );
+  }
+
+  changePassword(request: ChangePasswordRequest) {
+    return this.http.put<void>(`${this.endpoint}profile/password`, request);
+  }
+
+  deleteProfile(request: DeleteUserRequest) {
+    return this.http.request<void>('DELETE', `${this.endpoint}profile`, { body: request }).pipe(
+      tap(() => this.logout()),
     );
   }
 
   logout(): void {
-    localStorage.removeItem(this.tokenKey);
-    this.loggedInSubject.next(false);
+    this.clearSessionToken();
+    this.setSessionState(false);
+  }
+
+  expireSession(): void {
+    this.clearSessionToken();
+    this.setSessionState(false);
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.tokenKey);
+    return this.accessToken;
+  }
+
+  hasToken(): boolean {
+    return this.getToken() !== null;
   }
 
   isLoggedIn(): boolean {
-    return this.loggedInSubject.value;
+    const loggedIn = this.hasValidToken();
+    this.setSessionState(loggedIn);
+    return loggedIn;
+  }
+
+  getCurrentUser(): CurrentUser | null {
+    return this.currentUserSubject.value;
   }
 
   private hasValidToken(): boolean {
-    const token = localStorage.getItem(this.tokenKey);
-    if (!token) { return false; }
+    const payload = this.getTokenPayload();
+    if (!payload || typeof payload.exp !== 'number') {
+      return false;
+    }
 
-    const [, payload] = token.split('.');
-    if (!payload) { return false; }
-
-    const exp = JSON.parse(atob(payload)).exp;
-    return Date.now() < exp * 1000;
+    return Date.now() < payload.exp * 1000;
   }
 
   getTimeBeforeExpiration(): number {
-  const token = localStorage.getItem(this.tokenKey);
-  if (!token) {
-    return 0;
+    const payload = this.getTokenPayload();
+    if (!payload || typeof payload.exp !== 'number') {
+      return 0;
+    }
+
+    return payload.exp * 1000 - Date.now();
   }
 
-  const [, payload] = token.split('.');
-  if (!payload) {
-    return 0;
+  private storeSession(token: string): void {
+    this.accessToken = token;
+    this.clearPersistedToken();
+    this.setSessionState(true);
   }
 
-  const exp = JSON.parse(atob(payload)).exp;
-  return exp * 1000 - Date.now();
-}
+  private setSessionState(isLoggedIn: boolean): void {
+    if (this.loggedInSubject.value !== isLoggedIn) {
+      this.loggedInSubject.next(isLoggedIn);
+    }
+
+    const currentUser = isLoggedIn ? this.getCurrentUserFromToken() : null;
+    this.currentUserSubject.next(currentUser);
+  }
+
+  private getTokenPayload(): Record<string, unknown> | null {
+    const token = this.getToken();
+    if (!token) {
+      return null;
+    }
+
+    const [, payload] = token.split('.');
+    if (!payload) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(this.decodeBase64Url(payload)) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+
+  private getCurrentUserFromToken(): CurrentUser | null {
+    const payload = this.getTokenPayload();
+
+    if (!payload || !this.hasValidToken()) {
+      return null;
+    }
+
+    const id = this.readStringClaim(
+      payload,
+      'sub',
+      'nameid',
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier',
+    );
+    const email = this.readStringClaim(
+      payload,
+      'email',
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress',
+    );
+    const firstName = this.readStringClaim(
+      payload,
+      'given_name',
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname',
+    );
+    const lastName = this.readStringClaim(
+      payload,
+      'family_name',
+      'surname',
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname',
+    );
+    const userName = this.readStringClaim(
+      payload,
+      'preferred_username',
+      'unique_name',
+    );
+    const phone = this.readStringClaim(
+      payload,
+      'phone_number',
+      'phone',
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/mobilephone',
+    );
+    const displayName = this.readStringClaim(
+      payload,
+      'name',
+      'preferred_username',
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name',
+    );
+    const clientId = this.readStringClaim(payload, 'client_id');
+    const scope = this.readStringClaim(payload, 'scope');
+
+    return {
+      id,
+      displayName: this.createDisplayName(firstName, lastName)
+        ?? displayName
+        ?? userName
+        ?? email
+        ?? clientId
+        ?? id
+        ?? 'User',
+      firstName,
+      lastName,
+      userName,
+      email,
+      phone,
+      clientId,
+      scope,
+    };
+  }
+
+  private publishCurrentUserFromProfile(profile: UserProfile): void {
+    this.currentUserSubject.next({
+      id: profile.id,
+      displayName: profile.displayName
+        || this.createDisplayName(profile.firstName, profile.lastName)
+        || profile.userName
+        || profile.email
+        || profile.id
+        || 'User',
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      userName: profile.userName,
+      email: profile.email,
+      phone: profile.phone,
+      clientId: null,
+      scope: this.currentUserSubject.value?.scope ?? 'user',
+    });
+  }
+
+  private createDisplayName(firstName: string | null, lastName: string | null): string | null {
+    const value = [firstName, lastName]
+      .map(part => part?.trim())
+      .filter((part): part is string => !!part)
+      .join(' ');
+
+    return value || null;
+  }
+
+  private readStringClaim(
+    payload: Record<string, unknown>,
+    ...claimNames: string[]
+  ): string | null {
+    for (const claimName of claimNames) {
+      const value = payload[claimName];
+
+      if (typeof value === 'string' && value.trim()) {
+        return value;
+      }
+    }
+
+    return null;
+  }
+
+  private decodeBase64Url(value: string): string {
+    const base64 = value
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(value.length / 4) * 4, '=');
+
+    return atob(base64);
+  }
+
+  private clearSessionToken(): void {
+    this.accessToken = null;
+    this.clearPersistedToken();
+  }
+
+  private clearPersistedToken(): void {
+    localStorage.removeItem(this.tokenKey);
+    sessionStorage.removeItem(this.tokenKey);
+  }
 }

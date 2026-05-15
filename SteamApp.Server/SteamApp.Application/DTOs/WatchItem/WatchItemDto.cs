@@ -2,14 +2,18 @@
 {
     public class WatchItemDto
     {
-        public virtual string? Name { get; set; }
-        public virtual double Price { get; set; }
-        public virtual string PixelName { get; set; }
-        public virtual string? ImageUrl { get; set; }
-        public virtual string ListingUrl { get; set; }
-        public virtual short Quantity { get; set; }
-        public virtual bool IsPainted { get; set; }
-        public virtual string? PaintText { get; set; }
-        public virtual bool IsGoodPaint { get; set; }
+        public string? PageUrl { get; set; }
+        public string? Name { get; set; }
+        public double Price { get; set; }
+        public string PixelName { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
+        public string ListingUrl { get; set; } = string.Empty;
+        public short Quantity { get; set; }
+        public bool IsPainted { get; set; }
+        public string? PaintText { get; set; }
+        public bool IsGoodPaint { get; set; }
+        public long RedValue { get; set; }
+        public long GreenValue { get; set; }
+        public long BlueValue { get; set; }
     }
 }

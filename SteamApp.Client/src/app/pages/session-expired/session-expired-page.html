@@ -1,0 +1,26 @@
+<section class="session-expired-page">
+  <div class="session-expired-page__glow session-expired-page__glow--primary" aria-hidden="true"></div>
+  <div class="session-expired-page__glow session-expired-page__glow--secondary" aria-hidden="true"></div>
+
+  <div class="session-expired-card">
+    <div class="session-expired-card__eyebrow">Session Timeout</div>
+    <h1 class="session-expired-card__title">Your session has expired</h1>
+    <p class="session-expired-card__description">
+      For security, we signed you out after your session timed out. Log in again to continue where you left off.
+    </p>
+
+    <div class="session-expired-card__message">
+      Any unsaved work on the current screen may need to be entered again after you sign back in.
+    </div>
+
+    <div class="session-expired-card__actions">
+      <button type="button" class="button button-small-primary" (click)="goToLogin()">
+        Go To Login
+      </button>
+
+      <a routerLink="/home" class="session-expired-card__secondary-link">
+        Back to Home
+      </a>
+    </div>
+  </div>
+</section>

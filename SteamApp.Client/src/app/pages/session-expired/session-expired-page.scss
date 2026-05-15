@@ -1,0 +1,124 @@
+.session-expired-page {
+  position: relative;
+  min-height: calc(100vh - 120px);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 3rem 1.5rem;
+  background:
+    radial-gradient(circle at top left, rgba(14, 116, 144, 0.14), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(217, 119, 6, 0.18), transparent 36%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+}
+
+.session-expired-page__glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(16px);
+  opacity: 0.85;
+}
+
+.session-expired-page__glow--primary {
+  top: 10%;
+  left: 8%;
+  width: 18rem;
+  height: 18rem;
+  background: rgba(14, 116, 144, 0.16);
+}
+
+.session-expired-page__glow--secondary {
+  right: 10%;
+  bottom: 12%;
+  width: 15rem;
+  height: 15rem;
+  background: rgba(217, 119, 6, 0.18);
+}
+
+.session-expired-card {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 40rem);
+  padding: 2rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.session-expired-card__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #b45309;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.session-expired-card__title {
+  margin: 1rem 0 0;
+  color: #0f172a;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.session-expired-card__description {
+  margin: 1rem 0 0;
+  color: #475569;
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.session-expired-card__message {
+  margin-top: 1.5rem;
+  padding: 1rem 1.1rem;
+  border-left: 4px solid #0f766e;
+  border-radius: 1rem;
+  background: #f8fafc;
+  color: #1e293b;
+  line-height: 1.6;
+}
+
+.session-expired-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.75rem;
+}
+
+.session-expired-card__secondary-link {
+  color: #0f766e;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.session-expired-card__secondary-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .session-expired-page {
+    min-height: calc(100vh - 80px);
+    padding: 1.5rem 1rem;
+  }
+
+  .session-expired-card {
+    padding: 1.5rem;
+    border-radius: 1.2rem;
+  }
+
+  .session-expired-card__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .session-expired-card__actions .button {
+    width: 100%;
+  }
+}

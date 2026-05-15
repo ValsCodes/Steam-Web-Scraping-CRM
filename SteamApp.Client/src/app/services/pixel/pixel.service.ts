@@ -7,7 +7,8 @@ import {
   Pixel,
   PixelListItem,
   CreatePixel,
-  UpdatePixel
+  UpdatePixel,
+  UpdatePixelStatus,
 } from '../../models/pixel.model';
 
 import { handleError } from '../error-handler';
@@ -41,6 +42,12 @@ export class PixelService {
   update(id: number, input: UpdatePixel): Observable<void> {
     return this.http
       .put<void>(`${this.baseUrl}/${id}`, input)
+      .pipe(catchError(handleError));
+  }
+
+  updateStatus(input: UpdatePixelStatus): Observable<void> {
+    return this.http
+      .patch<void>(`${this.baseUrl}/${input.id}`, input)
       .pipe(catchError(handleError));
   }
 
