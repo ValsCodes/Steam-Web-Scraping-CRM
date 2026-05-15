@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using SteamApp.Application.Caching;
 using SteamApp.Application.Services;
+using SteamApp.Interfaces;
 using SteamApp.Interfaces.Services;
-using SteamApp.WebAPI.Jobs.Base;
 namespace SteamApp.WebAPI.Jobs;
 
 public class WishlistCheckJob(

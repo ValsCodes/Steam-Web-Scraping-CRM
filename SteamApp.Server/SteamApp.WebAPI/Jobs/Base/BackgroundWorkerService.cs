@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using SteamApp.Interfaces;
 
 namespace SteamApp.WebAPI.Jobs.Base
 {

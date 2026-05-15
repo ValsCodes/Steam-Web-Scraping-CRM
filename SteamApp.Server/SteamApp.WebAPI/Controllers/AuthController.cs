@@ -23,7 +23,8 @@ public class AuthController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
     IConfiguration configuration,
-    IHostEnvironment environment) : ControllerBase
+    IHostEnvironment environment,
+    ILogger<AuthController> logger) : ControllerBase
 {
     [HttpPost("token")]
     [AllowAnonymous]
@@ -67,7 +68,11 @@ public class AuthController(
         var result = await userManager.CreateAsync(user, req.Password);
 
         if (!result.Succeeded)
+        {
             return ValidationProblem(CreateModelState(result));
+        }
+
+        logger.LogInformation($"User with Email {user.Email} has successfully registerred!");
 
         return Ok(await CreateUserTokenResponseAsync(user));
     }
@@ -92,6 +97,8 @@ public class AuthController(
 
         if (!result.Succeeded)
             return Unauthorized("Invalid user credentials.");
+
+        logger.LogInformation($"User with Email {user.Email} has successfully logged in");
 
         return Ok(await CreateUserTokenResponseAsync(user));
     }

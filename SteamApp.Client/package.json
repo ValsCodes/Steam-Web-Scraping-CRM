@@ -7,7 +7,10 @@
     "start": "ng serve --open",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "npm run test:unit",
+    "test:unit": "ng test --watch=false --browsers=ChromeHeadless --include=src/**/*.unit.spec.ts",
+    "test:integration": "jest --config jest.integration.config.cjs --runInBand",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@angular/animations": "~21.2.12",
@@ -33,8 +36,14 @@
     "@angular-devkit/build-angular": "~21.2.10",
     "@angular/cli": "~21.2.10",
     "@angular/compiler-cli": "~21.2.12",
+    "@playwright/test": "^1.59.1",
     "@types/jasmine": "~5.1.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.6.2",
     "jasmine-core": "~5.1.0",
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1",
+    "jest-preset-angular": "^16.1.5",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",

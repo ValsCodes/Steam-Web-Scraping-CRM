@@ -1,4 +1,4 @@
-﻿namespace SteamApp.WebAPI.Jobs.Base
+﻿namespace SteamApp.Interfaces
 {
     public interface IJobService
     {
