@@ -1,9 +1,9 @@
 <form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form app-form">
   <div class="app-form__header">
-    <span class="app-form__eyebrow">Price Tracking</span>
-    <h2 class="app-form__title">{{ isEditMode ? 'Edit Wish List Item' : 'Create Wish List Item' }}</h2>
+    <span class="app-form__eyebrow">Price Alerts</span>
+    <h2 class="app-form__title">{{ isEditMode ? 'Edit Price Alert' : 'Create Price Alert' }}</h2>
     <p class="app-form__description">
-      Track a target price and activation state for a game you want to monitor.
+      Select a game, set the price you want to watch for, and decide whether this alert is enabled for monitoring.
     </p>
   </div>
 
@@ -21,19 +21,22 @@
   </div>
 
   <div class="form-group">
-    <label for="wish-list-name">Name *</label>
-    <input id="wish-list-name" name="name" formControlName="name" class="px-2 py-1 w-1/2" placeholder="name" />
+    <label for="wish-list-name">Alert Name *</label>
+    <input id="wish-list-name" name="name" formControlName="name" class="px-2 py-1 w-1/2" placeholder="Alert name" />
   </div>
 
   <div class="form-group">
     <label for="wish-list-price">Target Price</label>
     <input id="wish-list-price" name="price" type="number" formControlName="price" class="px-2 py-1" placeholder="Price (optional)" />
+    <p class="price-alert-form__hint">
+      Check Price Now uses the selected game's Steam page URL to compare the current Steam price with this target.
+    </p>
   </div>
 
   <div class="form-group-row checkbox-group">
     <label>
       <input id="wish-list-is-active" name="isActive" type="checkbox" formControlName="isActive" />
-      Active
+      Enable monitoring for this alert
     </label>
   </div>
 
@@ -41,7 +44,7 @@
 
   <div class="form-actions">
     <button type="submit" [disabled]="form.invalid || isSubmitting" [class.busy-cursor]="isSubmitting">
-      {{ isSubmitting ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save changes' : 'Create wish list item') }}
+      {{ isSubmitting ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save changes' : 'Create price alert') }}
     </button>
 
     <button type="button" class="form-back-button" (click)="cancel()">

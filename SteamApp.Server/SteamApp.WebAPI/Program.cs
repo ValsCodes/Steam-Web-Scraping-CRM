@@ -270,8 +270,11 @@ public class Program
 
         builder.Services.Configure<TransientRetryPolicyOptions>(
             builder.Configuration.GetSection(TransientRetryPolicyOptions.SectionName));
+        builder.Services.Configure<EncryptionHashingOptions>(
+            builder.Configuration.GetSection(EncryptionHashingOptions.SectionName));
 
         builder.Services.AddSingleton<ITransientRetryPolicyService, TransientRetryPolicyService>();
+        builder.Services.AddSingleton<IEncryptionHashingService, EncryptionHashingService>();
         builder.Services.AddScoped<IEmailService, EmailService>();
         builder.Services.AddScoped<IdentitySchemaInitializer>();
         builder.Services.AddScoped<ISteamRepository, SteamRepository>();

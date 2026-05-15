@@ -31,6 +31,13 @@
     line-height: 1.15;
     letter-spacing: 0;
   }
+
+  p {
+    max-width: 720px;
+    margin: 0;
+    color: #64748b;
+    line-height: 1.6;
+  }
 }
 
 .profile-page__loading {

@@ -81,6 +81,14 @@
     line-height: 1.1;
     letter-spacing: 0;
   }
+
+  p {
+    max-width: 23rem;
+    margin: 0.4rem 0 0;
+    color: #64748b;
+    font-size: 0.94rem;
+    line-height: 1.5;
+  }
 }
 
 .login-form__switch {
