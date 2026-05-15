@@ -21,11 +21,16 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
             // GET: /api/watch-list
             group.MapGet("/", async (
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
                 var entities = await db.WatchList
                     .AsNoTracking()
+                    .Where(x => x.UserId == userId)
                     .ToListAsync();
 
                 return Results.Ok(mapper.Map<List<WatchListDto>>(entities));
@@ -35,11 +40,17 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
             // GET: /api/watch-list/paged
             group.MapGet("/paged", async (
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 [AsParameters] WatchListPageQuery request,
                 CancellationToken ct) =>
             {
-                var query = db.WatchList.AsNoTracking();
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var query = db.WatchList
+                    .AsNoTracking()
+                    .Where(x => x.UserId == userId);
 
                 if (!string.IsNullOrWhiteSpace(request.Name))
                 {
@@ -84,11 +95,16 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // GET: /api/watch-list/{id}
             group.MapGet("/{id:long}", async (
                 long id,
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
                 var entity = await db.WatchList
-                    .FirstOrDefaultAsync(w => w.Id == id);
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(w => w.Id == id && w.UserId == userId);
 
                 if (entity is null) { return Results.NotFound(); }
 
@@ -101,11 +117,16 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // POST: /api/watch-list
             group.MapPost("/", async (
                 WatchListCreateDto input,
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
                 input.RegistrationDate ??= new DateOnly();
                 var entity = mapper.Map<WatchList>(input);
+                entity.UserId = userId;
 
                 db.WatchList.Add(entity);
                 await db.SaveChangesAsync();
@@ -122,10 +143,14 @@ namespace SteamApp.WebAPI.MinimalAPIs
             group.MapPut("/{id:long}", async (
                 long id,
                 WatchListUpdateDto input,
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var entity = await db.WatchList.FindAsync(id);
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var entity = await db.WatchList.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
                 if (entity is null) { return Results.NotFound(); }
 
                 input.RegistrationDate ??= new DateOnly();
@@ -144,9 +169,13 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // DELETE: /api/watch-list/{id}
             group.MapDelete("/{id:long}", async (
                 long id,
+                HttpContext httpContext,
                 ApplicationDbContext db) =>
             {
-                var entity = await db.WatchList.FindAsync(id);
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var entity = await db.WatchList.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
                 if (entity is null) { return Results.NotFound(); }
 
                 db.WatchList.Remove(entity);
@@ -161,9 +190,13 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // PATCH: /api/watch-list/{id}
             group.MapPatch("/{id:long}", async (
                 WatchListUpdateStatusDto input,
+                HttpContext httpContext,
                 ApplicationDbContext db) =>
             {
-                var entity = await db.WatchList.FindAsync(input.Id);
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var entity = await db.WatchList.FirstOrDefaultAsync(x => x.Id == input.Id && x.UserId == userId);
                 if (entity is null) { return Results.NotFound(); }
 
                 if (entity.IsActive != input.IsActive)

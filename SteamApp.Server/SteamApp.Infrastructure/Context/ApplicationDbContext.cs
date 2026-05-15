@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
 using SteamApp.Infrastructure.Identity;
@@ -27,20 +28,23 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<Game>();
+        modelBuilder.Entity<Game>(ConfigureUserOwnedEntity);
         modelBuilder.Entity<GameUrl>(entity =>
         {
+            ConfigureUserOwnedEntity(entity);
+
             entity.HasOne(g => g.ScrapingMode)
                   .WithMany(s => s.GameUrls)
                   .HasForeignKey(g => g.ScrapingModeId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
-        modelBuilder.Entity<WatchList>();
-        modelBuilder.Entity<WishList>();
+        modelBuilder.Entity<WishList>(ConfigureUserOwnedEntity);
         modelBuilder.Entity<GameAddOn>();
         modelBuilder.Entity<ScrapingMode>();
         modelBuilder.Entity<WatchList>(entity =>
         {
+            ConfigureUserOwnedEntity(entity);
+
             entity.HasOne(w => w.GameUrl)
                   .WithMany(g => g.WatchLists)
                   .HasForeignKey(w => w.GameUrlId);
@@ -58,6 +62,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         modelBuilder.Entity<Pixel>(entity =>
         {
+            ConfigureUserOwnedEntity(entity);
+
             entity.HasOne(p => p.Game)
                   .WithMany(g => g.Pixels)
                   .HasForeignKey(p => p.GameId)
@@ -66,6 +72,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         modelBuilder.Entity<Product>(entity =>
         {
+            ConfigureUserOwnedEntity(entity);
+
             entity.HasOne(p => p.Game)
                   .WithMany(g => g.Products)
                   .HasForeignKey(p => p.GameId)
@@ -127,10 +135,27 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         modelBuilder.Entity<Tag>(entity =>
         {
+            ConfigureUserOwnedEntity(entity);
+
             entity.HasOne(p => p.Game)
                   .WithMany(g => g.Tags)
                   .HasForeignKey(p => p.GameId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
+    }
+
+    private static void ConfigureUserOwnedEntity<TEntity>(EntityTypeBuilder<TEntity> entity)
+        where TEntity : class
+    {
+        entity.Property<string?>("UserId")
+              .HasMaxLength(450)
+              .HasColumnName("user_id");
+
+        entity.HasIndex("UserId");
+
+        entity.HasOne<ApplicationUser>()
+              .WithMany()
+              .HasForeignKey("UserId")
+              .OnDelete(DeleteBehavior.SetNull);
     }
 }

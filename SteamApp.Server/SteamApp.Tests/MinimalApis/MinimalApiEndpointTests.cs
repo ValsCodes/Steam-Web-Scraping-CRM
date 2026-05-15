@@ -87,11 +87,37 @@ public sealed class MinimalApiEndpointTests
             IsActive = true
         });
 
+        using var scope = app.App.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var created = db.Games.SingleOrDefault(x => x.Name == "Created Game");
+
         Assert.Multiple(() =>
         {
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
             Assert.That(response.Headers.Location?.ToString(), Does.StartWith("/api/games/"));
+            Assert.That(created?.UserId, Is.EqualTo(TestDb.TestUserId));
         });
+    }
+
+    [Test]
+    public async Task GetGameById_ReturnsNotFoundForAnotherUsersRecord()
+    {
+        await using var app = await MinimalApiTestApp.CreateAsync(db =>
+        {
+            TestDb.SeedBaseline(db);
+            db.Games.Add(new Game
+            {
+                Id = 99,
+                Name = "Other User Game",
+                IsActive = true,
+                UserId = "other-user"
+            });
+            db.SaveChanges();
+        });
+
+        var response = await app.Client.GetAsync("/api/games/99");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
     [Test]
@@ -232,7 +258,7 @@ public sealed class MinimalApiEndpointTests
         await using var app = await MinimalApiTestApp.CreateAsync(db =>
         {
             TestDb.SeedBaseline(db);
-            db.Games.Add(new Game { Id = 99, Name = "Disposable", IsActive = true });
+            db.Games.Add(new Game { Id = 99, Name = "Disposable", IsActive = true, UserId = TestDb.TestUserId });
             db.SaveChanges();
         });
         using (var scope = app.App.Services.CreateScope())

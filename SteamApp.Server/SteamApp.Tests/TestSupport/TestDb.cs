@@ -8,6 +8,8 @@ namespace SteamApp.Tests.TestSupport;
 
 public static class TestDb
 {
+    public const string TestUserId = "test-user";
+
     public static ApplicationDbContext CreateContext(string? databaseName = null)
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -35,7 +37,8 @@ public static class TestDb
                 BaseUrl = "https://steam.example/alpha",
                 PageUrl = "https://steam.example/app/1",
                 InternalId = 10,
-                IsActive = true
+                IsActive = true,
+                UserId = TestUserId
             },
             new Game
             {
@@ -44,7 +47,8 @@ public static class TestDb
                 BaseUrl = "https://steam.example/beta",
                 PageUrl = "https://steam.example/app/2",
                 InternalId = 20,
-                IsActive = false
+                IsActive = false,
+                UserId = TestUserId
             });
 
         db.GameUrls.AddRange(
@@ -57,7 +61,8 @@ public static class TestDb
                 PartialUrl = "https://steam.example/search?p={0}",
                 StartPage = 1,
                 EndPage = 5,
-                IsActive = true
+                IsActive = true,
+                UserId = TestUserId
             },
             new GameUrl
             {
@@ -70,7 +75,8 @@ public static class TestDb
                 PixelY = 5,
                 PixelImageWidth = 62,
                 PixelImageHeight = 62,
-                IsActive = true
+                IsActive = true,
+                UserId = TestUserId
             });
 
         db.Products.AddRange(
@@ -80,7 +86,8 @@ public static class TestDb
                 GameId = 1,
                 Name = "Rocket Launcher",
                 Rating = 5,
-                IsActive = true
+                IsActive = true,
+                UserId = TestUserId
             },
             new Product
             {
@@ -88,7 +95,8 @@ public static class TestDb
                 GameId = 2,
                 Name = "Medigun",
                 Rating = 3,
-                IsActive = false
+                IsActive = false,
+                UserId = TestUserId
             });
 
         db.Pixels.AddRange(
@@ -100,7 +108,8 @@ public static class TestDb
                 RedValue = 195,
                 GreenValue = 108,
                 BlueValue = 45,
-                IsActive = true
+                IsActive = true,
+                UserId = TestUserId
             },
             new Pixel
             {
@@ -110,12 +119,13 @@ public static class TestDb
                 RedValue = 45,
                 GreenValue = 48,
                 BlueValue = 44,
-                IsActive = false
+                IsActive = false,
+                UserId = TestUserId
             });
 
         db.Tags.AddRange(
-            new Tag { Id = 1, GameId = 1, Name = "Primary", IsActive = true },
-            new Tag { Id = 2, GameId = 2, Name = "Support", IsActive = false });
+            new Tag { Id = 1, GameId = 1, Name = "Primary", IsActive = true, UserId = TestUserId },
+            new Tag { Id = 2, GameId = 2, Name = "Support", IsActive = false, UserId = TestUserId });
 
         db.WishLists.AddRange(
             new WishList
@@ -124,7 +134,8 @@ public static class TestDb
                 GameId = 1,
                 Name = "Cheap Alpha",
                 Price = 9.99,
-                IsActive = true
+                IsActive = true,
+                UserId = TestUserId
             },
             new WishList
             {
@@ -132,7 +143,8 @@ public static class TestDb
                 GameId = 2,
                 Name = "Cheap Beta",
                 Price = 4.99,
-                IsActive = false
+                IsActive = false,
+                UserId = TestUserId
             });
 
         db.WatchList.AddRange(
@@ -142,7 +154,8 @@ public static class TestDb
                 Name = "Watch Alpha",
                 Url = "https://steam.example/watch/1",
                 RegistrationDate = new DateOnly(2026, 1, 1),
-                IsActive = true
+                IsActive = true,
+                UserId = TestUserId
             },
             new WatchList
             {
@@ -150,7 +163,8 @@ public static class TestDb
                 Name = "Watch Beta",
                 Url = "https://steam.example/watch/2",
                 RegistrationDate = new DateOnly(2026, 2, 1),
-                IsActive = false
+                IsActive = false,
+                UserId = TestUserId
             });
 
         db.ProductTags.Add(new ProductTags { ProductId = 1, TagId = 1 });

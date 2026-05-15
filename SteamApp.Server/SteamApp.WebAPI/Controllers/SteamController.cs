@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using SteamApp.Application.Caching;
 using SteamApp.Application.Services;
+using SteamApp.Infrastructure.Context;
 using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI.Security;
 
@@ -18,6 +20,7 @@ public class SteamController(
     ISteamService steamService,
     IWishlistService wishlistService,
     ILogger<SteamController> logger,
+    ApplicationDbContext db,
     IMemoryCache cache) : ControllerBase
 {
     [HttpGet("scrape-page/gameUrl/{gamerUrlId}/page/{page}")]
@@ -30,6 +33,11 @@ public class SteamController(
                 if (page < 0 || page > short.MaxValue)
                 {
                     throw new ArgumentOutOfRangeException(nameof(page));
+                }
+
+                if (!await CurrentUserOwnsGameUrlAsync(gamerUrlId))
+                {
+                    return NotFound();
                 }
 
                 var cacheKey = string.Format(CacheKeys.ScrapePage, gamerUrlId, page);
@@ -59,6 +67,11 @@ public class SteamController(
         {
             try
             {
+                if (!await CurrentUserOwnsGameUrlAsync(gameUrlId))
+                {
+                    return NotFound();
+                }
+
                 var cacheKey = string.Format(CacheKeys.ScrapePublic, gameUrlId, page);
 
                 if (cache.TryGetValue(cacheKey, out object? cached))
@@ -86,6 +99,11 @@ public class SteamController(
         {
             try
             {
+                if (!await CurrentUserOwnsGameUrlAsync(gameUrlId))
+                {
+                    return NotFound();
+                }
+
                 var cacheKey = string.Format(CacheKeys.ScrapePixels, gameUrlId, page);
 
                 if (cache.TryGetValue(cacheKey, out object? cached))
@@ -118,6 +136,11 @@ public class SteamController(
         {
             try
             {
+                if (!await CurrentUserOwnsWishlistItemAsync(wishlistId))
+                {
+                    return NotFound();
+                }
+
                 var cacheKey = string.Format(CacheKeys.WishListItem, wishlistId);
 
                 if (cache.TryGetValue(cacheKey, out var cached))
@@ -203,4 +226,22 @@ public class SteamController(
         }
     }*/
     #endregion
+
+    private async Task<bool> CurrentUserOwnsGameUrlAsync(long gameUrlId)
+    {
+        var userId = User.GetUserId();
+        return userId is not null &&
+               await db.GameUrls
+                   .AsNoTracking()
+                   .AnyAsync(x => x.Id == gameUrlId && x.UserId == userId);
+    }
+
+    private async Task<bool> CurrentUserOwnsWishlistItemAsync(long wishlistId)
+    {
+        var userId = User.GetUserId();
+        return userId is not null &&
+               await db.WishLists
+                   .AsNoTracking()
+                   .AnyAsync(x => x.Id == wishlistId && x.UserId == userId);
+    }
 }

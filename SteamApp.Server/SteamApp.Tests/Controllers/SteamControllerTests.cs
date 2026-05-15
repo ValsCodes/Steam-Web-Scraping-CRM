@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -10,6 +11,7 @@ using SteamApp.Application.Services;
 using SteamApp.Interfaces.Services;
 using SteamApp.Tests.TestSupport;
 using SteamApp.WebAPI.Controllers;
+using System.Security.Claims;
 
 namespace SteamApp.Tests.Controllers;
 
@@ -134,12 +136,12 @@ public sealed class SteamControllerTests
             CurrentPrice = 1,
             IsPriceReached = true
         };
-        cache.Set(string.Format(CacheKeys.WishListItem, 10), cached);
+        cache.Set(string.Format(CacheKeys.WishListItem, 1), cached);
 
         var wishlistService = new Mock<IWishlistService>(MockBehavior.Strict);
         var controller = CreateController(wishlistService: wishlistService, cache: cache);
 
-        var result = await controller.CheckWithlistItem(10);
+        var result = await controller.CheckWithlistItem(1);
 
         var ok = result as OkObjectResult;
         Assert.That(ok?.Value, Is.SameAs(cached));
@@ -151,12 +153,12 @@ public sealed class SteamControllerTests
     {
         var wishlistService = new Mock<IWishlistService>();
         wishlistService
-            .Setup(x => x.CheckWishlistItem(10))
+            .Setup(x => x.CheckWishlistItem(1))
             .ThrowsAsync(new JsonSerializationException("bad wishlist"));
         var logger = new Mock<ILogger<SteamController>>();
         var controller = CreateController(wishlistService: wishlistService, logger: logger);
 
-        var result = await controller.CheckWithlistItem(10);
+        var result = await controller.CheckWithlistItem(1);
 
         var objectResult = result as ObjectResult;
         Assert.That(objectResult?.StatusCode, Is.EqualTo(400));
@@ -169,11 +171,27 @@ public sealed class SteamControllerTests
         Mock<ILogger<SteamController>>? logger = null,
         IMemoryCache? cache = null)
     {
-        return new SteamController(
+        var db = TestDb.CreateContext();
+        TestDb.SeedBaseline(db);
+
+        var controller = new SteamController(
             (steamService ?? new Mock<ISteamService>()).Object,
             (wishlistService ?? new Mock<IWishlistService>()).Object,
             (logger ?? new Mock<ILogger<SteamController>>()).Object,
+            db,
             cache ?? TestDb.CreateMemoryCache());
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                    [new Claim(ClaimTypes.NameIdentifier, TestDb.TestUserId)],
+                    "Test"))
+            }
+        };
+
+        return controller;
     }
 
     private static void VerifyLogged<T>(Mock<ILogger<T>> logger, LogLevel level)

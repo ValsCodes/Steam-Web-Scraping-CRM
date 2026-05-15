@@ -16,10 +16,16 @@ public static class ProductTagsEndpoints
                        .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
 
         // GET: /api/product-tags
-        group.MapGet("/", async (ApplicationDbContext db) =>
+        group.MapGet("/", async (
+            HttpContext httpContext,
+            ApplicationDbContext db) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var items = await db.ProductTags
                 .AsNoTracking()
+                .Where(x => x.Product.UserId == userId && x.Tag.UserId == userId)
                 .Select(x => new
                 {
                     x.ProductId,
@@ -36,13 +42,19 @@ public static class ProductTagsEndpoints
         group.MapGet("/{productId:long}/{tagId:long}", async (
             long productId,
             long tagId,
+            HttpContext httpContext,
             ApplicationDbContext db) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var exists = await db.ProductTags
                 .AsNoTracking()
                 .AnyAsync(x =>
                     x.ProductId == productId &&
-                    x.TagId == tagId);
+                    x.TagId == tagId &&
+                    x.Product.UserId == userId &&
+                    x.Tag.UserId == userId);
 
             return exists
                 ? Results.Ok()
@@ -52,11 +64,15 @@ public static class ProductTagsEndpoints
         // GET: /api/product-tags/product/{productId}
         group.MapGet("/product/{productId:long}", async (
             long productId,
+            HttpContext httpContext,
             ApplicationDbContext db) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var tags = await db.ProductTags
                 .AsNoTracking()
-                .Where(x => x.ProductId == productId)
+                .Where(x => x.ProductId == productId && x.Product.UserId == userId && x.Tag.UserId == userId)
                 .Select(x => new
                 {
                     x.TagId,
@@ -70,13 +86,17 @@ public static class ProductTagsEndpoints
         // POST: /api/product-tags
         group.MapPost("/", async (
     ProductTagCreateDto input,
+    HttpContext httpContext,
     ApplicationDbContext db) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var productExists = await db.Products
-                .AnyAsync(p => p.Id == input.ProductId);
+                .AnyAsync(p => p.Id == input.ProductId && p.UserId == userId);
 
             var tagExists = await db.Tags
-                .AnyAsync(t => t.Id == input.TagId);
+                .AnyAsync(t => t.Id == input.TagId && t.UserId == userId);
 
             if (!productExists || !tagExists)
             {
@@ -85,7 +105,9 @@ public static class ProductTagsEndpoints
 
             var exists = await db.ProductTags.AnyAsync(x =>
                 x.ProductId == input.ProductId &&
-                x.TagId == input.TagId);
+                x.TagId == input.TagId &&
+                x.Product.UserId == userId &&
+                x.Tag.UserId == userId);
 
             if (exists)
             {
@@ -110,9 +132,17 @@ public static class ProductTagsEndpoints
         group.MapDelete("/{productId:long}/{tagId:long}", async (
             long productId,
             long tagId,
+            HttpContext httpContext,
             ApplicationDbContext db) =>
         {
-            var entity = await db.ProductTags.FindAsync(productId, tagId);
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
+            var entity = await db.ProductTags.FirstOrDefaultAsync(x =>
+                x.ProductId == productId &&
+                x.TagId == tagId &&
+                x.Product.UserId == userId &&
+                x.Tag.UserId == userId);
 
             if (entity is null)
             {

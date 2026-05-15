@@ -31,5 +31,9 @@ namespace SteamApp.Domain.Entities
 
         [Column("is_active")]
         public bool IsActive { get; set; }
+
+        [MaxLength(450)]
+        [Column("user_id")]
+        public string? UserId { get; set; }
     }
 }

@@ -20,14 +20,19 @@ public static class ProductEndpoints
 
         // GET: /api/products
         group.MapGet("/", async (
+            HttpContext httpContext,
             ApplicationDbContext db,
             IMapper mapper) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var entities = await db.Products
                 .Include(x => x.Game)
                 .Include(x => x.ProductTags)
                 .ThenInclude(x => x.Tag)
                 .AsNoTracking()
+                .Where(x => x.UserId == userId)
                 .ToListAsync();
 
             return Results.Ok(mapper.Map<List<ProductDto>>(entities));
@@ -37,12 +42,18 @@ public static class ProductEndpoints
 
         // GET: /api/products/paged
         group.MapGet("/paged", async (
+            HttpContext httpContext,
             ApplicationDbContext db,
             IMapper mapper,
             [AsParameters] ProductsPageQuery request,
             CancellationToken ct) =>
         {
-            var query = db.Products.AsNoTracking();
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
+            var query = db.Products
+                .AsNoTracking()
+                .Where(x => x.UserId == userId);
 
             if (request.GameId.HasValue)
             {
@@ -116,13 +127,17 @@ public static class ProductEndpoints
         // GET: /api/products/{id}
         group.MapGet("/{id:long}", async (
             long id,
+            HttpContext httpContext,
             ApplicationDbContext db,
             IMapper mapper) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var entity = await db.Products
                 .Include(x => x.Game)
                 .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == id);
+                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
 
             if (entity is null) { return Results.NotFound(); }
 
@@ -135,14 +150,29 @@ public static class ProductEndpoints
         // POST: /api/products
         group.MapPost("/", async (
             ProductCreateDto input,
+            HttpContext httpContext,
             ApplicationDbContext db,
             IMapper mapper) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
+            var gameExists = await db.Games
+                .AsNoTracking()
+                .AnyAsync(g => g.Id == input.GameId && g.UserId == userId);
+
+            if (!gameExists)
+            {
+                return Results.BadRequest("Invalid GameId");
+            }
+
             var normalizedInputName = (input.Name ?? string.Empty).Trim().ToLower();
 
             var productExists = await db.Products
                 .AsNoTracking()
-                .AnyAsync(g => (g.Name ?? string.Empty).Trim().ToLower() == normalizedInputName);
+                .AnyAsync(g =>
+                    g.UserId == userId &&
+                    (g.Name ?? string.Empty).Trim().ToLower() == normalizedInputName);
 
             if (productExists)
             {
@@ -150,6 +180,7 @@ public static class ProductEndpoints
             }
 
             var entity = mapper.Map<Product>(input);
+            entity.UserId = userId;
 
             db.Products.Add(entity);
             await db.SaveChangesAsync();
@@ -166,10 +197,14 @@ public static class ProductEndpoints
         group.MapPut("/{id:long}", async (
             long id,
             ProductUpdateDto input,
+            HttpContext httpContext,
             ApplicationDbContext db,
             IMapper mapper) =>
         {
-            var entity = await db.Products.FindAsync(id);
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
+            var entity = await db.Products.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
             if (entity is null) { return Results.NotFound(); }
 
             mapper.Map(input, entity);
@@ -185,9 +220,13 @@ public static class ProductEndpoints
         // DELETE: /api/products/{id}
         group.MapDelete("/{id:long}", async (
             long id,
+            HttpContext httpContext,
             ApplicationDbContext db) =>
         {
-            var entity = await db.Products.FindAsync(id);
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
+            var entity = await db.Products.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
             if (entity is null) { return Results.NotFound(); }
 
             db.Products.Remove(entity);
@@ -201,9 +240,13 @@ public static class ProductEndpoints
         // PATCH: /api/products/{id}
         group.MapPatch("/{id:long}", async (
             ProductUpdateStatusDto input,
+            HttpContext httpContext,
             ApplicationDbContext db) =>
         {
-            var entity = await db.Products.FindAsync(input.Id);
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
+            var entity = await db.Products.FirstOrDefaultAsync(x => x.Id == input.Id && x.UserId == userId);
             if (entity is null) { return Results.NotFound(); }
 
             if (entity.IsActive != input.IsActive)
