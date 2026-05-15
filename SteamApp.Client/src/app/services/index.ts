@@ -11,3 +11,4 @@ export * from './tag/tag.service';
 export * from './product-tag/product-tag.service';
 export * from './game-url-pixel/game-url-pixel.service';
 export * from './scraping-mode/scraping-mode.service';
+export * from './seo/seo-meta.service';

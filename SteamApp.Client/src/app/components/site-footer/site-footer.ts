@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
+
+import { AuthService } from '../../services/auth/auth.service';
 
 @Component({
   selector: 'steam-site-footer',
@@ -10,5 +12,5 @@ import { RouterModule } from '@angular/router';
   standalone: true,
 })
 export class SiteFooter {
-
+  readonly loggedIn$ = inject(AuthService).loggedIn$;
 }

@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Allow: /home
+Allow: /assets/
+Allow: /favicon.ico
+Allow: /manifest.webmanifest
+Disallow: /login
+Disallow: /session-expired
+Disallow: /profile
+Disallow: /web-scraper
+Disallow: /manual-mode-v2
+Disallow: /games
+Disallow: /game-urls
+Disallow: /products
+Disallow: /pixels
+Disallow: /wishlist
+Disallow: /watch-list
+Disallow: /tags
+
+Sitemap: /sitemap.xml

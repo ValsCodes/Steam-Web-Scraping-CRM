@@ -1,0 +1,18 @@
+{
+  "name": "Steam Web Scraping CRM",
+  "short_name": "Steam CRM",
+  "description": "Centralized administration for Steam market sources, catalog metadata, monitoring, and scraping workflows.",
+  "start_url": "/home",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1d4ed8",
+  "icons": [
+    {
+      "src": "assets/brand/steam-app-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

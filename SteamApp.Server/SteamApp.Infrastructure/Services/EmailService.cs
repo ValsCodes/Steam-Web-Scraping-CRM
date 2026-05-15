@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using SteamApp.Interfaces.Services;
 using System.Net.Http.Headers;
@@ -15,16 +16,33 @@ public class EmailService : IEmailService
 
     private readonly IOptions<EmailOptions> options;
     private readonly HttpClient httpClient;
+    private readonly ITransientRetryPolicyService retryPolicy;
 
     public EmailService(IOptions<EmailOptions> options)
-        : this(options, SharedHttpClient)
+        : this(options, SharedHttpClient, CreateDefaultRetryPolicy())
+    {
+    }
+
+    public EmailService(
+        IOptions<EmailOptions> options,
+        ITransientRetryPolicyService retryPolicy)
+        : this(options, SharedHttpClient, retryPolicy)
     {
     }
 
     internal EmailService(IOptions<EmailOptions> options, HttpClient httpClient)
+        : this(options, httpClient, CreateDefaultRetryPolicy())
+    {
+    }
+
+    internal EmailService(
+        IOptions<EmailOptions> options,
+        HttpClient httpClient,
+        ITransientRetryPolicyService retryPolicy)
     {
         this.options = options;
         this.httpClient = httpClient;
+        this.retryPolicy = retryPolicy;
     }
 
     public async Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
@@ -34,19 +52,25 @@ public class EmailService : IEmailService
             var apiToken = options.Value.ApiToken;
             var sandboxId = long.Parse(options.Value.SandboxID);
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"api/send/{sandboxId}");
+            await retryPolicy.ExecuteAsync(
+                "Send email",
+                async ct =>
+                {
+                    using var request = new HttpRequestMessage(HttpMethod.Post, $"api/send/{sandboxId}");
 
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
-            request.Content = JsonContent.Create(
-                new MailtrapSendRequest(
-                    From: new MailtrapEmailAddress("steam-app@example.com"),
-                    To: [new MailtrapEmailAddress(message.To)],
-                    Subject: message.Subject,
-                    Category: "Integration Test",
-                    Text: message.Body));
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
+                    request.Content = JsonContent.Create(
+                        new MailtrapSendRequest(
+                            From: new MailtrapEmailAddress("steam-app@example.com"),
+                            To: [new MailtrapEmailAddress(message.To)],
+                            Subject: message.Subject,
+                            Category: "Integration Test",
+                            Text: message.Body));
 
-            using var response = await httpClient.SendAsync(request, cancellationToken);
-            response.EnsureSuccessStatusCode();
+                    using var response = await httpClient.SendAsync(request, ct);
+                    response.EnsureSuccessStatusCode();
+                },
+                cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -67,4 +91,11 @@ public class EmailService : IEmailService
 
     private sealed record MailtrapEmailAddress(
         [property: JsonPropertyName("email")] string Email);
+
+    private static ITransientRetryPolicyService CreateDefaultRetryPolicy()
+    {
+        return new TransientRetryPolicyService(
+            Options.Create(new TransientRetryPolicyOptions()),
+            NullLogger<TransientRetryPolicyService>.Instance);
+    }
 }

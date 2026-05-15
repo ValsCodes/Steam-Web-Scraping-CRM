@@ -268,6 +268,10 @@ public class Program
                 ? builder.Configuration.GetSection("Mailtrap")
                 : builder.Configuration.GetSection("Mailstrap"));
 
+        builder.Services.Configure<TransientRetryPolicyOptions>(
+            builder.Configuration.GetSection(TransientRetryPolicyOptions.SectionName));
+
+        builder.Services.AddSingleton<ITransientRetryPolicyService, TransientRetryPolicyService>();
         builder.Services.AddScoped<IEmailService, EmailService>();
         builder.Services.AddScoped<IdentitySchemaInitializer>();
         builder.Services.AddScoped<ISteamRepository, SteamRepository>();

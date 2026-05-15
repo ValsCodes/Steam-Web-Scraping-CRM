@@ -5,6 +5,7 @@ export { LoginComponent } from './login/login.component';
 export { ProfilePage } from './profile/profile-page';
 export { HomePage } from './home/home-page';
 export { SessionExpiredPage } from './session-expired/session-expired-page';
+export { NotFoundPage } from './not-found/not-found-page';
 
 // Games
 export { GamesView } from './game/games-view/games-view';
