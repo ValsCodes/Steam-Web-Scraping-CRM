@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SteamApp.Domain.ValueObjects.Authentication;
 
-public class RegisterRequest
+public class UpdateUserProfileRequest
 {
     [StringLength(100)]
     public string? FirstName { get; set; }
@@ -10,16 +10,12 @@ public class RegisterRequest
     [StringLength(100)]
     public string? LastName { get; set; }
 
+    public string? UserName { get; set; }
+
     [Required]
     [EmailAddress]
     public string Email { get; set; } = null!;
 
     [Phone]
     public string? Phone { get; set; }
-
-    public string? UserName { get; set; }
-
-    [Required]
-    [MinLength(8)]
-    public string Password { get; set; } = null!;
 }

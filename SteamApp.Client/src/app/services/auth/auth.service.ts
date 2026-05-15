@@ -14,9 +14,40 @@ export interface TokenResponse {
 export interface CurrentUser {
   id: string | null;
   displayName: string;
+  firstName: string | null;
+  lastName: string | null;
+  userName: string | null;
   email: string | null;
+  phone: string | null;
   clientId: string | null;
   scope: string | null;
+}
+
+export interface UserProfile {
+  id: string;
+  displayName: string;
+  firstName: string | null;
+  lastName: string | null;
+  userName: string | null;
+  email: string | null;
+  phone: string | null;
+}
+
+export interface UpdateUserProfileRequest {
+  firstName: string | null;
+  lastName: string | null;
+  userName: string | null;
+  email: string;
+  phone: string | null;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface DeleteUserRequest {
+  password: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -44,10 +75,46 @@ export class AuthService {
     );
   }
 
-  register(email: string, userName: string | null, password: string) {
+  register(
+    email: string,
+    userName: string | null,
+    password: string,
+    firstName: string | null = null,
+    lastName: string | null = null,
+    phone: string | null = null,
+  ) {
     const url = `${this.endpoint}register`;
-    return this.http.post<TokenResponse>(url, { email, userName, password }).pipe(
+    return this.http.post<TokenResponse>(url, {
+      firstName,
+      lastName,
+      email,
+      phone,
+      userName,
+      password,
+    }).pipe(
       tap(res => this.storeSession(res.token))
+    );
+  }
+
+  getProfile() {
+    return this.http.get<UserProfile>(`${this.endpoint}profile`).pipe(
+      tap(profile => this.publishCurrentUserFromProfile(profile)),
+    );
+  }
+
+  updateProfile(request: UpdateUserProfileRequest) {
+    return this.http.put<UserProfile>(`${this.endpoint}profile`, request).pipe(
+      tap(profile => this.publishCurrentUserFromProfile(profile)),
+    );
+  }
+
+  changePassword(request: ChangePasswordRequest) {
+    return this.http.put<void>(`${this.endpoint}profile/password`, request);
+  }
+
+  deleteProfile(request: DeleteUserRequest) {
+    return this.http.request<void>('DELETE', `${this.endpoint}profile`, { body: request }).pipe(
+      tap(() => this.logout()),
     );
   }
 
@@ -148,10 +215,31 @@ export class AuthService {
       'email',
       'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress',
     );
+    const firstName = this.readStringClaim(
+      payload,
+      'given_name',
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname',
+    );
+    const lastName = this.readStringClaim(
+      payload,
+      'family_name',
+      'surname',
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname',
+    );
+    const userName = this.readStringClaim(
+      payload,
+      'preferred_username',
+      'unique_name',
+    );
+    const phone = this.readStringClaim(
+      payload,
+      'phone_number',
+      'phone',
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/mobilephone',
+    );
     const displayName = this.readStringClaim(
       payload,
       'name',
-      'unique_name',
       'preferred_username',
       'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name',
     );
@@ -160,11 +248,49 @@ export class AuthService {
 
     return {
       id,
-      displayName: displayName ?? email ?? clientId ?? id ?? 'User',
+      displayName: this.createDisplayName(firstName, lastName)
+        ?? displayName
+        ?? userName
+        ?? email
+        ?? clientId
+        ?? id
+        ?? 'User',
+      firstName,
+      lastName,
+      userName,
       email,
+      phone,
       clientId,
       scope,
     };
+  }
+
+  private publishCurrentUserFromProfile(profile: UserProfile): void {
+    this.currentUserSubject.next({
+      id: profile.id,
+      displayName: profile.displayName
+        || this.createDisplayName(profile.firstName, profile.lastName)
+        || profile.userName
+        || profile.email
+        || profile.id
+        || 'User',
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      userName: profile.userName,
+      email: profile.email,
+      phone: profile.phone,
+      clientId: null,
+      scope: this.currentUserSubject.value?.scope ?? 'user',
+    });
+  }
+
+  private createDisplayName(firstName: string | null, lastName: string | null): string | null {
+    const value = [firstName, lastName]
+      .map(part => part?.trim())
+      .filter((part): part is string => !!part)
+      .join(' ');
+
+    return value || null;
   }
 
   private readStringClaim(

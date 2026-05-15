@@ -31,6 +31,7 @@
       <span class="site-header__user">
         Signed in as {{ currentUser?.displayName ?? 'User' }}
       </span>
+      <a routerLink="/profile" routerLinkActive="active">Profile</a>
       <a href="#" (click)="logout($event)">Logout</a>
     } @else {
       <a routerLink="/login" routerLinkActive="active">Login</a>

@@ -78,6 +78,26 @@ describe('AuthInterceptor unit tests', () => {
     ]);
   });
 
+  it('adds the bearer token to authenticated auth endpoints', async () => {
+    const forwardedRequests: HttpRequest<unknown>[] = [];
+    auth.getToken.and.returnValue('active-token');
+    auth.isLoggedIn.and.returnValue(true);
+
+    const handler = handleWith((request) => {
+      forwardedRequests.push(request);
+      return of(new HttpResponse({ status: 200 }));
+    });
+
+    await firstValueFrom(
+      interceptor.intercept(
+        new HttpRequest('GET', 'https://localhost:7273/api/Auth/profile'),
+        handler,
+      ),
+    );
+
+    expect(forwardedRequests[0].headers.get('Authorization')).toBe('Bearer active-token');
+  });
+
   it('expires the session before sending a request when the token is already invalid', async () => {
     auth.getToken.and.returnValue('expired-token');
     auth.isLoggedIn.and.returnValue(false);

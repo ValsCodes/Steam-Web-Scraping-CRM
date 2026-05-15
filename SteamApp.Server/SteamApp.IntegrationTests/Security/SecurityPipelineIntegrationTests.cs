@@ -252,4 +252,68 @@ public sealed class SecurityPipelineIntegrationTests
             Assert.That(register.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         });
     }
+
+    [Test]
+    public async Task ProfileEndpointsUseIdentityStore()
+    {
+        using var factory = new SteamAppFactory();
+        using var authenticated = factory.CreateAuthenticatedClient();
+        using var anonymous = factory.CreateAnonymousClient();
+        await factory.ResetDatabaseAsync();
+
+        var profile = await authenticated.GetAsync("/api/auth/profile");
+        var profileJson = await profile.ReadJsonElementAsync();
+
+        var update = await authenticated.PutAsJsonAsync("/api/auth/profile", new
+        {
+            firstName = "Updated",
+            lastName = "User",
+            userName = "updated-user",
+            email = "updated-user@example.com",
+            phone = "+3595550100"
+        });
+        var updatedJson = await update.ReadJsonElementAsync();
+
+        var password = await authenticated.PutAsJsonAsync("/api/auth/profile/password", new
+        {
+            currentPassword = IntegrationSeed.UserPassword,
+            newPassword = "Password2"
+        });
+
+        var oldPasswordLogin = await anonymous.PostAsJsonAsync("/api/auth/login", new
+        {
+            emailOrUserName = "updated-user@example.com",
+            password = IntegrationSeed.UserPassword
+        });
+        var newPasswordLogin = await anonymous.PostAsJsonAsync("/api/auth/login", new
+        {
+            emailOrUserName = "updated-user",
+            password = "Password2"
+        });
+
+        using var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, "/api/auth/profile")
+        {
+            Content = JsonContent.Create(new { password = "Password2" })
+        };
+        var delete = await authenticated.SendAsync(deleteRequest);
+        var deletedLogin = await anonymous.PostAsJsonAsync("/api/auth/login", new
+        {
+            emailOrUserName = "updated-user",
+            password = "Password2"
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(profile.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(profileJson.GetProperty("email").GetString(), Is.EqualTo(IntegrationSeed.UserEmail));
+            Assert.That(update.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(updatedJson.GetProperty("displayName").GetString(), Is.EqualTo("Updated User"));
+            Assert.That(updatedJson.GetProperty("phone").GetString(), Is.EqualTo("+3595550100"));
+            Assert.That(password.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(oldPasswordLogin.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+            Assert.That(newPasswordLogin.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(delete.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(deletedLogin.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        });
+    }
 }

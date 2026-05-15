@@ -2,6 +2,7 @@
 export { WebScraperComponent } from './web-scraper/web-scraper.component';
 export { ManualModeV2 } from './manual-mode-v2/manual-mode-v2';
 export { LoginComponent } from './login/login.component';
+export { ProfilePage } from './profile/profile-page';
 export { HomePage } from './home/home-page';
 export { SessionExpiredPage } from './session-expired/session-expired-page';
 

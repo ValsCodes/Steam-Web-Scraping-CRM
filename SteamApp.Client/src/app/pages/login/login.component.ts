@@ -23,8 +23,11 @@ interface PasswordRequirement {
 })
 export class LoginComponent {
   loginForm = new FormGroup({
+    firstName: new FormControl('', { nonNullable: true }),
+    lastName: new FormControl('', { nonNullable: true }),
     emailOrUserName: new FormControl('', { nonNullable: true }),
     email: new FormControl('', { nonNullable: true }),
+    phone: new FormControl('', { nonNullable: true }),
     userName: new FormControl('', { nonNullable: true }),
     password: new FormControl('', { nonNullable: true }),
     confirmPassword: new FormControl('', { nonNullable: true }),
@@ -131,7 +134,15 @@ export class LoginComponent {
   }
 
   private createRegisterRequest() {
-    const { email, userName, password, confirmPassword } = this.loginForm.getRawValue();
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      userName,
+      password,
+      confirmPassword,
+    } = this.loginForm.getRawValue();
 
     if (!email.trim() || !password) {
       this.error = 'Enter your email and password';
@@ -156,6 +167,9 @@ export class LoginComponent {
       email.trim(),
       userName.trim() || null,
       password,
+      firstName.trim() || null,
+      lastName.trim() || null,
+      phone.trim() || null,
     );
   }
 

@@ -9,6 +9,7 @@ import {
   ManualModeV2,
   PixelForm,
   PixelsView,
+  ProfilePage,
   ProductForm,
   ProductsView,
   SessionExpiredPage,
@@ -49,6 +50,7 @@ export const routes: Routes = [
     children: [
       { path: 'web-scraper', component: WebScraperComponent, title: 'Web Scraper' },
       { path: 'manual-mode-v2', component: ManualModeV2, title: 'Manual Mode' },
+      { path: 'profile', component: ProfilePage, title: 'Profile' },
 
       { path: 'games', component: GamesView, title: 'Games' },
       { path: 'games/create', component: GameForm, title: 'Create Game' },

@@ -119,6 +119,12 @@
   }
 }
 
+.login-form__name-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
 .password-requirements {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -204,6 +210,10 @@
   }
 
   .password-requirements {
+    grid-template-columns: 1fr;
+  }
+
+  .login-form__name-grid {
     grid-template-columns: 1fr;
   }
 }

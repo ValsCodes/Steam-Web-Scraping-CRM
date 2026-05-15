@@ -21,7 +21,7 @@ export class AuthInterceptor implements HttpInterceptor {
     req: HttpRequest<unknown>,
     next: HttpHandler
   ): Observable<HttpEvent<unknown>> {
-    if (this.isAuthRequest(req.url) || !this.isApiRequest(req.url)) {
+    if (this.isAnonymousAuthRequest(req.url) || !this.isApiRequest(req.url)) {
       return next.handle(req);
     }
 
@@ -55,9 +55,13 @@ export class AuthInterceptor implements HttpInterceptor {
     );
   }
 
-  private isAuthRequest(url: string): boolean {
+  private isAnonymousAuthRequest(url: string): boolean {
     const requestUrl = this.toUrl(url);
-    return requestUrl?.pathname.toLowerCase().startsWith('/api/auth/') ?? false;
+    const path = requestUrl?.pathname.toLowerCase();
+
+    return path === '/api/auth/login' ||
+      path === '/api/auth/register' ||
+      path === '/api/auth/token';
   }
 
   private isApiRequest(url: string): boolean {

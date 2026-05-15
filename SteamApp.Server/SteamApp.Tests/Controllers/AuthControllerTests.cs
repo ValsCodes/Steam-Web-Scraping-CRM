@@ -138,7 +138,10 @@ public sealed class AuthControllerTests
 
         var result = await controller.Register(new RegisterRequest
         {
+            FirstName = "  Test  ",
+            LastName = "  User  ",
             Email = "user@example.com",
+            Phone = "  +3595550100  ",
             UserName = "  user-name  ",
             Password = "Password1"
         });
@@ -150,9 +153,14 @@ public sealed class AuthControllerTests
         Assert.Multiple(() =>
         {
             Assert.That(ok, Is.Not.Null);
+            Assert.That(createdUser?.FirstName, Is.EqualTo("Test"));
+            Assert.That(createdUser?.LastName, Is.EqualTo("User"));
             Assert.That(createdUser?.UserName, Is.EqualTo("user-name"));
             Assert.That(createdUser?.Email, Is.EqualTo("user@example.com"));
+            Assert.That(createdUser?.PhoneNumber, Is.EqualTo("+3595550100"));
             Assert.That(token.Claims.Any(x => x.Type == "scope" && x.Value == SecurityPolicies.UserScope), Is.True);
+            Assert.That(token.Claims.Any(x => x.Type == "given_name" && x.Value == "Test"), Is.True);
+            Assert.That(token.Claims.Any(x => x.Type == "family_name" && x.Value == "User"), Is.True);
         });
     }
 
@@ -310,6 +318,116 @@ public sealed class AuthControllerTests
         Assert.That(result, Is.TypeOf<UnauthorizedObjectResult>());
     }
 
+    [Test]
+    public async Task GetProfile_ReturnsCurrentUserProfile()
+    {
+        var user = new ApplicationUser
+        {
+            Id = "user-id",
+            FirstName = "Test",
+            LastName = "User",
+            UserName = "tester",
+            Email = "user@example.com",
+            PhoneNumber = "+3595550100"
+        };
+        var userManager = CreateUserManager();
+        userManager.Setup(x => x.FindByIdAsync("user-id")).ReturnsAsync(user);
+
+        var controller = CreateController(userManager: userManager);
+        Authenticate(controller);
+
+        var result = await controller.GetProfile();
+
+        var ok = result as OkObjectResult;
+        var response = ok?.Value as UserProfileResponse;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ok, Is.Not.Null);
+            Assert.That(response?.Id, Is.EqualTo("user-id"));
+            Assert.That(response?.FirstName, Is.EqualTo("Test"));
+            Assert.That(response?.LastName, Is.EqualTo("User"));
+            Assert.That(response?.UserName, Is.EqualTo("tester"));
+            Assert.That(response?.Email, Is.EqualTo("user@example.com"));
+            Assert.That(response?.Phone, Is.EqualTo("+3595550100"));
+            Assert.That(response?.DisplayName, Is.EqualTo("Test User"));
+        });
+    }
+
+    [Test]
+    public async Task UpdateProfile_UpdatesCurrentUserParameters()
+    {
+        var user = new ApplicationUser { Id = "user-id" };
+        var userManager = CreateUserManager();
+        userManager.Setup(x => x.FindByIdAsync("user-id")).ReturnsAsync(user);
+        userManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+        var controller = CreateController(userManager: userManager);
+        Authenticate(controller);
+
+        var result = await controller.UpdateProfile(new UpdateUserProfileRequest
+        {
+            FirstName = "  Test  ",
+            LastName = "  User  ",
+            UserName = "  tester  ",
+            Email = "  user@example.com  ",
+            Phone = "  +3595550100  "
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.TypeOf<OkObjectResult>());
+            Assert.That(user.FirstName, Is.EqualTo("Test"));
+            Assert.That(user.LastName, Is.EqualTo("User"));
+            Assert.That(user.UserName, Is.EqualTo("tester"));
+            Assert.That(user.Email, Is.EqualTo("user@example.com"));
+            Assert.That(user.PhoneNumber, Is.EqualTo("+3595550100"));
+        });
+    }
+
+    [Test]
+    public async Task ChangePassword_UsesIdentityPasswordChange()
+    {
+        var user = new ApplicationUser { Id = "user-id" };
+        var userManager = CreateUserManager();
+        userManager.Setup(x => x.FindByIdAsync("user-id")).ReturnsAsync(user);
+        userManager
+            .Setup(x => x.ChangePasswordAsync(user, "Password1", "Password2"))
+            .ReturnsAsync(IdentityResult.Success);
+
+        var controller = CreateController(userManager: userManager);
+        Authenticate(controller);
+
+        var result = await controller.ChangePassword(new ChangePasswordRequest
+        {
+            CurrentPassword = "Password1",
+            NewPassword = "Password2"
+        });
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+    }
+
+    [Test]
+    public async Task DeleteProfile_RequiresPasswordAndDeletesCurrentUser()
+    {
+        var user = new ApplicationUser { Id = "user-id" };
+        var userManager = CreateUserManager();
+        userManager.Setup(x => x.FindByIdAsync("user-id")).ReturnsAsync(user);
+        userManager.Setup(x => x.CheckPasswordAsync(user, "Password1")).ReturnsAsync(true);
+        userManager.Setup(x => x.DeleteAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+        var controller = CreateController(userManager: userManager);
+        Authenticate(controller);
+
+        var result = await controller.DeleteProfile(new DeleteUserRequest
+        {
+            Password = "Password1"
+        });
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        userManager.Verify(x => x.DeleteAsync(user), Times.Once);
+    }
+
     private static AuthController CreateController(
         IReadOnlyList<ClientDefinition>? clients = null,
         Mock<UserManager<ApplicationUser>>? userManager = null,
@@ -332,7 +450,8 @@ public sealed class AuthControllerTests
             userManager.Object,
             signInManager.Object,
             configuration ?? Config(),
-            Environment(environmentName));
+            Environment(environmentName),
+            NullLogger<AuthController>.Instance);
     }
 
     private static Mock<UserManager<ApplicationUser>> CreateUserManager()
@@ -374,6 +493,21 @@ public sealed class AuthControllerTests
         var environment = new Mock<IHostEnvironment>();
         environment.SetupGet(x => x.EnvironmentName).Returns(name);
         return environment.Object;
+    }
+
+    private static void Authenticate(AuthController controller, string userId = "user-id")
+    {
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                [
+                    new Claim(ClaimTypes.NameIdentifier, userId),
+                    new Claim("scope", SecurityPolicies.UserScope)
+                ], "Test"))
+            }
+        };
     }
 
     private static string Sha256Hex(string value)
