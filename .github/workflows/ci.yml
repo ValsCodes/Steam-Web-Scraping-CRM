@@ -52,6 +52,14 @@ jobs:
         working-directory: ${{ env.CLIENT_DIR }}
         run: npm run build -- --configuration production
 
+      - name: Run Angular client unit tests
+        working-directory: ${{ env.CLIENT_DIR }}
+        run: npm run test:unit
+
+      - name: Run Angular client integration tests
+        working-directory: ${{ env.CLIENT_DIR }}
+        run: npm run test:integration
+
       - name: Run unit tests
         run: >
           dotnet test $env:UNIT_TEST_PROJECT

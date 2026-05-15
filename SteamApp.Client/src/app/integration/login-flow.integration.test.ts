@@ -80,6 +80,9 @@ describe('Login flow integration tests', () => {
       'admin@example.test',
       'admin',
       'Password1',
+      null,
+      null,
+      null,
     );
     expect(router.navigateByUrl).toHaveBeenCalledWith('/games', { replaceUrl: true });
   });
