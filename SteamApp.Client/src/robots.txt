@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Allow: /home
+Allow: /pricing
 Allow: /assets/
 Allow: /favicon.ico
 Allow: /manifest.webmanifest

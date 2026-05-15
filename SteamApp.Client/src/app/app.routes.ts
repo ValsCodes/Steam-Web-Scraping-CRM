@@ -42,6 +42,22 @@ export const routes: Routes = [
     },
   },
   {
+    path: 'pricing',
+    loadComponent: () => import('./pages/pricing/pricing-page').then((m) => m.PricingPage),
+    title: 'Subscription Pricing',
+    data: {
+      seo: {
+        title: 'Subscription Pricing',
+        description:
+          'Compare Steam Web Scraping CRM plans for catalog setup, scraping workflows, monitoring, exports, and automation.',
+        canonicalPath: '/pricing',
+        robots: PUBLIC_ROBOTS,
+        imagePath: '/assets/brand/steam-app-social.svg',
+        type: 'website',
+      },
+    },
+  },
+  {
     path: 'login',
     loadComponent: () => import('./pages/login/login.component').then((m) => m.LoginComponent),
     title: 'Login',
