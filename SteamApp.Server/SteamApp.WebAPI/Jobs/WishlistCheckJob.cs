@@ -3,49 +3,64 @@ using SteamApp.Application.Caching;
 using SteamApp.Application.Services;
 using SteamApp.Interfaces;
 using SteamApp.Interfaces.Services;
+using SteamApp.WebAPI.Services;
+
 namespace SteamApp.WebAPI.Jobs;
 
 public class WishlistCheckJob(
     ILogger<WishlistCheckJob> log, 
-    IEmailService emailSerivce, 
+    IEmailService emailService,
     IMemoryCache cache, 
-    IWishlistService wishlistService) : IJobService
+    IWishlistService wishlistService,
+    IWishlistNotificationRecipientService recipientService) : IJobService
 {
     public async Task RunAsync(CancellationToken ct)
     {
-        var wishList = await wishlistService.GetAllAsync(ct);
+        var recipients = await recipientService.GetActiveRecipientsAsync(ct);
 
         await Task.Delay(400, ct);
 
-        foreach (var item in wishList.Where(x => x.IsActive))
+        foreach (var recipient in recipients)
         {
             try
             {
-                var cacheKey = string.Format(CacheKeys.WishListBackgroundJob, item.Id);
+                var cacheKey = string.Format(CacheKeys.WishListBackgroundJob, recipient.WishlistId);
 
                 if (cache.TryGetValue(cacheKey, out var cached))
                 {
                     continue;
                 }
 
-                var result = await wishlistService.CheckWishlistItem(item.Id);
+                var result = await wishlistService.CheckWishlistItem(recipient.WishlistId);
 
                 if (result != null && result.IsPriceReached)
                 {
                     cache.Set(cacheKey, result, TimeSpan.FromHours(12));
 
-                    await emailSerivce.SendAsync(new EmailMessage(To: "ivailo1224@gmail.com",
-                                     Subject: $"Wishlist item {result.GameName} Price has been reached!",
-                                     Body: $"{result.GameName} is currently at {result.CurrentPrice} EUR"), ct);
+                    await emailService.SendAsync(new EmailMessage(
+                        To: recipient.Email,
+                        Subject: $"Wishlist item {result.GameName} Price has been reached!",
+                        Body: $"{result.GameName} is currently at {result.CurrentPrice} EUR"), ct);
 
-                    log.LogInformation($"WishlistCheckJob tick at {DateTime.UtcNow}: whishlist item has reached a price point. Email sent.");
+                    log.LogInformation(
+                        "WishlistCheckJob tick at {Timestamp}: wishlist item {WishlistId} has reached a price point. Email sent to {Email}.",
+                        DateTime.UtcNow,
+                        recipient.WishlistId,
+                        recipient.Email);
                 }
 
-                log.LogInformation($"WishlistCheckJob tick at {DateTime.UtcNow}: whishlist item {item.Name}");
+                log.LogInformation(
+                    "WishlistCheckJob tick at {Timestamp}: wishlist item {WishlistName}",
+                    DateTime.UtcNow,
+                    recipient.WishlistName);
             }
             catch (Exception ex)
             {
-                log.LogError($"WishlistCheckJob had tick at {DateTime.UtcNow}: There was an Error: {ex.Message}");
+                log.LogError(
+                    ex,
+                    "WishlistCheckJob had tick at {Timestamp}: there was an error for wishlist item {WishlistId}.",
+                    DateTime.UtcNow,
+                    recipient.WishlistId);
             }
 
             // Wait 15 secs between each item check to avoid hitting API limits and to be more polite to the API server.

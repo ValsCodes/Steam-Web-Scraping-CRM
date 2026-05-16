@@ -278,6 +278,7 @@ public class Program
         builder.Services.AddScoped<IEmailService, EmailService>();
         builder.Services.AddScoped<IdentitySchemaInitializer>();
         builder.Services.AddScoped<IScrapeHistoryDataService, ScrapeHistoryDataService>();
+        builder.Services.AddScoped<IWishlistNotificationRecipientService, WishlistNotificationRecipientService>();
         builder.Services.AddScoped<ISteamRepository, SteamRepository>();
         builder.Services.AddScoped<ISteamService, SteamService>();
         builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
