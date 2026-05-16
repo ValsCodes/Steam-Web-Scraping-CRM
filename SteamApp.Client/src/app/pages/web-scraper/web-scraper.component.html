@@ -143,6 +143,11 @@
                             </button>
                             }
 
+                            <button (click)="historyButtonClicked()" [disabled]="this.isLoading()" class="button-small-secondary"
+                                title="Open automated scrape history">
+                                History
+                            </button>
+
                             @if (this.isLoading()) {
                             <button (click)="cancelAll()" class="button-small-danger" title="Cancel Current Process">
                                 Cancel

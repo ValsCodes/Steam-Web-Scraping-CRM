@@ -8,17 +8,20 @@ using SteamApp.Interfaces.Repositories;
 
 namespace SteamApp.Infrastructure.Repositories;
 
-public class SteamRepository(ApplicationDbContext dbContext, IMemoryCache cache) : ISteamRepository
+public class SteamRepository(
+    IDbContextFactory<ApplicationDbContext> dbContextFactory,
+    IMemoryCache cache) : ISteamRepository
 {
     public async Task<GameUrl> GetGameUrl(long gameUrlId)
     {
-
         var cacheKey = string.Format(CacheKeys.GameUrl, gameUrlId);
 
         if (cache.TryGetValue<GameUrl>(cacheKey, out var cached) && cached is not null)
         {
             return cached;
         }
+
+        await using var dbContext = dbContextFactory.CreateDbContext();
 
         var gameUrl = await dbContext.GameUrls
             .AsNoTracking()
@@ -47,6 +50,8 @@ public class SteamRepository(ApplicationDbContext dbContext, IMemoryCache cache)
         {
             return cached;
         }
+
+        await using var dbContext = dbContextFactory.CreateDbContext();
 
         var game = await dbContext.Games.AsNoTracking()
             .Include(x => x.Pixels)

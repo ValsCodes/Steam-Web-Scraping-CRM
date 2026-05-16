@@ -12,12 +12,12 @@ public sealed class SteamRepositoryTests
     [Test]
     public async Task GetGameUrl_ReturnsCachedValueWithoutQueryingDatabase()
     {
-        await using var db = TestDb.CreateContext();
+        using var database = TestDb.CreateDatabase();
         using var cache = TestDb.CreateMemoryCache();
         var cached = new GameUrl { Id = 99, Name = "Cached" };
         cache.Set(string.Format(CacheKeys.GameUrl, cached.Id), cached);
 
-        var repository = new SteamRepository(db, cache);
+        var repository = new SteamRepository(database.Factory, cache);
 
         var result = await repository.GetGameUrl(cached.Id);
 
@@ -27,10 +27,9 @@ public sealed class SteamRepositoryTests
     [Test]
     public async Task GetGameUrl_LoadsRelatedDataAndCachesResult()
     {
-        await using var db = TestDb.CreateContext();
-        TestDb.SeedBaseline(db);
+        using var database = TestDb.CreateSeededDatabase();
         using var cache = TestDb.CreateMemoryCache();
-        var repository = new SteamRepository(db, cache);
+        var repository = new SteamRepository(database.Factory, cache);
 
         var result = await repository.GetGameUrl(2);
 
@@ -47,9 +46,9 @@ public sealed class SteamRepositoryTests
     [Test]
     public void GetGameUrl_ThrowsWhenMissing()
     {
-        using var db = TestDb.CreateContext();
+        using var database = TestDb.CreateDatabase();
         using var cache = TestDb.CreateMemoryCache();
-        var repository = new SteamRepository(db, cache);
+        var repository = new SteamRepository(database.Factory, cache);
 
         Assert.That(
             async () => await repository.GetGameUrl(404),
@@ -59,12 +58,12 @@ public sealed class SteamRepositoryTests
     [Test]
     public async Task GetGame_ReturnsCachedValueWithoutQueryingDatabase()
     {
-        await using var db = TestDb.CreateContext();
+        using var database = TestDb.CreateDatabase();
         using var cache = TestDb.CreateMemoryCache();
         var cached = new Game { Id = 99, Name = "Cached" };
         cache.Set(string.Format(CacheKeys.Game, cached.Id), cached);
 
-        var repository = new SteamRepository(db, cache);
+        var repository = new SteamRepository(database.Factory, cache);
 
         var result = await repository.GetGame(cached.Id);
 
@@ -74,10 +73,9 @@ public sealed class SteamRepositoryTests
     [Test]
     public async Task GetGame_LoadsPixelsAndCachesResult()
     {
-        await using var db = TestDb.CreateContext();
-        TestDb.SeedBaseline(db);
+        using var database = TestDb.CreateSeededDatabase();
         using var cache = TestDb.CreateMemoryCache();
-        var repository = new SteamRepository(db, cache);
+        var repository = new SteamRepository(database.Factory, cache);
 
         var result = await repository.GetGame(1);
 
@@ -92,9 +90,9 @@ public sealed class SteamRepositoryTests
     [Test]
     public void GetGame_ThrowsWhenMissing()
     {
-        using var db = TestDb.CreateContext();
+        using var database = TestDb.CreateDatabase();
         using var cache = TestDb.CreateMemoryCache();
-        var repository = new SteamRepository(db, cache);
+        var repository = new SteamRepository(database.Factory, cache);
 
         Assert.That(
             async () => await repository.GetGame(404),

@@ -23,6 +23,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<ScrapingMode> ScrapingModes { get; set; }
     public DbSet<Tag> Tags { get; set; }
     public DbSet<ProductTags> ProductTags { get; set; }
+    public DbSet<AutomatedScrapeHistory> AutomatedScrapeHistories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -41,6 +42,32 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<WishList>(ConfigureUserOwnedEntity);
         modelBuilder.Entity<GameAddOn>();
         modelBuilder.Entity<ScrapingMode>();
+        modelBuilder.Entity<AutomatedScrapeHistory>(entity =>
+        {
+            entity.Property(x => x.UserId)
+                  .HasMaxLength(450)
+                  .HasColumnName("user_id");
+
+            entity.Property(x => x.Endpoint)
+                  .HasMaxLength(100)
+                  .HasColumnName("endpoint");
+
+            entity.Property(x => x.ScrapeType)
+                  .HasMaxLength(50)
+                  .HasColumnName("scrape_type");
+
+            entity.Property(x => x.SetupJson)
+                  .HasColumnName("setup_json");
+
+            entity.Property(x => x.ResultsJson)
+                  .HasColumnName("results_json");
+
+            entity.Property(x => x.ErrorText)
+                  .HasColumnName("error_text");
+
+            entity.HasIndex(x => new { x.UserId, x.Date });
+            entity.HasIndex(x => x.GameUrlId);
+        });
         modelBuilder.Entity<WatchList>(entity =>
         {
             ConfigureUserOwnedEntity(entity);

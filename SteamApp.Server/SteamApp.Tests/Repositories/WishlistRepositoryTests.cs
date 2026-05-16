@@ -12,12 +12,12 @@ public sealed class WishlistRepositoryTests
     [Test]
     public async Task GetAsync_ReturnsCachedValueWithoutQueryingDatabase()
     {
-        await using var db = TestDb.CreateContext();
+        using var database = TestDb.CreateDatabase();
         using var cache = TestDb.CreateMemoryCache();
         var cached = new WishList { Id = 99, Name = "Cached" };
         cache.Set(string.Format(CacheKeys.WishListItem, cached.Id), cached);
 
-        var repository = new WishlistRepository(db, cache);
+        var repository = new WishlistRepository(database.Factory, cache);
 
         var result = await repository.GetAsync(cached.Id, CancellationToken.None);
 
@@ -27,10 +27,9 @@ public sealed class WishlistRepositoryTests
     [Test]
     public async Task GetAsync_LoadsGameAndCachesResult()
     {
-        await using var db = TestDb.CreateContext();
-        TestDb.SeedBaseline(db);
+        using var database = TestDb.CreateSeededDatabase();
         using var cache = TestDb.CreateMemoryCache();
-        var repository = new WishlistRepository(db, cache);
+        var repository = new WishlistRepository(database.Factory, cache);
 
         var result = await repository.GetAsync(1, CancellationToken.None);
 
@@ -47,9 +46,9 @@ public sealed class WishlistRepositoryTests
     [Test]
     public void GetAsync_ThrowsWhenMissing()
     {
-        using var db = TestDb.CreateContext();
+        using var database = TestDb.CreateDatabase();
         using var cache = TestDb.CreateMemoryCache();
-        var repository = new WishlistRepository(db, cache);
+        var repository = new WishlistRepository(database.Factory, cache);
 
         Assert.That(
             async () => await repository.GetAsync(404, CancellationToken.None),
@@ -59,10 +58,9 @@ public sealed class WishlistRepositoryTests
     [Test]
     public async Task GetAllAsync_ReturnsAllWishlistRows()
     {
-        await using var db = TestDb.CreateContext();
-        TestDb.SeedBaseline(db);
+        using var database = TestDb.CreateSeededDatabase();
         using var cache = TestDb.CreateMemoryCache();
-        var repository = new WishlistRepository(db, cache);
+        var repository = new WishlistRepository(database.Factory, cache);
 
         var result = (await repository.GetAllAsync(CancellationToken.None)).ToArray();
 

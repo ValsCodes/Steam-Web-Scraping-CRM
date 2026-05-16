@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Caching.Memory;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
@@ -9,13 +10,57 @@ namespace SteamApp.Tests.TestSupport;
 public static class TestDb
 {
     public const string TestUserId = "test-user";
+    private static readonly InMemoryDatabaseRoot SharedRoot = new();
 
     public static ApplicationDbContext CreateContext(string? databaseName = null)
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName ?? Guid.NewGuid().ToString("N"))
-            .Options;
+        return CreateContext(CreateOptions(databaseName));
+    }
 
+    public static TestDatabase CreateDatabase()
+    {
+        var options = CreateOptions(root: SharedRoot);
+        var db = CreateContext(options);
+
+        return new TestDatabase(db, new TestDbContextFactory(options));
+    }
+
+    public static TestDatabase CreateSeededDatabase()
+    {
+        var database = CreateDatabase();
+        SeedBaseline(database.Context);
+
+        return database;
+    }
+
+    public static TestDbContextFactory CreateSeededFactory()
+    {
+        using var database = CreateSeededDatabase();
+
+        return database.Factory;
+    }
+
+    private static DbContextOptions<ApplicationDbContext> CreateOptions(
+        string? databaseName = null,
+        InMemoryDatabaseRoot? root = null)
+    {
+        var builder = new DbContextOptionsBuilder<ApplicationDbContext>();
+        var name = databaseName ?? Guid.NewGuid().ToString("N");
+
+        if (root is null)
+        {
+            builder.UseInMemoryDatabase(name);
+        }
+        else
+        {
+            builder.UseInMemoryDatabase(name, root);
+        }
+
+        return builder.Options;
+    }
+
+    private static ApplicationDbContext CreateContext(DbContextOptions<ApplicationDbContext> options)
+    {
         var db = new ApplicationDbContext(options);
         db.Database.EnsureDeleted();
         db.Database.EnsureCreated();
@@ -172,5 +217,28 @@ public static class TestDb
         db.GameUrlsPixels.Add(new GameUrlPixels { PixelId = 1, GameUrlId = 2 });
 
         db.SaveChanges();
+    }
+}
+
+public sealed class TestDbContextFactory(DbContextOptions<ApplicationDbContext> options)
+    : IDbContextFactory<ApplicationDbContext>
+{
+    public ApplicationDbContext CreateDbContext()
+    {
+        return new ApplicationDbContext(options);
+    }
+}
+
+public sealed class TestDatabase(
+    ApplicationDbContext context,
+    TestDbContextFactory factory)
+    : IDisposable
+{
+    public ApplicationDbContext Context { get; } = context;
+    public TestDbContextFactory Factory { get; } = factory;
+
+    public void Dispose()
+    {
+        Context.Dispose();
     }
 }

@@ -254,7 +254,7 @@ public class Program
             });
         });
 
-        builder.Services.AddDbContext<ApplicationDbContext>(opts =>
+        builder.Services.AddDbContextFactory<ApplicationDbContext>(opts =>
         {
             opts.UseSqlServer(
                 builder.Configuration.GetConnectionString("DefaultConnection"),
@@ -277,6 +277,7 @@ public class Program
         builder.Services.AddSingleton<IEncryptionHashingService, EncryptionHashingService>();
         builder.Services.AddScoped<IEmailService, EmailService>();
         builder.Services.AddScoped<IdentitySchemaInitializer>();
+        builder.Services.AddScoped<IScrapeHistoryDataService, ScrapeHistoryDataService>();
         builder.Services.AddScoped<ISteamRepository, SteamRepository>();
         builder.Services.AddScoped<ISteamService, SteamService>();
         builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();

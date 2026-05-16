@@ -13,6 +13,7 @@ import { CommonModule } from '@angular/common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { startWith, map, finalize, Subject, takeUntil, Observable } from 'rxjs';
 import * as XLSX from 'xlsx';
@@ -22,6 +23,7 @@ import { StopwatchComponent } from '../../components';
 import {
   Game,
   GameUrl,
+  ScrapeHistoryRerunResponse,
   ScrapingMode as ScrapingModeLookup,
   ScrapingModeEnum,
 } from '../../models';
@@ -29,6 +31,7 @@ import { Listing } from '../../models/listing.model';
 import { GameService, GameUrlService, ScrapingModeService } from '../../services';
 import { MatTooltip } from '@angular/material/tooltip';
 import { getListingUrl, safeExternalImageUrl, safeExternalUrl } from '../../common';
+import { ScrapeHistoryDialogComponent } from './scrape-history-dialog.component';
 
 enum ScraperExecutionMode {
   WebScrape = ScrapingModeEnum.Batch,
@@ -51,6 +54,7 @@ type ScraperExecutionModeItem = {
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
+    MatDialogModule,
     StopwatchComponent,
     MatTooltip,
   ],
@@ -219,6 +223,7 @@ export class WebScraperComponent {
     private readonly gameService: GameService,
     private readonly gameUrlService: GameUrlService,
     private readonly scrapingModeService: ScrapingModeService,
+    private readonly dialog: MatDialog,
   ) {
     effect(() => {
       void this.selectedGameId();
@@ -418,6 +423,32 @@ export class WebScraperComponent {
     this.gameUrlIdControl.setValue(null);
     this.selectedMode.set(null);
     this.pageNumber.set(1);
+  }
+
+  historyButtonClicked(): void {
+    this.dialog
+      .open<
+        ScrapeHistoryDialogComponent,
+        unknown,
+        ScrapeHistoryRerunResponse | undefined
+      >(ScrapeHistoryDialogComponent, {
+        maxWidth: '96vw',
+        maxHeight: '90vh',
+      })
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((response) => {
+        if (!response) {
+          return;
+        }
+
+        this.dataSource.data = response.results ?? [];
+        this.attachTableControls();
+        this.statusLabel.set(
+          `Reran ${response.history.scrapeType} from history on page ${response.history.page}.`,
+        );
+        this.cdr.markForCheck();
+      });
   }
 
   exportButtonClicked(): void {
