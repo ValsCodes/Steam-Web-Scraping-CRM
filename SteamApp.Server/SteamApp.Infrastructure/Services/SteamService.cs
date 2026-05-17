@@ -332,6 +332,18 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
             try
             {
                 driver.Navigate().GoToUrl(url);
+
+                // Add Cookie to redirect to old site
+                var cookie = new Cookie(
+                name: "bMarketOptOut",
+                value: "1",
+                path: "/market",
+                expiry: DateTime.UtcNow.AddDays(7));
+
+                driver.Manage().Cookies.AddCookie(cookie);
+
+                driver.Navigate().Refresh();
+
                 var resultBy = By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]");
 
                 var wait = new DefaultWait<IWebDriver>(driver)
