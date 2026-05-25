@@ -128,11 +128,8 @@
                 <ul class="space-y-3 text-sm text-slate-700">
                     <li>
                         <a
-                            href="https://backpack.tf/spreadsheet"
+                            steamExternalLink="https://backpack.tf/spreadsheet"
                             matTooltip="https://backpack.tf/spreadsheet"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            referrerpolicy="no-referrer"
                             class="text-blue-600 hover:underline">
                             BackpackTF Prices URL
                         </a>
@@ -140,11 +137,8 @@
 
                     <li>
                         <a
-                            href="https://steamcommunity.com/id/_Val/inventory"
+                            steamExternalLink="https://steamcommunity.com/id/_Val/inventory"
                             matTooltip="https://steamcommunity.com/id/_Val/inventory"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            referrerpolicy="no-referrer"
                             class="text-blue-600 hover:underline">
                             Inventory
                         </a>
@@ -152,11 +146,8 @@
 
                     <li>
                         <a
-                            href="https://steamcommunity.com/market/"
+                            steamExternalLink="https://steamcommunity.com/market/"
                             matTooltip="https://steamcommunity.com/market/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            referrerpolicy="no-referrer"
                             class="text-blue-600 hover:underline">
                             Community Market
                         </a>
@@ -262,16 +253,13 @@
                     <div class="p-4">
                         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                             @for (product of productsFiltered; track product.productId; let i = $index) {
+
                                 <a
-                                    [attr.href]="safeExternalUrl(product.fullUrl)"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    referrerpolicy="no-referrer"
-                                    class="block"
-                                    [class.pointer-events-none]="safeExternalUrl(product.fullUrl) === null">
+                                    [steamExternalLink]="product.fullUrl"
+                                    class="block">
                                     <div
                                         class="flex h-[5.5rem] flex-col justify-center rounded-lg border border-slate-200 bg-slate-50 p-3 transition hover:border-slate-300 hover:bg-white"
-                                        [matTooltip]="safeExternalUrl(product.fullUrl) ?? 'Unsafe URL blocked'">
+                                        [matTooltip]="externalUrlWarning(product.fullUrl) ?? openableExternalUrl(product.fullUrl) ?? 'Missing URL'">
                                         <strong class="text-sm text-slate-800">
                                             {{ i + 1 }}. {{ product.productName }}
                                         </strong>
@@ -283,6 +271,7 @@
                                         }
                                     </div>
                                 </a>
+
                             }
                         </div>
                     </div>

@@ -1,4 +1,12 @@
-import { formatMs, makeEnumHelpers, openSafeExternalUrl, safeExternalImageUrl, safeExternalUrl } from './index';
+import {
+  externalUrlWarning,
+  formatMs,
+  makeEnumHelpers,
+  openableExternalUrl,
+  openSafeExternalUrl,
+  safeExternalImageUrl,
+  safeExternalUrl,
+} from './index';
 import { encode } from './url.encoder';
 
 describe('client helper unit tests', () => {
@@ -44,6 +52,27 @@ describe('client helper unit tests', () => {
     expect(safeExternalUrl('https://evil.example/market')).toBeNull();
     expect(safeExternalUrl('javascript:alert(1)')).toBeNull();
     expect(safeExternalUrl('')).toBeNull();
+  });
+
+  it('allows any non-empty URL string to remain openable while warning when unverified', () => {
+    expect(openableExternalUrl('http://steamcommunity.com/market')).toBe(
+      'http://steamcommunity.com/market',
+    );
+    expect(openableExternalUrl('https://evil.example/market')).toBe(
+      'https://evil.example/market',
+    );
+    expect(openableExternalUrl('javascript:alert(1)')).toBe('javascript:alert(1)');
+    expect(openableExternalUrl('steam://openurl/https://steamcommunity.com/market/')).toBe(
+      'steam://openurl/https://steamcommunity.com/market/',
+    );
+    expect(openableExternalUrl('mailto:ops@example.test')).toBe('mailto:ops@example.test');
+    expect(openableExternalUrl('not a url but the browser decides')).toBe(
+      'not a url but the browser decides',
+    );
+    expect(openableExternalUrl('  ')).toBeNull();
+    expect(externalUrlWarning('https://evil.example/market')).toContain('Warning');
+    expect(externalUrlWarning('javascript:alert(1)')).toContain('Warning');
+    expect(externalUrlWarning('https://steamcommunity.com/market')).toBeNull();
   });
 
   it('opens only sanitized external URLs', () => {

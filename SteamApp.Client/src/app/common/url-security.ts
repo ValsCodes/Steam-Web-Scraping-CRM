@@ -7,26 +7,33 @@ const TRUSTED_EXTERNAL_HOST_SUFFIXES = [
 ] as const;
 
 export function safeExternalUrl(value: string | null | undefined): string | null {
+  const url = parseWebUrl(value);
+  if (!url) {
+    return null;
+  }
+
+  if (url.origin === window.location.origin) {
+    return url.href;
+  }
+
+  return url.protocol === 'https:' && isTrustedExternalHost(url.hostname) ? url.href : null;
+}
+
+export function openableExternalUrl(value: string | null | undefined): string | null {
   const rawUrl = value?.trim();
-  if (!rawUrl) {
+  return rawUrl || null;
+}
+
+export function externalUrlWarning(value: string | null | undefined): string | null {
+  if (!openableExternalUrl(value)) {
+    return 'This link does not include a destination.';
+  }
+
+  if (safeExternalUrl(value)) {
     return null;
   }
 
-  try {
-    const url = new URL(rawUrl, window.location.origin);
-
-    if (url.origin === window.location.origin) {
-      return url.href;
-    }
-
-    if (url.protocol !== 'https:') {
-      return null;
-    }
-
-    return isTrustedExternalHost(url.hostname) ? url.href : null;
-  } catch {
-    return null;
-  }
+  return 'Warning: this destination is not verified by SteamApp. Review it carefully before opening.';
 }
 
 export function safeExternalImageUrl(value: string | null | undefined): string | null {
@@ -49,4 +56,18 @@ function isTrustedExternalHost(hostname: string): boolean {
   return TRUSTED_EXTERNAL_HOST_SUFFIXES.some(
     (suffix) => normalized === suffix || normalized.endsWith(`.${suffix}`),
   );
+}
+
+function parseWebUrl(value: string | null | undefined): URL | null {
+  const rawUrl = value?.trim();
+  if (!rawUrl) {
+    return null;
+  }
+
+  try {
+    const url = new URL(rawUrl, window.location.origin);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url : null;
+  } catch {
+    return null;
+  }
 }

@@ -1,0 +1,56 @@
+<section class="external-disclosure">
+  <div class="external-disclosure__panel">
+    <p class="external-disclosure__eyebrow">External links</p>
+    <h1>External Link Disclosure</h1>
+
+    <p>
+      SteamApp can open links to third-party websites such as Steam Community and backpack.tf.
+      These sites are outside SteamApp's control. You are responsible for reviewing the
+      destination URL and deciding whether it is safe before opening it. SteamApp warns
+      when a destination is not verified by SteamApp, but it cannot guarantee third-party
+      content is safe.
+    </p>
+
+    @if (openableTargetUrl) {
+      <div class="external-disclosure__destination">
+        <span>Destination</span>
+        <code>{{ openableTargetUrl }}</code>
+      </div>
+
+      @if (targetWarning) {
+        <div class="external-disclosure__warning" role="alert">
+          {{ targetWarning }}
+        </div>
+      }
+    } @else if (targetUrl) {
+      <div class="external-disclosure__invalid" role="alert">
+        This destination is empty and cannot be opened from SteamApp.
+      </div>
+    }
+
+    <label class="external-disclosure__check">
+      <input type="checkbox" [formControl]="acceptedControl">
+      <span>I understand and accept responsibility for verifying external links before opening them.</span>
+    </label>
+
+    @if (acceptanceError) {
+      <p class="external-disclosure__error" role="alert">{{ acceptanceError }}</p>
+    }
+
+    <div class="external-disclosure__actions">
+      @if (openableTargetUrl) {
+        <button type="button" class="button button-small-primary" (click)="acceptAndOpenTarget()">
+          Accept and Open Link
+        </button>
+      }
+
+      <button type="button" class="button button-small-secondary" (click)="acceptWithoutOpening()">
+        Accept Without Opening
+      </button>
+
+      <button type="button" class="button button-small-secondary" (click)="cancel()">
+        Cancel
+      </button>
+    </div>
+  </div>
+</section>

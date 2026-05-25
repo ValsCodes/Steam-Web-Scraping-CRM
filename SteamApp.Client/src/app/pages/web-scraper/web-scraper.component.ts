@@ -30,7 +30,13 @@ import {
 import { Listing } from '../../models/listing.model';
 import { GameService, GameUrlService, ScrapingModeService } from '../../services';
 import { MatTooltip } from '@angular/material/tooltip';
-import { getListingUrl, safeExternalImageUrl, safeExternalUrl } from '../../common';
+import {
+  ExternalLinkDirective,
+  externalUrlWarning,
+  getListingUrl,
+  openableExternalUrl,
+  safeExternalImageUrl,
+} from '../../common';
 import { ScrapeHistoryDialogComponent } from './scrape-history-dialog.component';
 
 enum ScraperExecutionMode {
@@ -57,6 +63,7 @@ type ScraperExecutionModeItem = {
     MatDialogModule,
     StopwatchComponent,
     MatTooltip,
+    ExternalLinkDirective,
   ],
   templateUrl: './web-scraper.component.html',
   styleUrl: './web-scraper.component.scss',
@@ -64,6 +71,7 @@ type ScraperExecutionModeItem = {
 })
 export class WebScraperComponent {
   readonly safeExternalImageUrl = safeExternalImageUrl;
+  readonly externalUrlWarning = externalUrlWarning;
 
   private paginator?: MatPaginator;
   private sort?: MatSort;
@@ -473,7 +481,7 @@ export class WebScraperComponent {
   }
 
   getSafeShowPageUrl(): string | null {
-    return safeExternalUrl(this.getShowPageUrl());
+    return openableExternalUrl(this.getShowPageUrl());
   }
 
   getSafeListingUrl(listingName: string | null | undefined): string | null {
@@ -493,13 +501,13 @@ export class WebScraperComponent {
 
     const url = getListingUrl(
       this.selectedGame()?.internalId,
-      encodeURIComponent(name),
+      name,
     );
     if (url === '') {
       return null;
     }
 
-    return safeExternalUrl(url);
+    return openableExternalUrl(url);
   }
 
   private attachTableControls(): void {

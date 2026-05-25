@@ -106,13 +106,11 @@
                                 Next Page
                             </button>
 
-                            <a [attr.href]="getSafeShowPageUrl()" [matTooltip]="getSafeShowPageUrl() ?? 'Unsafe URL blocked'"
+                            <a [steamExternalLink]="getSafeShowPageUrl()" [matTooltip]="externalUrlWarning(getSafeShowPageUrl()) ?? getSafeShowPageUrl() ?? 'Missing URL'"
                                 class="button-small-info inline-flex items-center"
                                 [class.pointer-events-none]="getSafeShowPageUrl() == null"
                                 [class.opacity-50]="getSafeShowPageUrl() == null"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                referrerpolicy="no-referrer">
+                                steamExternalLinkReturnUrl="/web-scraper">
                                 Show Page
                             </a>
                         </div>
@@ -195,11 +193,9 @@
                             <td mat-cell *matCellDef="let listing; let i = index">
                         
                                 <a
-                                    [attr.href]="getSafeListingUrl(listing.name)"
-                                    [matTooltip]="getSafeListingUrl(listing.name) ?? 'Unsafe URL blocked'"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    referrerpolicy="no-referrer">
+                                    [steamExternalLink]="getSafeListingUrl(listing.name)"
+                                    [matTooltip]="externalUrlWarning(getSafeListingUrl(listing.name)) ?? getSafeListingUrl(listing.name) ?? 'Missing URL'"
+                                    steamExternalLinkReturnUrl="/web-scraper">
                                     <div class="flex items-center">
                         
                                         @if(safeExternalImageUrl(listing.imageUrl); as imageUrl)

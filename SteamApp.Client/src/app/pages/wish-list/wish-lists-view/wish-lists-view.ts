@@ -25,7 +25,7 @@ import { GameService, SteamService } from '../../../services';
 import { Game, WhishListResponse } from '../../../models';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import { StatusDialogComponent } from '../../../components/status-dialog.component';
-import { safeExternalUrl } from '../../../common';
+import { ExternalLinkDirective, openableExternalUrl } from '../../../common';
 
 import * as XLSX from 'xlsx';
 
@@ -41,12 +41,13 @@ import * as XLSX from 'xlsx';
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
+    ExternalLinkDirective,
   ],
   templateUrl: './wish-lists-view.html',
   styleUrl: './wish-lists-view.scss',
 })
 export class WishListsView implements OnInit, OnDestroy {
-  readonly safeExternalUrl = safeExternalUrl;
+  readonly openableExternalUrl = openableExternalUrl;
   readonly priceAlertSteps = [
     'Choose a game',
     'Set a target price',

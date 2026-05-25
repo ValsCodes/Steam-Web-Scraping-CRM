@@ -16,7 +16,7 @@ import { combineLatest, finalize, startWith, Subject, takeUntil } from 'rxjs';
 import * as XLSX from 'xlsx';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
-import { safeExternalUrl } from '../../../common';
+import { ExternalLinkDirective, openableExternalUrl } from '../../../common';
 
 @Component({
   selector: 'steam-game-urls-grid',
@@ -30,12 +30,13 @@ import { safeExternalUrl } from '../../../common';
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
+    ExternalLinkDirective,
   ],
   templateUrl: './game-urls-view.html',
   styleUrl: './game-urls-view.scss'
 })
 export class GameUrlsView implements OnInit, OnDestroy {
-  readonly safeExternalUrl = safeExternalUrl;
+  readonly openableExternalUrl = openableExternalUrl;
 
   displayedColumns: string[] = [
     'gameName',

@@ -19,6 +19,7 @@ import {
   Tag,
 } from '../../models';
 import {
+  ExternalLinkDisclosureService,
   GameService,
   GameUrlProductService,
   GameUrlService,
@@ -27,7 +28,7 @@ import {
 } from '../../services';
 import { CopyLinkComponent } from '../../components';
 import { MatTooltip } from "@angular/material/tooltip";
-import { openSafeExternalUrl, safeExternalUrl } from '../../common';
+import { ExternalLinkDirective, externalUrlWarning, openableExternalUrl } from '../../common';
 
 @Component({
   selector: 'steam-manual-mode-v2',
@@ -37,13 +38,15 @@ import { openSafeExternalUrl, safeExternalUrl } from '../../common';
     CommonModule,
     ReactiveFormsModule,
     CopyLinkComponent,
-    MatTooltip
+    MatTooltip,
+    ExternalLinkDirective
 ],
   templateUrl: './manual-mode-v2.html',
   styleUrl: './manual-mode-v2.scss',
 })
 export class ManualModeV2 implements OnInit, OnDestroy {
-  readonly safeExternalUrl = safeExternalUrl;
+  readonly externalUrlWarning = externalUrlWarning;
+  readonly openableExternalUrl = openableExternalUrl;
 
   currentIndex: number | null = 1;
   batchSize: number | null = 1;
@@ -89,6 +92,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     private readonly scrapingModeService: ScrapingModeService,
     private readonly tagsService: TagService,
     private readonly cdr: ChangeDetectorRef,
+    private readonly externalLinkDisclosure: ExternalLinkDisclosureService,
   ) {}
 
   ngOnInit(): void {
@@ -205,17 +209,9 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   }
 
   openAllButtonClicked(): void {
-    let blocked = false;
-
-    for (let i = 0; i < this.productsFiltered.length && i < 5; i++) {
-      if (!openSafeExternalUrl(this.productsFiltered[i].fullUrl)) {
-        blocked = true;
-      }
-    }
-
-    if (blocked) {
-      alert('Some links were not opened because they are not trusted HTTPS URLs.');
-    }
+    this.openTrustedUrls(
+      this.productsFiltered.slice(0, 5).map((product) => product.fullUrl),
+    );
   }
 
   startBatchButtonClicked(): void {
@@ -232,12 +228,10 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     const batchSize = this.batchSize;
     const toPage = currentIndex + batchSize;
 
-    let blocked = false;
-
     const selectedGameUrl = this.selectedGameUrl;
     if (this.isBatchMode(selectedGameUrl)) {
-      for (; currentIndex < toPage; currentIndex++) {
-        if (currentIndex - 1 > toPage || currentIndex < 0) {
+      while (currentIndex < toPage) {
+        if (currentIndex < 0) {
           break;
         }
 
@@ -246,24 +240,30 @@ export class ManualModeV2 implements OnInit, OnDestroy {
           String(currentIndex),
         );
 
-        if (!openSafeExternalUrl(url)) {
-          blocked = true;
-        }
-      }
-    } else {
-      for (; currentIndex < toPage; currentIndex++) {
-        if (currentIndex - 1 > this.products.length || currentIndex < 0) {
+        const result = this.externalLinkDisclosure.openTrustedUrl(url, '/manual-mode-v2');
+        if (result === 'needs-disclosure') {
           break;
         }
 
-        if (!openSafeExternalUrl(this.productsFiltered[currentIndex - 1].fullUrl)) {
-          blocked = true;
-        }
+        currentIndex++;
       }
-    }
+    } else {
+      while (currentIndex < toPage) {
+        const productIndex = currentIndex - 1;
+        if (productIndex < 0 || productIndex >= this.productsFiltered.length) {
+          break;
+        }
 
-    if (blocked) {
-      alert('Some links were not opened because they are not trusted HTTPS URLs.');
+        const result = this.externalLinkDisclosure.openTrustedUrl(
+          this.productsFiltered[productIndex].fullUrl,
+          '/manual-mode-v2',
+        );
+        if (result === 'needs-disclosure') {
+          break;
+        }
+
+        currentIndex++;
+      }
     }
 
     this.currentIndex = currentIndex;
@@ -347,6 +347,27 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
     this.loadFilteredProducts();
     this.cdr.markForCheck();
+  }
+
+  private openTrustedUrls(urls: readonly (string | null | undefined)[]): void {
+    let missing = false;
+
+    for (const url of urls) {
+      const result = this.externalLinkDisclosure.openTrustedUrl(url, '/manual-mode-v2');
+
+      if (result === 'blocked') {
+        missing = true;
+        continue;
+      }
+
+      if (result === 'needs-disclosure') {
+        break;
+      }
+    }
+
+    if (missing) {
+      alert('Some links were not opened because they do not include a destination.');
+    }
   }
 
   trackByProductId(_: number, product: GameUrlProduct): number {

@@ -23,7 +23,7 @@ import { GameService } from '../../../services/game/game.service';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import * as XLSX from 'xlsx';
 import { finalize } from 'rxjs';
-import { safeExternalUrl } from '../../../common';
+import { ExternalLinkDirective, openableExternalUrl } from '../../../common';
 
 @Component({
   selector: 'steam-games-view',
@@ -37,12 +37,13 @@ import { safeExternalUrl } from '../../../common';
     MatMenuModule,
     CommonModule,
     ReactiveFormsModule,
+    ExternalLinkDirective,
   ],
   templateUrl: './games-view.html',
   styleUrl: './games-view.scss',
 })
 export class GamesView implements OnInit {
-  readonly safeExternalUrl = safeExternalUrl;
+  readonly openableExternalUrl = openableExternalUrl;
 
   displayedColumns: string[] = ['name', 'internalId', 'isActive', 'actions'];
 

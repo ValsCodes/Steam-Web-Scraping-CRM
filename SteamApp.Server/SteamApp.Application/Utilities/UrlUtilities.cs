@@ -6,7 +6,7 @@
         {
             if (string.IsNullOrEmpty(name))
             {
-                throw new ArgumentNullException("Name for Encoding was null.");
+                return string.Empty;
             }
 
             return Uri.EscapeDataString(name);
