@@ -58,7 +58,10 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         var url = string.Format($"{gameUrl.PartialUrl}", page);
         var filteredResult = await GetResultsFromUrl(url);
 
-        return [.. filteredResult.OrderBy(x => x.SellPrice).Select(x => new WatchItemDto { Name = x.Name, Price = x.SellPrice / 100, Quantity = x.SellListings })];
+        var imageUrlBase = "https://community.akamai.steamstatic.com/economy/image/{0}/62fx62f";
+
+        return [.. filteredResult.OrderBy(x => x.SellPrice).Select(x => new WatchItemDto { Name = x.Name, Price = x.SellPrice / 100, Quantity = x.SellListings,
+        ImageUrl = string.Format(imageUrlBase, x.AssetDescription.IconUrl ?? null)})];
     }
 
     public async Task<IEnumerable<WatchItemDto>> ScrapeWithPixels(long gameUrlId, short page)
