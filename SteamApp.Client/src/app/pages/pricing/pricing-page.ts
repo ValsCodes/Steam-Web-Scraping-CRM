@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
 
-type PricingAccent = 'free' | 'tier1' | 'tier3';
+type PricingAccent = 'free' | 'tier1' | 'tier2';
 
 interface PricingPlan {
   readonly name: string;
@@ -50,7 +50,7 @@ export class PricingPage {
       recommended: true,
     },
     {
-      name: 'Tier 3',
+      name: 'Tier 2',
       description: 'For advanced monitoring, higher automation, and heavier operational usage.',
       benefits: [
         'Highest catalog and monitoring capacity for larger market operations.',
@@ -59,8 +59,8 @@ export class PricingPage {
         'Faster worker-backed checks for wish and watch scenarios.',
         'Priority support and deployment assistance.',
       ],
-      cta: 'Request Tier 3',
-      accent: 'tier3',
+      cta: 'Request Tier 2',
+      accent: 'tier2',
     },
   ];
 }
