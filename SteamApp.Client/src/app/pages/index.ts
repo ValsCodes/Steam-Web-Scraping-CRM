@@ -5,6 +5,8 @@ export { LoginComponent } from './login/login.component';
 export { ProfilePage } from './profile/profile-page';
 export { HomePage } from './home/home-page';
 export { PricingPage } from './pricing/pricing-page';
+export { AboutPage } from './about/about-page';
+export { FaqPage } from './faq/faq-page';
 export { SessionExpiredPage } from './session-expired/session-expired-page';
 export { NotFoundPage } from './not-found/not-found-page';
 

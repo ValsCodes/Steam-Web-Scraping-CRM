@@ -9,6 +9,110 @@ const PRIVATE_ROBOTS = 'noindex,nofollow';
 const defaultPrivateDescription =
   'Authenticated Steam Web Scraping CRM workspace for managing catalog, monitoring, and scraping operations.';
 
+const aboutPageStructuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'AboutPage',
+  name: 'About Steam Web Scraping CRM',
+  description:
+    'About Steam Web Scraping CRM, a workspace for Steam market source configuration, catalog metadata, scraping workflows, monitoring, and exports.',
+  url: '/about',
+  mainEntity: {
+    '@type': 'WebApplication',
+    name: 'Steam Web Scraping CRM',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+  },
+};
+
+const faqPageStructuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  name: 'Steam Web Scraping CRM FAQ',
+  url: '/faq',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'What does Steam Web Scraping CRM do?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'It helps teams configure Steam market sources, manage catalog data, run scraping workflows, monitor target items, and export results for analysis.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Who is the CRM built for?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'It is built for operators, analysts, and administrators who need a repeatable workspace for Steam market intelligence instead of scattered manual checks.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What catalog data can I manage?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'You can manage games, game URLs, products, pixels, and tags, including the relationships that connect sources to monitored products and visual checks.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How do game URLs work?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Game URLs define source settings such as page ranges, source mode, linked products, linked pixels, and the details needed for a scraping scenario.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Which scraping modes are supported?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'The app supports listing page workflows, alternate source workflows, and pixel-based validation scenarios for checking visual item attributes.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What is the difference between wish list and watch list monitoring?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Wish list items focus on target conditions such as price thresholds, while watch list items keep priority market targets visible for ongoing review.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Can I export data for offline analysis?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. Key table workflows are designed around filtering first, then exporting the current slice to Excel for review, reporting, or deeper analysis.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Do I need an account to use the workspace?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. Public pages explain the product, but catalog, scraping, monitoring, and profile workflows are protected behind login.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Is there a free tier?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'The pricing page presents a Free Tier for trying the core workflow, plus paid tiers for higher catalog, scraping, monitoring, and automation needs.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Does the app open external Steam or third-party links?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Some workflows can open third-party destinations such as Steam Community links. The app includes an external link disclosure so users can review responsibility before opening those links.',
+      },
+    },
+  ],
+};
+
 export const routes: Routes = [
   {
     path: '',
@@ -54,6 +158,40 @@ export const routes: Routes = [
         robots: PUBLIC_ROBOTS,
         imagePath: '/assets/brand/steam-app-social.svg',
         type: 'website',
+      },
+    },
+  },
+  {
+    path: 'about',
+    loadComponent: () => import('./pages/about/about-page').then((m) => m.AboutPage),
+    title: 'About',
+    data: {
+      seo: {
+        title: 'About',
+        description:
+          'Learn how Steam Web Scraping CRM helps teams manage Steam market sources, catalog metadata, scraping workflows, monitoring, and exports.',
+        canonicalPath: '/about',
+        robots: PUBLIC_ROBOTS,
+        imagePath: '/assets/brand/steam-app-social.svg',
+        type: 'website',
+        structuredData: aboutPageStructuredData,
+      },
+    },
+  },
+  {
+    path: 'faq',
+    loadComponent: () => import('./pages/faq/faq-page').then((m) => m.FaqPage),
+    title: 'FAQ',
+    data: {
+      seo: {
+        title: 'FAQ',
+        description:
+          'Answers to common questions about Steam Web Scraping CRM catalog setup, scraping workflows, monitoring, exports, accounts, pricing, and external links.',
+        canonicalPath: '/faq',
+        robots: PUBLIC_ROBOTS,
+        imagePath: '/assets/brand/steam-app-social.svg',
+        type: 'website',
+        structuredData: faqPageStructuredData,
       },
     },
   },
