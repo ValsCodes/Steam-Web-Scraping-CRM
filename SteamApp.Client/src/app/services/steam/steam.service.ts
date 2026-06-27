@@ -4,7 +4,12 @@ import { Observable } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { handleError } from '../error-handler';
 import * as g from '../general-data';
-import { WhishListResponse } from '../../models';
+import {
+  ScrapeHistory,
+  ScrapeHistoryDetail,
+  ScrapeHistoryRerunResponse,
+  WhishListResponse,
+} from '../../models';
 
 @Injectable({
   providedIn: 'root'
@@ -53,6 +58,29 @@ export class SteamService {
   checkWishlistItem(wishlistId: number): Observable<WhishListResponse> {
     const url = `${this.baseUrl}check-wishlist/${wishlistId}`;
     return this.http.get<any>(url).pipe(
+      catchError(handleError)
+    );
+  }
+
+  getScrapeHistory(take = 100): Observable<ScrapeHistory[]> {
+    const url = `${this.baseUrl}scrape-history`;
+    return this.http.get<ScrapeHistory[]>(url, {
+      params: { take }
+    }).pipe(
+      catchError(handleError)
+    );
+  }
+
+  getScrapeHistoryDetail(id: number): Observable<ScrapeHistoryDetail> {
+    const url = `${this.baseUrl}scrape-history/${id}`;
+    return this.http.get<ScrapeHistoryDetail>(url).pipe(
+      catchError(handleError)
+    );
+  }
+
+  rerunScrapeHistory(id: number): Observable<ScrapeHistoryRerunResponse> {
+    const url = `${this.baseUrl}scrape-history/${id}/rerun`;
+    return this.http.post<ScrapeHistoryRerunResponse>(url, {}).pipe(
       catchError(handleError)
     );
   }

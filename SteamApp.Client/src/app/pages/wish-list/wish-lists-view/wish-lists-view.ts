@@ -25,7 +25,7 @@ import { GameService, SteamService } from '../../../services';
 import { Game, WhishListResponse } from '../../../models';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import { StatusDialogComponent } from '../../../components/status-dialog.component';
-import { safeExternalUrl } from '../../../common';
+import { ExternalLinkDirective, openableExternalUrl } from '../../../common';
 
 import * as XLSX from 'xlsx';
 
@@ -41,12 +41,18 @@ import * as XLSX from 'xlsx';
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
+    ExternalLinkDirective,
   ],
   templateUrl: './wish-lists-view.html',
   styleUrl: './wish-lists-view.scss',
 })
 export class WishListsView implements OnInit, OnDestroy {
-  readonly safeExternalUrl = safeExternalUrl;
+  readonly openableExternalUrl = openableExternalUrl;
+  readonly priceAlertSteps = [
+    'Choose a game',
+    'Set a target price',
+    'Check the current Steam price',
+  ];
 
   displayedColumns: string[] = [
     'gameName',
@@ -79,6 +85,12 @@ export class WishListsView implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
   private readonly cancelCheck$ = new Subject<void>();
+  private readonly euroPriceFormatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   constructor(
     private readonly wishListService: WishListService,
@@ -177,10 +189,10 @@ export class WishListsView implements OnInit, OnDestroy {
   exportButtonClicked(): void {
     const dataToExport = this.dataSource.data.map((x) => ({
       Game: x.gameName ?? '',
-      Name: x.name ?? '',
+      AlertName: x.name ?? '',
       PageUrl: x.pageUrl ?? '',
-      Price: x.price ?? '',
-      Active: x.isActive,
+      TargetPrice: x.price ?? '',
+      Monitoring: x.isActive ? 'Enabled' : 'Paused',
     }));
 
     const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -189,7 +201,7 @@ export class WishListsView implements OnInit, OnDestroy {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'WishList');
 
     const today = new Date();
-    XLSX.writeFile(workbook, `Export_${today.toDateString()}_WishList.xlsx`);
+    XLSX.writeFile(workbook, `Export_${today.toDateString()}_PriceAlerts.xlsx`);
   }
 
   refreshButtonClicked(): void {
@@ -261,9 +273,9 @@ export class WishListsView implements OnInit, OnDestroy {
       .open(ConfirmDialogComponent, {
         width: '420px',
         data: {
-          title: 'Delete Wish List Item',
+          title: 'Delete Price Alert',
           subtitle: 'This action cannot be undone.',
-          message: 'Are you sure you want to delete this wish list item?',
+          message: 'Are you sure you want to delete this price alert?',
           confirmText: 'Delete',
           cancelText: 'Cancel',
         },
@@ -317,24 +329,24 @@ export class WishListsView implements OnInit, OnDestroy {
         next: (response: WhishListResponse) => {
           if (response.isPriceReached === true) {
             this.openStatusDialog({
-              title: 'Price Goal Reached',
-              subtitle: `${response.gameName} matched your target price.`,
-              message: `Current Price: ${this.formatCurrentPrice(response.currentPrice)}`,
+              title: 'Target Price Reached',
+              subtitle: `${response.gameName} is at or below your target price.`,
+              message: `Current Steam price: ${this.formatCurrentPrice(response.currentPrice)}`,
               variant: 'success',
             });
           } else {
             this.openStatusDialog({
-              title: 'Price Goal Not Reached',
+              title: 'Target Price Not Reached',
               subtitle: `${response.gameName} is still above your target price.`,
-              message: `Current Price: ${this.formatCurrentPrice(response.currentPrice)}`,
+              message: `Current Steam price: ${this.formatCurrentPrice(response.currentPrice)}`,
               variant: 'info',
             });
           }
         },
         error: () => {
           this.openStatusDialog({
-            title: 'Check Failed',
-            subtitle: 'We could not check the wish list item right now.',
+            title: 'Price Check Failed',
+            subtitle: 'Steam may be unavailable or the page may not expose a readable price.',
             message: 'Please try again in a moment.',
             variant: 'error',
           });
@@ -360,8 +372,18 @@ export class WishListsView implements OnInit, OnDestroy {
     return this.statusUpdatingIds.has(id);
   }
 
+  get showNoItemsEmptyState(): boolean {
+    return !this.isGridLoading && this.wishLists.length === 0;
+  }
+
+  get showFilteredEmptyState(): boolean {
+    return !this.isGridLoading &&
+      this.wishLists.length > 0 &&
+      this.dataSource.data.length === 0;
+  }
+
   private formatCurrentPrice(price: number): string {
-    return price === 0 ? 'Free' : `${price}`;
+    return price === 0 ? 'Free' : this.euroPriceFormatter.format(price);
   }
 
   private openStatusDialog(data: {

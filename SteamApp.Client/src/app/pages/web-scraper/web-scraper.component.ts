@@ -13,6 +13,7 @@ import { CommonModule } from '@angular/common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { startWith, map, finalize, Subject, takeUntil, Observable } from 'rxjs';
 import * as XLSX from 'xlsx';
@@ -22,13 +23,21 @@ import { StopwatchComponent } from '../../components';
 import {
   Game,
   GameUrl,
+  ScrapeHistoryRerunResponse,
   ScrapingMode as ScrapingModeLookup,
   ScrapingModeEnum,
 } from '../../models';
 import { Listing } from '../../models/listing.model';
 import { GameService, GameUrlService, ScrapingModeService } from '../../services';
 import { MatTooltip } from '@angular/material/tooltip';
-import { getListingUrl, safeExternalImageUrl, safeExternalUrl } from '../../common';
+import {
+  ExternalLinkDirective,
+  externalUrlWarning,
+  getListingUrl,
+  openableExternalUrl,
+  safeExternalImageUrl,
+} from '../../common';
+import { ScrapeHistoryDialogComponent } from './scrape-history-dialog.component';
 
 enum ScraperExecutionMode {
   WebScrape = ScrapingModeEnum.Batch,
@@ -51,8 +60,10 @@ type ScraperExecutionModeItem = {
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
+    MatDialogModule,
     StopwatchComponent,
     MatTooltip,
+    ExternalLinkDirective,
   ],
   templateUrl: './web-scraper.component.html',
   styleUrl: './web-scraper.component.scss',
@@ -60,6 +71,7 @@ type ScraperExecutionModeItem = {
 })
 export class WebScraperComponent {
   readonly safeExternalImageUrl = safeExternalImageUrl;
+  readonly externalUrlWarning = externalUrlWarning;
 
   private paginator?: MatPaginator;
   private sort?: MatSort;
@@ -219,6 +231,7 @@ export class WebScraperComponent {
     private readonly gameService: GameService,
     private readonly gameUrlService: GameUrlService,
     private readonly scrapingModeService: ScrapingModeService,
+    private readonly dialog: MatDialog,
   ) {
     effect(() => {
       void this.selectedGameId();
@@ -420,6 +433,32 @@ export class WebScraperComponent {
     this.pageNumber.set(1);
   }
 
+  historyButtonClicked(): void {
+    this.dialog
+      .open<
+        ScrapeHistoryDialogComponent,
+        unknown,
+        ScrapeHistoryRerunResponse | undefined
+      >(ScrapeHistoryDialogComponent, {
+        maxWidth: '96vw',
+        maxHeight: '90vh',
+      })
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((response) => {
+        if (!response) {
+          return;
+        }
+
+        this.dataSource.data = response.results ?? [];
+        this.attachTableControls();
+        this.statusLabel.set(
+          `Reran ${response.history.scrapeType} from history on page ${response.history.page}.`,
+        );
+        this.cdr.markForCheck();
+      });
+  }
+
   exportButtonClicked(): void {
     const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(
       this.dataSource.data,
@@ -442,7 +481,7 @@ export class WebScraperComponent {
   }
 
   getSafeShowPageUrl(): string | null {
-    return safeExternalUrl(this.getShowPageUrl());
+    return openableExternalUrl(this.getShowPageUrl());
   }
 
   getSafeListingUrl(listingName: string | null | undefined): string | null {
@@ -462,13 +501,13 @@ export class WebScraperComponent {
 
     const url = getListingUrl(
       this.selectedGame()?.internalId,
-      encodeURIComponent(name),
+      name,
     );
     if (url === '') {
       return null;
     }
 
-    return safeExternalUrl(url);
+    return openableExternalUrl(url);
   }
 
   private attachTableControls(): void {

@@ -319,6 +319,27 @@ input {
   font-weight: 700;
 }
 
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 5.6rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.status-pill--active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-pill--inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 th[mat-header-cell].mat-column-rowNumber,
 td[mat-cell].mat-column-rowNumber,
 th[mat-header-cell].mat-column-quantity,

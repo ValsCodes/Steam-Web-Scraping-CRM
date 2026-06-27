@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Caching.Memory;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
@@ -8,12 +9,58 @@ namespace SteamApp.Tests.TestSupport;
 
 public static class TestDb
 {
+    public const string TestUserId = "test-user";
+    private static readonly InMemoryDatabaseRoot SharedRoot = new();
+
     public static ApplicationDbContext CreateContext(string? databaseName = null)
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName ?? Guid.NewGuid().ToString("N"))
-            .Options;
+        return CreateContext(CreateOptions(databaseName));
+    }
 
+    public static TestDatabase CreateDatabase()
+    {
+        var options = CreateOptions(root: SharedRoot);
+        var db = CreateContext(options);
+
+        return new TestDatabase(db, new TestDbContextFactory(options));
+    }
+
+    public static TestDatabase CreateSeededDatabase()
+    {
+        var database = CreateDatabase();
+        SeedBaseline(database.Context);
+
+        return database;
+    }
+
+    public static TestDbContextFactory CreateSeededFactory()
+    {
+        using var database = CreateSeededDatabase();
+
+        return database.Factory;
+    }
+
+    private static DbContextOptions<ApplicationDbContext> CreateOptions(
+        string? databaseName = null,
+        InMemoryDatabaseRoot? root = null)
+    {
+        var builder = new DbContextOptionsBuilder<ApplicationDbContext>();
+        var name = databaseName ?? Guid.NewGuid().ToString("N");
+
+        if (root is null)
+        {
+            builder.UseInMemoryDatabase(name);
+        }
+        else
+        {
+            builder.UseInMemoryDatabase(name, root);
+        }
+
+        return builder.Options;
+    }
+
+    private static ApplicationDbContext CreateContext(DbContextOptions<ApplicationDbContext> options)
+    {
         var db = new ApplicationDbContext(options);
         db.Database.EnsureDeleted();
         db.Database.EnsureCreated();
@@ -35,7 +82,8 @@ public static class TestDb
                 BaseUrl = "https://steam.example/alpha",
                 PageUrl = "https://steam.example/app/1",
                 InternalId = 10,
-                IsActive = true
+                IsActive = true,
+                UserId = TestUserId
             },
             new Game
             {
@@ -44,7 +92,8 @@ public static class TestDb
                 BaseUrl = "https://steam.example/beta",
                 PageUrl = "https://steam.example/app/2",
                 InternalId = 20,
-                IsActive = false
+                IsActive = false,
+                UserId = TestUserId
             });
 
         db.GameUrls.AddRange(
@@ -57,7 +106,8 @@ public static class TestDb
                 PartialUrl = "https://steam.example/search?p={0}",
                 StartPage = 1,
                 EndPage = 5,
-                IsActive = true
+                IsActive = true,
+                UserId = TestUserId
             },
             new GameUrl
             {
@@ -70,7 +120,8 @@ public static class TestDb
                 PixelY = 5,
                 PixelImageWidth = 62,
                 PixelImageHeight = 62,
-                IsActive = true
+                IsActive = true,
+                UserId = TestUserId
             });
 
         db.Products.AddRange(
@@ -80,7 +131,8 @@ public static class TestDb
                 GameId = 1,
                 Name = "Rocket Launcher",
                 Rating = 5,
-                IsActive = true
+                IsActive = true,
+                UserId = TestUserId
             },
             new Product
             {
@@ -88,7 +140,8 @@ public static class TestDb
                 GameId = 2,
                 Name = "Medigun",
                 Rating = 3,
-                IsActive = false
+                IsActive = false,
+                UserId = TestUserId
             });
 
         db.Pixels.AddRange(
@@ -100,7 +153,8 @@ public static class TestDb
                 RedValue = 195,
                 GreenValue = 108,
                 BlueValue = 45,
-                IsActive = true
+                IsActive = true,
+                UserId = TestUserId
             },
             new Pixel
             {
@@ -110,12 +164,13 @@ public static class TestDb
                 RedValue = 45,
                 GreenValue = 48,
                 BlueValue = 44,
-                IsActive = false
+                IsActive = false,
+                UserId = TestUserId
             });
 
         db.Tags.AddRange(
-            new Tag { Id = 1, GameId = 1, Name = "Primary", IsActive = true },
-            new Tag { Id = 2, GameId = 2, Name = "Support", IsActive = false });
+            new Tag { Id = 1, GameId = 1, Name = "Primary", IsActive = true, UserId = TestUserId },
+            new Tag { Id = 2, GameId = 2, Name = "Support", IsActive = false, UserId = TestUserId });
 
         db.WishLists.AddRange(
             new WishList
@@ -124,7 +179,8 @@ public static class TestDb
                 GameId = 1,
                 Name = "Cheap Alpha",
                 Price = 9.99,
-                IsActive = true
+                IsActive = true,
+                UserId = TestUserId
             },
             new WishList
             {
@@ -132,7 +188,8 @@ public static class TestDb
                 GameId = 2,
                 Name = "Cheap Beta",
                 Price = 4.99,
-                IsActive = false
+                IsActive = false,
+                UserId = TestUserId
             });
 
         db.WatchList.AddRange(
@@ -142,7 +199,8 @@ public static class TestDb
                 Name = "Watch Alpha",
                 Url = "https://steam.example/watch/1",
                 RegistrationDate = new DateOnly(2026, 1, 1),
-                IsActive = true
+                IsActive = true,
+                UserId = TestUserId
             },
             new WatchList
             {
@@ -150,7 +208,8 @@ public static class TestDb
                 Name = "Watch Beta",
                 Url = "https://steam.example/watch/2",
                 RegistrationDate = new DateOnly(2026, 2, 1),
-                IsActive = false
+                IsActive = false,
+                UserId = TestUserId
             });
 
         db.ProductTags.Add(new ProductTags { ProductId = 1, TagId = 1 });
@@ -158,5 +217,28 @@ public static class TestDb
         db.GameUrlsPixels.Add(new GameUrlPixels { PixelId = 1, GameUrlId = 2 });
 
         db.SaveChanges();
+    }
+}
+
+public sealed class TestDbContextFactory(DbContextOptions<ApplicationDbContext> options)
+    : IDbContextFactory<ApplicationDbContext>
+{
+    public ApplicationDbContext CreateDbContext()
+    {
+        return new ApplicationDbContext(options);
+    }
+}
+
+public sealed class TestDatabase(
+    ApplicationDbContext context,
+    TestDbContextFactory factory)
+    : IDisposable
+{
+    public ApplicationDbContext Context { get; } = context;
+    public TestDbContextFactory Factory { get; } = factory;
+
+    public void Dispose()
+    {
+        Context.Dispose();
     }
 }

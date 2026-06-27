@@ -71,6 +71,23 @@ export const routes: Routes = [
     },
   },
   {
+    path: 'external-link-disclosure',
+    loadComponent: () =>
+      import('./pages/external-link-disclosure/external-link-disclosure-page').then(
+        (m) => m.ExternalLinkDisclosurePage,
+      ),
+    title: 'External Link Disclosure',
+    data: {
+      seo: {
+        title: 'External Link Disclosure',
+        description:
+          'External link responsibility disclosure for Steam Web Scraping CRM users.',
+        canonicalPath: '/external-link-disclosure',
+        robots: LOGIN_ROBOTS,
+      },
+    },
+  },
+  {
     path: 'session-expired',
     loadComponent: () =>
       import('./pages/session-expired/session-expired-page').then((m) => m.SessionExpiredPage),

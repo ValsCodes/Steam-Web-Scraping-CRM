@@ -155,6 +155,74 @@ namespace SteamApp.WebAPI.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.AutomatedScrapeHistory", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("date");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("endpoint");
+
+                    b.Property<string>("ErrorText")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("error_text");
+
+                    b.Property<long>("GameUrlId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("game_url_id");
+
+                    b.Property<bool>("IsHaveError")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_have_error");
+
+                    b.Property<short>("Page")
+                        .HasColumnType("smallint")
+                        .HasColumnName("page");
+
+                    b.Property<int>("ResultCount")
+                        .HasColumnType("int")
+                        .HasColumnName("result_count");
+
+                    b.Property<string>("ResultsJson")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("results_json");
+
+                    b.Property<string>("ScrapeType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("scrape_type");
+
+                    b.Property<string>("SetupJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("setup_json");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameUrlId");
+
+                    b.HasIndex("UserId", "Date");
+
+                    b.ToTable("automated_scrape_history");
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.Game", b =>
                 {
                     b.Property<long>("Id")
@@ -184,7 +252,14 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("page_url");
 
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("game");
                 });
@@ -270,11 +345,18 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("int")
                         .HasColumnName("start_page");
 
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GameId");
 
                     b.HasIndex("ScrapingModeId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("game_url");
                 });
@@ -347,9 +429,16 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("r_value");
 
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GameId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("pixel");
                 });
@@ -379,9 +468,16 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("int")
                         .HasColumnName("rating");
 
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GameId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("product");
                 });
@@ -465,9 +561,16 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("name");
 
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GameId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("tag");
                 });
@@ -505,11 +608,18 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("url");
 
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GameUrlId");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("watch_list");
                 });
@@ -539,9 +649,16 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("float")
                         .HasColumnName("price");
 
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GameId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("wish_list");
                 });
@@ -670,6 +787,14 @@ namespace SteamApp.WebAPI.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.Game", b =>
+                {
+                    b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.GameAddOn", b =>
                 {
                     b.HasOne("SteamApp.Domain.Entities.Game", "Game")
@@ -693,6 +818,11 @@ namespace SteamApp.WebAPI.Migrations
                         .WithMany("GameUrls")
                         .HasForeignKey("ScrapingModeId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Game");
 
@@ -745,6 +875,11 @@ namespace SteamApp.WebAPI.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Game");
                 });
 
@@ -755,6 +890,11 @@ namespace SteamApp.WebAPI.Migrations
                         .HasForeignKey("GameId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Game");
                 });
@@ -786,6 +926,11 @@ namespace SteamApp.WebAPI.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Game");
                 });
 
@@ -799,6 +944,11 @@ namespace SteamApp.WebAPI.Migrations
                         .WithMany("WatchLists")
                         .HasForeignKey("ProductId");
 
+                    b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("GameUrl");
 
                     b.Navigation("Product");
@@ -811,6 +961,11 @@ namespace SteamApp.WebAPI.Migrations
                         .HasForeignKey("GameId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Game");
                 });

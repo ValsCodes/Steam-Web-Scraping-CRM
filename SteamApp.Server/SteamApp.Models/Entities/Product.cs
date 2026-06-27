@@ -25,6 +25,10 @@ public sealed class Product
     [Column("is_active")]
     public bool IsActive { get; set; }
 
+    [MaxLength(450)]
+    [Column("user_id")]
+    public string? UserId { get; set; }
+
     public ICollection<GameUrlProducts> GameUrlsProducts { get; set; } = [];
 
     public ICollection<ProductTags> ProductTags { get; set; } = [];

@@ -23,11 +23,16 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
             // GET: /api/wish-list
             group.MapGet("/", async (
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
                 var entities = await db.WishLists
                     .AsNoTracking()
+                    .Where(x => x.UserId == userId)
                     .Select(x => new
                     {
                         Id = x.Id,
@@ -47,11 +52,17 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
             // GET: /api/wish-list/paged
             group.MapGet("/paged", async (
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 [AsParameters] WishListsPageQuery request,
                 CancellationToken ct) =>
             {
-                var query = db.WishLists.AsNoTracking();
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var query = db.WishLists
+                    .AsNoTracking()
+                    .Where(x => x.UserId == userId);
 
                 if (request.GameId.HasValue)
                 {
@@ -109,10 +120,16 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // GET: /api/wish-list/{id}
             group.MapGet("/{id:long}", async (
                 long id,
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
-                var entity = await db.WishLists.FindAsync(id);
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var entity = await db.WishLists
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
                 if (entity is null) { return Results.NotFound(); }
 
                 return Results.Ok(mapper.Map<WishListDto>(entity));
@@ -124,12 +141,16 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // POST: /api/wish-list
             group.MapPost("/", async (
                 WishListCreateDto input,
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
                 var gameExists = await db.Games
                     .AsNoTracking()
-                    .AnyAsync(g => g.Id == input.GameId);
+                    .AnyAsync(g => g.Id == input.GameId && g.UserId == userId);
 
                 if (!gameExists)
                 {
@@ -137,6 +158,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 }
 
                 var entity = mapper.Map<WishList>(input);
+                entity.UserId = userId;
 
                 db.WishLists.Add(entity);
                 await db.SaveChangesAsync();
@@ -153,11 +175,15 @@ namespace SteamApp.WebAPI.MinimalAPIs
             group.MapPut("/{id:long}", async (
                 long id,
                 WishListUpdateDto input,
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMapper mapper,
                 IMemoryCache cache) =>
             {
-                var entity = await db.WishLists.FindAsync(id);
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var entity = await db.WishLists.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
                 if (entity is null) { return Results.NotFound(); }
 
                 mapper.Map(input, entity);
@@ -177,10 +203,14 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // DELETE: /api/wish-list/{id}
             group.MapDelete("/{id:long}", async (
                 long id,
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMemoryCache cache) =>
             {
-                var entity = await db.WishLists.FindAsync(id);
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var entity = await db.WishLists.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
                 if (entity is null) { return Results.NotFound(); }
 
                 db.WishLists.Remove(entity);
@@ -198,10 +228,14 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // PATCH: /api/wish-list/{id}
             group.MapPatch("/{id:long}", async (
                 WishListUpdateStatusDto input,
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMemoryCache cache) =>
             {
-                var entity = await db.WishLists.FindAsync(input.Id);
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var entity = await db.WishLists.FirstOrDefaultAsync(x => x.Id == input.Id && x.UserId == userId);
                 if (entity is null) { return Results.NotFound(); }
 
                 if (entity.IsActive != input.IsActive)

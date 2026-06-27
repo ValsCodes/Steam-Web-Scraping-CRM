@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
 using SteamApp.Infrastructure.Identity;
@@ -22,25 +23,55 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<ScrapingMode> ScrapingModes { get; set; }
     public DbSet<Tag> Tags { get; set; }
     public DbSet<ProductTags> ProductTags { get; set; }
+    public DbSet<AutomatedScrapeHistory> AutomatedScrapeHistories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<Game>();
+        modelBuilder.Entity<Game>(ConfigureUserOwnedEntity);
         modelBuilder.Entity<GameUrl>(entity =>
         {
+            ConfigureUserOwnedEntity(entity);
+
             entity.HasOne(g => g.ScrapingMode)
                   .WithMany(s => s.GameUrls)
                   .HasForeignKey(g => g.ScrapingModeId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
-        modelBuilder.Entity<WatchList>();
-        modelBuilder.Entity<WishList>();
+        modelBuilder.Entity<WishList>(ConfigureUserOwnedEntity);
         modelBuilder.Entity<GameAddOn>();
         modelBuilder.Entity<ScrapingMode>();
+        modelBuilder.Entity<AutomatedScrapeHistory>(entity =>
+        {
+            entity.Property(x => x.UserId)
+                  .HasMaxLength(450)
+                  .HasColumnName("user_id");
+
+            entity.Property(x => x.Endpoint)
+                  .HasMaxLength(100)
+                  .HasColumnName("endpoint");
+
+            entity.Property(x => x.ScrapeType)
+                  .HasMaxLength(50)
+                  .HasColumnName("scrape_type");
+
+            entity.Property(x => x.SetupJson)
+                  .HasColumnName("setup_json");
+
+            entity.Property(x => x.ResultsJson)
+                  .HasColumnName("results_json");
+
+            entity.Property(x => x.ErrorText)
+                  .HasColumnName("error_text");
+
+            entity.HasIndex(x => new { x.UserId, x.Date });
+            entity.HasIndex(x => x.GameUrlId);
+        });
         modelBuilder.Entity<WatchList>(entity =>
         {
+            ConfigureUserOwnedEntity(entity);
+
             entity.HasOne(w => w.GameUrl)
                   .WithMany(g => g.WatchLists)
                   .HasForeignKey(w => w.GameUrlId);
@@ -58,6 +89,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         modelBuilder.Entity<Pixel>(entity =>
         {
+            ConfigureUserOwnedEntity(entity);
+
             entity.HasOne(p => p.Game)
                   .WithMany(g => g.Pixels)
                   .HasForeignKey(p => p.GameId)
@@ -66,6 +99,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         modelBuilder.Entity<Product>(entity =>
         {
+            ConfigureUserOwnedEntity(entity);
+
             entity.HasOne(p => p.Game)
                   .WithMany(g => g.Products)
                   .HasForeignKey(p => p.GameId)
@@ -127,10 +162,27 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         modelBuilder.Entity<Tag>(entity =>
         {
+            ConfigureUserOwnedEntity(entity);
+
             entity.HasOne(p => p.Game)
                   .WithMany(g => g.Tags)
                   .HasForeignKey(p => p.GameId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
+    }
+
+    private static void ConfigureUserOwnedEntity<TEntity>(EntityTypeBuilder<TEntity> entity)
+        where TEntity : class
+    {
+        entity.Property<string?>("UserId")
+              .HasMaxLength(450)
+              .HasColumnName("user_id");
+
+        entity.HasIndex("UserId");
+
+        entity.HasOne<ApplicationUser>()
+              .WithMany()
+              .HasForeignKey("UserId")
+              .OnDelete(DeleteBehavior.SetNull);
     }
 }

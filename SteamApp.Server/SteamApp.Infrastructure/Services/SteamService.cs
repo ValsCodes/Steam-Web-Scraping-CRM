@@ -58,7 +58,10 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         var url = string.Format($"{gameUrl.PartialUrl}", page);
         var filteredResult = await GetResultsFromUrl(url);
 
-        return [.. filteredResult.OrderBy(x => x.SellPrice).Select(x => new WatchItemDto { Name = x.Name, Price = x.SellPrice / 100, Quantity = x.SellListings })];
+        var imageUrlBase = "https://community.akamai.steamstatic.com/economy/image/{0}/62fx62f";
+
+        return [.. filteredResult.OrderBy(x => x.SellPrice).Select(x => new WatchItemDto { Name = x.Name, Price = x.SellPrice / 100, Quantity = x.SellListings,
+        ImageUrl = string.Format(imageUrlBase, x.AssetDescription.IconUrl ?? null)})];
     }
 
     public async Task<IEnumerable<WatchItemDto>> ScrapeWithPixels(long gameUrlId, short page)
@@ -110,6 +113,17 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         using var driver = new ChromeDriver(options);
 
         driver.Navigate().GoToUrl(url);
+
+        // Add Cookie to redirect to old site
+        var cookie = new Cookie(
+        name: "bMarketOptOut",
+        value: "1",
+        path: "/market",
+        expiry: DateTime.UtcNow.AddDays(7));
+
+        driver.Manage().Cookies.AddCookie(cookie);
+
+        driver.Navigate().Refresh();
 
         var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
         wait.Until(ExpectedConditions.ElementExists(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]")));
@@ -332,6 +346,18 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
             try
             {
                 driver.Navigate().GoToUrl(url);
+
+                // Add Cookie to redirect to old site
+                var cookie = new Cookie(
+                name: "bMarketOptOut",
+                value: "1",
+                path: "/market",
+                expiry: DateTime.UtcNow.AddDays(7));
+
+                driver.Manage().Cookies.AddCookie(cookie);
+
+                driver.Navigate().Refresh();
+
                 var resultBy = By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]");
 
                 var wait = new DefaultWait<IWebDriver>(driver)

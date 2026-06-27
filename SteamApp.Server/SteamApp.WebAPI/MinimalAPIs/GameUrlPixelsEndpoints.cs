@@ -16,10 +16,16 @@ public static class GameUrlPixelsEndpoints
                        .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
 
         // GET: /api/game-url-pixels
-        group.MapGet("/", async (ApplicationDbContext db) =>
+        group.MapGet("/", async (
+            HttpContext httpContext,
+            ApplicationDbContext db) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var items = await db.GameUrlsPixels
                 .AsNoTracking()
+                .Where(x => x.Pixel.UserId == userId && x.GameUrl.UserId == userId)
                 .Select(x => new
                 {
                     x.PixelId,
@@ -44,13 +50,19 @@ public static class GameUrlPixelsEndpoints
         group.MapGet("/{pixelId:long}/{gameUrlId:long}", async (
             long pixelId,
             long gameUrlId,
+            HttpContext httpContext,
             ApplicationDbContext db) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var exists = await db.GameUrlsPixels
                 .AsNoTracking()
                 .AnyAsync(x =>
                     x.PixelId == pixelId &&
-                    x.GameUrlId == gameUrlId);
+                    x.GameUrlId == gameUrlId &&
+                    x.Pixel.UserId == userId &&
+                    x.GameUrl.UserId == userId);
 
             return exists
                 ? Results.Ok()
@@ -60,11 +72,15 @@ public static class GameUrlPixelsEndpoints
         // GET: /api/game-url-pixels/{gameUrlId}
         group.MapGet("/{gameUrlId:long}", async (
             long gameUrlId,
+            HttpContext httpContext,
             ApplicationDbContext db) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var relations = await db.GameUrlsPixels
                 .AsNoTracking()
-                .Where(x => x.GameUrlId == gameUrlId)
+                .Where(x => x.GameUrlId == gameUrlId && x.Pixel.UserId == userId && x.GameUrl.UserId == userId)
                 .Select(x => new
                 {
                     x.PixelId,
@@ -88,13 +104,17 @@ public static class GameUrlPixelsEndpoints
         // POST: /api/game-url-pixels
         group.MapPost("/", async (
             GameUrlPixelCreateDto input,
+            HttpContext httpContext,
             ApplicationDbContext db) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var pixelExists = await db.Pixels
-                .AnyAsync(p => p.Id == input.PixelId);
+                .AnyAsync(p => p.Id == input.PixelId && p.UserId == userId);
 
             var gameUrlExists = await db.GameUrls
-                .AnyAsync(g => g.Id == input.GameUrlId);
+                .AnyAsync(g => g.Id == input.GameUrlId && g.UserId == userId);
 
             if (!pixelExists || !gameUrlExists)
             {
@@ -104,7 +124,9 @@ public static class GameUrlPixelsEndpoints
             var alreadyExists = await db.GameUrlsPixels
                 .AnyAsync(x =>
                     x.PixelId == input.PixelId &&
-                    x.GameUrlId == input.GameUrlId);
+                    x.GameUrlId == input.GameUrlId &&
+                    x.Pixel.UserId == userId &&
+                    x.GameUrl.UserId == userId);
 
             if (alreadyExists)
             {
@@ -129,11 +151,18 @@ public static class GameUrlPixelsEndpoints
         group.MapDelete("/{pixelId:long}/{gameUrlId:long}", async (
             long pixelId,
             long gameUrlId,
+            HttpContext httpContext,
             ApplicationDbContext db) =>
         {
-            var entity = await db.GameUrlsPixels.FindAsync(
-                pixelId,
-                gameUrlId);
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
+            var entity = await db.GameUrlsPixels
+                .FirstOrDefaultAsync(x =>
+                    x.PixelId == pixelId &&
+                    x.GameUrlId == gameUrlId &&
+                    x.Pixel.UserId == userId &&
+                    x.GameUrl.UserId == userId);
 
             if (entity is null)
             {

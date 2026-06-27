@@ -98,8 +98,9 @@ public sealed class SteamAppFactory : WebApplicationFactory<Program>
             services.RemoveAll<IDbContextOptionsConfiguration<ApplicationDbContext>>();
             services.RemoveAll<DbContextOptions>();
             services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
+            services.RemoveAll<IDbContextFactory<ApplicationDbContext>>();
             services.RemoveAll<ApplicationDbContext>();
-            services.AddDbContext<ApplicationDbContext>(opts =>
+            services.AddDbContextFactory<ApplicationDbContext>(opts =>
                 opts.UseSqlite(connection));
             services.Configure<HttpsRedirectionOptions>(opts =>
                 opts.HttpsPort = 443);

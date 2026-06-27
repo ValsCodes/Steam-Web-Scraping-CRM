@@ -4,6 +4,7 @@ using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.WishListItem;
 using SteamApp.IntegrationTests.Support;
 using SteamApp.WebAPI.Jobs;
+using SteamApp.WebAPI.Services;
 
 namespace SteamApp.IntegrationTests.Jobs;
 
@@ -32,7 +33,11 @@ public sealed class WishlistJobIntegrationTests
             NullLogger<WishlistCheckJob>.Instance,
             email,
             cache,
-            wishlist);
+            wishlist,
+            RecipientService(new WishlistNotificationRecipient(
+                1,
+                "Active Wish",
+                "owner@example.com")));
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
 
         Assert.ThrowsAsync(
@@ -42,6 +47,7 @@ public sealed class WishlistJobIntegrationTests
         Assert.Multiple(() =>
         {
             Assert.That(email.Messages, Has.Count.EqualTo(1));
+            Assert.That(email.Messages.Single().To, Is.EqualTo("owner@example.com"));
             Assert.That(email.Messages.Single().Subject, Does.Contain("Active Game"));
             Assert.That(wishlist.CheckCalls, Is.EqualTo(1));
         });
@@ -69,7 +75,8 @@ public sealed class WishlistJobIntegrationTests
             NullLogger<WishlistCheckJob>.Instance,
             email,
             cache,
-            wishlist);
+            wishlist,
+            RecipientService());
 
         await job.RunAsync(CancellationToken.None);
 
@@ -110,7 +117,11 @@ public sealed class WishlistJobIntegrationTests
             NullLogger<WishlistCheckJob>.Instance,
             email,
             cache,
-            wishlist);
+            wishlist,
+            RecipientService(new WishlistNotificationRecipient(
+                1,
+                "Active Wish",
+                "owner@example.com")));
         await job.RunAsync(CancellationToken.None);
 
         Assert.Multiple(() =>
@@ -118,5 +129,23 @@ public sealed class WishlistJobIntegrationTests
             Assert.That(email.Messages, Is.Empty);
             Assert.That(wishlist.CheckCalls, Is.EqualTo(0));
         });
+    }
+
+    private static IWishlistNotificationRecipientService RecipientService(
+        params WishlistNotificationRecipient[] recipients)
+    {
+        return new StubRecipientService(recipients);
+    }
+
+    private sealed class StubRecipientService(
+        IReadOnlyList<WishlistNotificationRecipient> recipients)
+        : IWishlistNotificationRecipientService
+    {
+        public Task<IReadOnlyList<WishlistNotificationRecipient>> GetActiveRecipientsAsync(
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(recipients);
+        }
     }
 }

@@ -29,6 +29,7 @@ public sealed class WishlistServiceE2ETests
         Assert.Multiple(() =>
         {
             Assert.That(factory.EmailService.Messages, Has.Count.EqualTo(1));
+            Assert.That(factory.EmailService.Messages.Single().To, Is.EqualTo(IntegrationSeed.UserEmail));
             Assert.That(factory.EmailService.Messages.Single().Subject, Does.Contain("Active Game"));
             Assert.That(factory.WishlistService.CheckCalls, Is.EqualTo(1));
         });

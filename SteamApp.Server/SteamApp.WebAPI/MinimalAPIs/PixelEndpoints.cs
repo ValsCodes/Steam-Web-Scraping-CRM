@@ -21,10 +21,16 @@ namespace SteamApp.WebAPI.MinimalAPIs
                            .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
 
             // GET: /api/pixels
-            group.MapGet("/", async (ApplicationDbContext db) =>
+            group.MapGet("/", async (
+                HttpContext httpContext,
+                ApplicationDbContext db) =>
             {
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
                 var entities = await db.Pixels
                     .AsNoTracking()
+                    .Where(e => e.UserId == userId)
                     .Select(e => new
                     {
                         e.Id,
@@ -45,11 +51,17 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
             // GET: /api/pixels/paged
             group.MapGet("/paged", async (
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 [AsParameters] PixelsPageQuery request,
                 CancellationToken ct) =>
             {
-                var query = db.Pixels.AsNoTracking();
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var query = db.Pixels
+                    .AsNoTracking()
+                    .Where(x => x.UserId == userId);
 
                 if (request.GameId.HasValue)
                 {
@@ -102,12 +114,16 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // GET: /api/pixels/{id}
             group.MapGet("/{id:long}", async (
                 long id,
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
                 var entity = await db.Pixels
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.Id == id);
+                    .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
 
                 if (entity is null) { return Results.NotFound(); }
 
@@ -120,12 +136,16 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // POST: /api/pixels
             group.MapPost("/", async (
                 PixelCreateDto input,
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMapper mapper, IMemoryCache cache) =>
             {
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
                 var gameExists = await db.Games
                     .AsNoTracking()
-                    .AnyAsync(g => g.Id == input.GameId);
+                    .AnyAsync(g => g.Id == input.GameId && g.UserId == userId);
 
                 if (!gameExists)
                 {
@@ -133,6 +153,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 }
 
                 var entity = mapper.Map<Pixel>(input);
+                entity.UserId = userId;
 
                 db.Pixels.Add(entity);
                 await db.SaveChangesAsync();
@@ -152,11 +173,27 @@ namespace SteamApp.WebAPI.MinimalAPIs
             group.MapPut("/{id:long}", async (
                 long id,
                 PixelUpdateDto input,
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMapper mapper, IMemoryCache cache) =>
             {
-                var entity = await db.Pixels.FindAsync(id);
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var entity = await db.Pixels.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
                 if (entity is null) { return Results.NotFound(); }
+
+                if (input.GameId.HasValue)
+                {
+                    var gameExists = await db.Games
+                        .AsNoTracking()
+                        .AnyAsync(g => g.Id == input.GameId.Value && g.UserId == userId);
+
+                    if (!gameExists)
+                    {
+                        return Results.BadRequest("Invalid GameId");
+                    }
+                }
 
                 mapper.Map(input, entity);
                 await db.SaveChangesAsync();
@@ -174,9 +211,13 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // DELETE: /api/pixels/{id}
             group.MapDelete("/{id:long}", async (
                 long id,
+                HttpContext httpContext,
                 ApplicationDbContext db, IMemoryCache cache) =>
             {
-                var entity = await db.Pixels.FindAsync(id);
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var entity = await db.Pixels.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
                 if (entity is null) { return Results.NotFound(); }
 
                 db.Pixels.Remove(entity);
@@ -194,10 +235,14 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // PATCH: /api/pixels/{id}
             group.MapPatch("/{id:long}", async (
                 PixelUpdateStatusDto input,
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMemoryCache cache) =>
             {
-                var entity = await db.Pixels.FindAsync(input.Id);
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var entity = await db.Pixels.FirstOrDefaultAsync(x => x.Id == input.Id && x.UserId == userId);
                 if (entity is null) { return Results.NotFound(); }
 
                 if (entity.IsActive != input.IsActive)

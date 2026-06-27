@@ -59,6 +59,46 @@ public sealed class SteamControllerIntegrationTests
     }
 
     [Test]
+    public async Task ScrapeHistoryEndpointsListAndRerunStoredSetup()
+    {
+        using var factory = new SteamAppFactory();
+        using var client = factory.CreateAuthenticatedClient();
+        await factory.ResetDatabaseAsync();
+
+        var first = await client.GetAsync("/steam/scrape-page/gameUrl/1/page/1");
+        var historyResponse = await client.GetAsync("/steam/scrape-history");
+        var historyJson = await historyResponse.ReadJsonElementAsync();
+        var historyId = historyJson[0].GetProperty("id").GetInt64();
+
+        factory.SteamService.PageResults =
+        [
+            new SteamApp.Application.DTOs.WatchItem.WatchItemDto
+            {
+                Name = "Rerun Item",
+                Price = 9.5,
+                Quantity = 7
+            }
+        ];
+
+        var rerun = await client.PostAsync($"/steam/scrape-history/{historyId}/rerun", null);
+        var rerunJson = await rerun.ReadJsonElementAsync();
+        var secondHistory = await client.GetAsync("/steam/scrape-history");
+        var secondHistoryJson = await secondHistory.ReadJsonElementAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(first.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(historyResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(historyJson.GetArrayLength(), Is.EqualTo(1));
+            Assert.That(historyJson[0].GetProperty("scrapeType").GetString(), Is.EqualTo("Web Scrape"));
+            Assert.That(rerun.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(rerunJson.GetProperty("results")[0].GetProperty("name").GetString(), Is.EqualTo("Rerun Item"));
+            Assert.That(secondHistoryJson.GetArrayLength(), Is.EqualTo(2));
+            Assert.That(factory.SteamService.ScrapePageCalls, Is.EqualTo(2));
+        });
+    }
+
+    [Test]
     public async Task ScrapePixelsEndpointReturnsBadRequestForInvalidListing()
     {
         using var factory = new SteamAppFactory();

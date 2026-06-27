@@ -20,11 +20,16 @@ public static class TagsEndpoints
 
         // GET: /api/tags
         group.MapGet("/", async (
+            HttpContext httpContext,
             ApplicationDbContext db,
             IMapper mapper) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var tags = await db.Tags
                 .AsNoTracking()
+                .Where(x => x.UserId == userId)
                 .Include(x => x.Game)
                 .ToListAsync();
 
@@ -34,11 +39,17 @@ public static class TagsEndpoints
 
         // GET: /api/tags/paged
         group.MapGet("/paged", async (
+            HttpContext httpContext,
             ApplicationDbContext db,
             [AsParameters] TagsPageQuery request,
             CancellationToken ct) =>
         {
-            var query = db.Tags.AsNoTracking();
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
+            var query = db.Tags
+                .AsNoTracking()
+                .Where(x => x.UserId == userId);
 
             if (request.GameId.HasValue)
             {
@@ -86,13 +97,17 @@ public static class TagsEndpoints
         // GET: /api/tags/{id}
         group.MapGet("/{id:long}", async (
             long id,
+            HttpContext httpContext,
             ApplicationDbContext db,
             IMapper mapper) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var tag = await db.Tags
                 .AsNoTracking()
                 .Include(x => x.Game)
-                .FirstOrDefaultAsync(x => x.Id == id);
+                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
 
             if (tag is null)
             {
@@ -105,12 +120,16 @@ public static class TagsEndpoints
         // GET: /api/tags/game/{gameId}
         group.MapGet("/game/{gameId:long}", async (
             long gameId,
+            HttpContext httpContext,
             ApplicationDbContext db,
             IMapper mapper) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var tags = await db.Tags
                 .AsNoTracking()
-                .Where(x => x.GameId == gameId)
+                .Where(x => x.GameId == gameId && x.UserId == userId)
                 .Include(x => x.Game)
                 .ToListAsync();
 
@@ -120,11 +139,15 @@ public static class TagsEndpoints
         // POST: /api/tags
         group.MapPost("/", async (
             TagCreateDto input,
+            HttpContext httpContext,
             ApplicationDbContext db,
             IMapper mapper) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var gameExists = await db.Games
-                .AnyAsync(x => x.Id == input.GameId);
+                .AnyAsync(x => x.Id == input.GameId && x.UserId == userId);
 
             if (!gameExists)
             {
@@ -132,6 +155,7 @@ public static class TagsEndpoints
             }
 
             var entity = mapper.Map<Tag>(input);
+            entity.UserId = userId;
 
             db.Tags.Add(entity);
             await db.SaveChangesAsync();
@@ -145,10 +169,14 @@ public static class TagsEndpoints
         group.MapPut("/{id:long}", async (
             long id,
             TagUpdateDto input,
+            HttpContext httpContext,
             ApplicationDbContext db,
             IMapper mapper) =>
         {
-            var entity = await db.Tags.FindAsync(id);
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
+            var entity = await db.Tags.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
 
             if (entity is null)
             {
@@ -164,9 +192,13 @@ public static class TagsEndpoints
         // DELETE: /api/tags/{id}
         group.MapDelete("/{id:long}", async (
             long id,
+            HttpContext httpContext,
             ApplicationDbContext db) =>
         {
-            var entity = await db.Tags.FindAsync(id);
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
+            var entity = await db.Tags.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
 
             if (entity is null)
             {
@@ -182,9 +214,13 @@ public static class TagsEndpoints
         // PATCH: /api/tags/{id}
         group.MapPatch("/{id:long}", async (
             TagUpdateStatusDto input,
+            HttpContext httpContext,
             ApplicationDbContext db) =>
         {
-            var entity = await db.Tags.FindAsync(input.Id);
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
+            var entity = await db.Tags.FirstOrDefaultAsync(x => x.Id == input.Id && x.UserId == userId);
 
             if (entity is null)
             {

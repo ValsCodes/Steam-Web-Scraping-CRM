@@ -59,10 +59,10 @@ public sealed class EfRepositoryIntegrationTests
         await factory.ResetDatabaseAsync();
 
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        var steamRepository = new SteamRepository(db, cache);
-        var wishlistRepository = new WishlistRepository(db, cache);
+        var steamRepository = new SteamRepository(dbFactory, cache);
+        var wishlistRepository = new WishlistRepository(dbFactory, cache);
 
         var gameUrl = await steamRepository.GetGameUrl(2);
         var game = await steamRepository.GetGame(1);

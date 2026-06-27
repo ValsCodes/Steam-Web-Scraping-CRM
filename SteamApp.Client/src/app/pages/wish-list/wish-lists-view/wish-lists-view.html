@@ -1,6 +1,11 @@
-<div class="p-4">
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="text-2xl font-semibold text-gray-500">Game Wish List</h2>
+<div class="p-4 price-alerts-page">
+  <div class="price-alerts-header">
+    <div>
+      <h2 class="text-2xl font-semibold text-gray-500">Price Alerts</h2>
+      <p class="price-alerts-header__description">
+        Track Steam game prices against your target thresholds. Use Check Price Now to compare the current Steam price with your target.
+      </p>
+    </div>
 
     <div class="flex gap-x-2">
       <button (click)="refreshButtonClicked()" class="button button-small-secondary" [disabled]="isGridLoading"
@@ -14,9 +19,15 @@
       </button>
 
       <button class="create-button" (click)="createButtonClicked()">
-        Create
+        Create Alert
       </button>
     </div>
+  </div>
+
+  <div class="price-alerts-steps" aria-label="How price alerts work">
+    @for (step of priceAlertSteps; track step) {
+    <span>{{ step }}</span>
+    }
   </div>
 
   <div class="filter-toolbar">
@@ -31,8 +42,8 @@
     </div>
 
     <div class="filter-group">
-      <label for="wish-lists-filter-name">Name</label>
-      <input id="wish-lists-filter-name" name="wishListsFilterName" class="px-2 py-1" type="text" placeholder="Filter by name" [formControl]="searchByNameFilterControl" />
+      <label for="wish-lists-filter-name">Alert Name</label>
+      <input id="wish-lists-filter-name" name="wishListsFilterName" class="px-2 py-1" type="text" placeholder="Filter by alert name" [formControl]="searchByNameFilterControl" />
     </div>
 
     <button (click)="clearFiltersButtonClicked()" class="button button-small-danger">
@@ -58,7 +69,7 @@
     <div class="grid-loading-overlay" role="status" aria-live="polite">
       <div class="grid-loading-card">
         <span class="grid-loading-spinner" aria-hidden="true"></span>
-        <span>Loading wish list...</span>
+        <span>Loading price alerts...</span>
       </div>
     </div>
     }
@@ -67,8 +78,8 @@
       <ng-container matColumnDef="gameName">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Game</th>
         <td mat-cell *matCellDef="let row">
-          @if (safeExternalUrl(row.pageUrl); as pageUrl) {
-          <a [href]="pageUrl" [title]="pageUrl" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">
+          @if (openableExternalUrl(row.pageUrl); as pageUrl) {
+          <a [steamExternalLink]="pageUrl" steamExternalLinkReturnUrl="/wishlist">
             {{ row.gameName }}
           </a>
           } @else {
@@ -78,29 +89,25 @@
       </ng-container>
 
       <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Alert Name</th>
         <td mat-cell *matCellDef="let row">
           {{ row.name }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="price">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Price</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Target Price</th>
         <td mat-cell *matCellDef="let row">
-          {{ row.price == null ? '—' : (row.price | currency:'EUR':'symbol':'1.2-2') }}
+          {{ row.price == null ? '-' : (row.price | currency:'EUR':'symbol':'1.2-2') }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="isActive">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Active</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Monitoring</th>
         <td mat-cell *matCellDef="let row">
-          <input
-            [attr.id]="'wish-list-active-' + row.id"
-            name="wishListActiveStatus"
-            type="checkbox"
-            [checked]="row.isActive"
-            [attr.aria-label]="'Wish list active status for ' + (row.name || row.id)"
-            disabled />
+          <span class="status-pill" [class.status-pill--active]="row.isActive" [class.status-pill--inactive]="!row.isActive">
+            {{ row.isActive ? 'Enabled' : 'Paused' }}
+          </span>
         </td>
       </ng-container>
 
@@ -112,7 +119,7 @@
               [matMenuTriggerFor]="wishListActionsMenu"
               [disabled]="isDeleting(row.id) || checkingId === row.id || isStatusUpdating(row.id)"
               [class.busy-cursor]="isDeleting(row.id) || checkingId === row.id || isStatusUpdating(row.id)"
-              aria-label="Open wish list actions">
+              aria-label="Open price alert actions">
               <mat-icon>more_horiz</mat-icon>
             </button>
 
@@ -124,7 +131,7 @@
 
               <button type="button" mat-menu-item (click)="checkButtonClicked(row.id)"
                 [disabled]="isDeleting(row.id) || checkingId === row.id || isStatusUpdating(row.id)">
-                <span>Check Now</span>
+                <span>Check Price Now</span>
               </button>
 
               <button type="button" mat-menu-item (click)="editButtonClicked(row.id)"
@@ -145,6 +152,18 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
+
+    @if (showNoItemsEmptyState) {
+    <div class="price-alerts-empty-state">
+      No price alerts yet. Create one to track a Steam game against a target price.
+    </div>
+    }
+
+    @if (showFilteredEmptyState) {
+    <div class="price-alerts-empty-state">
+      No price alerts match the current filters. Clear filters or create a new alert.
+    </div>
+    }
 
     <mat-paginator showFirstLastButtons [disabled]="isGridLoading" [hidePageSize]="true"
       [pageSize]="pageSize"></mat-paginator>

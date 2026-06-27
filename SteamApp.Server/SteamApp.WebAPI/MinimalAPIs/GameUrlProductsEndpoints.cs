@@ -19,10 +19,16 @@ public static class GameUrlProductsEndpoints
                        .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
 
         // GET: /api/game-url-products
-        group.MapGet("/", async (ApplicationDbContext db) =>
+        group.MapGet("/", async (
+            HttpContext httpContext,
+            ApplicationDbContext db) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var items = await db.GameUrlsProducts
                 .AsNoTracking()
+                .Where(x => x.Product.UserId == userId && x.GameUrl.UserId == userId)
                 .Select(x => new
                 {
                     x.ProductId,
@@ -47,13 +53,19 @@ public static class GameUrlProductsEndpoints
         group.MapGet("/{productId:long}/{gameUrlId:long}", async (
             long productId,
             long gameUrlId,
+            HttpContext httpContext,
             ApplicationDbContext db) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var exists = await db.GameUrlsProducts
                 .AsNoTracking()
                 .AnyAsync(x =>
                     x.ProductId == productId &&
-                    x.GameUrlId == gameUrlId);
+                    x.GameUrlId == gameUrlId &&
+                    x.Product.UserId == userId &&
+                    x.GameUrl.UserId == userId);
 
             return exists
                 ? Results.Ok()
@@ -63,11 +75,15 @@ public static class GameUrlProductsEndpoints
         // GET: /api/game-url-products/{gameUrlId}
         group.MapGet("{gameUrlId:long}", async (
             long gameUrlId,
+            HttpContext httpContext,
             ApplicationDbContext db) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var exists = await db.GameUrlsProducts
                 .AsNoTracking()
-                .Where(x => x.GameUrlId == gameUrlId)
+                .Where(x => x.GameUrlId == gameUrlId && x.Product.UserId == userId && x.GameUrl.UserId == userId)
                 .Select(x => new
                 {
                     x.ProductId,
@@ -92,13 +108,17 @@ public static class GameUrlProductsEndpoints
         // POST: /api/game-url-products
         group.MapPost("/", async (
             GameUrlProductCreateDto input,
+            HttpContext httpContext,
             ApplicationDbContext db) =>
         {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
             var productExists = await db.Products
-                .AnyAsync(p => p.Id == input.ProductId);
+                .AnyAsync(p => p.Id == input.ProductId && p.UserId == userId);
 
             var gameUrlExists = await db.GameUrls
-                .AnyAsync(g => g.Id == input.GameUrlId);
+                .AnyAsync(g => g.Id == input.GameUrlId && g.UserId == userId);
 
             if (!productExists || !gameUrlExists)
             {
@@ -108,7 +128,9 @@ public static class GameUrlProductsEndpoints
             var alreadyExists = await db.GameUrlsProducts
                 .AnyAsync(x =>
                     x.ProductId == input.ProductId &&
-                    x.GameUrlId == input.GameUrlId);
+                    x.GameUrlId == input.GameUrlId &&
+                    x.Product.UserId == userId &&
+                    x.GameUrl.UserId == userId);
 
             if (alreadyExists)
             {
@@ -133,11 +155,18 @@ public static class GameUrlProductsEndpoints
         group.MapDelete("/{productId:long}/{gameUrlId:long}", async (
             long productId,
             long gameUrlId,
+            HttpContext httpContext,
             ApplicationDbContext db) =>
         {
-            var entity = await db.GameUrlsProducts.FindAsync(
-                productId,
-                gameUrlId);
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
+            var entity = await db.GameUrlsProducts
+                .FirstOrDefaultAsync(x =>
+                    x.ProductId == productId &&
+                    x.GameUrlId == gameUrlId &&
+                    x.Product.UserId == userId &&
+                    x.GameUrl.UserId == userId);
 
             if (entity is null)
             {

@@ -21,10 +21,16 @@ namespace SteamApp.WebAPI.MinimalAPIs
                            .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
 
             // GET: /api/game-urls
-            group.MapGet("/", async (ApplicationDbContext db) =>
+            group.MapGet("/", async (
+                HttpContext httpContext,
+                ApplicationDbContext db) =>
             {
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
                 var entities = await db.GameUrls
                     .AsNoTracking()
+                    .Where(x => x.UserId == userId)
                     .Select(x => new
                     {
                         Id = x.Id,
@@ -51,11 +57,17 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
             // GET: /api/game-urls/paged
             group.MapGet("/paged", async (
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 [AsParameters] GameUrlsPageQuery request,
                 CancellationToken ct) =>
             {
-                var query = db.GameUrls.AsNoTracking();
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var query = db.GameUrls
+                    .AsNoTracking()
+                    .Where(x => x.UserId == userId);
 
                 if (request.GameId.HasValue)
                 {
@@ -123,11 +135,15 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // GET: /api/game-urls/{id}
             group.MapGet("/{id:long}", async (
                 long id,
+                HttpContext httpContext,
                 ApplicationDbContext db) =>
             {
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
                 var dto = await ProjectGameUrlDtos(db.GameUrls
                     .AsNoTracking()
-                    .Where(x => x.Id == id))
+                    .Where(x => x.Id == id && x.UserId == userId))
                     .FirstOrDefaultAsync();
 
                 if (dto is null) { return Results.NotFound(); }
@@ -141,12 +157,16 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // POST: /api/game-urls
             group.MapPost("/", async (
                 GameUrlCreateDto input,
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMapper mapper) =>
             {
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
                 var gameExists = await db.Games
                     .AsNoTracking()
-                    .AnyAsync(g => g.Id == input.GameId);
+                    .AnyAsync(g => g.Id == input.GameId && g.UserId == userId);
 
                 if (!gameExists)
                 {
@@ -160,6 +180,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 }
 
                 var entity = mapper.Map<GameUrl>(input);
+                entity.UserId = userId;
 
                 db.GameUrls.Add(entity);
                 await db.SaveChangesAsync();
@@ -180,11 +201,15 @@ namespace SteamApp.WebAPI.MinimalAPIs
             group.MapPut("/{id:long}", async (
                 long id,
                 GameUrlUpdateDto input,
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMapper mapper,
                 IMemoryCache cache) =>
             {
-                var entity = await db.GameUrls.FindAsync(id);
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var entity = await db.GameUrls.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
                 if (entity is null) { return Results.NotFound(); }
 
                 var scrapingModeExists = await ScrapingModeExistsAsync(db, input.ScrapingModeId);
@@ -211,13 +236,17 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // DELETE: /api/game-urls/{id}
             group.MapDelete("/{id:long}", async (
                 long id,
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMemoryCache cache) =>
             {
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
                 var entity = await db.GameUrls
                 .Include(x => x.GameUrlsProducts)
                 .Include(x => x.GameUrlsPixels)
-                .FirstOrDefaultAsync(x => x.Id == id);
+                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
 
                 if (entity is null) { return Results.NotFound(); }
 
@@ -239,10 +268,14 @@ namespace SteamApp.WebAPI.MinimalAPIs
             // PATCH: /api/game-urls/{id}
             group.MapPatch("/{id:long}", async (
                 GameUrlUpdateStatusDto input,
+                HttpContext httpContext,
                 ApplicationDbContext db,
                 IMemoryCache cache) =>
             {
-                var entity = await db.GameUrls.FindAsync(input.Id);
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var entity = await db.GameUrls.FirstOrDefaultAsync(x => x.Id == input.Id && x.UserId == userId);
                 if (entity is null) { return Results.NotFound(); }
 
                 if (entity.IsActive != input.IsActive)

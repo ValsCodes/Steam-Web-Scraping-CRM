@@ -1,6 +1,13 @@
 <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="general-form login-form">
   <div class="login-form__header">
-    <h2>{{ pageTitle }}</h2>
+    <div>
+      <h2>{{ pageTitle }}</h2>
+      <p>
+        {{ isRegisterMode
+          ? 'Create a workspace account for catalog, scraping, and monitoring access.'
+          : 'Sign in to manage catalog, scraping, and monitoring workflows.' }}
+      </p>
+    </div>
 
     <div class="login-form__switch" role="group" aria-label="Authentication mode">
       <button

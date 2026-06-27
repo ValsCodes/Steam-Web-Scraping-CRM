@@ -9,6 +9,7 @@ namespace SteamApp.IntegrationTests.Support;
 
 public static class IntegrationSeed
 {
+    public const string UserId = "integration-user-id";
     public const string UserEmail = "user@example.com";
     public const string UserName = "integration-user";
     public const string UserPassword = "Password1";
@@ -38,7 +39,7 @@ public static class IntegrationSeed
 
         var user = new ApplicationUser
         {
-            Id = "integration-user-id",
+            Id = UserId,
             UserName = UserName,
             Email = UserEmail,
             EmailConfirmed = true
@@ -64,7 +65,8 @@ public static class IntegrationSeed
                 BaseUrl = "https://steam.example/alpha",
                 PageUrl = "https://steam.example/app/1",
                 InternalId = 10,
-                IsActive = true
+                IsActive = true,
+                UserId = UserId
             },
             new Game
             {
@@ -73,7 +75,8 @@ public static class IntegrationSeed
                 BaseUrl = "https://steam.example/beta",
                 PageUrl = "https://steam.example/app/2",
                 InternalId = 20,
-                IsActive = false
+                IsActive = false,
+                UserId = UserId
             },
             new Game
             {
@@ -82,7 +85,8 @@ public static class IntegrationSeed
                 BaseUrl = "https://steam.example/disposable",
                 PageUrl = "https://steam.example/app/3",
                 InternalId = 30,
-                IsActive = true
+                IsActive = true,
+                UserId = UserId
             });
 
         db.GameUrls.AddRange(
@@ -95,7 +99,8 @@ public static class IntegrationSeed
                 PartialUrl = "https://steam.example/search?p={0}",
                 StartPage = 1,
                 EndPage = 5,
-                IsActive = true
+                IsActive = true,
+                UserId = UserId
             },
             new GameUrl
             {
@@ -108,7 +113,8 @@ public static class IntegrationSeed
                 PixelY = 5,
                 PixelImageWidth = 62,
                 PixelImageHeight = 62,
-                IsActive = true
+                IsActive = true,
+                UserId = UserId
             });
 
         db.Products.AddRange(
@@ -118,7 +124,8 @@ public static class IntegrationSeed
                 GameId = 1,
                 Name = "Rocket Launcher",
                 Rating = 5,
-                IsActive = true
+                IsActive = true,
+                UserId = UserId
             },
             new Product
             {
@@ -126,7 +133,8 @@ public static class IntegrationSeed
                 GameId = 2,
                 Name = "Medigun",
                 Rating = 3,
-                IsActive = false
+                IsActive = false,
+                UserId = UserId
             });
 
         db.Pixels.AddRange(
@@ -138,7 +146,8 @@ public static class IntegrationSeed
                 RedValue = 195,
                 GreenValue = 108,
                 BlueValue = 45,
-                IsActive = true
+                IsActive = true,
+                UserId = UserId
             },
             new Pixel
             {
@@ -148,12 +157,13 @@ public static class IntegrationSeed
                 RedValue = 45,
                 GreenValue = 48,
                 BlueValue = 44,
-                IsActive = false
+                IsActive = false,
+                UserId = UserId
             });
 
         db.Tags.AddRange(
-            new Tag { Id = 1, GameId = 1, Name = "Primary", IsActive = true },
-            new Tag { Id = 2, GameId = 2, Name = "Support", IsActive = false });
+            new Tag { Id = 1, GameId = 1, Name = "Primary", IsActive = true, UserId = UserId },
+            new Tag { Id = 2, GameId = 2, Name = "Support", IsActive = false, UserId = UserId });
 
         db.WishLists.AddRange(
             new WishList
@@ -162,7 +172,8 @@ public static class IntegrationSeed
                 GameId = 1,
                 Name = "Cheap Alpha",
                 Price = 9.99,
-                IsActive = true
+                IsActive = true,
+                UserId = UserId
             },
             new WishList
             {
@@ -170,7 +181,8 @@ public static class IntegrationSeed
                 GameId = 2,
                 Name = "Cheap Beta",
                 Price = 4.99,
-                IsActive = false
+                IsActive = false,
+                UserId = UserId
             });
 
         db.WatchList.AddRange(
@@ -180,7 +192,8 @@ public static class IntegrationSeed
                 Name = "Watch Alpha",
                 Url = "https://steam.example/watch/1",
                 RegistrationDate = new DateOnly(2026, 1, 1),
-                IsActive = true
+                IsActive = true,
+                UserId = UserId
             },
             new WatchList
             {
@@ -188,7 +201,8 @@ public static class IntegrationSeed
                 Name = "Watch Beta",
                 Url = "https://steam.example/watch/2",
                 RegistrationDate = new DateOnly(2026, 2, 1),
-                IsActive = false
+                IsActive = false,
+                UserId = UserId
             });
 
         db.ProductTags.Add(new ProductTags { ProductId = 1, TagId = 1 });

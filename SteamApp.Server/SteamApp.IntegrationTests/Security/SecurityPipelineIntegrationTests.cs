@@ -1,6 +1,9 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
+using SteamApp.Infrastructure.Identity;
 using SteamApp.IntegrationTests.Support;
 using SteamApp.WebAPI.Security;
 
@@ -213,6 +216,62 @@ public sealed class SecurityPipelineIntegrationTests
         });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [Test]
+    public async Task LoginLocksOutUserAfterConfiguredFailedAttempts()
+    {
+        using var factory = new SteamAppFactory();
+        using var client = factory.CreateAnonymousClient();
+        await factory.ResetDatabaseAsync();
+
+        var failedAttemptBodies = new List<string>();
+        for (var i = 0; i < 4; i++)
+        {
+            var response = await client.PostAsJsonAsync("/api/auth/login", new
+            {
+                emailOrUserName = IntegrationSeed.UserName,
+                password = "WrongPassword1"
+            });
+
+            failedAttemptBodies.Add(await response.Content.ReadAsStringAsync());
+
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        }
+
+        var lockoutResponse = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            emailOrUserName = IntegrationSeed.UserName,
+            password = "WrongPassword1"
+        });
+        var lockoutBody = await lockoutResponse.Content.ReadAsStringAsync();
+
+        var correctPasswordDuringLockout = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            emailOrUserName = IntegrationSeed.UserName,
+            password = IntegrationSeed.UserPassword
+        });
+        var correctPasswordDuringLockoutBody =
+            await correctPasswordDuringLockout.Content.ReadAsStringAsync();
+
+        using var scope = factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByNameAsync(IntegrationSeed.UserName);
+
+        Assert.That(user, Is.Not.Null);
+
+        var lockoutEnd = await userManager.GetLockoutEndDateAsync(user!);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(failedAttemptBodies, Is.All.EqualTo("Invalid user credentials."));
+            Assert.That(lockoutResponse.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+            Assert.That(lockoutBody, Is.EqualTo("User account is locked out."));
+            Assert.That(correctPasswordDuringLockout.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+            Assert.That(correctPasswordDuringLockoutBody, Is.EqualTo("User account is locked out."));
+            Assert.That(lockoutEnd, Is.Not.Null);
+            Assert.That(lockoutEnd!.Value, Is.GreaterThan(DateTimeOffset.UtcNow));
+        });
     }
 
     [Test]
