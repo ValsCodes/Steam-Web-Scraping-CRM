@@ -1,0 +1,47 @@
+.feedback-page {
+  color: #0f172a;
+}
+
+.feedback-header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.feedback-header__description {
+  max-width: 48rem;
+  margin: 0.35rem 0 0;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.feedback-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.feedback-status--processed {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.feedback-empty-state {
+  padding: 1.5rem;
+  color: #64748b;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .feedback-header {
+    flex-direction: column;
+  }
+
+  .feedback-header__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

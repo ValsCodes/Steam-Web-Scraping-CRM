@@ -69,4 +69,78 @@ describe('ManualModeV2 external link disclosure', () => {
     expect(component.currentIndex).toBe(3);
     expect(cdr.markForCheck).toHaveBeenCalled();
   });
+
+  it('opens batch URLs through Steam when Steam mode is checked', () => {
+    component.selectedGameUrl = {
+      scrapingModeId: ScrapingModeEnum.Batch,
+      partialUrl: 'https://steamcommunity.com/market/search?q={0}',
+    } as never;
+    component.currentIndex = 1;
+    component.batchSize = 2;
+    component.openInSteamMode = true;
+    disclosure.openTrustedUrl.and.returnValue('opened');
+
+    component.startBatchButtonClicked();
+
+    expect(disclosure.openTrustedUrl.calls.allArgs()).toEqual([
+      [
+        'steam://openurl/https://steamcommunity.com/market/search?q=1',
+        '/manual-mode-v2',
+      ],
+      [
+        'steam://openurl/https://steamcommunity.com/market/search?q=2',
+        '/manual-mode-v2',
+      ],
+    ]);
+    expect(component.currentIndex).toBe(3);
+  });
+
+  it('opens manual product batch URLs through Steam when Steam mode is checked', () => {
+    component.selectedGameUrl = {
+      scrapingModeId: ScrapingModeEnum.ManualBatch,
+    } as never;
+    component.productsFiltered = [
+      { fullUrl: 'https://backpack.tf/stats/Unique/Hat/Tradable/Craftable' },
+      { fullUrl: 'https://steamcommunity.com/market/listings/440/Alpha%20Item' },
+    ] as never;
+    component.currentIndex = 1;
+    component.batchSize = 2;
+    component.openInSteamMode = true;
+    disclosure.openTrustedUrl.and.returnValue('opened');
+
+    component.startBatchButtonClicked();
+
+    expect(disclosure.openTrustedUrl.calls.allArgs()).toEqual([
+      [
+        'steam://openurl/https://backpack.tf/stats/Unique/Hat/Tradable/Craftable',
+        '/manual-mode-v2',
+      ],
+      [
+        'steam://openurl/https://steamcommunity.com/market/listings/440/Alpha%20Item',
+        '/manual-mode-v2',
+      ],
+    ]);
+    expect(component.currentIndex).toBe(3);
+  });
+
+  it('uses Steam URLs for product cards when Steam mode is checked', () => {
+    const productUrl = 'https://steamcommunity.com/market/listings/440/Alpha%20Item';
+
+    expect(component.getProductOpenUrl(productUrl)).toBe(productUrl);
+
+    component.openInSteamMode = true;
+
+    expect(component.getProductOpenUrl(productUrl)).toBe(
+      'steam://openurl/https://steamcommunity.com/market/listings/440/Alpha%20Item',
+    );
+  });
+
+  it('includes the resolved product URL in warning tooltips', () => {
+    const productUrl = 'https://steamcommunity.com/market/listings/440/Alpha%20Item';
+    component.openInSteamMode = true;
+
+    expect(component.getProductOpenTooltip(productUrl)).toBe(
+      'Warning: this destination is not verified by SteamApp. Review it carefully before opening. Destination: steam://openurl/https://steamcommunity.com/market/listings/440/Alpha%20Item',
+    );
+  });
 });

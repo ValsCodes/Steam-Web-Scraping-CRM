@@ -3,6 +3,7 @@ import {
   formatMs,
   makeEnumHelpers,
   openableExternalUrl,
+  openableSteamUrl,
   openSafeExternalUrl,
   safeExternalImageUrl,
   safeExternalUrl,
@@ -73,6 +74,31 @@ describe('client helper unit tests', () => {
     expect(externalUrlWarning('https://evil.example/market')).toContain('Warning');
     expect(externalUrlWarning('javascript:alert(1)')).toContain('Warning');
     expect(externalUrlWarning('https://steamcommunity.com/market')).toBeNull();
+  });
+
+  it('optionally prefixes HTTPS URLs for Steam open-url mode', () => {
+    expect(openableSteamUrl('https://steamcommunity.com/market/', true)).toBe(
+      'steam://openurl/https://steamcommunity.com/market/',
+    );
+    expect(openableSteamUrl(' https://steamcommunity.com/market/ ', true)).toBe(
+      'steam://openurl/https://steamcommunity.com/market/',
+    );
+    expect(openableSteamUrl('https://steamcommunity.com/market/', false)).toBe(
+      'https://steamcommunity.com/market/',
+    );
+    expect(
+      openableSteamUrl(
+        'steam://openurl/https://steamcommunity.com/market/',
+        true,
+      ),
+    ).toBe('steam://openurl/https://steamcommunity.com/market/');
+    expect(openableSteamUrl('http://steamcommunity.com/market/', true)).toBe(
+      'http://steamcommunity.com/market/',
+    );
+    expect(openableSteamUrl('mailto:ops@example.test', true)).toBe(
+      'mailto:ops@example.test',
+    );
+    expect(openableSteamUrl('  ', true)).toBeNull();
   });
 
   it('opens only sanitized external URLs', () => {

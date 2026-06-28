@@ -78,7 +78,6 @@ describe('ScrapeHistoryDialogComponent integration tests', () => {
   function initializeDialog(): void {
     fixture.detectChanges();
     tick();
-    fixture.detectChanges();
   }
 
   it('renders historical rows with action buttons', fakeAsync(() => {

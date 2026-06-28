@@ -408,13 +408,13 @@ export class ScrapeHistoryDialogComponent implements OnInit {
         next: (history) => {
           this.history = history;
           this.isLoading = false;
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         },
         error: () => {
           this.history = [];
           this.isLoading = false;
           this.loadError = 'History could not be loaded. Check the API response and try again.';
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         },
       });
   }

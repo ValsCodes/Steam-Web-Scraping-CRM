@@ -212,6 +212,34 @@ public static class TestDb
                 UserId = TestUserId
             });
 
+        db.FeedbackRequests.AddRange(
+            new FeedbackRequest
+            {
+                Id = 1,
+                Type = FeedbackRequestTypeEnum.Feedback,
+                Title = "Improve filters",
+                Description = "Please make the search filters easier to scan.",
+                Area = "Catalog",
+                Status = FeedbackRequestStatusEnum.Active,
+                CreatedAtUtc = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc),
+                UpdatedAtUtc = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc),
+                StatusChangedAtUtc = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc),
+                UserId = TestUserId
+            },
+            new FeedbackRequest
+            {
+                Id = 2,
+                Type = FeedbackRequestTypeEnum.Bug,
+                Title = "Export bug",
+                Description = "The export button should keep the current filters.",
+                Area = "Exports",
+                Status = FeedbackRequestStatusEnum.Processed,
+                CreatedAtUtc = new DateTime(2026, 1, 2, 10, 0, 0, DateTimeKind.Utc),
+                UpdatedAtUtc = new DateTime(2026, 1, 2, 10, 0, 0, DateTimeKind.Utc),
+                StatusChangedAtUtc = new DateTime(2026, 1, 2, 10, 0, 0, DateTimeKind.Utc),
+                UserId = TestUserId
+            });
+
         db.ProductTags.Add(new ProductTags { ProductId = 1, TagId = 1 });
         db.GameUrlsProducts.Add(new GameUrlProducts { ProductId = 1, GameUrlId = 1 });
         db.GameUrlsPixels.Add(new GameUrlPixels { PixelId = 1, GameUrlId = 2 });

@@ -35,6 +35,7 @@ import {
   externalUrlWarning,
   getListingUrl,
   openableExternalUrl,
+  openableSteamUrl,
   safeExternalImageUrl,
 } from '../../common';
 import { ScrapeHistoryDialogComponent } from './scrape-history-dialog.component';
@@ -205,6 +206,7 @@ export class WebScraperComponent {
   readonly statusLabel = signal<string>('');
   readonly isLoading = signal<boolean>(false);
   readonly pageNumber = signal<number>(1);
+  readonly openInSteamMode = signal<boolean>(false);
 
   readonly canRun = computed(() => {
     return (
@@ -481,7 +483,7 @@ export class WebScraperComponent {
   }
 
   getSafeShowPageUrl(): string | null {
-    return openableExternalUrl(this.getShowPageUrl());
+    return openableSteamUrl(this.getShowPageUrl(), this.openInSteamMode());
   }
 
   getSafeListingUrl(listingName: string | null | undefined): string | null {

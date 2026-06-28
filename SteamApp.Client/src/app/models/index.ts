@@ -11,5 +11,6 @@ export * from './product-tag.model';
 export * from './game-url-pixel.model';
 export * from './scraping-mode.model';
 export * from './scrape-history.model';
+export * from './feedback-request.model';
 
 

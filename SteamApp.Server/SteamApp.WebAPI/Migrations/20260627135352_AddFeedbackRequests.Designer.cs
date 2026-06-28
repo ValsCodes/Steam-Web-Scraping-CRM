@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SteamApp.Infrastructure.Context;
 
 #nullable disable
 
-namespace SteamApp.WebAPI.Migrations
+namespace SteamApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260627135352_AddFeedbackRequests")]
+    partial class AddFeedbackRequests
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -283,89 +286,6 @@ namespace SteamApp.WebAPI.Migrations
                     b.HasIndex("UserId", "Status");
 
                     b.ToTable("feedback_request");
-                });
-
-            modelBuilder.Entity("SteamApp.Domain.Entities.FeedbackRequestHistory", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<int>("Action")
-                        .HasColumnType("int")
-                        .HasColumnName("action");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("created_at_utc");
-
-                    b.Property<long>("FeedbackRequestId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("feedback_request_id");
-
-                    b.Property<string>("NewArea")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)")
-                        .HasColumnName("new_area");
-
-                    b.Property<string>("NewDescription")
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)")
-                        .HasColumnName("new_description");
-
-                    b.Property<int?>("NewStatus")
-                        .HasColumnType("int")
-                        .HasColumnName("new_status");
-
-                    b.Property<string>("NewTitle")
-                        .HasMaxLength(140)
-                        .HasColumnType("nvarchar(140)")
-                        .HasColumnName("new_title");
-
-                    b.Property<int?>("NewType")
-                        .HasColumnType("int")
-                        .HasColumnName("new_type");
-
-                    b.Property<string>("PreviousArea")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)")
-                        .HasColumnName("previous_area");
-
-                    b.Property<string>("PreviousDescription")
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)")
-                        .HasColumnName("previous_description");
-
-                    b.Property<int?>("PreviousStatus")
-                        .HasColumnType("int")
-                        .HasColumnName("previous_status");
-
-                    b.Property<string>("PreviousTitle")
-                        .HasMaxLength(140)
-                        .HasColumnType("nvarchar(140)")
-                        .HasColumnName("previous_title");
-
-                    b.Property<int?>("PreviousType")
-                        .HasColumnType("int")
-                        .HasColumnName("previous_type");
-
-                    b.Property<string>("UserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FeedbackRequestId");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("UserId", "FeedbackRequestId", "CreatedAtUtc");
-
-                    b.ToTable("feedback_request_history");
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.Game", b =>
@@ -938,22 +858,6 @@ namespace SteamApp.WebAPI.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull);
-                });
-
-            modelBuilder.Entity("SteamApp.Domain.Entities.FeedbackRequestHistory", b =>
-                {
-                    b.HasOne("SteamApp.Domain.Entities.FeedbackRequest", "FeedbackRequest")
-                        .WithMany()
-                        .HasForeignKey("FeedbackRequestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("FeedbackRequest");
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.Game", b =>

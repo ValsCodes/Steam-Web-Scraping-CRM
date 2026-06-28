@@ -133,6 +133,22 @@ describe('WebScraperComponent integration tests', () => {
     expect(component.gameUrlsFiltered().map((url) => url.name)).toEqual(['Batch URL']);
   });
 
+  it('prefixes the Show Page URL when Steam mode is checked', () => {
+    component.gameIdControl.setValue(1);
+    fixture.detectChanges();
+    component.scrapingModeIdControl.setValue(ScrapingModeEnum.Batch);
+    fixture.detectChanges();
+    component.gameUrlIdControl.setValue(10);
+    fixture.detectChanges();
+    component.pageNumber.set(3);
+    component.openInSteamMode.set(true);
+    fixture.detectChanges();
+
+    expect(component.getSafeShowPageUrl()).toBe(
+      'steam://openurl/https://steamcommunity.com/market/search?page=3',
+    );
+  });
+
   it('runs the selected web scrape and renders the returned listings', () => {
     component.gameIdControl.setValue(1);
     fixture.detectChanges();
@@ -143,6 +159,7 @@ describe('WebScraperComponent integration tests', () => {
     component.setSelectedMode(
       ScrapingModeEnum.Batch as unknown as Parameters<WebScraperComponent['setSelectedMode']>[0],
     );
+    component.openInSteamMode.set(true);
 
     component.runButtonClicked();
     fixture.detectChanges();

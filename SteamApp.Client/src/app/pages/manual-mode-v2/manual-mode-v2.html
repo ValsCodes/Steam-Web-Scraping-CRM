@@ -96,6 +96,16 @@
                                 (input)="batchSize = $any($event.target).valueAsNumber" />
                         </div>
 
+                        <label for="manual-mode-open-in-steam" class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                            <input
+                                id="manual-mode-open-in-steam"
+                                name="manualModeOpenInSteam"
+                                type="checkbox"
+                                [checked]="openInSteamMode"
+                                (change)="openInSteamMode = $any($event.target).checked" />
+                            <span>Open in Steam</span>
+                        </label>
+
                         <div class="flex flex-wrap gap-2">
                             <button
                                 (click)="startBatchButtonClicked()"
@@ -255,11 +265,11 @@
                             @for (product of productsFiltered; track product.productId; let i = $index) {
 
                                 <a
-                                    [steamExternalLink]="product.fullUrl"
+                                    [steamExternalLink]="getProductOpenUrl(product.fullUrl)"
                                     class="block">
                                     <div
                                         class="flex h-[5.5rem] flex-col justify-center rounded-lg border border-slate-200 bg-slate-50 p-3 transition hover:border-slate-300 hover:bg-white"
-                                        [matTooltip]="externalUrlWarning(product.fullUrl) ?? openableExternalUrl(product.fullUrl) ?? 'Missing URL'">
+                                        [matTooltip]="getProductOpenTooltip(product.fullUrl)">
                                         <strong class="text-sm text-slate-800">
                                             {{ i + 1 }}. {{ product.productName }}
                                         </strong>

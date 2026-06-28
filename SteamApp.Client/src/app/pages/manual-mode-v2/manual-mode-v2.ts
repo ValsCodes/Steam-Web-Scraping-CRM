@@ -28,7 +28,12 @@ import {
 } from '../../services';
 import { CopyLinkComponent } from '../../components';
 import { MatTooltip } from "@angular/material/tooltip";
-import { ExternalLinkDirective, externalUrlWarning, openableExternalUrl } from '../../common';
+import {
+  ExternalLinkDirective,
+  externalUrlWarning,
+  openableExternalUrl,
+  openableSteamUrl,
+} from '../../common';
 
 @Component({
   selector: 'steam-manual-mode-v2',
@@ -50,6 +55,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
   currentIndex: number | null = 1;
   batchSize: number | null = 1;
+  openInSteamMode = false;
   readonly ratingOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
   readonly games$ = new BehaviorSubject<readonly Game[]>([]);
@@ -240,7 +246,10 @@ export class ManualModeV2 implements OnInit, OnDestroy {
           String(currentIndex),
         );
 
-        const result = this.externalLinkDisclosure.openTrustedUrl(url, '/manual-mode-v2');
+        const result = this.externalLinkDisclosure.openTrustedUrl(
+          openableSteamUrl(url, this.openInSteamMode),
+          '/manual-mode-v2',
+        );
         if (result === 'needs-disclosure') {
           break;
         }
@@ -255,7 +264,10 @@ export class ManualModeV2 implements OnInit, OnDestroy {
         }
 
         const result = this.externalLinkDisclosure.openTrustedUrl(
-          this.productsFiltered[productIndex].fullUrl,
+          openableSteamUrl(
+            this.productsFiltered[productIndex].fullUrl,
+            this.openInSteamMode,
+          ),
           '/manual-mode-v2',
         );
         if (result === 'needs-disclosure') {
@@ -274,6 +286,20 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.currentIndex = null;
     this.batchSize = null;
     this.cdr.markForCheck();
+  }
+
+  getProductOpenUrl(url: string | null | undefined): string | null {
+    return openableSteamUrl(url, this.openInSteamMode);
+  }
+
+  getProductOpenTooltip(url: string | null | undefined): string {
+    const openUrl = this.getProductOpenUrl(url);
+    if (!openUrl) {
+      return 'Missing URL';
+    }
+
+    const warning = externalUrlWarning(openUrl);
+    return warning ? `${warning} Destination: ${openUrl}` : openUrl;
   }
 
   clearFiltersButtonClicked(): void {
@@ -353,7 +379,10 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     let missing = false;
 
     for (const url of urls) {
-      const result = this.externalLinkDisclosure.openTrustedUrl(url, '/manual-mode-v2');
+      const result = this.externalLinkDisclosure.openTrustedUrl(
+        openableSteamUrl(url, this.openInSteamMode),
+        '/manual-mode-v2',
+      );
 
       if (result === 'blocked') {
         missing = true;

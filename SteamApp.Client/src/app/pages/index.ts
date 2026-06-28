@@ -9,6 +9,9 @@ export { AboutPage } from './about/about-page';
 export { FaqPage } from './faq/faq-page';
 export { SessionExpiredPage } from './session-expired/session-expired-page';
 export { NotFoundPage } from './not-found/not-found-page';
+export { FeedbackRequestsView } from './feedback/feedback-requests-view/feedback-requests-view';
+export { FeedbackRequestForm } from './feedback/feedback-request-form/feedback-request-form';
+export { FeedbackSendPage } from './feedback/feedback-send-page/feedback-send-page';
 
 // Games
 export { GamesView } from './game/games-view/games-view';

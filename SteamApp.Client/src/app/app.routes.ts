@@ -270,6 +270,42 @@ export const routes: Routes = [
         data: { seo: { title: 'Profile', canonicalPath: '/profile' } },
       },
       {
+        path: 'feedback',
+        loadComponent: () =>
+          import('./pages/feedback/feedback-requests-view/feedback-requests-view').then(
+            (m) => m.FeedbackRequestsView,
+          ),
+        title: 'Feedback Requests',
+        data: { seo: { title: 'Feedback Requests', canonicalPath: '/feedback' } },
+      },
+      {
+        path: 'feedback/create',
+        loadComponent: () =>
+          import('./pages/feedback/feedback-request-form/feedback-request-form').then(
+            (m) => m.FeedbackRequestForm,
+          ),
+        title: 'Create Feedback Request',
+        data: { seo: { title: 'Create Feedback Request', canonicalPath: '/feedback/create' } },
+      },
+      {
+        path: 'feedback/edit/:id',
+        loadComponent: () =>
+          import('./pages/feedback/feedback-request-form/feedback-request-form').then(
+            (m) => m.FeedbackRequestForm,
+          ),
+        title: 'Edit Feedback Request',
+        data: { seo: { title: 'Edit Feedback Request', canonicalPath: '/feedback/edit' } },
+      },
+      {
+        path: 'feedback/send',
+        loadComponent: () =>
+          import('./pages/feedback/feedback-send-page/feedback-send-page').then(
+            (m) => m.FeedbackSendPage,
+          ),
+        title: 'Send Feedback',
+        data: { seo: { title: 'Send Feedback', canonicalPath: '/feedback/send' } },
+      },
+      {
         path: 'games',
         loadComponent: () => import('./pages/game/games-view/games-view').then((m) => m.GamesView),
         title: 'Games',

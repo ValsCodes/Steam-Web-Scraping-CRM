@@ -1,18 +1,34 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
+import { BehaviorSubject } from 'rxjs';
 
+import { AuthService, CurrentUser } from '../../services/auth/auth.service';
 import { SiteHeaderComponent } from './site-header.component';
 
 describe('SiteHeaderComponent', () => {
   let component: SiteHeaderComponent;
   let fixture: ComponentFixture<SiteHeaderComponent>;
+  let loggedInSubject: BehaviorSubject<boolean>;
+  let currentUserSubject: BehaviorSubject<CurrentUser | null>;
+  let auth: jasmine.SpyObj<AuthService>;
 
   beforeEach(async () => {
+    loggedInSubject = new BehaviorSubject<boolean>(false);
+    currentUserSubject = new BehaviorSubject<CurrentUser | null>(null);
+    auth = jasmine.createSpyObj<AuthService>(
+      'AuthService',
+      ['getTimeBeforeExpiration', 'logout'],
+      {
+        loggedIn$: loggedInSubject.asObservable(),
+        currentUser$: currentUserSubject.asObservable(),
+      },
+    );
+    auth.getTimeBeforeExpiration.and.returnValue(60000);
+
     await TestBed.configureTestingModule({
       imports: [SiteHeaderComponent],
       providers: [
-        provideHttpClient(),
+        { provide: AuthService, useValue: auth },
         provideRouter([]),
       ],
     })
@@ -43,5 +59,29 @@ describe('SiteHeaderComponent', () => {
       '/about',
       '/faq',
     ]);
+  });
+
+  it('renders authenticated feedback navigation when signed in', () => {
+    loggedInSubject.next(true);
+    currentUserSubject.next({
+      id: 'user-1',
+      displayName: 'Test User',
+      firstName: 'Test',
+      lastName: 'User',
+      userName: 'test-user',
+      email: 'test@example.com',
+      phone: null,
+      clientId: null,
+      scope: 'user',
+    });
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const links = Array.from(element.querySelectorAll<HTMLAnchorElement>('.site-header__nav > a'));
+    const feedbackLink = links.find((link) => link.textContent?.trim() === 'Feedback');
+    const sendFeedbackLink = links.find((link) => link.textContent?.trim() === 'Send Feedback');
+
+    expect(feedbackLink?.getAttribute('href')).toBe('/feedback');
+    expect(sendFeedbackLink?.getAttribute('href')).toBe('/feedback/send');
   });
 });

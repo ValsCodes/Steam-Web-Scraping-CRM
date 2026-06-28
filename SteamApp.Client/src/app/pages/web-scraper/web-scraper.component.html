@@ -96,6 +96,16 @@
                                 title="Enter a positive number" />
                         </div>
 
+                        <label for="web-scraper-open-in-steam" class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                            <input
+                                id="web-scraper-open-in-steam"
+                                name="webScraperOpenInSteam"
+                                type="checkbox"
+                                [checked]="openInSteamMode()"
+                                (change)="openInSteamMode.set($any($event.target).checked)" />
+                            <span>Open in Steam</span>
+                        </label>
+
                         <div class="flex flex-wrap gap-2">
                             <button (click)="previousPageButtonClicked()" [disabled]="pageNumber() <= 1"
                                 class="button-small-secondary">
