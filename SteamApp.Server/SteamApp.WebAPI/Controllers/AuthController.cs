@@ -234,10 +234,86 @@ public class AuthController(
         if (!string.IsNullOrWhiteSpace(user.PhoneNumber))
             claims.Add(new Claim("phone_number", user.PhoneNumber));
 
-        var roles = await userManager.GetRolesAsync(user);
+        var roles = await EnsureUserRolesAsync(user);
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         return CreateTokenResponse(claims);
+    }
+
+    private async Task<IReadOnlyCollection<string>> EnsureUserRolesAsync(ApplicationUser user)
+    {
+        var roles = new HashSet<string>(
+            await userManager.GetRolesAsync(user),
+            StringComparer.OrdinalIgnoreCase);
+
+        if (roles.Add(SecurityPolicies.UserRole))
+        {
+            await AddRoleOrThrowAsync(user, SecurityPolicies.UserRole);
+        }
+
+        if (IsConfiguredAdminEmail(user) &&
+            roles.Add(SecurityPolicies.AdminRole))
+        {
+            await AddRoleOrThrowAsync(user, SecurityPolicies.AdminRole);
+        }
+
+        return OrderKnownRoles(roles);
+    }
+
+    private async Task AddRoleOrThrowAsync(ApplicationUser user, string role)
+    {
+        var result = await userManager.AddToRoleAsync(user, role);
+        if (result.Succeeded)
+        {
+            return;
+        }
+
+        var errors = string.Join("; ", result.Errors.Select(x => x.Description));
+        throw new InvalidOperationException(
+            $"Unable to assign role '{role}' to user '{user.Id}': {errors}");
+    }
+
+    private bool IsConfiguredAdminEmail(ApplicationUser user)
+    {
+        if (string.IsNullOrWhiteSpace(user.Email))
+        {
+            return false;
+        }
+
+        var emails = configuration
+            .GetSection("Authentication:AdminEmails")
+            .Get<string[]>() ?? [];
+
+        return emails.Any(email =>
+            string.Equals(
+                email.Trim(),
+                user.Email,
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string[] OrderKnownRoles(IEnumerable<string> roles)
+    {
+        return roles
+            .Select(NormalizeKnownRole)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(role => role == SecurityPolicies.UserRole ? 0 : role == SecurityPolicies.AdminRole ? 1 : 2)
+            .ThenBy(role => role, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static string NormalizeKnownRole(string role)
+    {
+        if (string.Equals(role, SecurityPolicies.AdminRole, StringComparison.OrdinalIgnoreCase))
+        {
+            return SecurityPolicies.AdminRole;
+        }
+
+        if (string.Equals(role, SecurityPolicies.UserRole, StringComparison.OrdinalIgnoreCase))
+        {
+            return SecurityPolicies.UserRole;
+        }
+
+        return role;
     }
 
     private AuthResponse CreateTokenResponse(IEnumerable<Claim> claims)

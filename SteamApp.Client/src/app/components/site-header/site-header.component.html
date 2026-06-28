@@ -22,6 +22,9 @@
       <a routerLink="/watch-list" routerLinkActive="active">Custom Watch List</a>
       <a routerLink="/feedback" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Feedback</a>
       <a routerLink="/feedback/send" routerLinkActive="active">Send Feedback</a>
+      @if (currentUser?.isAdmin) {
+        <a routerLink="/admin/users" routerLinkActive="active">Users</a>
+      }
     }
   </nav>
 

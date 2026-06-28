@@ -1,0 +1,80 @@
+<div class="admin-users-page">
+  <header class="admin-users-page__header">
+    <div>
+      <span>Admin</span>
+      <h2>Users</h2>
+    </div>
+
+    <button
+      type="button"
+      class="button button-small-secondary"
+      [disabled]="isLoading"
+      [class.busy-cursor]="isLoading"
+      (click)="loadUsers()">
+      {{ isLoading ? 'Loading...' : 'Refresh' }}
+    </button>
+  </header>
+
+  @if (statusMessage) {
+    <p class="admin-users-page__status admin-users-page__status--success">{{ statusMessage }}</p>
+  }
+
+  @if (errorMessage) {
+    <p class="admin-users-page__status admin-users-page__status--error">{{ errorMessage }}</p>
+  }
+
+  <div
+    class="admin-users-page__table-wrap"
+    [class.admin-users-page__table-wrap--loading]="isLoading"
+    [attr.aria-busy]="isLoading">
+    @if (isLoading) {
+      <div class="admin-users-page__loading" role="status" aria-live="polite">
+        Loading users...
+      </div>
+    }
+
+    <table class="admin-users-page__table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Username</th>
+          <th>Phone</th>
+          <th>Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (user of users; track trackByUserId($index, user)) {
+          <tr>
+            <td>
+              <strong>{{ user.displayName }}</strong>
+              @if (user.isCurrentUser) {
+                <span class="admin-users-page__current">Current</span>
+              }
+            </td>
+            <td>{{ user.email || '-' }}</td>
+            <td>{{ user.userName || '-' }}</td>
+            <td>{{ user.phone || '-' }}</td>
+            <td>
+              <select
+                [ngModel]="user.effectiveRole"
+                [disabled]="!canChangeRole(user) || isUpdating(user.id)"
+                [class.busy-cursor]="isUpdating(user.id)"
+                (ngModelChange)="roleChanged(user, $event)">
+                @for (role of roleOptions; track role) {
+                  <option [ngValue]="role">{{ role }}</option>
+                }
+              </select>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5" class="admin-users-page__empty">
+              No users found.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

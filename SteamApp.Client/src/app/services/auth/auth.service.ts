@@ -21,6 +21,8 @@ export interface CurrentUser {
   phone: string | null;
   clientId: string | null;
   scope: string | null;
+  roles: string[];
+  isAdmin: boolean;
 }
 
 export interface UserProfile {
@@ -269,6 +271,12 @@ export class AuthService implements OnDestroy {
     );
     const clientId = this.readStringClaim(payload, 'client_id');
     const scope = this.readStringClaim(payload, 'scope');
+    const roles = this.readStringArrayClaim(
+      payload,
+      'role',
+      'roles',
+      'http://schemas.microsoft.com/ws/2008/06/identity/claims/role',
+    );
 
     return {
       id,
@@ -286,10 +294,15 @@ export class AuthService implements OnDestroy {
       phone,
       clientId,
       scope,
+      roles,
+      isAdmin: this.hasRole(roles, 'Admin'),
     };
   }
 
   private publishCurrentUserFromProfile(profile: UserProfile): void {
+    const currentUser = this.currentUserSubject.value;
+    const roles = currentUser?.roles ?? [];
+
     this.currentUserSubject.next({
       id: profile.id,
       displayName: profile.displayName
@@ -304,7 +317,9 @@ export class AuthService implements OnDestroy {
       email: profile.email,
       phone: profile.phone,
       clientId: null,
-      scope: this.currentUserSubject.value?.scope ?? 'user',
+      scope: currentUser?.scope ?? 'user',
+      roles,
+      isAdmin: this.hasRole(roles, 'Admin'),
     });
   }
 
@@ -330,6 +345,39 @@ export class AuthService implements OnDestroy {
     }
 
     return null;
+  }
+
+  private readStringArrayClaim(
+    payload: Record<string, unknown>,
+    ...claimNames: string[]
+  ): string[] {
+    const values: string[] = [];
+
+    for (const claimName of claimNames) {
+      const value = payload[claimName];
+
+      if (typeof value === 'string') {
+        values.push(value);
+        continue;
+      }
+
+      if (Array.isArray(value)) {
+        values.push(
+          ...value.filter((item): item is string => typeof item === 'string'),
+        );
+      }
+    }
+
+    return values
+      .map(value => value.trim())
+      .filter((value, index, all) =>
+        !!value &&
+        all.findIndex(item => item.toLowerCase() === value.toLowerCase()) === index,
+      );
+  }
+
+  private hasRole(roles: readonly string[], role: string): boolean {
+    return roles.some(value => value.toLowerCase() === role.toLowerCase());
   }
 
   private decodeBase64Url(value: string): string {

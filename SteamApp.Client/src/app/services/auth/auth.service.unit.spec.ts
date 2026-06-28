@@ -119,7 +119,25 @@ describe('AuthService unit tests', () => {
       phone: null,
       clientId: null,
       scope: 'steam.read',
+      roles: [],
+      isAdmin: false,
     });
+  });
+
+  it('parses single and multiple role claims from the current token', () => {
+    const token = createJwt({
+      sub: 'admin-1',
+      name: 'Admin User',
+      role: ['User', 'Admin'],
+      'http://schemas.microsoft.com/ws/2008/06/identity/claims/role': 'Auditor',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    service.login('admin@example.test', 'Password1').subscribe();
+    http.expectOne('https://localhost:7273/api/Auth/login').flush({ token });
+
+    expect(service.getCurrentUser()?.roles).toEqual(['User', 'Admin', 'Auditor']);
+    expect(service.getCurrentUser()?.isAdmin).toBeTrue();
   });
 
   it('stores the registration token and uses username claims as the display name', () => {
@@ -182,6 +200,8 @@ describe('AuthService unit tests', () => {
       phone: '+3595550100',
       clientId: null,
       scope: 'user',
+      roles: [],
+      isAdmin: false,
     });
   });
 

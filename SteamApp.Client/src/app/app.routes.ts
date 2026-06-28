@@ -270,6 +270,16 @@ export const routes: Routes = [
         data: { seo: { title: 'Profile', canonicalPath: '/profile' } },
       },
       {
+        path: 'admin/users',
+        loadComponent: () =>
+          import('./pages/admin/users/admin-users-page').then((m) => m.AdminUsersPage),
+        title: 'Users',
+        data: {
+          roles: ['Admin'],
+          seo: { title: 'Users', canonicalPath: '/admin/users' },
+        },
+      },
+      {
         path: 'feedback',
         loadComponent: () =>
           import('./pages/feedback/feedback-requests-view/feedback-requests-view').then(

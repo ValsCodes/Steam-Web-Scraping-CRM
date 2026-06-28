@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using SteamApp.Application.Mapper;
 using SteamApp.Infrastructure.Context;
+using SteamApp.Infrastructure.Identity;
 using SteamApp.WebAPI.MinimalAPIs;
 using SteamApp.WebAPI.Security;
 
@@ -46,6 +48,10 @@ public sealed class MinimalApiTestApp : IAsyncDisposable
             opts.UseInMemoryDatabase(databaseName));
         builder.Services.AddAutoMapper(_ => { }, typeof(BaseProfile));
         builder.Services
+            .AddIdentityCore<ApplicationUser>()
+            .AddRoles<IdentityRole>()
+            .AddEntityFrameworkStores<ApplicationDbContext>();
+        builder.Services
             .AddAuthentication(FakeAuthenticationHandler.SchemeName)
             .AddScheme<AuthenticationSchemeOptions, FakeAuthenticationHandler>(
                 FakeAuthenticationHandler.SchemeName,
@@ -60,6 +66,13 @@ public sealed class MinimalApiTestApp : IAsyncDisposable
                     "scope",
                     SecurityPolicies.UserScope,
                     SecurityPolicies.InternalScope);
+            });
+
+            opts.AddPolicy(SecurityPolicies.AdminOnly, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireClaim("scope", SecurityPolicies.UserScope);
+                policy.RequireRole(SecurityPolicies.AdminRole);
             });
         });
 
@@ -103,6 +116,7 @@ public sealed class MinimalApiTestApp : IAsyncDisposable
         app.MapTagsEndpoints();
         app.MapProductTagsEndpoints();
         app.MapGameUrlPixelsEndpoints();
+        app.MapAdminUserEndpoints();
 
         await app.StartAsync();
 
@@ -128,6 +142,14 @@ public sealed class MinimalApiTestApp : IAsyncDisposable
     {
         var client = CreateClientWithoutAuth();
         client.DefaultRequestHeaders.Add(FakeAuthenticationHandler.ScopeHeader, scope);
+        return client;
+    }
+
+    public HttpClient CreateAdminClient(string userId = TestDb.TestUserId)
+    {
+        var client = CreateClientWithScope(SecurityPolicies.UserScope);
+        client.DefaultRequestHeaders.Add(FakeAuthenticationHandler.RoleHeader, SecurityPolicies.AdminRole);
+        client.DefaultRequestHeaders.Add(FakeAuthenticationHandler.UserIdHeader, userId);
         return client;
     }
 

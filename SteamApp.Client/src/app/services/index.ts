@@ -1,4 +1,5 @@
 export * from './auth/auth.service';
+export * from './admin-user/admin-user.service';
 export * from './product/product.service';
 export * from './game/game.service';
 export * from './game-url/game-url.service';

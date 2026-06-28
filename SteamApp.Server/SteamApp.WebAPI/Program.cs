@@ -140,6 +140,13 @@ public class Program
                     SecurityPolicies.InternalScope);
             });
 
+            opts.AddPolicy(SecurityPolicies.AdminOnly, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireClaim("scope", SecurityPolicies.UserScope);
+                policy.RequireRole(SecurityPolicies.AdminRole);
+            });
+
             opts.AddPolicy(SecurityPolicies.InternalJob, policy =>
             {
                 policy.RequireAuthenticatedUser();
@@ -277,6 +284,7 @@ public class Program
         builder.Services.AddSingleton<IEncryptionHashingService, EncryptionHashingService>();
         builder.Services.AddScoped<IEmailService, EmailService>();
         builder.Services.AddScoped<IdentitySchemaInitializer>();
+        builder.Services.AddScoped<IdentityRoleInitializer>();
         builder.Services.AddScoped<IScrapeHistoryDataService, ScrapeHistoryDataService>();
         builder.Services.AddScoped<IWishlistNotificationRecipientService, WishlistNotificationRecipientService>();
         builder.Services.AddScoped<ISteamRepository, SteamRepository>();
@@ -300,13 +308,20 @@ public class Program
 
         var app = builder.Build();
 
-        if (ShouldEnsureIdentitySchema(app.Configuration, app.Environment))
+        using (var scope = app.Services.CreateScope())
         {
-            using var scope = app.Services.CreateScope();
+            if (ShouldEnsureIdentitySchema(app.Configuration, app.Environment))
+            {
+                scope.ServiceProvider
+                    .GetRequiredService<IdentitySchemaInitializer>()
+                    .EnsureCreatedAsync()
+                    .GetAwaiter()
+                    .GetResult();
+            }
 
             scope.ServiceProvider
-                .GetRequiredService<IdentitySchemaInitializer>()
-                .EnsureCreatedAsync()
+                .GetRequiredService<IdentityRoleInitializer>()
+                .EnsureRolesAsync()
                 .GetAwaiter()
                 .GetResult();
         }
@@ -347,6 +362,7 @@ public class Program
         app.MapTagsEndpoints();
         app.MapProductTagsEndpoints();
         app.MapGameUrlPixelsEndpoints();
+        app.MapAdminUserEndpoints();
 
         app.Run();
     }

@@ -3,6 +3,7 @@ namespace SteamApp.WebAPI.Security;
 public static class SecurityPolicies
 {
     public const string ApiUser = "ApiUser";
+    public const string AdminOnly = "AdminOnly";
     public const string InternalJob = "InternalJob";
 
     public const string AuthRateLimit = "Auth";
@@ -11,4 +12,7 @@ public static class SecurityPolicies
 
     public const string UserScope = "user";
     public const string InternalScope = "internal";
+
+    public const string UserRole = "User";
+    public const string AdminRole = "Admin";
 }

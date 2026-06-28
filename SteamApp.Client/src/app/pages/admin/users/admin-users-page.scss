@@ -1,0 +1,121 @@
+.admin-users-page {
+  padding: 1rem;
+}
+
+.admin-users-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin-users-page__header span {
+  display: block;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.admin-users-page__header h2 {
+  margin: 0.15rem 0 0;
+  color: #475569;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.admin-users-page__status {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.admin-users-page__status--success {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.admin-users-page__status--error {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.admin-users-page__table-wrap {
+  position: relative;
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.admin-users-page__table-wrap--loading {
+  min-height: 10rem;
+}
+
+.admin-users-page__loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(255 255 255 / 82%);
+  color: #475569;
+  font-weight: 600;
+  z-index: 1;
+}
+
+.admin-users-page__table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.admin-users-page__table th,
+.admin-users-page__table td {
+  padding: 0.8rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.admin-users-page__table th {
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.admin-users-page__table td {
+  color: #334155;
+  font-size: 0.9rem;
+}
+
+.admin-users-page__table tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-users-page__table select {
+  min-width: 8rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.admin-users-page__current {
+  display: inline-flex;
+  margin-left: 0.45rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #075985;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.admin-users-page__empty {
+  text-align: center;
+}

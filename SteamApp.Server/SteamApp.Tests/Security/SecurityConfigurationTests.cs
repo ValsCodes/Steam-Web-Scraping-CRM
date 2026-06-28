@@ -328,11 +328,16 @@ public sealed class SecurityConfigurationTests
         {
             foreach (var endpoint in endpoints)
             {
+                var expectedPolicy = endpoint.RoutePattern.RawText?.StartsWith(
+                    "api/admin/",
+                    StringComparison.OrdinalIgnoreCase) == true
+                    ? SecurityPolicies.AdminOnly
+                    : SecurityPolicies.ApiUser;
                 var authorizeData = endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>();
                 Assert.That(
-                    authorizeData.Any(x => x.Policy == SecurityPolicies.ApiUser),
+                    authorizeData.Any(x => x.Policy == expectedPolicy),
                     Is.True,
-                    $"{endpoint.RoutePattern.RawText} should require {SecurityPolicies.ApiUser}.");
+                    $"{endpoint.RoutePattern.RawText} should require {expectedPolicy}.");
 
                 Assert.That(
                     endpoint.Metadata.Any(HasApiRateLimitPolicy),

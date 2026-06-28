@@ -73,6 +73,8 @@ describe('SiteHeaderComponent', () => {
       phone: null,
       clientId: null,
       scope: 'user',
+      roles: ['User'],
+      isAdmin: false,
     });
     fixture.detectChanges();
 
@@ -83,5 +85,30 @@ describe('SiteHeaderComponent', () => {
 
     expect(feedbackLink?.getAttribute('href')).toBe('/feedback');
     expect(sendFeedbackLink?.getAttribute('href')).toBe('/feedback/send');
+    expect(links.some((link) => link.textContent?.trim() === 'Users')).toBeFalse();
+  });
+
+  it('renders the admin users link only for admins', () => {
+    loggedInSubject.next(true);
+    currentUserSubject.next({
+      id: 'admin-1',
+      displayName: 'Admin User',
+      firstName: 'Admin',
+      lastName: 'User',
+      userName: 'admin-user',
+      email: 'admin@example.com',
+      phone: null,
+      clientId: null,
+      scope: 'user',
+      roles: ['User', 'Admin'],
+      isAdmin: true,
+    });
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const links = Array.from(element.querySelectorAll<HTMLAnchorElement>('.site-header__nav > a'));
+    const usersLink = links.find((link) => link.textContent?.trim() === 'Users');
+
+    expect(usersLink?.getAttribute('href')).toBe('/admin/users');
   });
 });

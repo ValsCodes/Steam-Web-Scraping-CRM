@@ -14,6 +14,8 @@ public sealed class FakeAuthenticationHandler(
 {
     public const string SchemeName = "Test";
     public const string ScopeHeader = "X-Test-Scope";
+    public const string RoleHeader = "X-Test-Roles";
+    public const string UserIdHeader = "X-Test-UserId";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -22,15 +24,26 @@ public sealed class FakeAuthenticationHandler(
             return Task.FromResult(AuthenticateResult.NoResult());
         }
 
+        var userId = Request.Headers.TryGetValue(UserIdHeader, out var userIds)
+            ? userIds.FirstOrDefault() ?? "test-user"
+            : "test-user";
+
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, "test-user"),
+            new(ClaimTypes.NameIdentifier, userId),
             new(ClaimTypes.Name, "Test User")
         };
 
         claims.AddRange(scopes
             .SelectMany(value => value?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [])
             .Select(scope => new Claim("scope", scope)));
+
+        if (Request.Headers.TryGetValue(RoleHeader, out var roles))
+        {
+            claims.AddRange(roles
+                .SelectMany(value => value?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [])
+                .Select(role => new Claim(ClaimTypes.Role, role)));
+        }
 
         var identity = new ClaimsIdentity(claims, SchemeName);
         var principal = new ClaimsPrincipal(identity);
