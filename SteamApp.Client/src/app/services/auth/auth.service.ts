@@ -1,5 +1,5 @@
 // auth.service.ts
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -51,9 +51,9 @@ export interface DeleteUserRequest {
 }
 
 @Injectable({ providedIn: 'root' })
-export class AuthService {
+export class AuthService implements OnDestroy {
   private readonly tokenKey = 'access_token';
-  private accessToken: string | null = null;
+  private accessToken: string | null = this.readPersistedToken();
   private readonly endpoint = `${g.localHost.replace(/\/$/, '')}/api/Auth/`;
 
   private readonly loggedInSubject =
@@ -65,7 +65,15 @@ export class AuthService {
   readonly currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(private http: HttpClient) {
-    this.clearPersistedToken();
+    if (!this.hasValidToken()) {
+      this.clearSessionToken();
+    }
+
+    window.addEventListener('storage', this.handleStorageEvent);
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('storage', this.handleStorageEvent);
   }
 
   login(emailOrUserName: string, password: string) {
@@ -166,9 +174,25 @@ export class AuthService {
 
   private storeSession(token: string): void {
     this.accessToken = token;
-    this.clearPersistedToken();
+    this.persistToken(token);
     this.setSessionState(true);
   }
+
+  private readonly handleStorageEvent = (event: StorageEvent): void => {
+    if (event.key !== this.tokenKey && event.key !== null) {
+      return;
+    }
+
+    this.accessToken = event.newValue;
+
+    if (this.hasValidToken()) {
+      this.setSessionState(true);
+      return;
+    }
+
+    this.accessToken = null;
+    this.setSessionState(false);
+  };
 
   private setSessionState(isLoggedIn: boolean): void {
     if (this.loggedInSubject.value !== isLoggedIn) {
@@ -322,8 +346,29 @@ export class AuthService {
     this.clearPersistedToken();
   }
 
+  private persistToken(token: string): void {
+    try {
+      localStorage.setItem(this.tokenKey, token);
+      sessionStorage.removeItem(this.tokenKey);
+    } catch {
+      // If browser storage is unavailable, keep the current tab session in memory.
+    }
+  }
+
+  private readPersistedToken(): string | null {
+    try {
+      return localStorage.getItem(this.tokenKey);
+    } catch {
+      return null;
+    }
+  }
+
   private clearPersistedToken(): void {
-    localStorage.removeItem(this.tokenKey);
-    sessionStorage.removeItem(this.tokenKey);
+    try {
+      localStorage.removeItem(this.tokenKey);
+      sessionStorage.removeItem(this.tokenKey);
+    } catch {
+      // Storage may be unavailable in restricted browser contexts.
+    }
   }
 }

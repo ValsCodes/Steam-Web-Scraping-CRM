@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
@@ -26,14 +26,63 @@ describe('AuthService unit tests', () => {
 
   afterEach(() => {
     http.verify();
+    service.ngOnDestroy();
     localStorage.clear();
     sessionStorage.clear();
   });
 
-  it('clears persisted tokens when the service is created', () => {
+  it('clears invalid persisted tokens when the service is created', () => {
     expect(localStorage.getItem('access_token')).toBeNull();
     expect(sessionStorage.getItem('access_token')).toBeNull();
     expect(service.hasToken()).toBeFalse();
+  });
+
+  it('hydrates a valid persisted token for new tabs', () => {
+    const token = createJwt({
+      sub: 'user-1',
+      name: 'Val',
+      email: 'val@example.test',
+      scope: 'user',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    localStorage.setItem('access_token', token);
+
+    const hydratedService = new AuthService(TestBed.inject(HttpClient));
+
+    expect(hydratedService.getToken()).toBe(token);
+    expect(hydratedService.isLoggedIn()).toBeTrue();
+    expect(hydratedService.getCurrentUser()?.displayName).toBe('Val');
+
+    hydratedService.ngOnDestroy();
+  });
+
+  it('syncs login and logout changes from other tabs', () => {
+    const token = createJwt({
+      sub: 'user-2',
+      name: 'Other Tab User',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'access_token',
+      newValue: token,
+      storageArea: localStorage,
+    }));
+
+    expect(service.getToken()).toBe(token);
+    expect(service.isLoggedIn()).toBeTrue();
+    expect(service.getCurrentUser()?.displayName).toBe('Other Tab User');
+
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'access_token',
+      newValue: null,
+      storageArea: localStorage,
+    }));
+
+    expect(service.getToken()).toBeNull();
+    expect(service.isLoggedIn()).toBeFalse();
+    expect(service.getCurrentUser()).toBeNull();
   });
 
   it('stores the login token in memory and exposes the current user claims', () => {
@@ -57,6 +106,8 @@ describe('AuthService unit tests', () => {
     request.flush({ token });
 
     expect(service.getToken()).toBe(token);
+    expect(localStorage.getItem('access_token')).toBe(token);
+    expect(sessionStorage.getItem('access_token')).toBeNull();
     expect(service.isLoggedIn()).toBeTrue();
     expect(service.getCurrentUser()).toEqual({
       id: 'user-1',
@@ -224,6 +275,7 @@ describe('AuthService unit tests', () => {
     service.logout();
 
     expect(service.getToken()).toBeNull();
+    expect(localStorage.getItem('access_token')).toBeNull();
     expect(service.isLoggedIn()).toBeFalse();
     expect(service.getCurrentUser()).toBeNull();
   });
