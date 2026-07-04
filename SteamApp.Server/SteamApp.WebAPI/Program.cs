@@ -18,6 +18,7 @@ using SteamApp.Interfaces.Repositories;
 using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI.Jobs;
 using SteamApp.WebAPI.Jobs.Base;
+using SteamApp.WebAPI.MessageBrokers;
 using SteamApp.WebAPI.MinimalAPIs;
 using SteamApp.WebAPI.Security;
 using SteamApp.WebAPI.Services;
@@ -275,10 +276,11 @@ public class Program
                 ? builder.Configuration.GetSection("Mailtrap")
                 : builder.Configuration.GetSection("Mailstrap"));
 
-        builder.Services.Configure<TransientRetryPolicyOptions>(
-            builder.Configuration.GetSection(TransientRetryPolicyOptions.SectionName));
-        builder.Services.Configure<EncryptionHashingOptions>(
-            builder.Configuration.GetSection(EncryptionHashingOptions.SectionName));
+        builder.Services.Configure<TransientRetryPolicyOptions>(builder.Configuration.GetSection(TransientRetryPolicyOptions.SectionName));
+
+        builder.Services.Configure<EncryptionHashingOptions>(builder.Configuration.GetSection(EncryptionHashingOptions.SectionName));
+
+        builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMq"));
 
         builder.Services.AddSingleton<ITransientRetryPolicyService, TransientRetryPolicyService>();
         builder.Services.AddSingleton<IEncryptionHashingService, EncryptionHashingService>();
@@ -292,12 +294,16 @@ public class Program
         builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
         builder.Services.AddScoped<IWishlistService, WishlistService>();
 
+        builder.Services.AddSingleton<RabbitMqConnection>();
+        builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
+        builder.Services.AddHostedService<RabbitMqConsumer>();
+
         builder.Services.AddMemoryCache();
 
         // Wishlist Job
         builder.Services.AddScoped<WishlistCheckJob>();
         builder.Services.AddHostedService<BackgroundWorkerService<WishlistCheckJob>>();
-        builder.Services.Configure<WorkerOptions>(nameof(WishlistCheckJob),builder.Configuration.GetSection("Workers:WishlistCheck"));
+        builder.Services.Configure<WorkerOptions>(nameof(WishlistCheckJob), builder.Configuration.GetSection("Workers:WishlistCheck"));
 
         builder.Services.Configure<HostOptions>(o =>
         {
@@ -363,6 +369,22 @@ public class Program
         app.MapProductTagsEndpoints();
         app.MapGameUrlPixelsEndpoints();
         app.MapAdminUserEndpoints();
+
+        app.MapPost("/messages", async (
+    PublishMessageRequest request,
+    IMessagePublisher publisher,
+    CancellationToken cancellationToken) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.Text))
+            {
+                return Results.BadRequest("Text is required.");
+            }
+
+            await publisher.PublishAsync(request, cancellationToken);
+
+            return Results.Accepted(value: request);
+        })
+            .AllowAnonymous(); ;
 
         app.Run();
     }
