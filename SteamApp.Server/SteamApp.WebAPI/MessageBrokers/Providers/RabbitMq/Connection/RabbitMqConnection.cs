@@ -1,7 +1,8 @@
-﻿using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
+using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options;
 
-namespace SteamApp.WebAPI.MessageBrokers;
+namespace SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Connection;
 
 public sealed class RabbitMqConnection(IOptions<RabbitMqOptions> options) : IAsyncDisposable
 {

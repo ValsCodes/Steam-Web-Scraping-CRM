@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using SteamApp.IntegrationTests.Support;
 using SteamApp.WebAPI.Jobs;
+using SteamApp.WebAPI.MessageBrokers.Handlers.Wishlist;
+using SteamApp.WebAPI.MessageBrokers.Messages.Wishlist;
 
 namespace SteamApp.E2ETests.Services;
 
@@ -15,11 +17,19 @@ public sealed class WishlistServiceE2ETests
 
         using var firstScope = factory.Services.CreateScope();
         var firstJob = firstScope.ServiceProvider.GetRequiredService<WishlistCheckJob>();
-        using var firstCancellation = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        await firstJob.RunAsync(CancellationToken.None);
 
-        Assert.ThrowsAsync(
-            Is.InstanceOf<OperationCanceledException>(),
-            async () => await firstJob.RunAsync(firstCancellation.Token));
+        var checkMessage = factory.MessagePublisher
+            .GetMessages<WishlistCheckRequested>()
+            .Single();
+        var checkHandler = firstScope.ServiceProvider.GetRequiredService<WishlistCheckMessageHandler>();
+        await checkHandler.HandleAsync(checkMessage, CancellationToken.None);
+
+        var notificationMessage = factory.MessagePublisher
+            .GetMessages<WishlistNotificationRequested>()
+            .Single();
+        var notificationHandler = firstScope.ServiceProvider.GetRequiredService<WishlistNotificationMessageHandler>();
+        await notificationHandler.HandleAsync(notificationMessage, CancellationToken.None);
 
         using var secondScope = factory.Services.CreateScope();
         var secondJob = secondScope.ServiceProvider.GetRequiredService<WishlistCheckJob>();
@@ -32,6 +42,7 @@ public sealed class WishlistServiceE2ETests
             Assert.That(factory.EmailService.Messages.Single().To, Is.EqualTo(IntegrationSeed.UserEmail));
             Assert.That(factory.EmailService.Messages.Single().Subject, Does.Contain("Active Game"));
             Assert.That(factory.WishlistService.CheckCalls, Is.EqualTo(1));
+            Assert.That(factory.MessagePublisher.GetMessages<WishlistCheckRequested>(), Has.Count.EqualTo(1));
         });
     }
 }

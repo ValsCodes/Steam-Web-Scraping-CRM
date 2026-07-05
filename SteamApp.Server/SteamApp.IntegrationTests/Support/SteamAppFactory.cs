@@ -16,6 +16,7 @@ using SteamApp.Application.Services;
 using SteamApp.Infrastructure.Context;
 using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI;
+using SteamApp.WebAPI.MessageBrokers.Abstractions;
 using SteamApp.WebAPI.Security;
 
 namespace SteamApp.IntegrationTests.Support;
@@ -35,6 +36,7 @@ public sealed class SteamAppFactory : WebApplicationFactory<Program>
         SteamService = new FakeSteamService();
         WishlistService = new FakeWishlistService();
         EmailService = new CapturingEmailService();
+        MessagePublisher = new CapturingMessagePublisher();
         connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
 
@@ -57,6 +59,7 @@ public sealed class SteamAppFactory : WebApplicationFactory<Program>
     public FakeSteamService SteamService { get; }
     public FakeWishlistService WishlistService { get; }
     public CapturingEmailService EmailService { get; }
+    public CapturingMessagePublisher MessagePublisher { get; }
 
     public HttpClient CreateAnonymousClient()
     {
@@ -85,6 +88,7 @@ public sealed class SteamAppFactory : WebApplicationFactory<Program>
         SteamService.Reset();
         WishlistService.Reset();
         EmailService.Clear();
+        MessagePublisher.Clear();
         return IntegrationSeed.SeedAsync(Services);
     }
 
@@ -113,6 +117,9 @@ public sealed class SteamAppFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<IEmailService>();
             services.AddSingleton<IEmailService>(EmailService);
+
+            services.RemoveAll<IMessagePublisher>();
+            services.AddSingleton<IMessagePublisher>(MessagePublisher);
         });
     }
 

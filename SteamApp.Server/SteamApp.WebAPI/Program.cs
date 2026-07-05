@@ -18,8 +18,8 @@ using SteamApp.Interfaces.Repositories;
 using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI.Jobs;
 using SteamApp.WebAPI.Jobs.Base;
-using SteamApp.WebAPI.MessageBrokers;
 using SteamApp.WebAPI.MinimalAPIs;
+using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.DependencyInjection;
 using SteamApp.WebAPI.Security;
 using SteamApp.WebAPI.Services;
 using System.Text;
@@ -280,8 +280,6 @@ public class Program
 
         builder.Services.Configure<EncryptionHashingOptions>(builder.Configuration.GetSection(EncryptionHashingOptions.SectionName));
 
-        builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMq"));
-
         builder.Services.AddSingleton<ITransientRetryPolicyService, TransientRetryPolicyService>();
         builder.Services.AddSingleton<IEncryptionHashingService, EncryptionHashingService>();
         builder.Services.AddScoped<IEmailService, EmailService>();
@@ -294,9 +292,7 @@ public class Program
         builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
         builder.Services.AddScoped<IWishlistService, WishlistService>();
 
-        builder.Services.AddSingleton<RabbitMqConnection>();
-        builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
-        builder.Services.AddHostedService<RabbitMqConsumer>();
+        builder.Services.AddRabbitMqMessageBroker(builder.Configuration);
 
         builder.Services.AddMemoryCache();
 
@@ -369,22 +365,6 @@ public class Program
         app.MapProductTagsEndpoints();
         app.MapGameUrlPixelsEndpoints();
         app.MapAdminUserEndpoints();
-
-        app.MapPost("/messages", async (
-    PublishMessageRequest request,
-    IMessagePublisher publisher,
-    CancellationToken cancellationToken) =>
-        {
-            if (string.IsNullOrWhiteSpace(request.Text))
-            {
-                return Results.BadRequest("Text is required.");
-            }
-
-            await publisher.PublishAsync(request, cancellationToken);
-
-            return Results.Accepted(value: request);
-        })
-            .AllowAnonymous(); ;
 
         app.Run();
     }

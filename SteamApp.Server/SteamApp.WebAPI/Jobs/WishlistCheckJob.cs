@@ -1,70 +1,75 @@
-﻿using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using SteamApp.Application.Caching;
-using SteamApp.Application.Services;
 using SteamApp.Interfaces;
-using SteamApp.Interfaces.Services;
+using SteamApp.WebAPI.MessageBrokers.Abstractions;
+using SteamApp.WebAPI.MessageBrokers.Messages.Wishlist;
+using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options;
 using SteamApp.WebAPI.Services;
 
 namespace SteamApp.WebAPI.Jobs;
 
 public class WishlistCheckJob(
-    ILogger<WishlistCheckJob> log, 
-    IEmailService emailService,
-    IMemoryCache cache, 
-    IWishlistService wishlistService,
+    ILogger<WishlistCheckJob> log,
+    IOptions<RabbitMqOptions> options,
+    IMemoryCache cache,
+    IMessagePublisher messagePublisher,
     IWishlistNotificationRecipientService recipientService) : IJobService
 {
+    private static readonly TimeSpan QueuedMarkerTtl = TimeSpan.FromMinutes(5);
+    private readonly RabbitMqOptions _options = options.Value;
+
     public async Task RunAsync(CancellationToken ct)
     {
         var recipients = await recipientService.GetActiveRecipientsAsync(ct);
-
-        await Task.Delay(400, ct);
 
         foreach (var recipient in recipients)
         {
             try
             {
-                var cacheKey = string.Format(CacheKeys.WishListBackgroundJob, recipient.WishlistId);
+                var notificationCacheKey = string.Format(
+                    CacheKeys.WishListBackgroundJob,
+                    recipient.WishlistId);
+                var queuedCacheKey = string.Format(
+                    CacheKeys.WishListBackgroundJobQueued,
+                    recipient.WishlistId);
 
-                if (cache.TryGetValue(cacheKey, out var cached))
+                if (cache.TryGetValue(notificationCacheKey, out _) ||
+                    cache.TryGetValue(queuedCacheKey, out _))
                 {
                     continue;
                 }
 
-                var result = await wishlistService.CheckWishlistItem(recipient.WishlistId);
+                var message = new WishlistCheckRequested(
+                    recipient.WishlistId,
+                    recipient.WishlistName,
+                    recipient.Email,
+                    DateTime.UtcNow,
+                    Guid.NewGuid().ToString("N"));
 
-                if (result != null && result.IsPriceReached)
-                {
-                    cache.Set(cacheKey, result, TimeSpan.FromHours(12));
+                await messagePublisher.PublishAsync(
+                    _options.WishlistCheckQueueName,
+                    message,
+                    ct);
 
-                    await emailService.SendAsync(new EmailMessage(
-                        To: recipient.Email,
-                        Subject: $"Wishlist item {result.GameName} Price has been reached!",
-                        Body: $"{result.GameName} is currently at {result.CurrentPrice} EUR"), ct);
-
-                    log.LogInformation(
-                        "WishlistCheckJob tick at {Timestamp}: wishlist item {WishlistId} has reached a price point. Email sent to {Email}.",
-                        DateTime.UtcNow,
-                        recipient.WishlistId,
-                        recipient.Email);
-                }
+                cache.Set(queuedCacheKey, true, QueuedMarkerTtl);
 
                 log.LogInformation(
-                    "WishlistCheckJob tick at {Timestamp}: wishlist item {WishlistName}",
-                    DateTime.UtcNow,
-                    recipient.WishlistName);
+                    "WishlistCheckJob queued wishlist item {WishlistId} for {Email}.",
+                    recipient.WishlistId,
+                    recipient.Email);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
                 log.LogError(
                     ex,
-                    "WishlistCheckJob had tick at {Timestamp}: there was an error for wishlist item {WishlistId}.",
-                    DateTime.UtcNow,
+                    "WishlistCheckJob failed to queue wishlist item {WishlistId}.",
                     recipient.WishlistId);
             }
-
-            // Wait 15 secs between each item check to avoid hitting API limits and to be more polite to the API server.
-            await Task.Delay(15000, ct);
         }
     }
 }

@@ -1,25 +1,29 @@
-﻿using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
+using SteamApp.WebAPI.MessageBrokers.Abstractions;
+using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Connection;
 
-namespace SteamApp.WebAPI.MessageBrokers;
+namespace SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Publishing;
 
 public sealed class RabbitMqPublisher(
-RabbitMqConnection rabbitMqConnection,
-    IOptions<RabbitMqOptions> options) : IMessagePublisher
+    RabbitMqConnection rabbitMqConnection) : IMessagePublisher
 {
-    private readonly RabbitMqOptions _options = options.Value;
-
-    public async Task PublishAsync(
-        PublishMessageRequest message,
+    public async Task PublishAsync<TMessage>(
+        string queueName,
+        TMessage message,
         CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(queueName))
+        {
+            throw new ArgumentException("Queue name is required.", nameof(queueName));
+        }
+
         IConnection connection = await rabbitMqConnection.GetConnectionAsync(cancellationToken);
 
         await using IChannel channel = await connection.CreateChannelAsync(
             cancellationToken: cancellationToken);
 
         await channel.QueueDeclareAsync(
-            queue: _options.QueueName,
+            queue: queueName,
             durable: true,
             exclusive: false,
             autoDelete: false,
@@ -37,7 +41,7 @@ RabbitMqConnection rabbitMqConnection,
 
         await channel.BasicPublishAsync(
             exchange: string.Empty,
-            routingKey: _options.QueueName,
+            routingKey: queueName,
             mandatory: true,
             basicProperties: properties,
             body: body,

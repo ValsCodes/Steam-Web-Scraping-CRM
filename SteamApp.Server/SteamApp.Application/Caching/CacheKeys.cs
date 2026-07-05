@@ -25,5 +25,7 @@
 
         // Background Job
         public const string WishListBackgroundJob = "v1:background-job-check-wishlist:{0}";
+
+        public const string WishListBackgroundJobQueued = "v1:background-job-check-wishlist-queued:{0}";
     }
 }
