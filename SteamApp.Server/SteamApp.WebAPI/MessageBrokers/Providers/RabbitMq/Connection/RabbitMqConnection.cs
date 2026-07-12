@@ -52,6 +52,7 @@ public sealed class RabbitMqConnection(IOptions<RabbitMqOptions> options) : IAsy
     {
         if (_connection is not null)
         {
+            
             await _connection.DisposeAsync();
         }
 

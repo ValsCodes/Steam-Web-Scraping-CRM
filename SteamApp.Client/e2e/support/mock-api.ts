@@ -41,7 +41,7 @@ export async function mockSteamApi(page: Page): Promise<MockApiState> {
     ],
   };
 
-  await page.route('https://localhost:7273/**', async (route) => {
+  await page.route('https://localhost:7443/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     const method = request.method();

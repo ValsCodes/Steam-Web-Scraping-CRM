@@ -3,14 +3,17 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.ScrapeHistory;
-using SteamApp.Application.DTOs.WatchItem;
 using SteamApp.Application.Services;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
 using SteamApp.Interfaces.Services;
+using SteamApp.WebAPI.MessageBrokers.Abstractions;
+using SteamApp.WebAPI.MessageBrokers.Messages.Scraping;
+using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options;
 using SteamApp.WebAPI.Security;
 using SteamApp.WebAPI.Services;
 
@@ -21,20 +24,16 @@ namespace SteamApp.WebAPI.Controllers;
 [Authorize(Policy = SecurityPolicies.ApiUser)]
 [EnableRateLimiting(SecurityPolicies.ExpensiveApiRateLimit)]
 public class SteamController(
-    ISteamService steamService,
     IWishlistService wishlistService,
     ILogger<SteamController> logger,
     IDbContextFactory<ApplicationDbContext> dbContextFactory,
     IScrapeHistoryDataService scrapeHistoryData,
+    IScrapeExecutionService scrapeExecution,
+    IMessagePublisher messagePublisher,
+    IOptions<RabbitMqOptions> rabbitMqOptions,
     IMemoryCache cache) : ControllerBase
 {
-    private const string ScrapePageEndpoint = "scrape-page";
-    private const string ScrapePublicApiEndpoint = "scrape-public-api";
-    private const string ScrapePixelsEndpoint = "scrape-pixels";
-
-    private const string WebScrapeType = "Web Scrape";
-    private const string PublicApiScrapeType = "Public API Scrape";
-    private const string PixelScrapeType = "Pixel Scrape";
+    private readonly RabbitMqOptions rabbitMq = rabbitMqOptions.Value;
 
     [HttpGet("scrape-page/gameUrl/{gamerUrlId}/page/{page}")]
     public Task<IActionResult> ScrapePageAsync(long gamerUrlId, short page)
@@ -42,11 +41,8 @@ public class SteamController(
         return RunScrapeEndpointAsync(
             gamerUrlId,
             page,
-            ScrapePageEndpoint,
-            WebScrapeType,
-            CacheKeys.ScrapePage,
-            () => steamService.ScrapePage(gamerUrlId, page),
-            MapUnexpectedError,
+            ScrapeEndpointDefinitions.ScrapePageEndpoint,
+            ScrapeEndpointDefinitions.WebScrapeType,
             validatePage: true);
     }
 
@@ -56,11 +52,8 @@ public class SteamController(
         return RunScrapeEndpointAsync(
             gameUrlId,
             page,
-            ScrapePublicApiEndpoint,
-            PublicApiScrapeType,
-            CacheKeys.ScrapePublic,
-            () => steamService.ScrapeFromPublicApi(gameUrlId, page),
-            MapUnexpectedError);
+            ScrapeEndpointDefinitions.ScrapePublicApiEndpoint,
+            ScrapeEndpointDefinitions.PublicApiScrapeType);
     }
 
     [HttpGet("scrape-pixels/gameUrl/{gameUrlId}/page/{page}")]
@@ -69,11 +62,53 @@ public class SteamController(
         return RunScrapeEndpointAsync(
             gameUrlId,
             page,
-            ScrapePixelsEndpoint,
-            PixelScrapeType,
-            CacheKeys.ScrapePixels,
-            () => steamService.ScrapeWithPixels(gameUrlId, page),
-            MapPixelScrapeError);
+            ScrapeEndpointDefinitions.ScrapePixelsEndpoint,
+            ScrapeEndpointDefinitions.PixelScrapeType);
+    }
+
+    [HttpPost("scrape-jobs/scrape-page/gameUrl/{gameUrlId}/page/{page}")]
+    public Task<IActionResult> QueueScrapePageAsync(
+        long gameUrlId,
+        short page,
+        CancellationToken cancellationToken = default)
+    {
+        return QueueScrapeEndpointAsync(
+            gameUrlId,
+            page,
+            ScrapeEndpointDefinitions.ScrapePageEndpoint,
+            ScrapeEndpointDefinitions.WebScrapeType,
+            validatePage: true,
+            cancellationToken: cancellationToken);
+    }
+
+    [HttpPost("scrape-jobs/scrape-public-api/gameUrl/{gameUrlId}/page/{page}")]
+    public Task<IActionResult> QueueScrapeFromPublicApiAsync(
+        long gameUrlId,
+        short page,
+        CancellationToken cancellationToken = default)
+    {
+        return QueueScrapeEndpointAsync(
+            gameUrlId,
+            page,
+            ScrapeEndpointDefinitions.ScrapePublicApiEndpoint,
+            ScrapeEndpointDefinitions.PublicApiScrapeType,
+            validatePage: false,
+            cancellationToken: cancellationToken);
+    }
+
+    [HttpPost("scrape-jobs/scrape-pixels/gameUrl/{gameUrlId}/page/{page}")]
+    public Task<IActionResult> QueueScrapeForPixelsAsync(
+        long gameUrlId,
+        short page,
+        CancellationToken cancellationToken = default)
+    {
+        return QueueScrapeEndpointAsync(
+            gameUrlId,
+            page,
+            ScrapeEndpointDefinitions.ScrapePixelsEndpoint,
+            ScrapeEndpointDefinitions.PixelScrapeType,
+            validatePage: false,
+            cancellationToken: cancellationToken);
     }
 
     [HttpGet("scrape-history")]
@@ -147,7 +182,7 @@ public class SteamController(
                 original.Page);
 
             cache.Set(
-                GetCacheKey(original.Endpoint, original.GameUrlId, original.Page),
+                ScrapeEndpointDefinitions.GetCacheKey(original.Endpoint, original.GameUrlId, original.Page),
                 result,
                 TimeSpan.FromMinutes(5));
 
@@ -169,9 +204,7 @@ public class SteamController(
         }
         catch (Exception ex)
         {
-            var mapped = original.Endpoint == ScrapePixelsEndpoint
-                ? MapPixelScrapeError(ex)
-                : MapUnexpectedError(ex);
+            var mapped = ScrapeEndpointDefinitions.MapError(original.Endpoint, ex);
 
             LogScrapeException(ex, mapped);
 
@@ -192,6 +225,46 @@ public class SteamController(
                 ErrorText = mapped.Message
             });
         }
+    }
+
+    [HttpPost("scrape-history/{id:long}/rerun-async")]
+    public async Task<IActionResult> RerunScrapeHistoryAsyncQueued(
+        long id,
+        CancellationToken cancellationToken = default)
+    {
+        if (!rabbitMq.Enabled)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "RabbitMQ is not enabled.");
+        }
+
+        var userId = User.GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var original = await scrapeHistoryData.GetRerunSourceAsync(id, userId, cancellationToken);
+        if (original is null)
+        {
+            return NotFound();
+        }
+
+        var gameUrl = await scrapeHistoryData.GetOwnedGameUrlSnapshotAsync(
+            original.GameUrlId,
+            userId,
+            cancellationToken);
+        if (gameUrl is null)
+        {
+            return NotFound("Original Game URL no longer exists.");
+        }
+
+        return await QueueScrapeForGameUrlAsync(
+            userId,
+            gameUrl,
+            original.Page,
+            original.Endpoint,
+            original.ScrapeType,
+            cancellationToken);
     }
 
     [HttpGet("check-wishlist/{wishlistId}")]
@@ -297,9 +370,6 @@ public class SteamController(
         short page,
         string endpoint,
         string scrapeType,
-        string cacheKeyFormat,
-        Func<Task<IEnumerable<WatchItemDto>>> scrape,
-        Func<Exception, ScrapeErrorResult> mapError,
         bool validatePage = false)
     {
         using (logger.BeginScope("{Controller}.{Endpoint}", nameof(SteamController), endpoint))
@@ -328,7 +398,7 @@ public class SteamController(
                     return NotFound();
                 }
 
-                var cacheKey = string.Format(cacheKeyFormat, gameUrlId, page);
+                var cacheKey = ScrapeEndpointDefinitions.GetCacheKey(endpoint, gameUrlId, page);
 
                 if (cache.TryGetValue(cacheKey, out object? cached))
                 {
@@ -336,7 +406,7 @@ public class SteamController(
                     return Ok(cached);
                 }
 
-                var result = MaterializeResultsIfNeeded(await scrape());
+                var result = await scrapeExecution.ExecuteAsync(endpoint, gameUrlId, page);
 
                 cache.Set(cacheKey, result, TimeSpan.FromMinutes(5));
                 await TryAddScrapeHistoryAsync(userId, gameUrl, page, endpoint, scrapeType, result, errorText: null);
@@ -345,7 +415,7 @@ public class SteamController(
             }
             catch (Exception ex)
             {
-                var mapped = mapError(ex);
+                var mapped = ScrapeEndpointDefinitions.MapError(endpoint, ex);
                 LogScrapeException(ex, mapped);
 
                 if (userId is not null && gameUrl is not null)
@@ -365,20 +435,125 @@ public class SteamController(
         }
     }
 
-    private async Task<IEnumerable<WatchItemDto>> ExecuteScrapeServiceAsync(
+    private async Task<IActionResult> QueueScrapeEndpointAsync(
+        long gameUrlId,
+        short page,
+        string endpoint,
+        string scrapeType,
+        bool validatePage,
+        CancellationToken cancellationToken)
+    {
+        if (!rabbitMq.Enabled)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "RabbitMQ is not enabled.");
+        }
+
+        if (validatePage && page < 0)
+        {
+            return BadRequest("Invalid page.");
+        }
+
+        var userId = User.GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var gameUrl = await scrapeHistoryData.GetOwnedGameUrlSnapshotAsync(
+            gameUrlId,
+            userId,
+            cancellationToken);
+        if (gameUrl is null)
+        {
+            return NotFound();
+        }
+
+        return await QueueScrapeForGameUrlAsync(
+            userId,
+            gameUrl,
+            page,
+            endpoint,
+            scrapeType,
+            cancellationToken);
+    }
+
+    private async Task<IActionResult> QueueScrapeForGameUrlAsync(
+        string userId,
+        OwnedGameUrlSnapshot gameUrl,
+        short page,
+        string endpoint,
+        string scrapeType,
+        CancellationToken cancellationToken)
+    {
+        var correlationId = Guid.NewGuid().ToString("N");
+        var history = await scrapeHistoryData.CreateQueuedHistoryAsync(
+            userId,
+            gameUrl,
+            page,
+            endpoint,
+            scrapeType,
+            correlationId,
+            cancellationToken);
+
+        try
+        {
+            await messagePublisher.PublishAsync(
+                rabbitMq.ScrapeRequestQueueName,
+                new ScrapeRequested(
+                    history.Id,
+                    userId,
+                    gameUrl.GameUrlId,
+                    page,
+                    endpoint,
+                    scrapeType,
+                    history.Date,
+                    correlationId),
+                cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(
+                exception,
+                "Failed to publish scrape job {CorrelationId} for history row {HistoryId}.",
+                correlationId,
+                history.Id);
+
+            await scrapeHistoryData.MarkFailedAsync(
+                history.Id,
+                "Failed to queue scrape job.",
+                cancellationToken);
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                "Failed to queue scrape job.");
+        }
+
+        return BuildAcceptedScrapeJobResult(history, gameUrl.GameUrlName);
+    }
+
+    private IActionResult BuildAcceptedScrapeJobResult(
+        AutomatedScrapeHistory history,
+        string? gameUrlName)
+    {
+        var fallbackLocation = $"/steam/scrape-history/{history.Id}";
+        var location = Url?.Action(nameof(GetScrapeHistoryDetailAsync), new { id = history.Id })
+                       ?? fallbackLocation;
+
+        return Accepted(location, new ScrapeJobAcceptedDto
+        {
+            HistoryId = history.Id,
+            History = ToSummaryDto(history, gameUrlName),
+            Status = history.Status,
+            CorrelationId = history.CorrelationId ?? string.Empty
+        });
+    }
+
+    private async Task<IReadOnlyList<SteamApp.Application.DTOs.WatchItem.WatchItemDto>> ExecuteScrapeServiceAsync(
         string endpoint,
         long gameUrlId,
         short page)
     {
-        var results = endpoint switch
-        {
-            ScrapePageEndpoint => await steamService.ScrapePage(gameUrlId, page),
-            ScrapePublicApiEndpoint => await steamService.ScrapeFromPublicApi(gameUrlId, page),
-            ScrapePixelsEndpoint => await steamService.ScrapeWithPixels(gameUrlId, page),
-            _ => throw new InvalidOperationException("Unsupported scrape history endpoint.")
-        };
-
-        return MaterializeResultsIfNeeded(results);
+        return await scrapeExecution.ExecuteAsync(endpoint, gameUrlId, page);
     }
 
     private async Task<AutomatedScrapeHistory?> TryAddScrapeHistoryAsync(
@@ -425,24 +600,6 @@ public class SteamController(
                    .AnyAsync(x => x.Id == wishlistId && x.UserId == userId);
     }
 
-    private static string GetCacheKey(string endpoint, long gameUrlId, short page)
-    {
-        return endpoint switch
-        {
-            ScrapePageEndpoint => string.Format(CacheKeys.ScrapePage, gameUrlId, page),
-            ScrapePublicApiEndpoint => string.Format(CacheKeys.ScrapePublic, gameUrlId, page),
-            ScrapePixelsEndpoint => string.Format(CacheKeys.ScrapePixels, gameUrlId, page),
-            _ => throw new InvalidOperationException("Unsupported scrape history endpoint.")
-        };
-    }
-
-    private static IEnumerable<WatchItemDto> MaterializeResultsIfNeeded(IEnumerable<WatchItemDto> results)
-    {
-        return results is ICollection<WatchItemDto> or IReadOnlyCollection<WatchItemDto>
-            ? results
-            : results.ToList();
-    }
-
     private static ScrapeHistorySummaryDto ToSummaryDto(AutomatedScrapeHistory history, string? gameUrlName)
     {
         return new ScrapeHistorySummaryDto
@@ -455,23 +612,12 @@ public class SteamController(
             Page = history.Page,
             ResultCount = history.ResultCount,
             Date = history.Date,
-            IsHaveError = history.IsHaveError
+            IsHaveError = history.IsHaveError,
+            Status = history.Status,
+            StartedAtUtc = history.StartedAtUtc,
+            CompletedAtUtc = history.CompletedAtUtc,
+            CorrelationId = history.CorrelationId
         };
-    }
-
-    private static ScrapeErrorResult MapPixelScrapeError(Exception ex)
-    {
-        return ex is JsonSerializationException
-            ? new ScrapeErrorResult(StatusCodes.Status400BadRequest, "Error: Invalid Listing", LogLevel.Warning)
-            : MapUnexpectedError(ex);
-    }
-
-    private static ScrapeErrorResult MapUnexpectedError(Exception ex)
-    {
-        return new ScrapeErrorResult(
-            StatusCodes.Status500InternalServerError,
-            ex.Message,
-            LogLevel.Error);
     }
 
     private void LogScrapeException(Exception ex, ScrapeErrorResult mapped)
@@ -485,8 +631,4 @@ public class SteamController(
         logger.LogError(ex, "Request failed.");
     }
 
-    private sealed record ScrapeErrorResult(
-        int StatusCode,
-        string Message,
-        LogLevel LogLevel);
 }

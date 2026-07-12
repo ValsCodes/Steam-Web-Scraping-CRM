@@ -1,3 +1,6 @@
+using Newtonsoft.Json.Converters;
+using SteamApp.Domain.Enums;
+
 namespace SteamApp.Application.DTOs.ScrapeHistory;
 
 public sealed class ScrapeHistorySummaryDto
@@ -11,4 +14,9 @@ public sealed class ScrapeHistorySummaryDto
     public int ResultCount { get; set; }
     public DateTime Date { get; set; }
     public bool IsHaveError { get; set; }
+    [Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
+    public ScrapeJobStatusEnum Status { get; set; } = ScrapeJobStatusEnum.Succeeded;
+    public DateTime? StartedAtUtc { get; set; }
+    public DateTime? CompletedAtUtc { get; set; }
+    public string? CorrelationId { get; set; }
 }

@@ -10,5 +10,6 @@ public sealed class RabbitMqOptions
     public string VirtualHost { get; init; } = "/";
     public string WishlistCheckQueueName { get; init; } = "wishlist.check.requests";
     public string WishlistNotificationQueueName { get; init; } = "wishlist.notification.requests";
+    public string ScrapeRequestQueueName { get; init; } = "scrape.requests";
     public TimeSpan WishlistCheckDelay { get; init; } = TimeSpan.FromSeconds(15);
 }

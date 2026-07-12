@@ -40,7 +40,7 @@ describe('AuthInterceptor unit tests', () => {
 
     await firstValueFrom(
       interceptor.intercept(
-        new HttpRequest('GET', 'https://localhost:7273/api/games'),
+        new HttpRequest('GET', 'https://localhost:7443/api/games'),
         handler,
       ),
     );
@@ -60,7 +60,7 @@ describe('AuthInterceptor unit tests', () => {
 
     await firstValueFrom(
       interceptor.intercept(
-        new HttpRequest('POST', 'https://localhost:7273/api/Auth/login', {}),
+        new HttpRequest('POST', 'https://localhost:7443/api/Auth/login', {}),
         handler,
       ),
     );
@@ -73,7 +73,7 @@ describe('AuthInterceptor unit tests', () => {
 
     expect(auth.isLoggedIn).not.toHaveBeenCalled();
     expect(forwardedUrls).toEqual([
-      'https://localhost:7273/api/Auth/login',
+      'https://localhost:7443/api/Auth/login',
       'https://example.test/api/games',
     ]);
   });
@@ -90,7 +90,7 @@ describe('AuthInterceptor unit tests', () => {
 
     await firstValueFrom(
       interceptor.intercept(
-        new HttpRequest('GET', 'https://localhost:7273/api/Auth/profile'),
+        new HttpRequest('GET', 'https://localhost:7443/api/Auth/profile'),
         handler,
       ),
     );
@@ -105,7 +105,7 @@ describe('AuthInterceptor unit tests', () => {
     await expectAsync(
       firstValueFrom(
         interceptor.intercept(
-          new HttpRequest('GET', 'https://localhost:7273/api/games'),
+          new HttpRequest('GET', 'https://localhost:7443/api/games'),
           handleWith(() => of(new HttpResponse({ status: 200 }))),
         ),
       ),
@@ -122,7 +122,7 @@ describe('AuthInterceptor unit tests', () => {
     await expectAsync(
       firstValueFrom(
         interceptor.intercept(
-          new HttpRequest('GET', 'https://localhost:7273/api/games'),
+          new HttpRequest('GET', 'https://localhost:7443/api/games'),
           handleWith(() =>
             throwError(() => new HttpErrorResponse({ status: 401, statusText: 'Unauthorized' })),
           ),
@@ -140,3 +140,4 @@ function handleWith(
 ): HttpHandler {
   return { handle: handler };
 }
+

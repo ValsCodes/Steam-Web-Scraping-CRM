@@ -12,11 +12,11 @@ public class IdentitySchemaInitializer(
     public async Task EnsureCreatedAsync(CancellationToken cancellationToken = default)
     {
 
-        //logger.LogInformation("Ensuring ASP.NET Identity tables exist.");
+        logger.LogInformation("Ensuring ASP.NET Identity tables exist.");
 
-        //await dbContext.Database.ExecuteSqlRawAsync(
-        //    IdentitySchemaSql,
-        //    cancellationToken);
+        await dbContext.Database.ExecuteSqlRawAsync(
+            IdentitySchemaSql,
+            cancellationToken);
     }
 
     private const string IdentitySchemaSql = """

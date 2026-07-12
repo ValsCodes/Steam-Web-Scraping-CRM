@@ -168,6 +168,15 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("date");
 
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("completed_at_utc");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("correlation_id");
+
                     b.Property<string>("Endpoint")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -209,6 +218,14 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("setup_json");
 
+                    b.Property<DateTime?>("StartedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("started_at_utc");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int")
+                        .HasColumnName("status");
+
                     b.Property<string>("UserId")
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)")
@@ -219,6 +236,8 @@ namespace SteamApp.WebAPI.Migrations
                     b.HasIndex("GameUrlId");
 
                     b.HasIndex("UserId", "Date");
+
+                    b.HasIndex("UserId", "Status");
 
                     b.ToTable("automated_scrape_history");
                 });

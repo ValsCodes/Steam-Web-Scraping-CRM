@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
@@ -7,7 +7,7 @@ import {
   Game,
   GameUrl,
   Listing,
-  ScrapeHistoryRerunResponse,
+  ScrapeJobAccepted,
   ScrapingMode,
   ScrapingModeEnum,
 } from '../models';
@@ -67,16 +67,35 @@ describe('WebScraperComponent integration tests', () => {
       isPainted: false,
     },
   ];
+  const serverListings = [
+    {
+      Name: 'Alpha Item',
+      Price: 1.23,
+      ImageUrl: 'https://steamcommunity.com/image.png',
+      Quantity: 3,
+      PixelName: '',
+      ListingUrl: 'https://steamcommunity.com/market/listings/440/Alpha%20Item',
+      PageUrl: 'https://steamcommunity.com/market/search?page=1',
+      RedValue: 0,
+      GreenValue: 0,
+      BlueValue: 0,
+      IsPainted: false,
+    },
+  ];
 
   let fixture: ComponentFixture<WebScraperComponent>;
   let component: WebScraperComponent;
   let steamService: {
     scrapePage: jest.Mock;
+    queueScrapePage: jest.Mock;
     scrapeFromPublicApi: jest.Mock;
+    queueScrapeFromPublicApi: jest.Mock;
     scrapeForPixels: jest.Mock;
+    queueScrapeForPixels: jest.Mock;
     getScrapeHistory: jest.Mock;
     getScrapeHistoryDetail: jest.Mock;
     rerunScrapeHistory: jest.Mock;
+    rerunScrapeHistoryAsync: jest.Mock;
   };
   let dialog: {
     open: jest.Mock;
@@ -85,11 +104,45 @@ describe('WebScraperComponent integration tests', () => {
   beforeEach(async () => {
     steamService = {
       scrapePage: jest.fn(() => of(listings)),
+      queueScrapePage: jest.fn(() => of({
+        historyId: 99,
+        history: {
+          id: 99,
+          endpoint: 'scrape-page',
+          scrapeType: 'Web Scrape',
+          gameUrlId: 10,
+          gameUrlName: 'Batch URL',
+          page: 1,
+          resultCount: 0,
+          date: new Date().toISOString(),
+          isHaveError: false,
+          status: 'Queued',
+        },
+        status: 'Queued',
+        correlationId: 'abc',
+      })),
       scrapeFromPublicApi: jest.fn(() => of([])),
+      queueScrapeFromPublicApi: jest.fn(() => of({})),
       scrapeForPixels: jest.fn(() => of([])),
+      queueScrapeForPixels: jest.fn(() => of({})),
       getScrapeHistory: jest.fn(() => of([])),
-      getScrapeHistoryDetail: jest.fn(() => of({})),
+      getScrapeHistoryDetail: jest.fn(() => of({
+        id: 99,
+        endpoint: 'scrape-page',
+        scrapeType: 'Web Scrape',
+        gameUrlId: 10,
+        gameUrlName: 'Batch URL',
+        page: 1,
+        resultCount: 1,
+        date: new Date().toISOString(),
+        isHaveError: false,
+        status: 'Succeeded',
+        setupJson: '{}',
+        resultsJson: JSON.stringify(serverListings),
+        errorText: null,
+      })),
       rerunScrapeHistory: jest.fn(() => of({ history: {}, results: [] })),
+      rerunScrapeHistoryAsync: jest.fn(() => of({})),
     };
     dialog = {
       open: jest.fn(() => ({ afterClosed: () => of(undefined) })),
@@ -149,7 +202,7 @@ describe('WebScraperComponent integration tests', () => {
     );
   });
 
-  it('runs the selected web scrape and renders the returned listings', () => {
+  it('runs the selected web scrape and renders the completed job listings', fakeAsync(() => {
     component.gameIdControl.setValue(1);
     fixture.detectChanges();
     component.scrapingModeIdControl.setValue(ScrapingModeEnum.Batch);
@@ -162,13 +215,14 @@ describe('WebScraperComponent integration tests', () => {
     component.openInSteamMode.set(true);
 
     component.runButtonClicked();
+    tick(0);
     fixture.detectChanges();
 
-    expect(steamService.scrapePage).toHaveBeenCalledWith(10, 1);
+    expect(steamService.queueScrapePage).toHaveBeenCalledWith(10, 1);
     expect(component.dataSource.data).toEqual(listings);
     expect(component.statusLabel()).toBe('Successfully ran Web Scrape on page 1.');
     expect((fixture.nativeElement.textContent as string)).toContain('Alpha Item');
-  });
+  }));
 
   it('opens scrape history from the toolbar', () => {
     component.historyButtonClicked();
@@ -176,10 +230,11 @@ describe('WebScraperComponent integration tests', () => {
     expect(dialog.open).toHaveBeenCalled();
   });
 
-  it('applies rerun results returned from history dialog', () => {
-    const rerunResponse: ScrapeHistoryRerunResponse = {
+  it('polls and applies rerun results returned from history dialog', fakeAsync(() => {
+    const rerunResponse: ScrapeJobAccepted = {
+      historyId: 100,
       history: {
-        id: 1,
+        id: 100,
         endpoint: 'scrape-page',
         scrapeType: 'Web Scrape',
         gameUrlId: 10,
@@ -188,15 +243,26 @@ describe('WebScraperComponent integration tests', () => {
         resultCount: 1,
         date: new Date().toISOString(),
         isHaveError: false,
+        status: 'Queued',
       },
-      results: [{ ...listings[0], name: 'Rerun Item' }],
+      status: 'Queued',
+      correlationId: 'rerun',
     };
+    steamService.getScrapeHistoryDetail.mockReturnValue(of({
+      ...rerunResponse.history,
+      status: 'Succeeded',
+      resultCount: 1,
+      setupJson: '{}',
+      resultsJson: JSON.stringify([{ ...listings[0], name: 'Rerun Item' }]),
+      errorText: null,
+    }));
     dialog.open.mockReturnValue({ afterClosed: () => of(rerunResponse) });
 
     component.historyButtonClicked();
+    tick(0);
     fixture.detectChanges();
 
     expect(component.dataSource.data.map((item) => item.name)).toEqual(['Rerun Item']);
     expect(component.statusLabel()).toBe('Reran Web Scrape from history on page 3.');
-  });
+  }));
 });

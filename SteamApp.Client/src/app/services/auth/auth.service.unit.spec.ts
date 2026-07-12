@@ -96,7 +96,7 @@ describe('AuthService unit tests', () => {
 
     service.login('val@example.test', 'Password1').subscribe();
 
-    const request = http.expectOne('https://localhost:7273/api/Auth/login');
+    const request = http.expectOne('https://localhost:7443/api/Auth/login');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({
       emailOrUserName: 'val@example.test',
@@ -134,7 +134,7 @@ describe('AuthService unit tests', () => {
     });
 
     service.login('admin@example.test', 'Password1').subscribe();
-    http.expectOne('https://localhost:7273/api/Auth/login').flush({ token });
+    http.expectOne('https://localhost:7443/api/Auth/login').flush({ token });
 
     expect(service.getCurrentUser()?.roles).toEqual(['User', 'Admin', 'Auditor']);
     expect(service.getCurrentUser()?.isAdmin).toBeTrue();
@@ -155,7 +155,7 @@ describe('AuthService unit tests', () => {
       '+3595550100',
     ).subscribe();
 
-    const request = http.expectOne('https://localhost:7273/api/Auth/register');
+    const request = http.expectOne('https://localhost:7443/api/Auth/register');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({
       firstName: 'Steam',
@@ -177,7 +177,7 @@ describe('AuthService unit tests', () => {
       expect(profile.displayName).toBe('Val Tester');
     });
 
-    const request = http.expectOne('https://localhost:7273/api/Auth/profile');
+    const request = http.expectOne('https://localhost:7443/api/Auth/profile');
     expect(request.request.method).toBe('GET');
 
     request.flush({
@@ -214,7 +214,7 @@ describe('AuthService unit tests', () => {
       phone: '+3595550100',
     }).subscribe();
 
-    const profileRequest = http.expectOne('https://localhost:7273/api/Auth/profile');
+    const profileRequest = http.expectOne('https://localhost:7443/api/Auth/profile');
     expect(profileRequest.request.method).toBe('PUT');
     expect(profileRequest.request.body).toEqual({
       firstName: 'Val',
@@ -238,7 +238,7 @@ describe('AuthService unit tests', () => {
       newPassword: 'Password2',
     }).subscribe();
 
-    const passwordRequest = http.expectOne('https://localhost:7273/api/Auth/profile/password');
+    const passwordRequest = http.expectOne('https://localhost:7443/api/Auth/profile/password');
     expect(passwordRequest.request.method).toBe('PUT');
     expect(passwordRequest.request.body).toEqual({
       currentPassword: 'Password1',
@@ -254,11 +254,11 @@ describe('AuthService unit tests', () => {
     });
 
     service.login('val@example.test', 'Password1').subscribe();
-    http.expectOne('https://localhost:7273/api/Auth/login').flush({ token });
+    http.expectOne('https://localhost:7443/api/Auth/login').flush({ token });
 
     service.deleteProfile({ password: 'Password1' }).subscribe();
 
-    const request = http.expectOne('https://localhost:7273/api/Auth/profile');
+    const request = http.expectOne('https://localhost:7443/api/Auth/profile');
     expect(request.request.method).toBe('DELETE');
     expect(request.request.body).toEqual({ password: 'Password1' });
 
@@ -275,7 +275,7 @@ describe('AuthService unit tests', () => {
     });
 
     service.login('expired@example.test', 'Password1').subscribe();
-    http.expectOne('https://localhost:7273/api/Auth/login').flush({ token });
+    http.expectOne('https://localhost:7443/api/Auth/login').flush({ token });
 
     expect(service.hasToken()).toBeTrue();
     expect(service.isLoggedIn()).toBeFalse();
@@ -290,7 +290,7 @@ describe('AuthService unit tests', () => {
     });
 
     service.login('val@example.test', 'Password1').subscribe();
-    http.expectOne('https://localhost:7273/api/Auth/login').flush({ token });
+    http.expectOne('https://localhost:7443/api/Auth/login').flush({ token });
 
     service.logout();
 
@@ -300,3 +300,4 @@ describe('AuthService unit tests', () => {
     expect(service.getCurrentUser()).toBeNull();
   });
 });
+

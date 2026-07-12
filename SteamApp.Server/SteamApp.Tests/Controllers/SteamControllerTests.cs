@@ -1,18 +1,26 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Newtonsoft.Json;
 using SteamApp.Application.Caching;
+using SteamApp.Application.DTOs.ScrapeHistory;
 using SteamApp.Application.DTOs.WatchItem;
 using SteamApp.Application.DTOs.WishListItem;
 using SteamApp.Application.Services;
 using SteamApp.Domain.Entities;
+using SteamApp.Domain.Enums;
 using SteamApp.Infrastructure.Context;
 using SteamApp.Interfaces.Services;
 using SteamApp.Tests.TestSupport;
 using SteamApp.WebAPI.Controllers;
+using SteamApp.WebAPI.MessageBrokers.Abstractions;
+using SteamApp.WebAPI.MessageBrokers.Handlers.Scraping;
+using SteamApp.WebAPI.MessageBrokers.Messages.Scraping;
+using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options;
 using SteamApp.WebAPI.Services;
 using System.Security.Claims;
 
@@ -386,22 +394,234 @@ public sealed class SteamControllerTests
         });
     }
 
+    [Test]
+    public async Task QueueScrapePageAsync_CreatesQueuedHistoryAndPublishesMessage()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var messagePublisher = new Mock<IMessagePublisher>();
+        ScrapeRequested? published = null;
+        string? queueName = null;
+        var options = new RabbitMqOptions
+        {
+            Enabled = true,
+            ScrapeRequestQueueName = "test.scrape.requests"
+        };
+
+        messagePublisher
+            .Setup(x => x.PublishAsync(
+                It.IsAny<string>(),
+                It.IsAny<ScrapeRequested>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<string, ScrapeRequested, CancellationToken>((queue, message, _) =>
+            {
+                queueName = queue;
+                published = message;
+            })
+            .Returns(Task.CompletedTask);
+
+        var controller = CreateController(
+            messagePublisher: messagePublisher,
+            rabbitMqOptions: options,
+            database: database);
+
+        var result = await controller.QueueScrapePageAsync(1, 2);
+
+        var accepted = result as AcceptedResult;
+        var dto = accepted?.Value as ScrapeJobAcceptedDto;
+        var history = database.Context.AutomatedScrapeHistories.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(accepted, Is.Not.Null);
+            Assert.That(dto?.HistoryId, Is.EqualTo(history.Id));
+            Assert.That(dto?.Status, Is.EqualTo(ScrapeJobStatusEnum.Queued));
+            Assert.That(queueName, Is.EqualTo("test.scrape.requests"));
+            Assert.That(published?.HistoryId, Is.EqualTo(history.Id));
+            Assert.That(published?.Endpoint, Is.EqualTo("scrape-page"));
+            Assert.That(history.Status, Is.EqualTo(ScrapeJobStatusEnum.Queued));
+            Assert.That(history.CorrelationId, Is.Not.Empty);
+            Assert.That(history.ResultsJson, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task QueueScrapePageAsync_ReturnsServiceUnavailableWhenRabbitMqDisabled()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var messagePublisher = new Mock<IMessagePublisher>(MockBehavior.Strict);
+        var controller = CreateController(
+            messagePublisher: messagePublisher,
+            rabbitMqOptions: new RabbitMqOptions { Enabled = false },
+            database: database);
+
+        var result = await controller.QueueScrapePageAsync(1, 2);
+
+        var objectResult = result as ObjectResult;
+        Assert.Multiple(() =>
+        {
+            Assert.That(objectResult?.StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+            Assert.That(database.Context.AutomatedScrapeHistories, Is.Empty);
+        });
+        messagePublisher.VerifyNoOtherCalls();
+    }
+
+    [Test]
+    public async Task ScrapeRequestedHandler_MarksSucceededWithFreshResults()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var scrapeHistoryData = new ScrapeHistoryDataService(database.Factory);
+        var gameUrl = await scrapeHistoryData.GetOwnedGameUrlSnapshotAsync(
+            1,
+            TestDb.TestUserId,
+            CancellationToken.None);
+        var history = await scrapeHistoryData.CreateQueuedHistoryAsync(
+            TestDb.TestUserId,
+            gameUrl!,
+            2,
+            "scrape-page",
+            "Web Scrape",
+            "correlation",
+            CancellationToken.None);
+        var response = new[] { new WatchItemDto { Name = "Async Fresh", Price = 4 } };
+        var steamService = new Mock<ISteamService>();
+        steamService.Setup(x => x.ScrapePage(1, 2)).ReturnsAsync(response);
+        using var cache = TestDb.CreateMemoryCache();
+        var handler = CreateScrapeHandler(database, steamService, cache);
+
+        await handler.HandleAsync(CreateScrapeMessage(history), CancellationToken.None);
+
+        var updated = database.Context.AutomatedScrapeHistories.AsNoTracking().Single(x => x.Id == history.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(updated.Status, Is.EqualTo(ScrapeJobStatusEnum.Succeeded));
+            Assert.That(updated.IsHaveError, Is.False);
+            Assert.That(updated.ResultsJson, Does.Contain("Async Fresh"));
+            Assert.That(updated.StartedAtUtc, Is.Not.Null);
+            Assert.That(updated.CompletedAtUtc, Is.Not.Null);
+            Assert.That(cache.TryGetValue(string.Format(CacheKeys.ScrapePage, 1, 2), out _), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task ScrapeRequestedHandler_MarksFailedWithMappedError()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var scrapeHistoryData = new ScrapeHistoryDataService(database.Factory);
+        var gameUrl = await scrapeHistoryData.GetOwnedGameUrlSnapshotAsync(
+            2,
+            TestDb.TestUserId,
+            CancellationToken.None);
+        var history = await scrapeHistoryData.CreateQueuedHistoryAsync(
+            TestDb.TestUserId,
+            gameUrl!,
+            2,
+            "scrape-pixels",
+            "Pixel Scrape",
+            "correlation",
+            CancellationToken.None);
+        var steamService = new Mock<ISteamService>();
+        steamService
+            .Setup(x => x.ScrapeWithPixels(2, 2))
+            .ThrowsAsync(new JsonSerializationException("bad listing"));
+        var handler = CreateScrapeHandler(database, steamService);
+
+        await handler.HandleAsync(CreateScrapeMessage(history), CancellationToken.None);
+
+        var updated = database.Context.AutomatedScrapeHistories.AsNoTracking().Single(x => x.Id == history.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(updated.Status, Is.EqualTo(ScrapeJobStatusEnum.Failed));
+            Assert.That(updated.IsHaveError, Is.True);
+            Assert.That(updated.ErrorText, Is.EqualTo("Error: Invalid Listing"));
+            Assert.That(updated.ResultsJson, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task ScrapeRequestedHandler_CompletesFromCacheWithoutCallingSteamService()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var scrapeHistoryData = new ScrapeHistoryDataService(database.Factory);
+        var gameUrl = await scrapeHistoryData.GetOwnedGameUrlSnapshotAsync(
+            1,
+            TestDb.TestUserId,
+            CancellationToken.None);
+        var history = await scrapeHistoryData.CreateQueuedHistoryAsync(
+            TestDb.TestUserId,
+            gameUrl!,
+            2,
+            "scrape-page",
+            "Web Scrape",
+            "correlation",
+            CancellationToken.None);
+        using var cache = TestDb.CreateMemoryCache();
+        cache.Set(
+            string.Format(CacheKeys.ScrapePage, 1, 2),
+            new[] { new WatchItemDto { Name = "Cached Async", Price = 2 } });
+        var steamService = new Mock<ISteamService>(MockBehavior.Strict);
+        var handler = CreateScrapeHandler(database, steamService, cache);
+
+        await handler.HandleAsync(CreateScrapeMessage(history), CancellationToken.None);
+
+        var updated = database.Context.AutomatedScrapeHistories.AsNoTracking().Single(x => x.Id == history.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(updated.Status, Is.EqualTo(ScrapeJobStatusEnum.Succeeded));
+            Assert.That(updated.ResultsJson, Does.Contain("Cached Async"));
+        });
+        steamService.VerifyNoOtherCalls();
+    }
+
+    [Test]
+    public async Task ScrapeRequestedHandler_SkipsTerminalHistoryRows()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var db = database.Context;
+        db.AutomatedScrapeHistories.Add(new AutomatedScrapeHistory
+        {
+            UserId = TestDb.TestUserId,
+            Endpoint = "scrape-page",
+            ScrapeType = "Web Scrape",
+            GameUrlId = 1,
+            Page = 2,
+            SetupJson = "{}",
+            ResultsJson = "[]",
+            ResultCount = 0,
+            Date = DateTime.UtcNow,
+            IsHaveError = false,
+            Status = ScrapeJobStatusEnum.Succeeded
+        });
+        db.SaveChanges();
+        var history = db.AutomatedScrapeHistories.Single();
+        var steamService = new Mock<ISteamService>(MockBehavior.Strict);
+        var handler = CreateScrapeHandler(database, steamService);
+
+        await handler.HandleAsync(CreateScrapeMessage(history), CancellationToken.None);
+
+        steamService.VerifyNoOtherCalls();
+    }
+
     private static SteamController CreateController(
         Mock<ISteamService>? steamService = null,
         Mock<IWishlistService>? wishlistService = null,
         Mock<ILogger<SteamController>>? logger = null,
+        Mock<IMessagePublisher>? messagePublisher = null,
+        RabbitMqOptions? rabbitMqOptions = null,
         IMemoryCache? cache = null,
         TestDatabase? database = null)
     {
         var dbFactory = database?.Factory ?? TestDb.CreateSeededFactory();
         var scrapeHistoryData = new ScrapeHistoryDataService(dbFactory);
+        var steamServiceInstance = (steamService ?? new Mock<ISteamService>()).Object;
 
         var controller = new SteamController(
-            (steamService ?? new Mock<ISteamService>()).Object,
             (wishlistService ?? new Mock<IWishlistService>()).Object,
             (logger ?? new Mock<ILogger<SteamController>>()).Object,
             dbFactory,
             scrapeHistoryData,
+            new ScrapeExecutionService(steamServiceInstance),
+            (messagePublisher ?? new Mock<IMessagePublisher>()).Object,
+            Options.Create(rabbitMqOptions ?? new RabbitMqOptions { Enabled = true }),
             cache ?? TestDb.CreateMemoryCache());
 
         controller.ControllerContext = new ControllerContext
@@ -415,6 +635,31 @@ public sealed class SteamControllerTests
         };
 
         return controller;
+    }
+
+    private static ScrapeRequestedMessageHandler CreateScrapeHandler(
+        TestDatabase database,
+        Mock<ISteamService> steamService,
+        IMemoryCache? cache = null)
+    {
+        return new ScrapeRequestedMessageHandler(
+            Mock.Of<ILogger<ScrapeRequestedMessageHandler>>(),
+            cache ?? TestDb.CreateMemoryCache(),
+            new ScrapeExecutionService(steamService.Object),
+            new ScrapeHistoryDataService(database.Factory));
+    }
+
+    private static ScrapeRequested CreateScrapeMessage(AutomatedScrapeHistory history)
+    {
+        return new ScrapeRequested(
+            history.Id,
+            history.UserId ?? TestDb.TestUserId,
+            history.GameUrlId,
+            history.Page,
+            history.Endpoint,
+            history.ScrapeType,
+            history.Date,
+            history.CorrelationId ?? "correlation");
     }
 
     private static void VerifyLogged<T>(Mock<ILogger<T>> logger, LogLevel level)

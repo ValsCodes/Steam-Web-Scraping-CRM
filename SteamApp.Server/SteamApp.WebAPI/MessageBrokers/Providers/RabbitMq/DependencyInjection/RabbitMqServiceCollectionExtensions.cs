@@ -1,4 +1,5 @@
 using SteamApp.WebAPI.MessageBrokers.Abstractions;
+using SteamApp.WebAPI.MessageBrokers.Handlers.Scraping;
 using SteamApp.WebAPI.MessageBrokers.Handlers.Wishlist;
 using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Connection;
 using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Consumers;
@@ -25,11 +26,13 @@ public static class RabbitMqServiceCollectionExtensions
         services.Configure<RabbitMqOptions>(configuration.GetSection("RabbitMq"));
         services.AddSingleton<RabbitMqConnection>();
         services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
+        services.AddScoped<ScrapeRequestedMessageHandler>();
         services.AddScoped<WishlistCheckMessageHandler>();
         services.AddScoped<WishlistNotificationMessageHandler>();
 
         if (rabbitMqOptions.Enabled)
         {
+            services.AddHostedService<ScrapeRequestedConsumer>();
             services.AddHostedService<WishlistCheckConsumer>();
             services.AddHostedService<WishlistNotificationConsumer>();
         }

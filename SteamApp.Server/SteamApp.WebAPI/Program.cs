@@ -31,6 +31,8 @@ public class Program
 {
     private const int MinJwtSigningKeyBytes = 32;
     private const int MaxJwtDurationMinutes = 120;
+    private const int DatabaseMigrationMaxAttempts = 30;
+    private static readonly TimeSpan DatabaseMigrationRetryDelay = TimeSpan.FromSeconds(2);
 
     public static void Main(string[] args)
     {
@@ -266,7 +268,14 @@ public class Program
         {
             opts.UseSqlServer(
                 builder.Configuration.GetConnectionString("DefaultConnection"),
-                sql => sql.MigrationsAssembly(typeof(Program).Assembly.FullName));
+                sql =>
+                {
+                    sql.MigrationsAssembly(typeof(Program).Assembly.FullName);
+                    sql.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(10),
+                        errorNumbersToAdd: null);
+                });
         });
 
         builder.Services.AddAutoMapper(_ => { }, typeof(BaseProfile));
@@ -286,6 +295,7 @@ public class Program
         builder.Services.AddScoped<IdentitySchemaInitializer>();
         builder.Services.AddScoped<IdentityRoleInitializer>();
         builder.Services.AddScoped<IScrapeHistoryDataService, ScrapeHistoryDataService>();
+        builder.Services.AddScoped<IScrapeExecutionService, ScrapeExecutionService>();
         builder.Services.AddScoped<IWishlistNotificationRecipientService, WishlistNotificationRecipientService>();
         builder.Services.AddScoped<ISteamRepository, SteamRepository>();
         builder.Services.AddScoped<ISteamService, SteamService>();
@@ -317,6 +327,16 @@ public class Program
                 scope.ServiceProvider
                     .GetRequiredService<IdentitySchemaInitializer>()
                     .EnsureCreatedAsync()
+                    .GetAwaiter()
+                    .GetResult();
+            }
+
+            if (ShouldApplyMigrationsOnStartup(app.Configuration))
+            {
+                ApplyDatabaseMigrationsAsync(
+                        scope.ServiceProvider,
+                        app.Logger,
+                        app.Lifetime.ApplicationStopping)
                     .GetAwaiter()
                     .GetResult();
             }
@@ -514,6 +534,40 @@ public class Program
     {
         return configuration.GetValue<bool?>("Database:EnsureIdentitySchemaOnStartup")
                ?? environment.IsDevelopment();
+    }
+
+    private static bool ShouldApplyMigrationsOnStartup(IConfiguration configuration)
+    {
+        return configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup");
+    }
+
+    private static async Task ApplyDatabaseMigrationsAsync(
+        IServiceProvider serviceProvider,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        var dbContextFactory = serviceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
+
+        for (var attempt = 1; attempt <= DatabaseMigrationMaxAttempts; attempt++)
+        {
+            try
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                await db.Database.MigrateAsync(cancellationToken);
+                return;
+            }
+            catch (Exception exception) when (attempt < DatabaseMigrationMaxAttempts && !cancellationToken.IsCancellationRequested)
+            {
+                logger.LogWarning(
+                    exception,
+                    "Database migration attempt {Attempt}/{MaxAttempts} failed. Retrying in {Delay}.",
+                    attempt,
+                    DatabaseMigrationMaxAttempts,
+                    DatabaseMigrationRetryDelay);
+
+                await Task.Delay(DatabaseMigrationRetryDelay, cancellationToken);
+            }
+        }
     }
 
     private static string GetRemoteAddressPartitionKey(HttpContext context)

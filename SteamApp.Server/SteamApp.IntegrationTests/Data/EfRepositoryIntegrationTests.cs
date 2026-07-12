@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,6 +48,12 @@ public sealed class EfRepositoryIntegrationTests
         Assert.Multiple(() =>
         {
             Assert.That(migrations, Is.Not.Empty);
+            Assert.That(
+                migrations,
+                Is.All.Matches<Type>(type =>
+                    type.GetCustomAttributes(typeof(DbContextAttribute), inherit: false)
+                        .Cast<DbContextAttribute>()
+                        .Any(attribute => attribute.ContextType == typeof(ApplicationDbContext))));
             Assert.That(hasModelSnapshot, Is.True);
         });
     }

@@ -154,7 +154,21 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(x => x.ErrorText)
                   .HasColumnName("error_text");
 
+            entity.Property(x => x.Status)
+                  .HasColumnName("status");
+
+            entity.Property(x => x.StartedAtUtc)
+                  .HasColumnName("started_at_utc");
+
+            entity.Property(x => x.CompletedAtUtc)
+                  .HasColumnName("completed_at_utc");
+
+            entity.Property(x => x.CorrelationId)
+                  .HasMaxLength(64)
+                  .HasColumnName("correlation_id");
+
             entity.HasIndex(x => new { x.UserId, x.Date });
+            entity.HasIndex(x => new { x.UserId, x.Status });
             entity.HasIndex(x => x.GameUrlId);
         });
         modelBuilder.Entity<WatchList>(entity =>
