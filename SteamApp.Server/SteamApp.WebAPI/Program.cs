@@ -374,6 +374,12 @@ public class Program
         app.UseRateLimiter();
         app.UseAuthorization();
 
+        app.MapGet("/health/live", () => Results.Ok(new { status = "Healthy" }))
+            .AllowAnonymous();
+
+        app.MapGet("/health/ready", () => Results.Ok(new { status = "Ready" }))
+            .AllowAnonymous();
+
         app.MapControllers();
 
         app.MapGameEndpoints();

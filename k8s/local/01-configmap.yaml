@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: steamapp-webapi-config
+  namespace: steamapp-local
+data:
+  ASPNETCORE_ENVIRONMENT: Development
+  ASPNETCORE_URLS: http://+:8080
+  AllowedHosts: "*"
+  Authentication__AllowRegistration: "true"
+  Database__EnsureIdentitySchemaOnStartup: "true"
+  Database__ApplyMigrationsOnStartup: "true"
+  Cors__AllowedOrigins__0: http://localhost:8088
+  Cors__AllowedOrigins__1: http://127.0.0.1:8088
+  Workers__WishlistCheck__Enabled: "false"
+  Workers__WishlistCheck__Interval: "00:00:30"
+  Workers__WishlistCheck__DisplayName: WishlistCheck Worker
+  Redis__Enabled: "true"
+  Redis__ConnectionString: steamapp-redis:6379
+  Redis__InstanceName: "SteamApp:"
+  RabbitMq__Enabled: "true"
+  RabbitMq__HostName: steamapp-rabbitmq
+  RabbitMq__Port: "5672"
+  RabbitMq__VirtualHost: /
+  RabbitMq__WishlistCheckQueueName: wishlist.check.requests
+  RabbitMq__WishlistNotificationQueueName: wishlist.notification.requests
+  RabbitMq__ScrapeRequestQueueName: scrape.requests
+  RabbitMq__WishlistCheckDelay: "00:00:15"
+  JwtSettings__Issuer: SteamApp
+  JwtSettings__Audience: SteamAppClient
+  JwtSettings__DurationMinutes: "60"
+  Clients__0__ClientId: steam-client
+  Clients__0__AllowedScope: user
+  Clients__1__ClientId: steam-internal
+  Clients__1__AllowedScope: internal

@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: steamapp-sql
+  namespace: steamapp-local
+spec:
+  selector:
+    app: steamapp-sql
+  ports:
+    - name: sql
+      port: 1433
+      targetPort: 1433
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: steamapp-sql
+  namespace: steamapp-local
+spec:
+  serviceName: steamapp-sql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: steamapp-sql
+  template:
+    metadata:
+      labels:
+        app: steamapp-sql
+    spec:
+      containers:
+        - name: sqlserver
+          image: mcr.microsoft.com/mssql/server:2022-latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: sql
+              containerPort: 1433
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: MSSQL_PID
+              value: Developer
+            - name: MSSQL_SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: steamapp-local-secret
+                  key: MSSQL_SA_PASSWORD
+          readinessProbe:
+            tcpSocket:
+              port: 1433
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 18
+          livenessProbe:
+            tcpSocket:
+              port: 1433
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 2Gi
+          volumeMounts:
+            - name: sql-data
+              mountPath: /var/opt/mssql
+  volumeClaimTemplates:
+    - metadata:
+        name: sql-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: standard
+        resources:
+          requests:
+            storage: 5Gi
