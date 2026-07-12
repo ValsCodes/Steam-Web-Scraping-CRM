@@ -22,6 +22,7 @@ using SteamApp.WebAPI.MinimalAPIs;
 using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.DependencyInjection;
 using SteamApp.WebAPI.Security;
 using SteamApp.WebAPI.Services;
+using System.Net.Mail;
 using System.Text;
 using System.Threading.RateLimiting;
 
@@ -84,6 +85,7 @@ public class Program
         ValidateJwtSettings(jwt);
         ValidateClientDefinitions(clients, builder.Environment);
         ValidateHostFilteringConfiguration(builder.Configuration, builder.Environment);
+        ValidateEmailConfiguration(builder.Configuration, builder.Environment);
 
         builder.Services.AddSingleton<IReadOnlyList<ClientDefinition>>(clients);
 
@@ -280,10 +282,11 @@ public class Program
 
         builder.Services.AddAutoMapper(_ => { }, typeof(BaseProfile));
 
-        builder.Services.Configure<EmailOptions>(
-            builder.Configuration.GetSection("Mailtrap").Exists()
-                ? builder.Configuration.GetSection("Mailtrap")
-                : builder.Configuration.GetSection("Mailstrap"));
+        // Mailtrap setup
+        //builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Mailtrap").Exists() 
+        //    ? builder.Configuration.GetSection("Mailtrap") : builder.Configuration.GetSection("Mailstrap"));
+
+        builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 
         builder.Services.Configure<TransientRetryPolicyOptions>(builder.Configuration.GetSection(TransientRetryPolicyOptions.SectionName));
 
@@ -520,6 +523,61 @@ public class Program
                 throw new InvalidOperationException(
                     $"Cors:AllowedOrigins must use HTTPS outside Development: '{origin}'.");
             }
+        }
+    }
+
+    private static void ValidateEmailConfiguration(
+        IConfiguration configuration,
+        IHostEnvironment environment)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(environment);
+
+        if (!configuration.GetValue<bool>("Workers:WishlistCheck:Enabled"))
+        {
+            return;
+        }
+
+        var required = new[]
+        {
+            "Email:Host",
+            "Email:UserName",
+            "Email:Password",
+            "Email:FromAddress"
+        };
+
+        foreach (var key in required)
+        {
+            if (string.IsNullOrWhiteSpace(configuration[key]))
+            {
+                throw new InvalidOperationException(
+                    $"Missing required email configuration: {key}");
+            }
+        }
+
+        var port = configuration.GetValue<int>("Email:Port");
+        if (port is <= 0 or > 65535)
+        {
+            throw new InvalidOperationException(
+                "Email:Port must be between 1 and 65535.");
+        }
+
+        try
+        {
+            _ = new MailAddress(configuration["Email:FromAddress"]!);
+        }
+        catch (FormatException exception)
+        {
+            throw new InvalidOperationException(
+                "Email:FromAddress must be a valid email address.",
+                exception);
+        }
+
+        if (!environment.IsDevelopment() &&
+            configuration.GetValue<bool>("Email:AllowInvalidCertificate"))
+        {
+            throw new InvalidOperationException(
+                "Email:AllowInvalidCertificate can only be enabled in Development.");
         }
     }
 

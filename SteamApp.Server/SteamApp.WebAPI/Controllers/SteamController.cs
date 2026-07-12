@@ -36,9 +36,10 @@ public class SteamController(
     private readonly RabbitMqOptions rabbitMq = rabbitMqOptions.Value;
 
     [HttpGet("scrape-page/gameUrl/{gamerUrlId}/page/{page}")]
-    public Task<IActionResult> ScrapePageAsync(long gamerUrlId, short page)
+    public async Task<IActionResult> ScrapePageAsync(long gamerUrlId, short page)
     {
-        return RunScrapeEndpointAsync(
+
+        return await RunScrapeEndpointAsync(
             gamerUrlId,
             page,
             ScrapeEndpointDefinitions.ScrapePageEndpoint,
@@ -47,9 +48,9 @@ public class SteamController(
     }
 
     [HttpGet("scrape-public-api/gameUrl/{gameUrlId}/page/{page}")]
-    public Task<IActionResult> ScrapeFromPublicApi(long gameUrlId, short page)
+    public async Task<IActionResult> ScrapeFromPublicApi(long gameUrlId, short page)
     {
-        return RunScrapeEndpointAsync(
+        return await RunScrapeEndpointAsync(
             gameUrlId,
             page,
             ScrapeEndpointDefinitions.ScrapePublicApiEndpoint,
@@ -57,9 +58,9 @@ public class SteamController(
     }
 
     [HttpGet("scrape-pixels/gameUrl/{gameUrlId}/page/{page}")]
-    public Task<IActionResult> ScrapeForPixelsAsync(long gameUrlId, short page)
+    public async Task<IActionResult> ScrapeForPixelsAsync(long gameUrlId, short page)
     {
-        return RunScrapeEndpointAsync(
+        return await  RunScrapeEndpointAsync(
             gameUrlId,
             page,
             ScrapeEndpointDefinitions.ScrapePixelsEndpoint,
@@ -67,12 +68,12 @@ public class SteamController(
     }
 
     [HttpPost("scrape-jobs/scrape-page/gameUrl/{gameUrlId}/page/{page}")]
-    public Task<IActionResult> QueueScrapePageAsync(
+    public async Task<IActionResult> QueueScrapePageAsync(
         long gameUrlId,
         short page,
         CancellationToken cancellationToken = default)
     {
-        return QueueScrapeEndpointAsync(
+        return await QueueScrapeEndpointAsync(
             gameUrlId,
             page,
             ScrapeEndpointDefinitions.ScrapePageEndpoint,
@@ -82,12 +83,12 @@ public class SteamController(
     }
 
     [HttpPost("scrape-jobs/scrape-public-api/gameUrl/{gameUrlId}/page/{page}")]
-    public Task<IActionResult> QueueScrapeFromPublicApiAsync(
+    public async Task<IActionResult> QueueScrapeFromPublicApiAsync(
         long gameUrlId,
         short page,
         CancellationToken cancellationToken = default)
     {
-        return QueueScrapeEndpointAsync(
+        return await QueueScrapeEndpointAsync(
             gameUrlId,
             page,
             ScrapeEndpointDefinitions.ScrapePublicApiEndpoint,
@@ -97,12 +98,12 @@ public class SteamController(
     }
 
     [HttpPost("scrape-jobs/scrape-pixels/gameUrl/{gameUrlId}/page/{page}")]
-    public Task<IActionResult> QueueScrapeForPixelsAsync(
+    public async Task<IActionResult> QueueScrapeForPixelsAsync(
         long gameUrlId,
         short page,
         CancellationToken cancellationToken = default)
     {
-        return QueueScrapeEndpointAsync(
+        return await QueueScrapeEndpointAsync(
             gameUrlId,
             page,
             ScrapeEndpointDefinitions.ScrapePixelsEndpoint,

@@ -222,6 +222,65 @@ public sealed class SecurityConfigurationTests
     }
 
     [Test]
+    public void ValidateEmailConfiguration_AllowsMissingEmailWhenWishlistWorkerDisabled()
+    {
+        var config = Config(("Workers:WishlistCheck:Enabled", "false"));
+
+        Assert.DoesNotThrow(() =>
+            InvokePrivate("ValidateEmailConfiguration", config, Environment(Environments.Development)));
+    }
+
+    [Test]
+    public void ValidateEmailConfiguration_RequiresSmtpSettingsWhenWishlistWorkerEnabled()
+    {
+        var config = Config(("Workers:WishlistCheck:Enabled", "true"));
+
+        Assert.That(
+            () => InvokePrivate("ValidateEmailConfiguration", config, Environment(Environments.Development)),
+            Throws.InvalidOperationException.With.Message.Contains("Email:Host"));
+    }
+
+    [Test]
+    public void ValidateEmailConfiguration_RejectsInvalidPort()
+    {
+        var config = ValidEmailConfig(("Email:Port", "0"));
+
+        Assert.That(
+            () => InvokePrivate("ValidateEmailConfiguration", config, Environment(Environments.Development)),
+            Throws.InvalidOperationException.With.Message.Contains("Email:Port"));
+    }
+
+    [Test]
+    public void ValidateEmailConfiguration_RejectsInvalidFromAddress()
+    {
+        var config = ValidEmailConfig(("Email:FromAddress", "not an email"));
+
+        Assert.That(
+            () => InvokePrivate("ValidateEmailConfiguration", config, Environment(Environments.Development)),
+            Throws.InvalidOperationException.With.Message.Contains("Email:FromAddress"));
+    }
+
+    [Test]
+    public void ValidateEmailConfiguration_AllowsValidSmtpConfiguration()
+    {
+        Assert.DoesNotThrow(() =>
+            InvokePrivate(
+                "ValidateEmailConfiguration",
+                ValidEmailConfig(),
+                Environment(Environments.Development)));
+    }
+
+    [Test]
+    public void ValidateEmailConfiguration_RejectsInvalidCertificateBypassOutsideDevelopment()
+    {
+        var config = ValidEmailConfig(("Email:AllowInvalidCertificate", "true"));
+
+        Assert.That(
+            () => InvokePrivate("ValidateEmailConfiguration", config, Environment(Environments.Production)),
+            Throws.InvalidOperationException.With.Message.Contains("Email:AllowInvalidCertificate"));
+    }
+
+    [Test]
     public void BuildApiAuthorizationPolicy_RequiresJwtBearerAndUserOrInternalScope()
     {
         var policy = InvokePrivate<AuthorizationPolicy>("BuildApiAuthorizationPolicy");
@@ -367,6 +426,28 @@ public sealed class SecurityConfigurationTests
     {
         return new ConfigurationBuilder()
             .AddInMemoryCollection(values.ToDictionary(x => x.Key, x => x.Value))
+            .Build();
+    }
+
+    private static IConfiguration ValidEmailConfig(params (string Key, string? Value)[] overrides)
+    {
+        var values = new Dictionary<string, string?>
+        {
+            ["Workers:WishlistCheck:Enabled"] = "true",
+            ["Email:Host"] = "mail.example.com",
+            ["Email:Port"] = "587",
+            ["Email:UserName"] = "notifications@example.com",
+            ["Email:Password"] = "secret",
+            ["Email:FromAddress"] = "notifications@example.com"
+        };
+
+        foreach (var (key, value) in overrides)
+        {
+            values[key] = value;
+        }
+
+        return new ConfigurationBuilder()
+            .AddInMemoryCollection(values)
             .Build();
     }
 

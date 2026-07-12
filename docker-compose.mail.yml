@@ -1,0 +1,54 @@
+services:
+  mailserver:
+    image: ghcr.io/docker-mailserver/docker-mailserver:15.1.0
+    container_name: steamapp-mailserver
+    hostname: ${MAIL_HOSTNAME:-mail.example.com}
+    ports:
+      - "25:25"
+      - "465:465"
+      - "587:587"
+      - "993:993"
+    volumes:
+      - ./docker-data/dms/mail-data/:/var/mail/
+      - ./docker-data/dms/mail-state/:/var/mail-state/
+      - ./docker-data/dms/mail-logs/:/var/log/mail/
+      - ./docker-data/dms/config/:/tmp/docker-mailserver/
+      - ./docker-data/certbot/certs/:/etc/letsencrypt/:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      SSL_TYPE: ${SSL_TYPE:-letsencrypt}
+      POSTMASTER_ADDRESS: ${POSTMASTER_ADDRESS:-postmaster@example.com}
+      ENABLE_RSPAMD: "1"
+      ENABLE_CLAMAV: "1"
+      ENABLE_FAIL2BAN: "1"
+      SPOOF_PROTECTION: "1"
+    cap_add:
+      - NET_ADMIN
+    networks:
+      default:
+        aliases:
+          - ${MAIL_HOSTNAME:-mail.example.com}
+    restart: always
+    stop_grace_period: 1m
+
+  certbot:
+    image: certbot/certbot:latest
+    profiles:
+      - certbot
+    environment:
+      MAIL_HOSTNAME: ${MAIL_HOSTNAME:-mail.example.com}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@example.com}
+      CERTBOT_EXTRA_ARGS: ${CERTBOT_EXTRA_ARGS:-}
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - >
+        certbot certonly --standalone --agree-tos --non-interactive
+        --email "$${LETSENCRYPT_EMAIL:?LETSENCRYPT_EMAIL is required}"
+        -d "$${MAIL_HOSTNAME:?MAIL_HOSTNAME is required}"
+        $${CERTBOT_EXTRA_ARGS:-}
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker-data/certbot/certs/:/etc/letsencrypt/
+      - ./docker-data/certbot/logs/:/var/log/letsencrypt/

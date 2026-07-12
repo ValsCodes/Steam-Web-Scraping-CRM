@@ -14,6 +14,7 @@ A full-stack application for tracking and analyzing Steam Community Market listi
 - [Getting Started](docs/GETTING_STARTED.md)
 - [Architecture Overview](docs/ARCHITECTURE.md)
 - [API Reference](docs/API_REFERENCE.md)
+- [Self-Hosted Mailserver](docs/MAILSERVER.md)
 - [Contributing Guide](docs/CONTRIBUTING.md)
 - [Project Detailed Description](docs/PROJECT_DESCRIPTION.md)
 

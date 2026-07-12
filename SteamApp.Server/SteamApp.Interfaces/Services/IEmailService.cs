@@ -9,7 +9,15 @@
 
     public sealed class EmailOptions
     {
-        public string ApiToken { get; init; } = string.Empty;
-        public string SandboxID { get; init; } = string.Empty;
+        public const string SectionName = "Email";
+
+        public string Host { get; init; } = string.Empty;
+        public int Port { get; init; } = 587;
+        public string UserName { get; init; } = string.Empty;
+        public string Password { get; init; } = string.Empty;
+        public string FromAddress { get; init; } = string.Empty;
+        public string FromName { get; init; } = "SteamApp";
+        public bool UseStartTls { get; init; } = true;
+        public bool AllowInvalidCertificate { get; init; }
     }
 }

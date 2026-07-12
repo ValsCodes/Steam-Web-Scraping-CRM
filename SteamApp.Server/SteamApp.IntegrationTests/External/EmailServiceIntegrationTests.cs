@@ -1,5 +1,7 @@
-using System.Net;
+using MailKit.Security;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using MimeKit;
 using SteamApp.Infrastructure.Services;
 using SteamApp.Interfaces.Services;
 
@@ -9,45 +11,47 @@ namespace SteamApp.IntegrationTests.External;
 public sealed class EmailServiceIntegrationTests
 {
     [Test]
-    public async Task EmailServiceSendsExpectedMailtrapRequestToFakeHttpServer()
+    public async Task EmailServiceSendsExpectedSmtpMessage()
     {
-        HttpRequestMessage? capturedRequest = null;
-        string? capturedBody = null;
-        var handler = new RecordingHandler(async request =>
-        {
-            capturedRequest = request;
-            capturedBody = request.Content == null
-                ? null
-                : await request.Content.ReadAsStringAsync();
-
-            return new HttpResponseMessage(HttpStatusCode.OK);
-        });
-        var client = new HttpClient(handler)
-        {
-            BaseAddress = new Uri("https://sandbox.api.mailtrap.io/")
-        };
+        var client = new RecordingEmailSmtpClient();
         var service = new EmailService(
             Options.Create(new EmailOptions
             {
-                ApiToken = "mailtrap-token",
-                SandboxID = "987"
+                Host = "mail.example.com",
+                Port = 587,
+                UserName = "notifications@example.com",
+                Password = "smtp-password",
+                FromAddress = "notifications@example.com",
+                FromName = "SteamApp",
+                UseStartTls = true
             }),
-            client);
+            new RecordingEmailSmtpClientFactory(client),
+            new TransientRetryPolicyService(
+                Options.Create(new TransientRetryPolicyOptions()),
+                NullLogger<TransientRetryPolicyService>.Instance),
+            NullLogger<EmailService>.Instance);
 
         await service.SendAsync(new EmailMessage(
             "person@example.com",
             "Price reached",
             "The item dropped."));
 
+        var sentMessage = client.Message!;
+        Assert.That(sentMessage.Body, Is.TypeOf<TextPart>());
+        var sentBody = (TextPart)sentMessage.Body!;
+
         Assert.Multiple(() =>
         {
-            Assert.That(capturedRequest?.Method, Is.EqualTo(HttpMethod.Post));
-            Assert.That(capturedRequest?.RequestUri?.ToString(), Is.EqualTo("https://sandbox.api.mailtrap.io/api/send/987"));
-            Assert.That(capturedRequest?.Headers.Authorization?.Scheme, Is.EqualTo("Bearer"));
-            Assert.That(capturedRequest?.Headers.Authorization?.Parameter, Is.EqualTo("mailtrap-token"));
-            Assert.That(capturedBody, Does.Contain("person@example.com"));
-            Assert.That(capturedBody, Does.Contain("Price reached"));
-            Assert.That(capturedBody, Does.Contain("The item dropped."));
+            Assert.That(client.Host, Is.EqualTo("mail.example.com"));
+            Assert.That(client.Port, Is.EqualTo(587));
+            Assert.That(client.SecureSocketOptions, Is.EqualTo(SecureSocketOptions.StartTls));
+            Assert.That(client.UserName, Is.EqualTo("notifications@example.com"));
+            Assert.That(client.Password, Is.EqualTo("smtp-password"));
+            Assert.That(sentMessage.From.Mailboxes.Single().Address, Is.EqualTo("notifications@example.com"));
+            Assert.That(sentMessage.To.Mailboxes.Single().Address, Is.EqualTo("person@example.com"));
+            Assert.That(sentMessage.Subject, Is.EqualTo("Price reached"));
+            Assert.That(sentBody.Text, Is.EqualTo("The item dropped."));
+            Assert.That(client.Disconnected, Is.True);
         });
     }
 
@@ -57,13 +61,19 @@ public sealed class EmailServiceIntegrationTests
         var service = new EmailService(
             Options.Create(new EmailOptions
             {
-                ApiToken = "mailtrap-token",
-                SandboxID = "987"
+                Host = "mail.example.com",
+                Port = 587,
+                UserName = "notifications@example.com",
+                Password = "smtp-password",
+                FromAddress = "notifications@example.com",
+                FromName = "SteamApp",
+                UseStartTls = true
             }),
-            new HttpClient(new RecordingHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))))
-            {
-                BaseAddress = new Uri("https://sandbox.api.mailtrap.io/")
-            });
+            new RecordingEmailSmtpClientFactory(new RecordingEmailSmtpClient()),
+            new TransientRetryPolicyService(
+                Options.Create(new TransientRetryPolicyOptions()),
+                NullLogger<TransientRetryPolicyService>.Instance),
+            NullLogger<EmailService>.Instance);
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -74,16 +84,74 @@ public sealed class EmailServiceIntegrationTests
             Throws.InstanceOf<OperationCanceledException>());
     }
 
-    private sealed class RecordingHandler(
-        Func<HttpRequestMessage, Task<HttpResponseMessage>> handler)
-        : HttpMessageHandler
+    private sealed class RecordingEmailSmtpClientFactory(
+        RecordingEmailSmtpClient client) : IEmailSmtpClientFactory
     {
-        protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request,
+        public IEmailSmtpClient Create()
+        {
+            return client;
+        }
+    }
+
+    private sealed class RecordingEmailSmtpClient : IEmailSmtpClient
+    {
+        public string? Host { get; private set; }
+        public int Port { get; private set; }
+        public SecureSocketOptions SecureSocketOptions { get; private set; }
+        public string? UserName { get; private set; }
+        public string? Password { get; private set; }
+        public MimeMessage? Message { get; private set; }
+        public bool Disconnected { get; private set; }
+
+        public void AllowInvalidServerCertificate()
+        {
+        }
+
+        public Task ConnectAsync(
+            string host,
+            int port,
+            SecureSocketOptions options,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return handler(request);
+            Host = host;
+            Port = port;
+            SecureSocketOptions = options;
+            return Task.CompletedTask;
+        }
+
+        public Task AuthenticateAsync(
+            string userName,
+            string password,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            UserName = userName;
+            Password = password;
+            return Task.CompletedTask;
+        }
+
+        public Task SendAsync(
+            MimeMessage message,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Message = message;
+            return Task.CompletedTask;
+        }
+
+        public Task DisconnectAsync(
+            bool quit,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Disconnected = quit;
+            return Task.CompletedTask;
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            return ValueTask.CompletedTask;
         }
     }
 }
