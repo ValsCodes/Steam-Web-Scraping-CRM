@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
 using SteamApp.Infrastructure.Context;
@@ -70,6 +72,12 @@ public static class TestDb
     public static MemoryCache CreateMemoryCache()
     {
         return new MemoryCache(new MemoryCacheOptions());
+    }
+
+    public static MemoryDistributedCache CreateDistributedCache()
+    {
+        return new MemoryDistributedCache(
+            Options.Create(new MemoryDistributedCacheOptions()));
     }
 
     public static void SeedBaseline(ApplicationDbContext db)

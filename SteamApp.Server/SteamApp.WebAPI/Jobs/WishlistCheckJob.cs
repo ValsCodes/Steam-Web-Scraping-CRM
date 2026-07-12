@@ -1,7 +1,8 @@
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using SteamApp.Application.Caching;
 using SteamApp.Interfaces;
+using SteamApp.WebAPI.Caching;
 using SteamApp.WebAPI.MessageBrokers.Abstractions;
 using SteamApp.WebAPI.MessageBrokers.Messages.Wishlist;
 using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options;
@@ -12,7 +13,7 @@ namespace SteamApp.WebAPI.Jobs;
 public class WishlistCheckJob(
     ILogger<WishlistCheckJob> log,
     IOptions<RabbitMqOptions> options,
-    IMemoryCache cache,
+    IDistributedCache cache,
     IMessagePublisher messagePublisher,
     IWishlistNotificationRecipientService recipientService) : IJobService
 {
@@ -34,8 +35,8 @@ public class WishlistCheckJob(
                     CacheKeys.WishListBackgroundJobQueued,
                     recipient.WishlistId);
 
-                if (cache.TryGetValue(notificationCacheKey, out _) ||
-                    cache.TryGetValue(queuedCacheKey, out _))
+                if (await cache.ExistsAsync(notificationCacheKey, ct) ||
+                    await cache.ExistsAsync(queuedCacheKey, ct))
                 {
                     continue;
                 }
@@ -52,7 +53,7 @@ public class WishlistCheckJob(
                     message,
                     ct);
 
-                cache.Set(queuedCacheKey, true, QueuedMarkerTtl);
+                await cache.SetMarkerAsync(queuedCacheKey, QueuedMarkerTtl, ct);
 
                 log.LogInformation(
                     "WishlistCheckJob queued wishlist item {WishlistId} for {Email}.",

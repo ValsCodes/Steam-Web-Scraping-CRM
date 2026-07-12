@@ -1,7 +1,8 @@
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using SteamApp.Application.Caching;
 using SteamApp.Application.Services;
+using SteamApp.WebAPI.Caching;
 using SteamApp.WebAPI.MessageBrokers.Abstractions;
 using SteamApp.WebAPI.MessageBrokers.Messages.Wishlist;
 using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options;
@@ -19,7 +20,7 @@ namespace SteamApp.WebAPI.MessageBrokers.Handlers.Wishlist;
 public sealed class WishlistCheckMessageHandler(
     ILogger<WishlistCheckMessageHandler> logger,
     IOptions<RabbitMqOptions> options,
-    IMemoryCache cache,
+    IDistributedCache cache,
     IWishlistService wishlistService,
     IMessagePublisher messagePublisher)
 {
@@ -36,9 +37,9 @@ public sealed class WishlistCheckMessageHandler(
             CacheKeys.WishListBackgroundJobQueued,
             message.WishlistId);
 
-        if (cache.TryGetValue(notificationCacheKey, out _))
+        if (await cache.ExistsAsync(notificationCacheKey, cancellationToken))
         {
-            cache.Remove(queuedCacheKey);
+            await cache.RemoveAsync(queuedCacheKey, cancellationToken);
             logger.LogInformation(
                 "Wishlist check message {CorrelationId} skipped because wishlist item {WishlistId} is already cached.",
                 message.CorrelationId,
@@ -50,7 +51,7 @@ public sealed class WishlistCheckMessageHandler(
 
         if (!result.IsPriceReached)
         {
-            cache.Remove(queuedCacheKey);
+            await cache.RemoveAsync(queuedCacheKey, cancellationToken);
             logger.LogInformation(
                 "Wishlist check message {CorrelationId} completed for wishlist item {WishlistId}; price has not been reached.",
                 message.CorrelationId,

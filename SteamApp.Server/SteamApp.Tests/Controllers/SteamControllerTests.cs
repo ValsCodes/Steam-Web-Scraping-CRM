@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -485,12 +486,13 @@ public sealed class SteamControllerTests
         var response = new[] { new WatchItemDto { Name = "Async Fresh", Price = 4 } };
         var steamService = new Mock<ISteamService>();
         steamService.Setup(x => x.ScrapePage(1, 2)).ReturnsAsync(response);
-        using var cache = TestDb.CreateMemoryCache();
+        var cache = TestDb.CreateDistributedCache();
         var handler = CreateScrapeHandler(database, steamService, cache);
 
         await handler.HandleAsync(CreateScrapeMessage(history), CancellationToken.None);
 
         var updated = database.Context.AutomatedScrapeHistories.AsNoTracking().Single(x => x.Id == history.Id);
+        var cachedResult = await cache.GetAsync(string.Format(CacheKeys.ScrapePage, 1, 2));
         Assert.Multiple(() =>
         {
             Assert.That(updated.Status, Is.EqualTo(ScrapeJobStatusEnum.Succeeded));
@@ -498,7 +500,7 @@ public sealed class SteamControllerTests
             Assert.That(updated.ResultsJson, Does.Contain("Async Fresh"));
             Assert.That(updated.StartedAtUtc, Is.Not.Null);
             Assert.That(updated.CompletedAtUtc, Is.Not.Null);
-            Assert.That(cache.TryGetValue(string.Format(CacheKeys.ScrapePage, 1, 2), out _), Is.True);
+            Assert.That(cachedResult, Is.Not.Null);
         });
     }
 
@@ -554,10 +556,11 @@ public sealed class SteamControllerTests
             "Web Scrape",
             "correlation",
             CancellationToken.None);
-        using var cache = TestDb.CreateMemoryCache();
-        cache.Set(
+        var cache = TestDb.CreateDistributedCache();
+        await cache.SetStringAsync(
             string.Format(CacheKeys.ScrapePage, 1, 2),
-            new[] { new WatchItemDto { Name = "Cached Async", Price = 2 } });
+            System.Text.Json.JsonSerializer.Serialize(
+                new[] { new WatchItemDto { Name = "Cached Async", Price = 2 } }));
         var steamService = new Mock<ISteamService>(MockBehavior.Strict);
         var handler = CreateScrapeHandler(database, steamService, cache);
 
@@ -640,11 +643,11 @@ public sealed class SteamControllerTests
     private static ScrapeRequestedMessageHandler CreateScrapeHandler(
         TestDatabase database,
         Mock<ISteamService> steamService,
-        IMemoryCache? cache = null)
+        IDistributedCache? cache = null)
     {
         return new ScrapeRequestedMessageHandler(
             Mock.Of<ILogger<ScrapeRequestedMessageHandler>>(),
-            cache ?? TestDb.CreateMemoryCache(),
+            cache ?? TestDb.CreateDistributedCache(),
             new ScrapeExecutionService(steamService.Object),
             new ScrapeHistoryDataService(database.Factory));
     }

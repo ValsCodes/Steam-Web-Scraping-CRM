@@ -1,5 +1,7 @@
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
+using SteamApp.Application.DTOs.WatchItem;
 using SteamApp.Domain.Enums;
+using SteamApp.WebAPI.Caching;
 using SteamApp.WebAPI.MessageBrokers.Messages.Scraping;
 using SteamApp.WebAPI.Services;
 
@@ -7,10 +9,12 @@ namespace SteamApp.WebAPI.MessageBrokers.Handlers.Scraping;
 
 public sealed class ScrapeRequestedMessageHandler(
     ILogger<ScrapeRequestedMessageHandler> logger,
-    IMemoryCache cache,
+    IDistributedCache cache,
     IScrapeExecutionService scrapeExecution,
     IScrapeHistoryDataService scrapeHistoryData)
 {
+    private static readonly TimeSpan ResultCacheTtl = TimeSpan.FromMinutes(5);
+
     public async Task HandleAsync(
         ScrapeRequested message,
         CancellationToken cancellationToken)
@@ -51,12 +55,15 @@ public sealed class ScrapeRequestedMessageHandler(
 
         try
         {
-            if (ScrapeEndpointDefinitions.TryGetCachedResults(
-                    cache,
-                    message.Endpoint,
-                    message.GameUrlId,
-                    message.Page,
-                    out object? cached))
+            var cacheKey = ScrapeEndpointDefinitions.GetCacheKey(
+                message.Endpoint,
+                message.GameUrlId,
+                message.Page);
+            var cached = await cache.GetJsonAsync<List<WatchItemDto>>(
+                cacheKey,
+                cancellationToken);
+
+            if (cached is not null)
             {
                 await scrapeHistoryData.MarkSucceededAsync(
                     message.HistoryId,
@@ -75,10 +82,11 @@ public sealed class ScrapeRequestedMessageHandler(
                 message.GameUrlId,
                 message.Page);
 
-            cache.Set(
-                ScrapeEndpointDefinitions.GetCacheKey(message.Endpoint, message.GameUrlId, message.Page),
+            await cache.SetJsonAsync(
+                cacheKey,
                 result,
-                TimeSpan.FromMinutes(5));
+                ResultCacheTtl,
+                cancellationToken);
 
             await scrapeHistoryData.MarkSucceededAsync(
                 message.HistoryId,
