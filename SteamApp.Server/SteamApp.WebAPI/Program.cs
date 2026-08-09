@@ -43,13 +43,16 @@ public class Program
 
         builder.Configuration
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
-            .AddEnvironmentVariables();
+            .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true);
 
         if (builder.Environment.IsDevelopment())
         {
             builder.Configuration.AddUserSecrets<Program>();
         }
+
+        // Environment variables must remain the final provider so a launcher or
+        // deployment can override user-secrets without modifying stored secrets.
+        builder.Configuration.AddEnvironmentVariables();
 
         string[] required =
         [

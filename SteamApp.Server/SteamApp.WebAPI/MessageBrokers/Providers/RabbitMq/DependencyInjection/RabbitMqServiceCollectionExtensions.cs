@@ -19,9 +19,7 @@ public static class RabbitMqServiceCollectionExtensions
 
         ValidateWishlistBrokerConfiguration(configuration);
 
-        var rabbitMqOptions = configuration
-            .GetSection("RabbitMq")
-            .Get<RabbitMqOptions>() ?? new RabbitMqOptions();
+        var rabbitMqOptions = configuration.GetSection("RabbitMq").Get<RabbitMqOptions>() ?? new RabbitMqOptions();
 
         services.Configure<RabbitMqOptions>(configuration.GetSection("RabbitMq"));
         services.AddSingleton<RabbitMqConnection>();

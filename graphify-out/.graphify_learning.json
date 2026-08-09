@@ -1,0 +1,164 @@
+{
+  "generated_at": "2026-08-08T16:14:50.329128+00:00",
+  "nodes": {
+    "steamapp_client_angular_configurations_local_release": {
+      "code_fingerprint": "97c6e9d770b494a0788540fd95cf8b16f179de55e0d00c28136b1b785f842003",
+      "label": "local-release",
+      "last": "2026-08-08T16:12:12.385153+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-08T16:12:12.385153+00:00",
+          "outcome": "useful",
+          "q": "I still get Invalid user credentials. and the client doesn't open upon clicking the bat"
+        },
+        {
+          "date": "2026-08-08T15:58:35.167223+00:00",
+          "outcome": "useful",
+          "q": "did you allow the two the to communicate as I am getting Invalid user credentials. from the server"
+        },
+        {
+          "date": "2026-08-08T15:39:26.549524+00:00",
+          "outcome": "useful",
+          "q": "The launcher reports port 7443 already in use and it didn't open the browser automatically"
+        }
+      ],
+      "score": 2.999129247,
+      "source_file": "SteamApp.Client/angular.json",
+      "status": "preferred",
+      "uses": 3
+    },
+    "steamapp_client_angular_options_browser": {
+      "code_fingerprint": "97c6e9d770b494a0788540fd95cf8b16f179de55e0d00c28136b1b785f842003",
+      "label": "browser",
+      "last": "2026-08-08T16:12:12.385153+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-08T16:12:12.385153+00:00",
+          "outcome": "useful",
+          "q": "I still get Invalid user credentials. and the client doesn't open upon clicking the bat"
+        },
+        {
+          "date": "2026-08-08T15:39:26.549524+00:00",
+          "outcome": "useful",
+          "q": "The launcher reports port 7443 already in use and it didn't open the browser automatically"
+        }
+      ],
+      "score": 1.999389988,
+      "source_file": "SteamApp.Client/angular.json",
+      "status": "preferred",
+      "uses": 2
+    },
+    "steamapp_client_angular_projects_steam_app_angular_client": {
+      "code_fingerprint": "97c6e9d770b494a0788540fd95cf8b16f179de55e0d00c28136b1b785f842003",
+      "label": "steam-app-angular-client",
+      "last": "2026-08-08T15:27:13.957488+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-08T15:27:13.957488+00:00",
+          "outcome": "useful",
+          "q": "can we create a click once .exe or .bat file that would start the server and the client in Release mode and use the Local db connection instead of hosting the db"
+        }
+      ],
+      "score": 0.999236447,
+      "source_file": "SteamApp.Client/angular.json",
+      "status": "tentative",
+      "uses": 1
+    },
+    "steamapp_client_package_scripts_start": {
+      "code_fingerprint": "f6ce16972e9af868fa51e2ace2cfbcab1008f202c4e93a25ced0ece823db6178",
+      "label": "start",
+      "last": "2026-08-08T15:39:26.549524+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-08T15:39:26.549524+00:00",
+          "outcome": "useful",
+          "q": "The launcher reports port 7443 already in use and it didn't open the browser automatically"
+        }
+      ],
+      "score": 0.999432225,
+      "source_file": "SteamApp.Client/package.json",
+      "status": "tentative",
+      "uses": 1
+    },
+    "steamapp_server_steamapp_infrastructure_identity_applicationuser_steamapp_infrastructure_identity_applicationuser": {
+      "code_fingerprint": "a51f8b86df96419d162a883dbcf2f102ceb525ae5ba9c8ca0e36ec533ed1b36b",
+      "label": "ApplicationUser",
+      "last": "2026-08-08T16:12:12.385153+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-08T16:12:12.385153+00:00",
+          "outcome": "useful",
+          "q": "I still get Invalid user credentials. and the client doesn't open upon clicking the bat"
+        }
+      ],
+      "score": 0.999957764,
+      "source_file": "SteamApp.Server/SteamApp.Infrastructure/Identity/ApplicationUser.cs",
+      "status": "tentative",
+      "uses": 1
+    },
+    "steamapp_server_steamapp_webapi_controllers_authcontroller_steamapp_webapi_controllers_authcontroller": {
+      "code_fingerprint": "e343cd6dd6594657c21f89301d56782f80fa4f1bad7e1c2bc92c2bad108e33fe",
+      "label": "AuthController",
+      "last": "2026-08-08T16:12:12.385153+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-08T16:12:12.385153+00:00",
+          "outcome": "useful",
+          "q": "I still get Invalid user credentials. and the client doesn't open upon clicking the bat"
+        },
+        {
+          "date": "2026-08-08T15:58:35.167223+00:00",
+          "outcome": "useful",
+          "q": "did you allow the two the to communicate as I am getting Invalid user credentials. from the server"
+        }
+      ],
+      "score": 1.999697022,
+      "source_file": "SteamApp.Server/SteamApp.WebAPI/Controllers/AuthController.cs",
+      "status": "preferred",
+      "uses": 2
+    },
+    "steamapp_server_steamapp_webapi_controllers_authcontroller_steamapp_webapi_controllers_authcontroller_login": {
+      "code_fingerprint": "e343cd6dd6594657c21f89301d56782f80fa4f1bad7e1c2bc92c2bad108e33fe",
+      "label": ".Login()",
+      "last": "2026-08-08T16:12:12.385153+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-08T16:12:12.385153+00:00",
+          "outcome": "useful",
+          "q": "I still get Invalid user credentials. and the client doesn't open upon clicking the bat"
+        },
+        {
+          "date": "2026-08-08T15:58:35.167223+00:00",
+          "outcome": "useful",
+          "q": "did you allow the two the to communicate as I am getting Invalid user credentials. from the server"
+        }
+      ],
+      "score": 1.999697022,
+      "source_file": "SteamApp.Server/SteamApp.WebAPI/Controllers/AuthController.cs",
+      "status": "preferred",
+      "uses": 2
+    },
+    "steamapp_server_steamapp_webapi_program": {
+      "code_fingerprint": "d07b4b4b1e9ea499de6e2d8f9aca878d8629f9f4500621049fefc5dba8ae2740",
+      "label": "Program.cs",
+      "last": "2026-08-08T15:58:35.167223+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-08T15:58:35.167223+00:00",
+          "outcome": "useful",
+          "q": "did you allow the two the to communicate as I am getting Invalid user credentials. from the server"
+        },
+        {
+          "date": "2026-08-08T15:27:13.957488+00:00",
+          "outcome": "useful",
+          "q": "can we create a click once .exe or .bat file that would start the server and the client in Release mode and use the Local db connection instead of hosting the db"
+        }
+      ],
+      "score": 1.998975705,
+      "source_file": "SteamApp.Server/SteamApp.WebAPI/Program.cs",
+      "status": "preferred",
+      "uses": 2
+    }
+  },
+  "version": 1
+}

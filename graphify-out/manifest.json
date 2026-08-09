@@ -1,6 +1,6 @@
 {
   ".codex/hooks.json": {
-    "mtime": 1784651976.17758,
+    "mtime": 1784652889.1979823,
     "ast_hash": "af711142cc0cf16f929904ed9dc568cc",
     "semantic_hash": "af711142cc0cf16f929904ed9dc568cc"
   },
@@ -25,9 +25,9 @@
     "semantic_hash": "d2fc2624d783980be281b4cf0acc2455"
   },
   "SteamApp.Client/angular.json": {
-    "mtime": 1778848978.4221609,
-    "ast_hash": "a735f09fda17c8dbd6111c9625f8c306",
-    "semantic_hash": "a735f09fda17c8dbd6111c9625f8c306"
+    "mtime": 1786201913.7797337,
+    "ast_hash": "46c8ac370af6e71f167c079b80c91d33",
+    "semantic_hash": ""
   },
   "SteamApp.Client/e2e/auth-navigation.spec.ts": {
     "mtime": 1778848978.4377851,
@@ -1980,9 +1980,9 @@
     "semantic_hash": "10a015f3a9cd19b076804e98ea6531f2"
   },
   "SteamApp.Server/SteamApp.WebAPI/MessageBrokers/Providers/RabbitMq/DependencyInjection/RabbitMqServiceCollectionExtensions.cs": {
-    "mtime": 1783254122.4440598,
-    "ast_hash": "0447aa21a0e43001bd7a12a182b79978",
-    "semantic_hash": "0447aa21a0e43001bd7a12a182b79978"
+    "mtime": 1784653059.3844275,
+    "ast_hash": "b595f53991e4ef7bb0b81f95ac5602b2",
+    "semantic_hash": ""
   },
   "SteamApp.Server/SteamApp.WebAPI/MessageBrokers/Providers/RabbitMq/Options/RabbitMqOptions.cs": {
     "mtime": 1783254108.6739185,
@@ -2285,9 +2285,9 @@
     "semantic_hash": "7166f5db40d666b3c4ed55006dd1dc9d"
   },
   "SteamApp.Server/SteamApp.WebAPI/Program.cs": {
-    "mtime": 1783847260.9157739,
-    "ast_hash": "38086395be60b2c333ae9e53927f926f",
-    "semantic_hash": "38086395be60b2c333ae9e53927f926f"
+    "mtime": 1786205994.2505713,
+    "ast_hash": "184fc393d07dae390672eba1da4b493e",
+    "semantic_hash": ""
   },
   "SteamApp.Server/SteamApp.WebAPI/Properties/launchSettings.json": {
     "mtime": 1783775950.288845,
@@ -2340,9 +2340,9 @@
     "semantic_hash": "0633829d5f809149f18580b05868bca2"
   },
   "SteamApp.Server/SteamApp.WebAPI/Services/IdentitySchemaInitializer.cs": {
-    "mtime": 1783776658.78874,
-    "ast_hash": "b2cd954ea8ff3bd9e234bae4bb977a4d",
-    "semantic_hash": "b2cd954ea8ff3bd9e234bae4bb977a4d"
+    "mtime": 1786202443.172547,
+    "ast_hash": "cdf9f7cfd85738e510871517a983e09c",
+    "semantic_hash": ""
   },
   "SteamApp.Server/SteamApp.WebAPI/Services/ScrapeEndpointDefinitions.cs": {
     "mtime": 1783253936.2333808,
@@ -2380,9 +2380,9 @@
     "semantic_hash": "419756adc426e0ee355414b71678bbb9"
   },
   "SteamApp.Server/SteamApp.WebAPI/appsettings.Development.json": {
-    "mtime": 1783845400.159032,
-    "ast_hash": "1f828adb22eafe9677b01cde5eaaf85e",
-    "semantic_hash": "1f828adb22eafe9677b01cde5eaaf85e"
+    "mtime": 1784653081.8594782,
+    "ast_hash": "eeee413293e8f9b42c70ce8f5f475181",
+    "semantic_hash": ""
   },
   "SteamApp.Server/SteamApp.WebAPI/appsettings.json": {
     "mtime": 1783846027.8903995,
@@ -2453,5 +2453,345 @@
     "mtime": 1782565460.66068,
     "ast_hash": "0350514100805198c4fea6bd7e3fcbad",
     "semantic_hash": "0350514100805198c4fea6bd7e3fcbad"
+  },
+  "SteamApp.Client/src/environment/environment.local-release.ts": {
+    "mtime": 1786201899.3097553,
+    "ast_hash": "efc30c05e66f4161c34bb2f118d54944",
+    "semantic_hash": ""
+  },
+  ".codex/skills/graphify/SKILL.md": {
+    "mtime": 1784652889.20398,
+    "ast_hash": "178fd38a8b3d7d0cab6162dfa637288a",
+    "semantic_hash": ""
+  },
+  ".codex/skills/graphify/references/add-watch.md": {
+    "mtime": 1784652889.213372,
+    "ast_hash": "58c888b5ec0689a886543dd765c1acc9",
+    "semantic_hash": ""
+  },
+  ".codex/skills/graphify/references/exports.md": {
+    "mtime": 1784652889.2168746,
+    "ast_hash": "ecc0c36852fee4ba6280cdf2b9149039",
+    "semantic_hash": ""
+  },
+  ".codex/skills/graphify/references/extraction-spec.md": {
+    "mtime": 1784652889.22588,
+    "ast_hash": "e36dd450e4a3a90f5fe9073f4198fabc",
+    "semantic_hash": ""
+  },
+  ".codex/skills/graphify/references/github-and-merge.md": {
+    "mtime": 1784652889.2311075,
+    "ast_hash": "aa0e7ef186392cad062e60483ca7dbbf",
+    "semantic_hash": ""
+  },
+  ".codex/skills/graphify/references/hooks.md": {
+    "mtime": 1784652889.2352364,
+    "ast_hash": "0045c2f12c69bff3a641a8908a1ac057",
+    "semantic_hash": ""
+  },
+  ".codex/skills/graphify/references/query.md": {
+    "mtime": 1784652889.2402916,
+    "ast_hash": "852ef14334d60a75ae666ea103d4c4f0",
+    "semantic_hash": ""
+  },
+  ".codex/skills/graphify/references/transcribe.md": {
+    "mtime": 1784652889.2468004,
+    "ast_hash": "5c6a9af05d12b5797b2fa8b9493dcc37",
+    "semantic_hash": ""
+  },
+  ".codex/skills/graphify/references/update.md": {
+    "mtime": 1784652889.2523406,
+    "ast_hash": "07bf4293ea21b4e00a9655dd4e7f0af5",
+    "semantic_hash": ""
+  },
+  ".github/workflows/ci.yml": {
+    "mtime": 1778848978.4065373,
+    "ast_hash": "31bab3270a04bf403c4a23c63503e8e4",
+    "semantic_hash": ""
+  },
+  "AGENTS.md": {
+    "mtime": 1784652889.2610435,
+    "ast_hash": "21ceb6533048be51308e69e7b74a35cf",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1786206262.426838,
+    "ast_hash": "2e275a59e9424d748fc9f1c53ff3d090",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/README.md": {
+    "mtime": 1771765814.4629326,
+    "ast_hash": "98a38df93d945d2cf922da46edc2c8bd",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/app.component.html": {
+    "mtime": 1778848978.5117383,
+    "ast_hash": "7f6039d1eaece348d55b8cb2b362aef6",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/components/dropdown/dropdown.component.html": {
+    "mtime": 1771774787.1555562,
+    "ast_hash": "6d8b93e46306e65897b281a91736fb50",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/components/site-footer/site-footer.html": {
+    "mtime": 1782651315.5945568,
+    "ast_hash": "3ef020353f5269603f9da8392bacb236",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/components/site-header/site-header.component.html": {
+    "mtime": 1782656056.851147,
+    "ast_hash": "b4b9d4a111e706d01e200011b4381b2a",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/about/about-page.html": {
+    "mtime": 1782567107.3936305,
+    "ast_hash": "3b5347221815e2780d4f7d273cdf9c76",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/admin/users/admin-users-page.html": {
+    "mtime": 1782656009.4495895,
+    "ast_hash": "1a950ac7e636b6905937d0163ed40cfc",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/external-link-disclosure/external-link-disclosure-page.html": {
+    "mtime": 1782565459.6095688,
+    "ast_hash": "c619d8ec1a0cf58a1d6bbe9999be9a9c",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/faq/faq-page.html": {
+    "mtime": 1782566102.105142,
+    "ast_hash": "25cec17f2a7aa58c7a0a332783b4dcfa",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/feedback/feedback-request-form/feedback-request-form.html": {
+    "mtime": 1782571551.0276396,
+    "ast_hash": "9d62a17fafcc2600b17818a44725eb86",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/feedback/feedback-requests-view/feedback-requests-view.html": {
+    "mtime": 1782571457.3803685,
+    "ast_hash": "8d92dc18b0ed2e908b78aaba3b1689ff",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/feedback/feedback-send-page/feedback-send-page.html": {
+    "mtime": 1782568906.8015738,
+    "ast_hash": "4c73f0900fb117f287d47088cf231b0f",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/game-url/game-url-form/game-url-form.html": {
+    "mtime": 1778848978.7372117,
+    "ast_hash": "772ec879f0da8a2d8eccd56ec870d51a",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/game-url/game-urls-view/game-urls-view.html": {
+    "mtime": 1782565459.6345704,
+    "ast_hash": "8565dee5c98fd05fd2f89f54a07767d5",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/game/game-form/game-form.html": {
+    "mtime": 1778848978.7684555,
+    "ast_hash": "332b0779d07023d9dc94e29cc556199e",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/game/games-view/games-view.html": {
+    "mtime": 1782565459.6505876,
+    "ast_hash": "1721a0bd7f38bc473cfa1f7e55595b86",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/home/home-page.html": {
+    "mtime": 1782567079.552511,
+    "ast_hash": "2e81f359faea261b3bba77ad62566db8",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/login/login.component.html": {
+    "mtime": 1782565459.7085817,
+    "ast_hash": "7a517b2801aa15d603f6fcb3dec0a64f",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/manual-mode-v2/manual-mode-v2.html": {
+    "mtime": 1782653358.9852672,
+    "ast_hash": "e8937ea1fef50117ee09ca39da7a8614",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/not-found/not-found-page.html": {
+    "mtime": 1778848978.8748863,
+    "ast_hash": "7c6544782209e53cd4e2cc2bf2d9b9ea",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/pixel/pixel-form/pixel-form.html": {
+    "mtime": 1778848978.8895032,
+    "ast_hash": "e6e3b882cc4da034055df6dc42897921",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/pixel/pixels-view/pixels-view.html": {
+    "mtime": 1782565459.7866776,
+    "ast_hash": "2d27541767ae7b34d8875c03b23b98b9",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/pricing/pricing-page.html": {
+    "mtime": 1780564898.2037733,
+    "ast_hash": "d241438736ed43af7ad88af129d60198",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/product/product-form/product-form.html": {
+    "mtime": 1778848979.0216222,
+    "ast_hash": "d1017fee25564d39920690957016aea8",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/product/products-view/products-view.html": {
+    "mtime": 1782565459.7946804,
+    "ast_hash": "cc6dbb1496d4f30279c123dc0cc517a6",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/profile/profile-page.html": {
+    "mtime": 1782565459.8006802,
+    "ast_hash": "a91dafc068457c0a59e254d07b858334",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/session-expired/session-expired-page.html": {
+    "mtime": 1778848979.0787177,
+    "ast_hash": "2763e9be3dffc3d26bb6a22a14a61ba1",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/tag/tag-form/tag-form.html": {
+    "mtime": 1778848979.0949626,
+    "ast_hash": "96cbbb741587ebeb824552e950350b05",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/tag/tags-view/tags-view.html": {
+    "mtime": 1782565459.8136778,
+    "ast_hash": "61566b3475e5176ad774d230768dd399",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/watch-list/watch-list-form/watch-list-form.html": {
+    "mtime": 1778848979.1262264,
+    "ast_hash": "e351a7639552f933a3d3469ce7726d1e",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/watch-list/watch-lists-view/watch-lists-view.html": {
+    "mtime": 1782565459.8216822,
+    "ast_hash": "6e877d53aa8f1557c869f46961ef8188",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/web-scraper/web-scraper.component.html": {
+    "mtime": 1782652535.7955072,
+    "ast_hash": "4c36046ed2e8951f55429b8f98ec4350",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/wish-list/wish-list-form/wish-list-form.html": {
+    "mtime": 1782565459.914679,
+    "ast_hash": "ed27f74e0af72231c57159d322ef92f6",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/app/pages/wish-list/wish-lists-view/wish-lists-view.html": {
+    "mtime": 1782565459.9446795,
+    "ast_hash": "11866f90cd437204f33597751c7eb25e",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/index.html": {
+    "mtime": 1778848979.4193146,
+    "ast_hash": "fbeb9de2ec864125dac766feedb91744",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/robots.txt": {
+    "mtime": 1782566283.8816426,
+    "ast_hash": "e5c99fa596c5b0463a9b0b7c6e8ec37d",
+    "semantic_hash": ""
+  },
+  "SteamApp.Server/SteamApp.WebAPI/.github/copilot-instructions.md": {
+    "mtime": 1778848980.8424742,
+    "ast_hash": "1953f5a6e590a211329c8cff6f0fb3f3",
+    "semantic_hash": ""
+  },
+  "SteamApp.Server/SteamApp.WebAPI/PR Directive.md": {
+    "mtime": 1783840635.4863765,
+    "ast_hash": "981994c08c15c3f0d4947b5e5667dec6",
+    "semantic_hash": ""
+  },
+  "SteamApp.Server/SteamApp.WebAPI/docker-compose.yml": {
+    "mtime": 1783840431.146126,
+    "ast_hash": "f467c694593cf35711b21db3127077a9",
+    "semantic_hash": ""
+  },
+  "docker-compose.mail.yml": {
+    "mtime": 1783845490.9879391,
+    "ast_hash": "a839f753b0d0a5c59bc8e1d18a3d8f35",
+    "semantic_hash": ""
+  },
+  "docker-compose.yml": {
+    "mtime": 1783840407.3970034,
+    "ast_hash": "f281bd176c85beb11ad7d486a4afa9ca",
+    "semantic_hash": ""
+  },
+  "docs/API_REFERENCE.md": {
+    "mtime": 1778848981.4103208,
+    "ast_hash": "bc25567087d1ee3d7a0415ef6098117a",
+    "semantic_hash": ""
+  },
+  "docs/ARCHITECTURE.md": {
+    "mtime": 1778848981.4244623,
+    "ast_hash": "d182beb9ed2ecdcac20e9aed28047a41",
+    "semantic_hash": ""
+  },
+  "docs/CONTRIBUTING.md": {
+    "mtime": 1778848981.431569,
+    "ast_hash": "83f3308f2e5bd50d237c03a11935654e",
+    "semantic_hash": ""
+  },
+  "docs/GETTING_STARTED.md": {
+    "mtime": 1778848981.4452705,
+    "ast_hash": "f2f5b6f260e076cf5a6d231ab6945580",
+    "semantic_hash": ""
+  },
+  "docs/MAILSERVER.md": {
+    "mtime": 1783845528.4016728,
+    "ast_hash": "0adf17e976cfe6e7c252fca7a9949bfe",
+    "semantic_hash": ""
+  },
+  "docs/PROJECT_DESCRIPTION_BG.md": {
+    "mtime": 1778848981.4523256,
+    "ast_hash": "7551cfe1fab9329b05daab877a30a15c",
+    "semantic_hash": ""
+  },
+  "docs/PROJECT_DESCRIPTION_ENG.md": {
+    "mtime": 1778848981.465388,
+    "ast_hash": "daad2b90cfca29492a5c620793bad2d4",
+    "semantic_hash": ""
+  },
+  "env/README.md": {
+    "mtime": 1778848981.4758053,
+    "ast_hash": "89d2d37b401b5cdd81b51494cd366d0d",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/assets/brand/steam-app-mark.svg": {
+    "mtime": 1778848979.3796384,
+    "ast_hash": "032a04263c08cd067e169a5bca85bb13",
+    "semantic_hash": ""
+  },
+  "SteamApp.Client/src/assets/brand/steam-app-social.svg": {
+    "mtime": 1778848979.3927608,
+    "ast_hash": "92489442373ea427b9bce3b7eff2a42f",
+    "semantic_hash": ""
+  },
+  "graphify-out/memory/query_20260808_152713_can_we_create_a_click_once__exe_or__bat_file_that.md": {
+    "mtime": 1786202833.957488,
+    "ast_hash": "daf22ace4d2c35ea94fe117878f3cf34",
+    "semantic_hash": ""
+  },
+  "graphify-out/memory/query_20260808_153926_the_launcher_reports_port_7443_already_in_use_and.md": {
+    "mtime": 1786203566.5495245,
+    "ast_hash": "2517b660c96d64fbee819c9b526622c7",
+    "semantic_hash": ""
+  },
+  "graphify-out/memory/query_20260808_155835_did_you_allow_the_two_the_to_communicate_as_i_am_g.md": {
+    "mtime": 1786204715.1672237,
+    "ast_hash": "5d0160362d88c1a865e7d6c30d4dd02f",
+    "semantic_hash": ""
+  },
+  "graphify-out/memory/query_20260808_161212_i_still_get_invalid_user_credentials__and_the_clie.md": {
+    "mtime": 1786205532.3851533,
+    "ast_hash": "1a15d50aba41a3ba13f6ec80c5b0eca5",
+    "semantic_hash": ""
   }
 }
