@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 
@@ -27,7 +27,9 @@ export class AdminUsersPage implements OnInit {
 
   private readonly updatingIds = new Set<string>();
 
-  constructor(private readonly adminUserService: AdminUserService) {}
+  constructor(private readonly adminUserService: AdminUserService,
+      private readonly cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.loadUsers();
@@ -41,6 +43,7 @@ export class AdminUsersPage implements OnInit {
       .getUsers()
       .pipe(finalize(() => {
         this.isLoading = false;
+        this.cdr.markForCheck();
       }))
       .subscribe({
         next: users => {

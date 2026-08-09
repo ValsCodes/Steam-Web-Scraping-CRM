@@ -250,5 +250,9 @@
   "248": "ControllerSecurityMetadataTests",
   "249": ".ExecuteAsync",
   "250": "ChangePasswordRequest.cs",
-  "251": "DeleteUserRequest.cs"
+  "251": "DeleteUserRequest.cs",
+  "252": "20260515171509_AddUserOwnership.Designer.cs",
+  "253": "20260516144656_AddAutomatedScrapeHistory.Designer.cs",
+  "254": "20260627144144_AddFeedbackRequestHistory.Designer.cs",
+  "255": "ScrapingMode"
 }
