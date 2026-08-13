@@ -28,6 +28,7 @@ all
 allow
 allowed
 allows
+already
 analytics
 analyze
 analyzers
@@ -72,6 +73,7 @@ authorization
 authorize
 auto
 automated
+automatically
 autoprefixer
 available
 azure
@@ -152,6 +154,8 @@ clear
 cli
 click
 clicked
+clicking
+clie
 client
 clone
 close
@@ -169,6 +173,7 @@ command
 commands
 commit
 common
+communicate
 communities
 compact
 compiler
@@ -230,6 +235,7 @@ cryptography
 csproj
 css
 current
+currently
 custom
 data
 database
@@ -268,6 +274,8 @@ development
 devkit
 dialog
 dictionary
+did
+didn
 dir
 directive
 disabled
@@ -286,6 +294,7 @@ dockerfile
 document
 documentation
 does
+doesn
 domain
 dot
 dotnet
@@ -788,6 +797,7 @@ repo
 report
 reporter
 reporting
+reports
 repos
 repositories
 repository
@@ -809,6 +819,7 @@ responce
 response
 responses
 respose
+restart
 restore
 restrictions
 result
@@ -818,6 +829,7 @@ retries
 retry
 return
 returns
+reuse
 review
 rework
 rgb
@@ -928,6 +940,7 @@ status
 steam
 step
 steps
+still
 stop
 stopwatch
 storage
@@ -1003,6 +1016,7 @@ trusted
 try
 tsconfig
 tslib
+two
 txt
 type
 types
@@ -1019,6 +1033,7 @@ updates
 updating
 upgrade
 upgrades
+upon
 uri
 url
 urls

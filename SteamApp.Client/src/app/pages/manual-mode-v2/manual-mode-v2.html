@@ -81,6 +81,8 @@
                                 name="manualModeCurrentItem"
                                 class="w-full rounded border border-slate-300 px-3 py-2"
                                 type="number"
+                                min="1"
+                                step="1"
                                 [value]="currentIndex"
                                 (input)="currentIndex = $any($event.target).valueAsNumber" />
                         </div>
@@ -92,6 +94,9 @@
                                 name="manualModeBatchSize"
                                 class="w-full rounded border border-slate-300 px-3 py-2"
                                 type="number"
+                                min="1"
+                                max="5"
+                                step="1"
                                 [value]="batchSize"
                                 (input)="batchSize = $any($event.target).valueAsNumber" />
                         </div>
@@ -108,9 +113,22 @@
 
                         <div class="flex flex-wrap gap-2">
                             <button
+                                (click)="runPreviousBatchButtonClicked()"
+                                class="button button-small-primary"
+                                [disabled]="(currentIndex ?? 1) <= 1">
+                                Run Previous Batch
+                            </button>
+
+                            <button
                                 (click)="startBatchButtonClicked()"
                                 class="button button-small-success">
                                 Run Batch
+                            </button>
+
+                            <button
+                                (click)="runNextBatchButtonClicked()"
+                                class="button button-small-primary">
+                                Run Next Batch
                             </button>
 
                             <button

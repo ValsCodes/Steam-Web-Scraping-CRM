@@ -135,12 +135,6 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
         this.clearBatchButtonClicked();
 
-        const selectedGameUrl = this.selectedGameUrl;
-        if (this.isBatchMode(selectedGameUrl)) {
-          this.currentIndex = selectedGameUrl?.startPage ?? null;
-          this.batchSize = this.currentIndex === null ? null : 5;
-        }
-
         this.cdr.markForCheck();
       });
 
@@ -221,29 +215,19 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   }
 
   startBatchButtonClicked(): void {
-    let currentIndex = this.currentIndex ?? 0;
+    const currentIndex = this.normalizedCurrentIndex();
+    const batchSize = this.normalizedBatchSize();
+    const toItem = currentIndex + batchSize;
 
-    if (this.batchSize === null) {
-      this.batchSize = 0;
-    }
-
-    if (this.batchSize > 5) {
-      this.batchSize = 5;
-    }
-
-    const batchSize = this.batchSize;
-    const toPage = currentIndex + batchSize;
+    this.currentIndex = currentIndex;
+    this.batchSize = batchSize;
 
     const selectedGameUrl = this.selectedGameUrl;
     if (this.isBatchMode(selectedGameUrl)) {
-      while (currentIndex < toPage) {
-        if (currentIndex < 0) {
-          break;
-        }
-
+      for (let itemIndex = currentIndex; itemIndex < toItem; itemIndex++) {
         const url = (selectedGameUrl?.partialUrl ?? '').replace(
           '{0}',
-          String(currentIndex),
+          String(itemIndex),
         );
 
         const result = this.externalLinkDisclosure.openTrustedUrl(
@@ -253,12 +237,10 @@ export class ManualModeV2 implements OnInit, OnDestroy {
         if (result === 'needs-disclosure') {
           break;
         }
-
-        currentIndex++;
       }
     } else {
-      while (currentIndex < toPage) {
-        const productIndex = currentIndex - 1;
+      for (let itemIndex = currentIndex; itemIndex < toItem; itemIndex++) {
+        const productIndex = itemIndex - 1;
         if (productIndex < 0 || productIndex >= this.productsFiltered.length) {
           break;
         }
@@ -273,19 +255,46 @@ export class ManualModeV2 implements OnInit, OnDestroy {
         if (result === 'needs-disclosure') {
           break;
         }
-
-        currentIndex++;
       }
     }
 
-    this.currentIndex = currentIndex;
     this.cdr.markForCheck();
   }
 
+  runPreviousBatchButtonClicked(): void {
+    this.currentIndex = Math.max(
+      1,
+      this.normalizedCurrentIndex() - this.normalizedBatchSize(),
+    );
+    this.startBatchButtonClicked();
+  }
+
+  runNextBatchButtonClicked(): void {
+    this.currentIndex =
+      this.normalizedCurrentIndex() + this.normalizedBatchSize();
+    this.startBatchButtonClicked();
+  }
+
   clearBatchButtonClicked(): void {
-    this.currentIndex = null;
-    this.batchSize = null;
+    this.currentIndex = 1;
+    this.batchSize = 1;
     this.cdr.markForCheck();
+  }
+
+  private normalizedCurrentIndex(): number {
+    if (this.currentIndex === null || !Number.isFinite(this.currentIndex)) {
+      return 1;
+    }
+
+    return Math.max(1, Math.trunc(this.currentIndex));
+  }
+
+  private normalizedBatchSize(): number {
+    if (this.batchSize === null || !Number.isFinite(this.batchSize)) {
+      return 1;
+    }
+
+    return Math.min(5, Math.max(1, Math.trunc(this.batchSize)));
   }
 
   getProductOpenUrl(url: string | null | undefined): string | null {

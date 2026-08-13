@@ -51,7 +51,7 @@ describe('ManualModeV2 external link disclosure', () => {
     );
   });
 
-  it('opens batch URLs through the disclosure service and advances the batch index', () => {
+  it('opens batch URLs through the disclosure service without advancing the current item', () => {
     component.selectedGameUrl = {
       scrapingModeId: ScrapingModeEnum.Batch,
       partialUrl: 'https://steamcommunity.com/market/search?q={0}',
@@ -66,7 +66,7 @@ describe('ManualModeV2 external link disclosure', () => {
       ['https://steamcommunity.com/market/search?q=1', '/manual-mode-v2'],
       ['https://steamcommunity.com/market/search?q=2', '/manual-mode-v2'],
     ]);
-    expect(component.currentIndex).toBe(3);
+    expect(component.currentIndex).toBe(1);
     expect(cdr.markForCheck).toHaveBeenCalled();
   });
 
@@ -92,7 +92,7 @@ describe('ManualModeV2 external link disclosure', () => {
         '/manual-mode-v2',
       ],
     ]);
-    expect(component.currentIndex).toBe(3);
+    expect(component.currentIndex).toBe(1);
   });
 
   it('opens manual product batch URLs through Steam when Steam mode is checked', () => {
@@ -120,7 +120,53 @@ describe('ManualModeV2 external link disclosure', () => {
         '/manual-mode-v2',
       ],
     ]);
+    expect(component.currentIndex).toBe(1);
+  });
+
+  it('runs and selects the previous batch', () => {
+    component.selectedGameUrl = {
+      scrapingModeId: ScrapingModeEnum.Batch,
+      partialUrl: 'https://steamcommunity.com/market/search?q={0}',
+    } as never;
+    component.currentIndex = 3;
+    component.batchSize = 2;
+    disclosure.openTrustedUrl.and.returnValue('opened');
+
+    component.runPreviousBatchButtonClicked();
+
+    expect(disclosure.openTrustedUrl.calls.allArgs()).toEqual([
+      ['https://steamcommunity.com/market/search?q=1', '/manual-mode-v2'],
+      ['https://steamcommunity.com/market/search?q=2', '/manual-mode-v2'],
+    ]);
+    expect(component.currentIndex).toBe(1);
+  });
+
+  it('runs and selects the next batch', () => {
+    component.selectedGameUrl = {
+      scrapingModeId: ScrapingModeEnum.Batch,
+      partialUrl: 'https://steamcommunity.com/market/search?q={0}',
+    } as never;
+    component.currentIndex = 1;
+    component.batchSize = 2;
+    disclosure.openTrustedUrl.and.returnValue('opened');
+
+    component.runNextBatchButtonClicked();
+
+    expect(disclosure.openTrustedUrl.calls.allArgs()).toEqual([
+      ['https://steamcommunity.com/market/search?q=3', '/manual-mode-v2'],
+      ['https://steamcommunity.com/market/search?q=4', '/manual-mode-v2'],
+    ]);
     expect(component.currentIndex).toBe(3);
+  });
+
+  it('resets batch settings to one', () => {
+    component.currentIndex = 9;
+    component.batchSize = 4;
+
+    component.clearBatchButtonClicked();
+
+    expect(component.currentIndex).toBe(1);
+    expect(component.batchSize).toBe(1);
   });
 
   it('uses Steam URLs for product cards when Steam mode is checked', () => {
