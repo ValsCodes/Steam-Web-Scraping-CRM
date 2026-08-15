@@ -229,13 +229,10 @@
   "227": "karma",
   "228": "karma-jasmine-html-reporter",
   "229": "rxjs",
-  "230": "tailwindcss",
-  "231": "zone.js",
   "232": "environment.local-release.ts",
   "233": "PROJECT_DESCRIPTION_ENG.md",
   "234": "copilot-instructions.md",
   "235": "OneShotHttpServer",
-  "236": "jest-environment-jsdom",
   "237": "AddFeedbackRequests",
   "238": ".SwaggerIsExposedInDevelopmentAndHiddenBehindProductionApiSecurity",
   "239": "SteamApp.Application.DTOs.ScrapingMode",
@@ -255,5 +252,10 @@
   "253": "20260516144656_AddAutomatedScrapeHistory.Designer.cs",
   "254": "20260627144144_AddFeedbackRequestHistory.Designer.cs",
   "255": "ScrapingMode",
-  "256": "DeleteUserRequest.cs"
+  "256": "DeleteUserRequest.cs",
+  "257": "ScrapingModeEndpoints",
+  "258": "TagsEndpoints",
+  "259": "WatchListEndpoints",
+  "260": "WishListEndpoints",
+  "261": "SecurityPolicies.cs"
 }

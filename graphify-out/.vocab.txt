@@ -81,6 +81,7 @@ back
 backend
 backfill
 background
+backoff
 bad
 base
 baseline
@@ -134,8 +135,10 @@ certificates
 change
 changed
 changes
+channel
 check
 checkboxes
+checked
 checks
 child
 chrome
@@ -175,8 +178,10 @@ commit
 common
 communicate
 communities
+community
 compact
 compiler
+complete
 completes
 component
 components
@@ -185,6 +190,7 @@ composite
 composition
 concurrency
 concurrent
+condition
 config
 configuration
 configurations
@@ -205,6 +211,7 @@ contains
 content
 context
 contexts
+continues
 contract
 contracts
 contributing
@@ -228,6 +235,8 @@ created
 creates
 creating
 credentials
+criteria
+criterion
 crm
 cross
 crud
@@ -259,6 +268,7 @@ dependency
 derive
 descending
 description
+descriptions
 deserialization
 deserialize
 design
@@ -278,6 +288,7 @@ did
 didn
 dir
 directive
+dirty
 disabled
 disclosure
 disconnect
@@ -299,6 +310,7 @@ domain
 dot
 dotnet
 down
+draft
 drawing
 driver
 dropdown
@@ -311,9 +323,11 @@ dynamic
 edit
 effective
 element
+eligible
 email
 emails
 empty
+enable
 enabled
 encode
 encoder
@@ -325,6 +339,8 @@ endpoints
 enforced
 enforces
 eng
+enqueue
+enqueues
 ensure
 entities
 entity
@@ -337,7 +353,9 @@ equals
 error
 errors
 event
+every
 evidence
+exact
 examples
 exception
 exceptions
@@ -368,8 +386,10 @@ extract
 extraction
 extras
 factory
+fail
 failed
 fails
+failure
 failures
 fake
 falkor
@@ -380,6 +400,7 @@ favicon
 features
 feedback
 fetch
+fetched
 field
 fields
 file
@@ -396,6 +417,7 @@ fix
 fixed
 flag
 flags
+flattens
 flow
 flows
 folder
@@ -469,12 +491,15 @@ https
 hub
 ico
 icon
+identifier
 identity
 ids
+ignores
 iis
 image
 important
 include
+increment
 incremental
 index
 indigo
@@ -500,6 +525,7 @@ interceptor
 interfaces
 internal
 interpreter
+interrupted
 interval
 into
 invalid
@@ -519,6 +545,7 @@ jsdom
 json
 jwt
 karma
+keeps
 key
 keys
 kit
@@ -537,6 +564,7 @@ lifetime
 like
 limit
 limited
+limiting
 limits
 link
 list
@@ -564,6 +592,7 @@ mailserver
 main
 maintainability
 make
+man
 management
 manager
 managers
@@ -580,6 +609,8 @@ marker
 market
 marks
 mat
+match
+matcher
 matches
 matching
 material
@@ -630,6 +661,7 @@ node
 nodes
 non
 normalize
+normalized
 normalizes
 not
 notification
@@ -673,6 +705,7 @@ pagination
 paginator
 paint
 paints
+panel
 parallel
 parameters
 parse
@@ -681,12 +714,14 @@ parses
 part
 partial
 partition
+pass
 password
 patch
 path
 paths
 pause
 payload
+per
 periodic
 persist
 persisted
@@ -715,6 +750,7 @@ prefix
 prerequisites
 present
 preset
+presets
 prevent
 previous
 price
@@ -730,6 +766,7 @@ products
 profile
 profiles
 program
+progress
 project
 projected
 projects
@@ -769,6 +806,7 @@ reads
 recipient
 recipients
 recommended
+reconciliation
 record
 recording
 records
@@ -792,6 +830,8 @@ remote
 remove
 removes
 removing
+render
+renders
 replacements
 repo
 report
@@ -830,6 +870,7 @@ retry
 return
 returns
 reuse
+reuses
 review
 rework
 rgb
@@ -844,9 +885,11 @@ rows
 rules
 run
 running
+runs
 rxjs
 safe
 safety
+same
 save
 saver
 schema
@@ -895,6 +938,7 @@ several
 severity
 sha
 shape
+shared
 sheen
 sheens
 short
@@ -908,6 +952,7 @@ sitemap
 size
 skill
 skips
+slash
 slim
 sln
 slot
@@ -915,6 +960,7 @@ slots
 smoke
 smtp
 snapshot
+snapshots
 socket
 solid
 solution
@@ -958,6 +1004,7 @@ subagents
 subcommands
 submit
 succeeded
+succeeds
 successful
 suffixes
 summary
@@ -980,6 +1027,7 @@ targets
 task
 tcp
 tech
+term
 terminal
 test
 testing
@@ -989,11 +1037,14 @@ that
 the
 their
 themes
+then
+three
 through
 throw
 throws
 tick
 time
+timeout
 timer
 timestamp
 title
@@ -1007,6 +1058,7 @@ tooltip
 total
 track
 tracker
+trailing
 transcribe
 transient
 transition
@@ -1024,6 +1076,7 @@ typescript
 unavailable
 unconfigured
 unexpected
+unique
 unit
 unlocks
 unpadded
@@ -1046,6 +1099,7 @@ uses
 utilities
 valid
 validate
+validates
 validation
 validator
 value
@@ -1059,6 +1113,7 @@ version
 versioned
 video
 view
+viewer
 visual
 wacth
 wait
@@ -1080,6 +1135,7 @@ windows
 wish
 wishlist
 with
+within
 withlist
 without
 words
@@ -1088,6 +1144,7 @@ worker
 workflow
 works
 would
+write
 wrong
 xlsx
 xml

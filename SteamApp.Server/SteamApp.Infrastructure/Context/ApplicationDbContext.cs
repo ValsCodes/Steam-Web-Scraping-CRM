@@ -24,6 +24,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Tag> Tags { get; set; }
     public DbSet<ProductTags> ProductTags { get; set; }
     public DbSet<AutomatedScrapeHistory> AutomatedScrapeHistories { get; set; }
+    public DbSet<ManualCheckPreset> ManualCheckPresets { get; set; }
+    public DbSet<ManualCheckRun> ManualCheckRuns { get; set; }
     public DbSet<FeedbackRequest> FeedbackRequests { get; set; }
     public DbSet<FeedbackRequestHistory> FeedbackRequestHistories { get; set; }
 
@@ -169,6 +171,68 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
             entity.HasIndex(x => new { x.UserId, x.Date });
             entity.HasIndex(x => new { x.UserId, x.Status });
+            entity.HasIndex(x => x.GameUrlId);
+        });
+        modelBuilder.Entity<ManualCheckPreset>(entity =>
+        {
+            entity.Property(x => x.Name)
+                  .HasMaxLength(ManualCheckPreset.NameMaxLength)
+                  .HasColumnName("name");
+
+            entity.Property(x => x.MatchMode)
+                  .HasColumnName("match_mode");
+
+            entity.Property(x => x.CriteriaJson)
+                  .HasColumnName("criteria_json");
+
+            entity.HasOne(x => x.Game)
+                  .WithMany()
+                  .HasForeignKey(x => x.GameId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => new { x.GameId, x.Name })
+                  .IsUnique();
+        });
+        modelBuilder.Entity<ManualCheckRun>(entity =>
+        {
+            entity.Property(x => x.PresetName)
+                  .HasMaxLength(ManualCheckPreset.NameMaxLength)
+                  .HasColumnName("preset_name");
+
+            entity.Property(x => x.SetupJson)
+                  .HasColumnName("setup_json");
+
+            entity.Property(x => x.ResultsJson)
+                  .HasColumnName("results_json");
+
+            entity.Property(x => x.Status)
+                  .HasColumnName("status");
+
+            entity.Property(x => x.ErrorText)
+                  .HasColumnName("error_text");
+
+            entity.Property(x => x.CorrelationId)
+                  .HasMaxLength(64)
+                  .HasColumnName("correlation_id");
+
+            entity.HasOne(x => x.ManualCheckPreset)
+                  .WithMany(x => x.Runs)
+                  .HasForeignKey(x => x.ManualCheckPresetId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(x => x.Game)
+                  .WithMany()
+                  .HasForeignKey(x => x.GameId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.GameUrl)
+                  .WithMany()
+                  .HasForeignKey(x => x.GameUrlId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.Date);
+            entity.HasIndex(x => x.Status);
+            entity.HasIndex(x => x.GameId);
             entity.HasIndex(x => x.GameUrlId);
         });
         modelBuilder.Entity<WatchList>(entity =>

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -210,6 +211,46 @@ public class Program
         builder.Services.AddRateLimiter(opts =>
         {
             opts.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            opts.OnRejected = async (context, cancellationToken) =>
+            {
+                var response = context.HttpContext.Response;
+                response.StatusCode = StatusCodes.Status429TooManyRequests;
+                var retryAfter = context.Lease.TryGetMetadata(
+                    MetadataName.RetryAfter,
+                    out TimeSpan retryDelay)
+                    ? retryDelay
+                    : TimeSpan.Zero;
+
+                if (retryAfter > TimeSpan.Zero)
+                {
+                    response.Headers.RetryAfter = Math.Ceiling(retryAfter.TotalSeconds).ToString();
+                }
+
+                var logger = context.HttpContext.RequestServices
+                    .GetRequiredService<ILogger<Program>>();
+                logger.LogWarning(
+                    "Rate limit rejected {Method} {Path}. Trace ID: {TraceId}; retry after: {RetryAfter}.",
+                    context.HttpContext.Request.Method,
+                    context.HttpContext.Request.Path,
+                    context.HttpContext.TraceIdentifier,
+                    retryAfter);
+
+                await response.WriteAsJsonAsync(
+                    new ProblemDetails
+                    {
+                        Status = StatusCodes.Status429TooManyRequests,
+                        Title = "Too many requests",
+                        Detail = retryAfter > TimeSpan.Zero
+                            ? $"The request limit was reached. Try again in {Math.Ceiling(retryAfter.TotalSeconds)} seconds."
+                            : "The request limit was reached. Wait briefly and try again.",
+                        Instance = context.HttpContext.Request.Path,
+                        Extensions =
+                        {
+                            ["traceId"] = context.HttpContext.TraceIdentifier
+                        }
+                    },
+                    cancellationToken);
+            };
 
             opts.AddPolicy(SecurityPolicies.AuthRateLimit, context =>
                 RateLimitPartition.GetFixedWindowLimiter(
@@ -293,6 +334,8 @@ public class Program
 
         builder.Services.Configure<TransientRetryPolicyOptions>(builder.Configuration.GetSection(TransientRetryPolicyOptions.SectionName));
 
+        builder.Services.Configure<ManualCheckOptions>(builder.Configuration.GetSection(ManualCheckOptions.SectionName));
+
         builder.Services.Configure<EncryptionHashingOptions>(builder.Configuration.GetSection(EncryptionHashingOptions.SectionName));
 
         builder.Services.AddSingleton<ITransientRetryPolicyService, TransientRetryPolicyService>();
@@ -302,11 +345,22 @@ public class Program
         builder.Services.AddScoped<IdentityRoleInitializer>();
         builder.Services.AddScoped<IScrapeHistoryDataService, ScrapeHistoryDataService>();
         builder.Services.AddScoped<IScrapeExecutionService, ScrapeExecutionService>();
+        builder.Services.AddScoped<IManualCheckDataService, ManualCheckDataService>();
+        builder.Services.AddScoped<IManualCheckExecutionService, ManualCheckExecutionService>();
         builder.Services.AddScoped<IWishlistNotificationRecipientService, WishlistNotificationRecipientService>();
         builder.Services.AddScoped<ISteamRepository, SteamRepository>();
         builder.Services.AddScoped<ISteamService, SteamService>();
         builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
         builder.Services.AddScoped<IWishlistService, WishlistService>();
+
+        builder.Services.AddSingleton<IManualCheckQueue, ManualCheckQueue>();
+        builder.Services.AddHostedService<ManualCheckWorker>();
+        builder.Services.AddHttpClient(ManualCheckOptions.HttpClientName, client =>
+        {
+            client.Timeout = Timeout.InfiniteTimeSpan;
+            client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("SteamApp-ManualCheck/1.0");
+        });
 
         builder.Services.AddRabbitMqMessageBroker(builder.Configuration);
 
