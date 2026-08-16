@@ -8,6 +8,7 @@ namespace SteamApp.Domain.Entities;
 public sealed class ManualCheckPreset
 {
     public const int NameMaxLength = 100;
+    public const int DefaultListingLimit = 10;
 
     [Key]
     [Column("id")]
@@ -26,6 +27,9 @@ public sealed class ManualCheckPreset
 
     [Column("match_mode")]
     public ManualCheckMatchModeEnum MatchMode { get; set; }
+
+    [Column("listing_limit")]
+    public int ListingLimit { get; set; } = DefaultListingLimit;
 
     [Required]
     [Column("criteria_json")]

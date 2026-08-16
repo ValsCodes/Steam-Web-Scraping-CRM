@@ -58,6 +58,17 @@ public sealed class ManualCheckExecutionServiceTests
                 }
             }
         };
+        matchingListing.TotalCount = 1;
+        matchingListing.ListingInfo = new Dictionary<string, ListingInfo>
+        {
+            ["listing"] = new ListingInfo
+            {
+                ListingId = "listing",
+                Price = 100,
+                Fee = 15,
+                Asset = new Asset { AppId = 440, ContextId = "2", Id = "asset" }
+            }
+        };
         var handler = new HttpMessageHandlerStub((request, _) =>
             request.RequestUri!.AbsoluteUri.Contains("First", StringComparison.Ordinal)
                 ? JsonResponse(matchingListing)
@@ -165,6 +176,32 @@ public sealed class ManualCheckExecutionServiceTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Test]
+    public async Task ExecuteAsync_RecordsActionableErrorWhenListingsHaveNoUsablePrice()
+    {
+        var handler = new HttpMessageHandlerStub((_, _) =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    SteamMarketPage("Sheen: Mean Green", price: 0, fee: 0),
+                    Encoding.UTF8,
+                    "text/html")
+            });
+        var data = DataServiceMock(Setup(Product(1, "First")));
+        var service = CreateService(handler, data.Object, maxAttempts: 1);
+
+        await service.ExecuteAsync(15, CancellationToken.None);
+
+        data.Verify(x => x.CompleteAsync(
+            15,
+            ManualCheckRunStatusEnum.CompletedWithErrors,
+            It.Is<ManualCheckRunResultsDto>(results =>
+                results.Errors.Count == 1 &&
+                results.Errors[0].ErrorType == nameof(InvalidOperationException) &&
+                results.Errors[0].Error.Contains("usable price and asset information")),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     private static ManualCheckExecutionService CreateService(
         HttpMessageHandler handler,
         IManualCheckDataService dataService,
@@ -201,6 +238,7 @@ public sealed class ManualCheckExecutionServiceTests
         return new ManualCheckSetupDto
         {
             MatchMode = ManualCheckMatchModeEnum.Any,
+            ListingLimit = 10,
             Criteria = [new ManualCheckCriterionDto { ValueContains = "Mean Green" }],
             Products = products.ToList()
         };
@@ -229,7 +267,7 @@ public sealed class ManualCheckExecutionServiceTests
         };
     }
 
-    private static string SteamMarketPage(string descriptionValue)
+    private static string SteamMarketPage(string descriptionValue, int price = 100, int fee = 15)
     {
         var queryData = JsonConvert.SerializeObject(new
         {
@@ -253,6 +291,9 @@ public sealed class ManualCheckExecutionServiceTests
                                         new
                                         {
                                             listingid = "listing-1",
+                                            unPrice = price,
+                                            unFee = fee,
+                                            eCurrency = 3,
                                             description = new
                                             {
                                                 appid = 440,

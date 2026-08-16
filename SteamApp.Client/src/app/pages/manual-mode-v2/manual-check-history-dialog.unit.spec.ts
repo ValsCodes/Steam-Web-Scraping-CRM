@@ -47,6 +47,7 @@ describe('ManualCheckHistoryDialogComponent', () => {
       gameUrlId: 8,
       gameUrlName: 'Steam Market',
       matchMode: 'Any',
+      listingLimit: 37,
       criteria: [{ nameContains: null, valueContains: 'Mean Green' }],
       products: [],
       requestedAtUtc: '2026-08-15T10:00:00Z',
@@ -105,5 +106,12 @@ describe('ManualCheckHistoryDialogComponent', () => {
     expect(text).toContain('HTTP 429');
     expect(text).toContain('HttpRequestException');
     expect(text).toContain('Steam returned HTTP 429');
+  });
+
+  it('shows the snapshotted listing limit in the setup trace', () => {
+    component.openViewer(failedRun, 'setup');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Top 37 cheapest available listing(s) checked per product.');
   });
 });

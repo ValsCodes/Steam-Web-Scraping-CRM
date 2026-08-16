@@ -58,7 +58,8 @@ public static class SteamMarketPageParser
             {
                 Success = true,
                 Start = pages.FirstOrDefault()?.Value<int?>("start") ?? 0,
-                TotalCount = pages.FirstOrDefault()?.Value<int?>("total_count") ?? 0
+                TotalCount = pages.FirstOrDefault()?.Value<int?>("total_count") ?? 0,
+                ListingInfo = new Dictionary<string, ListingInfo>()
             };
 
             foreach (var page in pages)
@@ -69,9 +70,7 @@ public static class SteamMarketPageParser
                 }
             }
 
-            listing.PageSize = listing.Assets.Values
-                .SelectMany(contexts => contexts.Values)
-                .Sum(assets => assets.Count);
+            listing.PageSize = listing.ListingInfo?.Count ?? 0;
             return true;
         }
         catch (JsonException)
@@ -92,15 +91,35 @@ public static class SteamMarketPageParser
 
         var appId = (asset.Value<int?>("appid") ?? description.Value<int?>("appid"))?.ToString();
         var contextId = asset.Value<string>("contextid");
+        var listingId = sellListing.Value<string>("listingid");
         var assetId = asset.Value<string>("assetid")
             ?? asset.Value<string>("id")
-            ?? sellListing.Value<string>("listingid");
+            ?? listingId;
         if (string.IsNullOrWhiteSpace(appId) ||
             string.IsNullOrWhiteSpace(contextId) ||
-            string.IsNullOrWhiteSpace(assetId))
+            string.IsNullOrWhiteSpace(assetId) ||
+            string.IsNullOrWhiteSpace(listingId))
         {
             return;
         }
+
+        listing.ListingInfo![listingId] = new ListingInfo
+        {
+            ListingId = listingId,
+            Price = sellListing.Value<int?>("unPrice") ?? 0,
+            Fee = sellListing.Value<int?>("unFee") ?? 0,
+            PublisherFeeApp = sellListing.Value<int?>("publisherFeeApp") ?? 0,
+            CurrencyId = sellListing.Value<int?>("eCurrency") ?? 0,
+            SteamFee = sellListing.Value<int?>("unSteamFee") ?? 0,
+            PublisherFee = sellListing.Value<int?>("unPublisherFee") ?? 0,
+            Asset = new Asset
+            {
+                AppId = int.TryParse(appId, out var assetAppId) ? assetAppId : 0,
+                ContextId = contextId,
+                Id = assetId,
+                Amount = asset["amount"]?.ToString()
+            }
+        };
 
         if (!listing.Assets.TryGetValue(appId, out var contexts))
         {

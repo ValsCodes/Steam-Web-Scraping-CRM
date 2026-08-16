@@ -17,6 +17,7 @@ export interface ManualCheckPresetWrite {
   gameId: number;
   name: string;
   matchMode: ManualCheckMatchMode;
+  listingLimit: number;
   criteria: ManualCheckCriterion[];
 }
 
@@ -83,6 +84,7 @@ export interface ManualCheckSetup {
   gameUrlId: number;
   gameUrlName: string | null;
   matchMode: ManualCheckMatchMode;
+  listingLimit: number;
   criteria: ManualCheckCriterion[];
   products: ManualCheckProductInput[];
   requestedAtUtc: string;

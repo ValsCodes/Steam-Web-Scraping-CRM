@@ -44,7 +44,8 @@ public sealed class ManualCheckMatcherTests
             Product(),
             listing,
             ManualCheckMatchModeEnum.Any,
-            [new ManualCheckCriterionDto { ValueContains = "mean green" }]);
+            [new ManualCheckCriterionDto { ValueContains = "mean green" }],
+            10);
 
         Assert.Multiple(() =>
         {
@@ -71,7 +72,8 @@ public sealed class ManualCheckMatcherTests
             {
                 NameContains = "attribute",
                 ValueContains = "mean green"
-            }]);
+            }],
+            10);
 
         Assert.That(result, Is.Null);
     }
@@ -88,8 +90,8 @@ public sealed class ManualCheckMatcherTests
             new ManualCheckCriterionDto { ValueContains = "killstreaks" }
         };
 
-        var any = ManualCheckMatcher.MatchProduct(Product(), listing, ManualCheckMatchModeEnum.Any, criteria);
-        var all = ManualCheckMatcher.MatchProduct(Product(), listing, ManualCheckMatchModeEnum.All, criteria);
+        var any = ManualCheckMatcher.MatchProduct(Product(), listing, ManualCheckMatchModeEnum.Any, criteria, 10);
+        var all = ManualCheckMatcher.MatchProduct(Product(), listing, ManualCheckMatchModeEnum.All, criteria, 10);
 
         Assert.Multiple(() =>
         {
@@ -112,7 +114,8 @@ public sealed class ManualCheckMatcherTests
             [
                 new ManualCheckCriterionDto { ValueContains = "MEAN GREEN" },
                 new ManualCheckCriterionDto { NameContains = "ATTRIBUTE", ValueContains = "active" }
-            ]);
+            ],
+            10);
 
         Assert.Multiple(() =>
         {
@@ -120,6 +123,83 @@ public sealed class ManualCheckMatcherTests
             Assert.That(result!.MatchedAssets, Has.Count.EqualTo(1));
             Assert.That(result.MatchedAssets[0].Descriptions, Has.Count.EqualTo(2));
         });
+    }
+
+    [Test]
+    public void MatchProduct_OrdersByBuyerTotalBeforeApplyingListingLimit()
+    {
+        var listing = ListingWithPricedAssets(
+            ("listing-expensive", "expensive-match", 200, 30, "Mean Green"),
+            ("listing-cheapest", "cheapest-no-match", 80, 10, "Other"),
+            ("listing-second", "second-match", 70, 30, "Mean Green"));
+
+        var result = ManualCheckMatcher.MatchProduct(
+            Product(),
+            listing,
+            ManualCheckMatchModeEnum.Any,
+            [new ManualCheckCriterionDto { ValueContains = "Mean Green" }],
+            1);
+
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public void MatchProduct_UsesConvertedBuyerTotalAndListingIdTieBreak()
+    {
+        var listing = ListingWithPricedAssets(
+            ("listing-b", "asset-b", 1, 0, "Mean Green"),
+            ("listing-a", "asset-a", 40, 10, "Mean Green"),
+            ("listing-c", "asset-c", 20, 5, "Mean Green"));
+        listing.ListingInfo!["listing-b"].ConvertedPrice = 40;
+        listing.ListingInfo["listing-b"].ConvertedFee = 10;
+        listing.ListingInfo["listing-a"].ConvertedPrice = 45;
+        listing.ListingInfo["listing-a"].ConvertedFee = 5;
+
+        var result = ManualCheckMatcher.MatchProduct(
+            Product(),
+            listing,
+            ManualCheckMatchModeEnum.Any,
+            [new ManualCheckCriterionDto { ValueContains = "Mean Green" }],
+            3);
+
+        Assert.That(
+            result!.MatchedAssets.Select(x => x.AssetId),
+            Is.EqualTo(new[] { "asset-c", "asset-a", "asset-b" }));
+    }
+
+    [Test]
+    public void MatchProduct_LimitExceedsAvailableListings_ChecksEveryAvailableListing()
+    {
+        var listing = ListingWithPricedAssets(
+            ("listing-2", "asset-2", 200, 20, "Mean Green"),
+            ("listing-1", "asset-1", 100, 10, "Mean Green"));
+
+        var result = ManualCheckMatcher.MatchProduct(
+            Product(),
+            listing,
+            ManualCheckMatchModeEnum.Any,
+            [new ManualCheckCriterionDto { ValueContains = "Mean Green" }],
+            50);
+
+        Assert.That(
+            result!.MatchedAssets.Select(x => x.AssetId),
+            Is.EqualTo(new[] { "asset-1", "asset-2" }));
+    }
+
+    [Test]
+    public void MatchProduct_ListingsHaveNoUsablePrice_ThrowsActionableError()
+    {
+        var listing = ListingWithPricedAssets(
+            ("listing-1", "asset-1", 0, 0, "Mean Green"));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => ManualCheckMatcher.MatchProduct(
+            Product(),
+            listing,
+            ManualCheckMatchModeEnum.Any,
+            [new ManualCheckCriterionDto { ValueContains = "Mean Green" }],
+            10));
+
+        Assert.That(exception!.Message, Does.Contain("usable price and asset information"));
     }
 
     private static ManualCheckProductInputDto Product()
@@ -150,9 +230,15 @@ public sealed class ManualCheckMatcherTests
     private static Listing ListingWithAssets(
         params (string AppId, string ContextId, string AssetId, AssetDetail Asset)[] assets)
     {
-        var listing = new Listing { Success = true };
-        foreach (var item in assets)
+        var listing = new Listing
         {
+            Success = true,
+            TotalCount = assets.Length,
+            ListingInfo = new Dictionary<string, ListingInfo>()
+        };
+        for (var index = 0; index < assets.Length; index++)
+        {
+            var item = assets[index];
             if (!listing.Assets.TryGetValue(item.AppId, out var contexts))
             {
                 contexts = [];
@@ -164,7 +250,44 @@ public sealed class ManualCheckMatcherTests
                 contexts[item.ContextId] = contextAssets;
             }
             contextAssets[item.AssetId] = item.Asset;
+            var listingId = $"listing-{index:D4}";
+            listing.ListingInfo[listingId] = new ListingInfo
+            {
+                ListingId = listingId,
+                Price = (index + 1) * 100,
+                Fee = 10,
+                Asset = new Asset
+                {
+                    AppId = int.Parse(item.AppId),
+                    ContextId = item.ContextId,
+                    Id = item.AssetId
+                }
+            };
         }
+        return listing;
+    }
+
+    private static Listing ListingWithPricedAssets(
+        params (string ListingId, string AssetId, int Price, int Fee, string Description)[] items)
+    {
+        var assets = items
+            .Select(item => ("440", "2", item.AssetId, AssetWith(("attribute", item.Description))))
+            .ToArray();
+        var listing = ListingWithAssets(assets);
+        listing.ListingInfo = items.ToDictionary(
+            item => item.ListingId,
+            item => new ListingInfo
+            {
+                ListingId = item.ListingId,
+                Price = item.Price,
+                Fee = item.Fee,
+                Asset = new Asset
+                {
+                    AppId = 440,
+                    ContextId = "2",
+                    Id = item.AssetId
+                }
+            });
         return listing;
     }
 }

@@ -51,7 +51,8 @@ public sealed class ManualCheckExecutionService(
                         product,
                         listing,
                         setup.MatchMode,
-                        setup.Criteria);
+                        setup.Criteria,
+                        setup.ListingLimit);
                     if (match is not null)
                     {
                         results.Matches.Add(match);

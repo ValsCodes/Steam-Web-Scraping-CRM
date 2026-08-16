@@ -37,70 +37,117 @@ public static class ManualCheckMatcher
         ManualCheckProductInputDto product,
         Listing listing,
         ManualCheckMatchModeEnum matchMode,
-        IReadOnlyList<ManualCheckCriterionDto> criteria)
+        IReadOnlyList<ManualCheckCriterionDto> criteria,
+        int listingLimit)
     {
-        var matchedAssets = new List<ManualCheckAssetMatchDto>();
-
-        foreach (var appEntry in listing.Assets ?? [])
+        if (listingLimit < 1)
         {
-            foreach (var contextEntry in appEntry.Value)
+            throw new ArgumentOutOfRangeException(nameof(listingLimit), "Listing limit must be positive.");
+        }
+
+        var matchedAssets = new List<ManualCheckAssetMatchDto>();
+        var listingInfo = listing.ListingInfo ?? new Dictionary<string, ListingInfo>();
+        var pricedListings = listingInfo
+            .Select(entry => new
             {
-                foreach (var assetEntry in contextEntry.Value)
+                ListingId = string.IsNullOrWhiteSpace(entry.Value.ListingId)
+                    ? entry.Key
+                    : entry.Value.ListingId,
+                Info = entry.Value,
+                BuyerTotal = GetBuyerTotal(entry.Value)
+            })
+            .Where(entry =>
+                entry.BuyerTotal > 0 &&
+                entry.Info.Asset is { AppId: > 0 } asset &&
+                !string.IsNullOrWhiteSpace(asset.ContextId) &&
+                !string.IsNullOrWhiteSpace(asset.Id))
+            .OrderBy(entry => entry.BuyerTotal)
+            .ThenBy(entry => entry.ListingId, StringComparer.Ordinal)
+            .Take(listingLimit)
+            .ToList();
+
+        if (pricedListings.Count == 0)
+        {
+            if (listing.TotalCount > 0 || listingInfo.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    "Steam returned listings, but none contained usable price and asset information.");
+            }
+
+            return null;
+        }
+
+        var checkedAssets = 0;
+        foreach (var pricedListing in pricedListings)
+        {
+            var assetReference = pricedListing.Info.Asset!;
+            var appId = assetReference.AppId.ToString();
+            var contextId = assetReference.ContextId!;
+            var assetId = assetReference.Id!;
+            if (!TryGetAsset(listing, appId, contextId, assetId, out var asset))
+            {
+                continue;
+            }
+
+            checkedAssets++;
+
+            var criterionMatches = new bool[criteria.Count];
+            var descriptions = new List<ManualCheckDescriptionMatchDto>();
+
+            foreach (var description in asset.Descriptions ?? [])
+            {
+                var matchedIndexes = new List<int>();
+                for (var index = 0; index < criteria.Count; index++)
                 {
-                    var asset = assetEntry.Value;
-                    var criterionMatches = new bool[criteria.Count];
-                    var descriptions = new List<ManualCheckDescriptionMatchDto>();
-
-                    foreach (var description in asset.Descriptions ?? [])
-                    {
-                        var matchedIndexes = new List<int>();
-                        for (var index = 0; index < criteria.Count; index++)
-                        {
-                            if (!Matches(description, criteria[index]))
-                            {
-                                continue;
-                            }
-
-                            criterionMatches[index] = true;
-                            matchedIndexes.Add(index);
-                        }
-
-                        if (matchedIndexes.Count > 0)
-                        {
-                            descriptions.Add(new ManualCheckDescriptionMatchDto
-                            {
-                                Name = description.Name ?? string.Empty,
-                                Value = description.Value ?? string.Empty,
-                                Color = description.Color ?? string.Empty,
-                                MatchedCriterionIndexes = matchedIndexes
-                            });
-                        }
-                    }
-
-                    var qualifies = matchMode == ManualCheckMatchModeEnum.All
-                        ? criterionMatches.All(x => x)
-                        : criterionMatches.Any(x => x);
-
-                    if (!qualifies)
+                    if (!Matches(description, criteria[index]))
                     {
                         continue;
                     }
 
-                    matchedAssets.Add(new ManualCheckAssetMatchDto
+                    criterionMatches[index] = true;
+                    matchedIndexes.Add(index);
+                }
+
+                if (matchedIndexes.Count > 0)
+                {
+                    descriptions.Add(new ManualCheckDescriptionMatchDto
                     {
-                        AppId = appEntry.Key,
-                        ContextId = contextEntry.Key,
-                        AssetId = assetEntry.Key,
-                        ClassId = asset.ClassId ?? string.Empty,
-                        InstanceId = asset.InstanceId ?? string.Empty,
-                        MarketName = asset.MarketName ?? string.Empty,
-                        IconUrl = !string.IsNullOrWhiteSpace(asset.IconUrlLarge)
-                            ? asset.IconUrlLarge
-                            : asset.IconUrl ?? string.Empty,
-                        Descriptions = descriptions
+                        Name = description.Name ?? string.Empty,
+                        Value = description.Value ?? string.Empty,
+                        Color = description.Color ?? string.Empty,
+                        MatchedCriterionIndexes = matchedIndexes
                     });
                 }
             }
+
+            var qualifies = matchMode == ManualCheckMatchModeEnum.All
+                ? criterionMatches.All(x => x)
+                : criterionMatches.Any(x => x);
+
+            if (!qualifies)
+            {
+                continue;
+            }
+
+            matchedAssets.Add(new ManualCheckAssetMatchDto
+            {
+                AppId = appId,
+                ContextId = contextId,
+                AssetId = assetId,
+                ClassId = asset.ClassId ?? string.Empty,
+                InstanceId = asset.InstanceId ?? string.Empty,
+                MarketName = asset.MarketName ?? string.Empty,
+                IconUrl = !string.IsNullOrWhiteSpace(asset.IconUrlLarge)
+                    ? asset.IconUrlLarge
+                    : asset.IconUrl ?? string.Empty,
+                Descriptions = descriptions
+            });
+        }
+
+        if (checkedAssets == 0)
+        {
+            throw new InvalidOperationException(
+                "Steam returned listings, but none contained usable price and asset information.");
         }
 
         if (matchedAssets.Count == 0)
@@ -119,6 +166,37 @@ public static class ManualCheckMatcher
             Rating = product.Rating,
             MatchedAssets = matchedAssets
         };
+    }
+
+    private static long GetBuyerTotal(ListingInfo listingInfo)
+    {
+        if (listingInfo.ConvertedPrice > 0)
+        {
+            return (long)listingInfo.ConvertedPrice + listingInfo.ConvertedFee;
+        }
+
+        return (long)listingInfo.Price + listingInfo.Fee;
+    }
+
+    private static bool TryGetAsset(
+        Listing listing,
+        string appId,
+        string contextId,
+        string assetId,
+        out AssetDetail asset)
+    {
+        if (listing.Assets is not null &&
+            listing.Assets.TryGetValue(appId, out var contexts) &&
+            contexts.TryGetValue(contextId, out var assets) &&
+            assets.TryGetValue(assetId, out var foundAsset) &&
+            foundAsset is not null)
+        {
+            asset = foundAsset;
+            return true;
+        }
+
+        asset = null!;
+        return false;
     }
 
     private static bool Matches(Description description, ManualCheckCriterionDto criterion)

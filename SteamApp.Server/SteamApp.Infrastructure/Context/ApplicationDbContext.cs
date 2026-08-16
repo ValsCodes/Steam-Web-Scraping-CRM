@@ -182,6 +182,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(x => x.MatchMode)
                   .HasColumnName("match_mode");
 
+            entity.Property(x => x.ListingLimit)
+                  .HasDefaultValue(ManualCheckPreset.DefaultListingLimit)
+                  .HasColumnName("listing_limit");
+
             entity.Property(x => x.CriteriaJson)
                   .HasColumnName("criteria_json");
 

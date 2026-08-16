@@ -3,6 +3,7 @@ using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
 using SteamApp.Tests.TestSupport;
 using SteamApp.WebAPI.Services;
+using Newtonsoft.Json.Linq;
 
 namespace SteamApp.Tests.Services;
 
@@ -24,6 +25,7 @@ public sealed class ManualCheckDataServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(visible.Select(x => x.Id), Does.Contain(created.Id));
+            Assert.That(created.ListingLimit, Is.EqualTo(10));
             Assert.That(typeof(ManualCheckPreset).GetProperty("UserId"), Is.Null);
             Assert.That(typeof(ManualCheckRun).GetProperty("UserId"), Is.Null);
             Assert.That(duplicate!.StatusCode, Is.EqualTo(409));
@@ -53,6 +55,7 @@ public sealed class ManualCheckDataServiceTests
             Assert.That(invalid!.StatusCode, Is.EqualTo(400));
             Assert.That(run.Status, Is.EqualTo(ManualCheckRunStatusEnum.Queued));
             Assert.That(detail!.Setup.Products, Has.Count.EqualTo(1));
+            Assert.That(detail.Setup.ListingLimit, Is.EqualTo(10));
             Assert.That(detail.Setup.Products[0].FullUrl, Is.EqualTo(
                 "https://steamcommunity.com/market/listings/440/Rocket%20Launcher"));
         });
@@ -67,8 +70,13 @@ public sealed class ManualCheckDataServiceTests
         source.PartialUrl = "https://steamcommunity.com/market/listings/440/";
         database.Context.SaveChanges();
         var service = new ManualCheckDataService(database.Factory);
-        var preset = await service.CreatePresetAsync(PresetInput("Snapshot"), CancellationToken.None);
+        var presetInput = PresetInput("Snapshot");
+        presetInput.ListingLimit = 37;
+        var preset = await service.CreatePresetAsync(presetInput, CancellationToken.None);
         var original = await service.CreateRunAsync(source.Id, preset.Id, CancellationToken.None);
+
+        presetInput.ListingLimit = 5;
+        await service.UpdatePresetAsync(preset.Id, presetInput, CancellationToken.None);
 
         database.Context.Products.Add(new Product
         {
@@ -89,8 +97,53 @@ public sealed class ManualCheckDataServiceTests
         {
             Assert.That(originalDetail!.Setup.Products, Has.Count.EqualTo(1));
             Assert.That(rerunDetail!.Setup.Products, Has.Count.EqualTo(2));
+            Assert.That(rerunDetail.Setup.ListingLimit, Is.EqualTo(37));
             Assert.That(rerunDetail.Setup.Criteria[0].ValueContains, Is.EqualTo("Mean Green"));
             Assert.That(rerunDetail.Setup.Products.Select(x => x.ProductName), Does.Contain("New Item"));
+        });
+    }
+
+    [Test]
+    public async Task Rerun_OldSnapshotWithoutListingLimit_UsesTopTen()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var source = database.Context.GameUrls.Single(x => x.Id == 1);
+        source.ScrapingModeId = (long)ScrapingModeEnum.ManualBatch;
+        source.PartialUrl = "https://steamcommunity.com/market/listings/440/";
+        database.Context.SaveChanges();
+        var service = new ManualCheckDataService(database.Factory);
+        var presetInput = PresetInput("Legacy snapshot");
+        presetInput.ListingLimit = 37;
+        var preset = await service.CreatePresetAsync(presetInput, CancellationToken.None);
+        var original = await service.CreateRunAsync(source.Id, preset.Id, CancellationToken.None);
+
+        var originalRow = database.Context.ManualCheckRuns.Single(x => x.Id == original.Id);
+        var legacySetup = JObject.Parse(originalRow.SetupJson);
+        legacySetup.Remove(nameof(ManualCheckSetupDto.ListingLimit));
+        originalRow.SetupJson = legacySetup.ToString();
+        database.Context.SaveChanges();
+
+        var rerun = await service.RerunAsync(original.Id, CancellationToken.None);
+        var rerunDetail = await service.GetRunAsync(rerun.Id, CancellationToken.None);
+
+        Assert.That(rerunDetail!.Setup.ListingLimit, Is.EqualTo(10));
+    }
+
+    [Test]
+    public void CreatePresetAsync_ListingLimitIsNotPositive_RejectsRequest()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var service = new ManualCheckDataService(database.Factory);
+        var input = PresetInput("Invalid limit");
+        input.ListingLimit = 0;
+
+        var exception = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.CreatePresetAsync(input, CancellationToken.None));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.StatusCode, Is.EqualTo(400));
+            Assert.That(exception.Message, Does.Contain("positive whole number"));
         });
     }
 
@@ -164,6 +217,7 @@ public sealed class ManualCheckDataServiceTests
             GameId = 1,
             Name = name,
             MatchMode = ManualCheckMatchModeEnum.Any,
+            ListingLimit = 10,
             Criteria = [new ManualCheckCriterionDto { ValueContains = " Mean Green " }]
         };
     }

@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
 
 namespace SteamApp.Application.DTOs.ManualCheck;
@@ -18,6 +19,7 @@ public class ManualCheckPresetWriteDto
     [JsonConverter(typeof(StringEnumConverter))]
     public ManualCheckMatchModeEnum MatchMode { get; set; }
 
+    public int ListingLimit { get; set; } = ManualCheckPreset.DefaultListingLimit;
     public List<ManualCheckCriterionDto> Criteria { get; set; } = [];
 }
 
@@ -92,6 +94,7 @@ public sealed class ManualCheckSetupDto
     [JsonConverter(typeof(StringEnumConverter))]
     public ManualCheckMatchModeEnum MatchMode { get; set; }
 
+    public int ListingLimit { get; set; } = ManualCheckPreset.DefaultListingLimit;
     public List<ManualCheckCriterionDto> Criteria { get; set; } = [];
     public List<ManualCheckProductInputDto> Products { get; set; } = [];
     public DateTime RequestedAtUtc { get; set; }

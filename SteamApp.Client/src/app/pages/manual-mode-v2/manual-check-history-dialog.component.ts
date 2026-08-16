@@ -160,6 +160,7 @@ type HistoryView = 'setup' | 'results' | 'errors';
               <div class="manual-check-history__panel">
                 <h4>Preset snapshot</h4>
                 <p><strong>{{ detail.setup.presetName }}</strong> · {{ detail.setup.matchMode === 'All' ? 'All criteria' : 'Any criterion' }}</p>
+                <p>Top {{ detail.setup.listingLimit }} cheapest available listing(s) checked per product.</p>
                 <p>{{ detail.setup.products.length }} product(s) captured from {{ detail.setup.gameUrlName || ('Source #' + detail.setup.gameUrlId) }}.</p>
                 <ol class="manual-check-history__criteria">
                   @for (criterion of detail.setup.criteria; track $index) {

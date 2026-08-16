@@ -346,6 +346,7 @@ describe('ManualModeV2 external link disclosure', () => {
         gameUrlId: 2,
         gameUrlName: 'Market',
         matchMode: 'Any',
+        listingLimit: 10,
         criteria: [{ nameContains: null, valueContains: 'Mean Green' }],
         products: [],
         requestedAtUtc: now,

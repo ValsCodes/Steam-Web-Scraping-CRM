@@ -36,6 +36,7 @@ public sealed class ManualCheckDataService(
                 GameName = x.Game.Name,
                 x.Name,
                 x.MatchMode,
+                x.ListingLimit,
                 x.CriteriaJson,
                 x.CreatedAtUtc,
                 x.UpdatedAtUtc
@@ -49,6 +50,7 @@ public sealed class ManualCheckDataService(
             GameName = x.GameName,
             Name = x.Name,
             MatchMode = x.MatchMode,
+            ListingLimit = x.ListingLimit,
             Criteria = DeserializeCriteria(x.CriteriaJson),
             CreatedAtUtc = x.CreatedAtUtc,
             UpdatedAtUtc = x.UpdatedAtUtc
@@ -87,6 +89,7 @@ public sealed class ManualCheckDataService(
             GameId = normalized.GameId,
             Name = normalized.Name,
             MatchMode = normalized.MatchMode,
+            ListingLimit = normalized.ListingLimit,
             CriteriaJson = JsonConvert.SerializeObject(normalized.Criteria),
             CreatedAtUtc = now,
             UpdatedAtUtc = now
@@ -131,6 +134,7 @@ public sealed class ManualCheckDataService(
         entity.GameId = normalized.GameId;
         entity.Name = normalized.Name;
         entity.MatchMode = normalized.MatchMode;
+        entity.ListingLimit = normalized.ListingLimit;
         entity.CriteriaJson = JsonConvert.SerializeObject(normalized.Criteria);
         entity.UpdatedAtUtc = DateTime.UtcNow;
 
@@ -167,6 +171,7 @@ public sealed class ManualCheckDataService(
             preset.Name,
             preset.GameId,
             preset.MatchMode,
+            preset.ListingLimit,
             DeserializeCriteria(preset.CriteriaJson),
             cancellationToken);
     }
@@ -195,6 +200,7 @@ public sealed class ManualCheckDataService(
             original.PresetName,
             original.GameId,
             setup.MatchMode,
+            setup.ListingLimit,
             NormalizeCriteria(setup.Criteria),
             cancellationToken);
     }
@@ -385,6 +391,7 @@ public sealed class ManualCheckDataService(
         string presetName,
         long presetGameId,
         ManualCheckMatchModeEnum matchMode,
+        int listingLimit,
         List<ManualCheckCriterionDto> criteria,
         CancellationToken cancellationToken)
     {
@@ -473,6 +480,7 @@ public sealed class ManualCheckDataService(
             GameUrlId = gameUrl.Id,
             GameUrlName = gameUrl.Name,
             MatchMode = matchMode,
+            ListingLimit = NormalizeListingLimit(listingLimit),
             Criteria = criteria,
             Products = inputs,
             RequestedAtUtc = now
@@ -519,8 +527,19 @@ public sealed class ManualCheckDataService(
             GameId = input.GameId,
             Name = name,
             MatchMode = input.MatchMode,
+            ListingLimit = NormalizeListingLimit(input.ListingLimit),
             Criteria = NormalizeCriteria(input.Criteria)
         };
+    }
+
+    private static int NormalizeListingLimit(int listingLimit)
+    {
+        if (listingLimit < 1)
+        {
+            throw RequestError(StatusCodes.Status400BadRequest, "Listing limit must be a positive whole number.");
+        }
+
+        return listingLimit;
     }
 
     private static List<ManualCheckCriterionDto> NormalizeCriteria(IEnumerable<ManualCheckCriterionDto>? criteria)
@@ -574,6 +593,7 @@ public sealed class ManualCheckDataService(
             GameName = gameName,
             Name = entity.Name,
             MatchMode = entity.MatchMode,
+            ListingLimit = entity.ListingLimit,
             Criteria = criteria,
             CreatedAtUtc = entity.CreatedAtUtc,
             UpdatedAtUtc = entity.UpdatedAtUtc

@@ -58,6 +58,7 @@ describe('ManualCheckSetupDialogComponent', () => {
     expect(component.selectedPresetId).toBe(2);
     expect(component.name).toBe('Preferred');
     expect(component.matchMode).toBe('All');
+    expect(component.listingLimit).toBe(10);
     expect(component.criteria[0].valueContains).toBe('Mean Green');
     expect(component.canStart).toBeTrue();
     expect(component.loading).toBeFalse();
@@ -78,6 +79,7 @@ describe('ManualCheckSetupDialogComponent', () => {
     expect(service.updatePreset).toHaveBeenCalledWith(2, jasmine.objectContaining({
       gameId: 440,
       matchMode: 'All',
+      listingLimit: 10,
     }));
     expect(component.canStart).toBeTrue();
   });
@@ -92,6 +94,23 @@ describe('ManualCheckSetupDialogComponent', () => {
 
     expect(component.criteria.length).toBe(25);
     expect(component.isDraftValid).toBeTrue();
+  });
+
+  it('supports Top 10, Top 20, and a positive custom listing count', () => {
+    component.setListingLimit(20);
+    expect(component.listingLimit).toBe(20);
+    expect(component.dirty).toBeTrue();
+
+    component.listingLimit = 37;
+    expect(component.isListingLimitValid).toBeTrue();
+    expect(component.isDraftValid).toBeTrue();
+
+    component.listingLimit = 0;
+    expect(component.isListingLimitValid).toBeFalse();
+    expect(component.isDraftValid).toBeFalse();
+
+    component.listingLimit = 1.5;
+    expect(component.isListingLimitValid).toBeFalse();
   });
 
   it('creates a new preset and starts it in one action', () => {
@@ -132,6 +151,7 @@ describe('ManualCheckSetupDialogComponent', () => {
       gameName: 'Team Fortress 2',
       name,
       matchMode,
+      listingLimit: 10,
       criteria: [{ nameContains: 'attribute', valueContains: 'Mean Green' }],
       createdAtUtc: '2026-08-14T00:00:00Z',
       updatedAtUtc: '2026-08-14T00:00:00Z',

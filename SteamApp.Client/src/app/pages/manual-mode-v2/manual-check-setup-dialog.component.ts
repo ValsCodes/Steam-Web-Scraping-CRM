@@ -110,6 +110,44 @@ export interface ManualCheckSetupDialogData {
           </label>
         </fieldset>
 
+        <section class="manual-check-dialog__listing-limit" aria-labelledby="manualCheckListingLimitLabel">
+          <div>
+            <strong id="manualCheckListingLimitLabel">Listings to check</strong>
+            <p>Cheapest listings are checked first after Steam results are loaded.</p>
+          </div>
+          <div class="manual-check-dialog__listing-limit-controls">
+            <button
+              mat-stroked-button
+              type="button"
+              [class.manual-check-dialog__quick-option--active]="listingLimit === 10"
+              (click)="setListingLimit(10)">
+              Top 10
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              [class.manual-check-dialog__quick-option--active]="listingLimit === 20"
+              (click)="setListingLimit(20)">
+              Top 20
+            </button>
+            <label>
+              <span>Custom Top X</span>
+              <input
+                type="number"
+                name="manualCheckListingLimit"
+                min="1"
+                max="2147483647"
+                step="1"
+                [(ngModel)]="listingLimit"
+                (ngModelChange)="markDirty()"
+                [attr.aria-invalid]="!isListingLimitValid" />
+            </label>
+          </div>
+          @if (!isListingLimitValid) {
+            <p class="manual-check-dialog__validation" role="alert">Enter a positive whole number.</p>
+          }
+        </section>
+
         <div class="manual-check-dialog__criteria-heading">
           <strong>Criteria</strong>
           <button
@@ -211,6 +249,12 @@ export interface ManualCheckSetupDialogData {
     .manual-check-dialog select, .manual-check-dialog input { border: 1px solid #cbd5e1; border-radius: .25rem; padding: .55rem .7rem; }
     .manual-check-dialog fieldset { display: flex; gap: 1.25rem; border: 1px solid #e2e8f0; border-radius: .375rem; padding: .75rem; }
     .manual-check-dialog__radio { display: inline-flex; align-items: center; gap: .4rem; }
+    .manual-check-dialog__listing-limit { display: flex; flex-direction: column; gap: .65rem; border: 1px solid #e2e8f0; border-radius: .375rem; padding: .75rem; }
+    .manual-check-dialog__listing-limit p { margin: .2rem 0 0; color: #64748b; }
+    .manual-check-dialog__listing-limit-controls { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; }
+    .manual-check-dialog__listing-limit-controls label { min-width: 9rem; }
+    .manual-check-dialog__quick-option--active { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
+    .manual-check-dialog__validation { color: #b91c1c !important; }
     .manual-check-dialog__criteria-heading { display: flex; align-items: center; justify-content: space-between; }
     .manual-check-dialog__criterion { display: grid; grid-template-columns: 2rem 1fr 1fr auto; gap: .5rem; align-items: center; }
     .manual-check-dialog__criterion-number { color: #64748b; text-align: center; }
@@ -230,6 +274,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   selectedPresetId: number | null = null;
   name = '';
   matchMode: ManualCheckMatchMode = 'Any';
+  listingLimit: number | null = 10;
   criteria: ManualCheckCriterion[] = [this.emptyCriterion()];
   loading = true;
   loadError = false;
@@ -278,6 +323,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   get isDraftValid(): boolean {
     return this.name.trim().length >= 1
       && this.name.trim().length <= 100
+      && this.isListingLimitValid
       && this.criteria.length >= 1
       && this.criteria.length <= 25
       && this.criteria.every((x) =>
@@ -286,6 +332,13 @@ export class ManualCheckSetupDialogComponent implements OnInit {
 
   get canStart(): boolean {
     return this.selectedPresetId !== null && !this.dirty && this.isDraftValid;
+  }
+
+  get isListingLimitValid(): boolean {
+    return this.listingLimit !== null
+      && Number.isInteger(this.listingLimit)
+      && this.listingLimit >= 1
+      && this.listingLimit <= 2147483647;
   }
 
   get primaryActionLabel(): string {
@@ -309,6 +362,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.selectedPresetId = preset.id;
     this.name = preset.name;
     this.matchMode = preset.matchMode;
+    this.listingLimit = preset.listingLimit;
     this.criteria = preset.criteria.map((x) => ({ ...x }));
     this.dirty = false;
     this.errorMessage = '';
@@ -320,6 +374,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.selectedPresetId = null;
     this.name = '';
     this.matchMode = 'Any';
+    this.listingLimit = 10;
     this.criteria = [this.emptyCriterion()];
     this.dirty = true;
     this.errorMessage = '';
@@ -331,6 +386,11 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.dirty = true;
     this.errorMessage = '';
     this.successMessage = '';
+  }
+
+  setListingLimit(listingLimit: number): void {
+    this.listingLimit = listingLimit;
+    this.markDirty();
   }
 
   addCriterion(): void {
@@ -431,6 +491,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
       gameId: this.data.gameId,
       name: this.name.trim(),
       matchMode: this.matchMode,
+      listingLimit: this.listingLimit!,
       criteria: this.criteria.map((x) => ({
         nameContains: x.nameContains?.trim() || null,
         valueContains: x.valueContains?.trim() || null,
