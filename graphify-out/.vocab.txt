@@ -34,6 +34,7 @@ analyze
 analyzers
 anchor
 and
+angula
 angular
 animations
 anonymous
@@ -60,6 +61,7 @@ ast
 async
 asynchronous
 attach
+attached
 attempts
 attributes
 audience
@@ -123,6 +125,7 @@ calling
 camel
 can
 cancel
+canceled
 cancellation
 canonical
 capturing
@@ -234,6 +237,7 @@ create
 created
 creates
 creating
+creation
 credentials
 criteria
 criterion
@@ -282,6 +286,7 @@ detects
 dev
 development
 devkit
+diagnostics
 dialog
 dictionary
 did
@@ -355,7 +360,6 @@ errors
 event
 every
 evidence
-exact
 examples
 exception
 exceptions
@@ -454,17 +458,20 @@ google
 graph
 graphify
 graphml
+grid
 group
 guard
 guidelines
 handle
 handler
 handlers
+handles
 handling
 has
 hash
 hashed
 hashing
+have
 header
 headers
 health
@@ -514,6 +521,7 @@ inline
 inlining
 input
 insensitively
+inside
 installed
 instead
 instructions
@@ -535,6 +543,7 @@ invoked
 issues
 item
 items
+its
 jasmine
 jest
 job
@@ -554,6 +563,7 @@ konscious
 label
 language
 last
+latest
 launch
 launcher
 layers
@@ -616,6 +626,7 @@ matching
 material
 materialize
 math
+may
 mcp
 memory
 merge
@@ -667,6 +678,7 @@ not
 notification
 number
 numerics
+object
 objective
 objects
 obsidian
@@ -710,6 +722,7 @@ parallel
 parameters
 parse
 parsed
+parser
 parses
 part
 partial
@@ -755,9 +768,11 @@ prevent
 previous
 price
 pricing
+primary
 principal
 private
 problem
+problems
 processing
 produces
 product
@@ -801,6 +816,7 @@ rate
 rating
 reached
 read
+readable
 readme
 reads
 recipient
@@ -826,11 +842,12 @@ related
 relations
 relationships
 release
+remain
 remote
 remove
 removes
 removing
-render
+rendered
 renders
 replacements
 repo
@@ -946,6 +963,7 @@ shot
 should
 show
 sign
+signals
 signing
 site
 sitemap
@@ -984,10 +1002,12 @@ state
 static
 status
 steam
+steams
 step
 steps
 still
 stop
+stops
 stopwatch
 storage
 store
@@ -1056,6 +1076,7 @@ tokens
 tools
 tooltip
 total
+trace
 track
 tracker
 trailing
@@ -1144,6 +1165,7 @@ worker
 workflow
 works
 would
+wrapper
 write
 wrong
 xlsx

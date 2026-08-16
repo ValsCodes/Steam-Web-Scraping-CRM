@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codebase Discovery"
+  short_description: "Trace SteamApp architecture and code impact"
+  default_prompt: "Use $codebase-discovery to trace the SteamApp implementation and its affected dependencies."

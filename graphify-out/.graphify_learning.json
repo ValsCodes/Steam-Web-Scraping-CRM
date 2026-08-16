@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-15T06:47:33.875118+00:00",
+  "generated_at": "2026-08-16T13:47:19.113225+00:00",
   "nodes": {
     "steamapp_client_angular_configurations_local_release": {
       "code_fingerprint": "97c6e9d770b494a0788540fd95cf8b16f179de55e0d00c28136b1b785f842003",
@@ -27,7 +27,7 @@
           "q": "The launcher reports port 7443 already in use and it didn't open the browser automatically"
         }
       ],
-      "score": 3.43335558,
+      "score": 3.3324181,
       "source_file": "SteamApp.Client/angular.json",
       "status": "preferred",
       "uses": 4
@@ -53,7 +53,7 @@
           "q": "The launcher reports port 7443 already in use and it didn't open the browser automatically"
         }
       ],
-      "score": 2.575134171,
+      "score": 2.499427608,
       "source_file": "SteamApp.Client/angular.json",
       "status": "preferred",
       "uses": 3
@@ -69,7 +69,7 @@
           "q": "can we create a click once .exe or .bat file that would start the server and the client in Release mode and use the Local db connection instead of hosting the db"
         }
       ],
-      "score": 0.857789772,
+      "score": 0.832571546,
       "source_file": "SteamApp.Client/angular.json",
       "status": "tentative",
       "uses": 1
@@ -85,13 +85,13 @@
           "q": "The launcher reports port 7443 already in use and it didn't open the browser automatically"
         }
       ],
-      "score": 0.857957837,
+      "score": 0.83273467,
       "source_file": "SteamApp.Client/package.json",
       "status": "tentative",
       "uses": 1
     },
     "steamapp_client_src_app_models_manual_check_model_manualcheckproducterror": {
-      "code_fingerprint": "0c963b3ccd93511c00bb22bc100b6916edbf0b9f6a8de4646e55e0f662ee359f",
+      "code_fingerprint": "b3b501530ae3f021c963fed9c365a919bad7e2fd169ddb0c72f1fd3f61d1cf3b",
       "label": "ManualCheckProductError",
       "last": "2026-08-15T06:39:20.252757+00:00",
       "provenance": [
@@ -101,13 +101,13 @@
           "q": "Fix the frontend problems from the attached Angular diagnostics."
         }
       ],
-      "score": 0.999868005,
+      "score": 0.97047281,
       "source_file": "SteamApp.Client/src/app/models/manual-check.model.ts",
       "status": "tentative",
       "uses": 1
     },
     "steamapp_client_src_app_models_manual_check_model_manualcheckrunsummary": {
-      "code_fingerprint": "0c963b3ccd93511c00bb22bc100b6916edbf0b9f6a8de4646e55e0f662ee359f",
+      "code_fingerprint": "b3b501530ae3f021c963fed9c365a919bad7e2fd169ddb0c72f1fd3f61d1cf3b",
       "label": "ManualCheckRunSummary",
       "last": "2026-08-15T06:39:20.252757+00:00",
       "provenance": [
@@ -117,13 +117,13 @@
           "q": "Fix the frontend problems from the attached Angular diagnostics."
         }
       ],
-      "score": 0.999868005,
+      "score": 0.97047281,
       "source_file": "SteamApp.Client/src/app/models/manual-check.model.ts",
       "status": "tentative",
       "uses": 1
     },
     "steamapp_client_src_app_pages_manual_mode_v2_manual_check_history_dialog_component_manualcheckhistorydialogcomponent": {
-      "code_fingerprint": "229ce44a9c516580e4fc5b6475d878f57208c193f35f14962c1c579a3cda8606",
+      "code_fingerprint": "90c3b25602ea4a9d62b1920bc11923b6dc176acb8c888386852527f550c8f3bc",
       "label": "ManualCheckHistoryDialogComponent",
       "last": "2026-08-15T06:39:20.252757+00:00",
       "provenance": [
@@ -138,7 +138,7 @@
           "q": "Inside Automated Check presets remain on Loading presets, failed product checks have no readable trace in Automated Check History, preset creation may return 429, and ManualChecksController should not use HandleAsync."
         }
       ],
-      "score": 1.999606845,
+      "score": 1.940820252,
       "source_file": "SteamApp.Client/src/app/pages/manual-mode-v2/manual-check-history-dialog.component.ts",
       "status": "preferred",
       "uses": 2
@@ -154,13 +154,13 @@
           "q": "Inside Automated Check presets remain on Loading presets, failed product checks have no readable trace in Automated Check History, preset creation may return 429, and ManualChecksController should not use HandleAsync."
         }
       ],
-      "score": 0.999738839,
+      "score": 0.970347442,
       "source_file": "SteamApp.Client/src/app/pages/manual-mode-v2/manual-check-setup-dialog.component.ts",
       "status": "tentative",
       "uses": 1
     },
     "steamapp_client_src_app_pages_manual_mode_v2_manual_mode_v2_manualmodev2": {
-      "code_fingerprint": "a812b8b816db12f2ec436139f0ea9d4d09cb648e8316ee4a19395553dd93a9ab",
+      "code_fingerprint": "b5ac9cc62afe46748fafee43307c109ddf8d9a7ce9ada96bf05c7e2b403298c5",
       "label": "ManualModeV2",
       "last": "2026-08-15T06:39:20.252757+00:00",
       "provenance": [
@@ -175,13 +175,13 @@
           "q": "Rework the Batch Panel in manual-mode-v2.html with previous and next batch buttons, defaults of 1, and no Run Batch increment"
         }
       ],
-      "score": 1.956000626,
+      "score": 1.898496016,
       "source_file": "SteamApp.Client/src/app/pages/manual-mode-v2/manual-mode-v2.ts",
       "status": "preferred",
       "uses": 2
     },
     "steamapp_client_src_app_pages_manual_mode_v2_manual_mode_v2_manualmodev2_startbatchbuttonclicked": {
-      "code_fingerprint": "a812b8b816db12f2ec436139f0ea9d4d09cb648e8316ee4a19395553dd93a9ab",
+      "code_fingerprint": "b5ac9cc62afe46748fafee43307c109ddf8d9a7ce9ada96bf05c7e2b403298c5",
       "label": ".startBatchButtonClicked()",
       "last": "2026-08-13T08:11:46.494168+00:00",
       "provenance": [
@@ -191,7 +191,7 @@
           "q": "Rework the Batch Panel in manual-mode-v2.html with previous and next batch buttons, defaults of 1, and no Run Batch increment"
         }
       ],
-      "score": 0.95613262,
+      "score": 0.928023205,
       "source_file": "SteamApp.Client/src/app/pages/manual-mode-v2/manual-mode-v2.ts",
       "status": "tentative",
       "uses": 1
@@ -207,7 +207,7 @@
           "q": "Profile page only renders fetched data after a manual click"
         }
       ],
-      "score": 0.875162693,
+      "score": 0.849433719,
       "source_file": "SteamApp.Client/src/app/pages/profile/profile-page.ts",
       "status": "tentative",
       "uses": 1
@@ -223,7 +223,7 @@
           "q": "Profile page only renders fetched data after a manual click"
         }
       ],
-      "score": 0.875162693,
+      "score": 0.849433719,
       "source_file": "SteamApp.Client/src/app/pages/profile/profile-page.ts",
       "status": "tentative",
       "uses": 1
@@ -239,7 +239,7 @@
           "q": "I still get Invalid user credentials. and the client doesn't open upon clicking the bat"
         }
       ],
-      "score": 0.858408983,
+      "score": 0.833172553,
       "source_file": "SteamApp.Server/SteamApp.Infrastructure/Identity/ApplicationUser.cs",
       "status": "tentative",
       "uses": 1
@@ -260,7 +260,7 @@
           "q": "did you allow the two the to communicate as I am getting Invalid user credentials. from the server"
         }
       ],
-      "score": 1.716630392,
+      "score": 1.666163046,
       "source_file": "SteamApp.Server/SteamApp.WebAPI/Controllers/AuthController.cs",
       "status": "preferred",
       "uses": 2
@@ -281,13 +281,13 @@
           "q": "did you allow the two the to communicate as I am getting Invalid user credentials. from the server"
         }
       ],
-      "score": 1.716630392,
+      "score": 1.666163046,
       "source_file": "SteamApp.Server/SteamApp.WebAPI/Controllers/AuthController.cs",
       "status": "preferred",
       "uses": 2
     },
     "steamapp_server_steamapp_webapi_controllers_manualcheckscontroller_steamapp_webapi_controllers_manualcheckscontroller": {
-      "code_fingerprint": "621acf7ae4b5db5204bbee83bb0002dbd302ede84dc53c9d23c517f4c7dc9fb6",
+      "code_fingerprint": "a7152773f69618b3893610985e5adcf2d79ec1c3dd196a7182ee8a2b3f68ee40",
       "label": "ManualChecksController",
       "last": "2026-08-15T06:31:17.146324+00:00",
       "provenance": [
@@ -297,7 +297,7 @@
           "q": "Inside Automated Check presets remain on Loading presets, failed product checks have no readable trace in Automated Check History, preset creation may return 429, and ManualChecksController should not use HandleAsync."
         }
       ],
-      "score": 0.999738839,
+      "score": 0.970347442,
       "source_file": "SteamApp.Server/SteamApp.WebAPI/Controllers/ManualChecksController.cs",
       "status": "tentative",
       "uses": 1
@@ -323,13 +323,13 @@
           "q": "can we create a click once .exe or .bat file that would start the server and the client in Release mode and use the Local db connection instead of hosting the db"
         }
       ],
-      "score": 2.574778532,
+      "score": 2.499082423,
       "source_file": "SteamApp.Server/SteamApp.WebAPI/Program.cs",
       "status": "preferred",
       "uses": 3
     },
     "steamapp_server_steamapp_webapi_services_manualcheckdataservice_steamapp_webapi_services_manualcheckdataservice": {
-      "code_fingerprint": "5d3ebf4f7494bce7ecd14f865cc50d018e63887d7becd05455ca432b6a7c9917",
+      "code_fingerprint": "68185c1069a4ef639a4b239c5c2516f931bb9b7794a67f48042c91b318677a61",
       "label": "ManualCheckDataService",
       "last": "2026-08-15T06:31:17.146324+00:00",
       "provenance": [
@@ -339,13 +339,13 @@
           "q": "Inside Automated Check presets remain on Loading presets, failed product checks have no readable trace in Automated Check History, preset creation may return 429, and ManualChecksController should not use HandleAsync."
         }
       ],
-      "score": 0.999738839,
+      "score": 0.970347442,
       "source_file": "SteamApp.Server/SteamApp.WebAPI/Services/ManualCheckDataService.cs",
       "status": "tentative",
       "uses": 1
     },
     "steamapp_server_steamapp_webapi_services_manualcheckexecutionservice_steamapp_webapi_services_manualcheckexecutionservice": {
-      "code_fingerprint": "dfdce52cb6e6e06ad2c812bfef09e29715d9ccbb1b090857dab71e26334d473d",
+      "code_fingerprint": "835f16f1928f34a30f13be2c00b44f0b136f2de826ed3b4441979dc95a9c7043",
       "label": "ManualCheckExecutionService",
       "last": "2026-08-15T06:31:17.146324+00:00",
       "provenance": [
@@ -355,7 +355,7 @@
           "q": "Inside Automated Check presets remain on Loading presets, failed product checks have no readable trace in Automated Check History, preset creation may return 429, and ManualChecksController should not use HandleAsync."
         }
       ],
-      "score": 0.999738839,
+      "score": 0.970347442,
       "source_file": "SteamApp.Server/SteamApp.WebAPI/Services/ManualCheckExecutionService.cs",
       "status": "tentative",
       "uses": 1

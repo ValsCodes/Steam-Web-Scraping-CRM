@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unit Tests"
+  short_description: "Add focused SteamApp regression coverage"
+  default_prompt: "Use $unit-tests to add or validate focused tests for the current SteamApp change."
