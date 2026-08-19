@@ -7,9 +7,11 @@ description: Query and maintain SteamApp's persistent Graphify knowledge graph f
 
 ## Use the existing graph
 
-When `graphify-out/graph.json` exists:
+Use this skill when the user invokes `/graphify`, explicitly requests Graphify analysis, asks for graph-specific outputs, or a codebase-discovery fallback has selected Graphify because codebase-memory-mcp was unavailable or insufficient.
 
-- Run `graphify query "<question>"` for codebase questions.
+When `graphify-out/graph.json` exists and Graphify has been selected:
+
+- Run `graphify query "<question>"` for questions explicitly routed to Graphify.
 - Run `graphify path "<A>" "<B>"` for a relationship.
 - Run `graphify explain "<concept>"` for a focused concept.
 - Use `graphify-out/wiki/index.md` for broad navigation when present.
@@ -20,12 +22,12 @@ Follow the installed Graphify skill's vocabulary expansion, source-location, hon
 ## Boundaries
 
 - Treat source and project files as authoritative.
+- Use the `codebase-discovery` skill and codebase-memory-mcp as the primary navigation index for ordinary repository discovery.
 - Treat `graphify-out/` as generated analysis.
-- Do not use Graphify and codebase-memory-mcp for the same routine task unless one is insufficient or cross-validation is requested.
+- Do not use Graphify and codebase-memory-mcp for the same routine task unless the primary result is insufficient or cross-validation is requested.
 - Do not rebuild the graph for a normal question when the existing graph can answer it.
 - Dirty Graphify files are expected and do not invalidate the graph by themselves.
 
 ## Updates
 
 After source-code changes, run `graphify update .` as required by the repository `AGENTS.md`. Do not update for read-only review or configuration-only edits unless the user explicitly requests refreshed graph output.
-

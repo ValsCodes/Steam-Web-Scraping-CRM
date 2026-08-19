@@ -20,8 +20,9 @@ If an exact version is missing, use the highest available version with the same 
 1. Record the commit and changed files.
 2. Identify the public/API/client contract, callers, tests, database/message/cache side effects, error behavior, authorization/ownership, async ordering, and cancellation that must remain unchanged.
 3. Use characterization tests when important behavior lacks coverage.
-4. Use scoped Graphify and `codebase-discovery` only where callers or dependencies are unclear.
-5. Verify behavior against source rather than names or comments alone.
+4. Use `codebase-discovery` and codebase-memory-mcp as the primary indexed discovery path where callers or dependencies are unclear.
+5. Use scoped Graphify only when explicitly requested or when codebase-memory-mcp is unavailable or insufficient and the existing graph can materially help.
+6. Verify behavior against source rather than names or comments alone.
 
 ## Review
 
@@ -40,4 +41,3 @@ Record discovered existing defects separately. Do not demand migration validatio
 Run relevant unit tests and builds. Skip integration/E2E unless explicitly requested and report applicable suites as `Not Verified`.
 
 Use the Code Refactoring Validation Report from the refactoring directive. Add the Security Review report when the security directive applies. Do not recommend the PR while a Blocking finding remains.
-

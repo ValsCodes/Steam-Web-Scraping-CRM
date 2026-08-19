@@ -25,8 +25,8 @@ Do not modify code, create a PR, merge, deploy, or accept security risk unless t
 
 Use direct source inspection when the diff is locally clear. Otherwise:
 
-1. Use scoped Graphify queries because this repository maintains `graphify-out/graph.json`.
-2. Use `codebase-discovery` for type-aware callers, dependencies, routes, or change impact when Graphify is insufficient.
+1. Use `codebase-discovery` and the narrowest codebase-memory-mcp operation for type-aware callers, dependencies, routes, architecture, or change impact.
+2. Use scoped Graphify queries only when explicitly requested or when codebase-memory-mcp is unavailable or insufficient and the existing graph can materially help.
 3. Verify findings against source and project files.
 
 Avoid repository-wide browsing when a narrower path establishes the behavior.
@@ -43,4 +43,3 @@ Avoid repository-wide browsing when a narrower path establishes the behavior.
 ## Output
 
 Use the Pre-PR Validation Report format from the PR directive, followed by the Security Review report. Include precise locations, evidence, reachable paths, commands, outcomes, and every `Not Verified` check.
-

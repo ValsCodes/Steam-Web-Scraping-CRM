@@ -77,10 +77,11 @@ Inspect the affected `.csproj` files before changing these boundaries.
 This repository has a Graphify graph at `graphify-out/` and a codebase-memory-mcp index.
 
 - For an exact, locally understandable change, inspect source directly.
-- For symbol, caller, dependency, route, or change-impact discovery, use the `codebase-discovery` skill and the narrowest codebase-memory-mcp operation.
-- For natural-language codebase questions when `graphify-out/graph.json` exists, run `graphify query "<question>"` first. Use `graphify path` for relationships and `graphify explain` for a focused concept.
-- Use `graphify-out/wiki/index.md` for broad navigation when it exists. Read `GRAPH_REPORT.md` only for broad architecture work or when scoped queries are insufficient.
-- Do not use Graphify and codebase-memory-mcp for the same routine task unless one result is insufficient or cross-validation is requested.
+- For repository discovery, including natural-language codebase questions, symbols, callers, dependencies, routes, architecture, and change impact, use the `codebase-discovery` skill and codebase-memory-mcp as the primary navigation index. Use the narrowest operation, check index freshness, and re-index only when the index is missing or stale.
+- Verify implementation-sensitive, negative, exhaustive, and security-sensitive conclusions against source and project files.
+- Use Graphify when the user invokes `/graphify`, explicitly requests Graphify analysis, asks for graph-specific outputs such as communities, god nodes, wiki navigation, or visualization, or when codebase-memory-mcp is unavailable or insufficient and a scoped graph query can materially help. Use `graphify query`, `graphify path`, or `graphify explain` as appropriate.
+- Do not use Graphify and codebase-memory-mcp for the same routine task unless the primary result is insufficient or cross-validation is requested.
+- Use `graphify-out/wiki/index.md` only for Graphify-oriented broad navigation. Read `GRAPH_REPORT.md` only for broad graph architecture/community work or when scoped Graphify queries are insufficient.
 - Dirty `graphify-out/` files are expected. After modifying source code, run `graphify update .`.
 
 ## Repository workflows

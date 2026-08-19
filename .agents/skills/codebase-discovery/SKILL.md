@@ -9,9 +9,9 @@ description: Discover SteamApp architecture, symbols, callers, routes, dependenc
 
 Inspect source directly when the user names the exact file, class, method, endpoint, or component and the task is locally understandable.
 
-Use codebase-memory-mcp when correctness requires symbol discovery, callers, dependencies, route tracing, architectural placement, or change impact.
+Use codebase-memory-mcp as the primary navigation index when correctness requires repository discovery, including natural-language codebase questions, symbol discovery, callers, dependencies, route tracing, architectural placement, or change impact.
 
-Use Graphify first for natural-language codebase questions when `graphify-out/graph.json` exists, as required by the repository `AGENTS.md`. Do not run both graph systems routinely; add codebase-memory-mcp only when the Graphify result is insufficient or the task needs type-aware symbol/call analysis.
+Do not route a question to Graphify merely because `graphify-out/graph.json` exists. Use Graphify when the user explicitly requests it, asks for graph-specific analysis or outputs, or when codebase-memory-mcp is unavailable or insufficient and a scoped Graphify query can materially help. Do not run both graph systems routinely.
 
 ## Procedure
 
@@ -42,7 +42,6 @@ Treat this map as navigation, not proof. Inspect affected `.csproj`, source, con
 
 ## Fallback
 
-Use `rg` or direct file inspection for string literals, errors, configuration, HTML/SCSS, generated assets, or gaps in graph output.
+Use `rg` or direct file inspection for string literals, errors, configuration, HTML/SCSS, generated assets, or gaps in indexed results.
 
-If codebase-memory-mcp is unavailable, state that briefly and continue with scoped Graphify/source inspection. Never invent graph results.
-
+If codebase-memory-mcp is unavailable, state that briefly and continue with scoped source inspection. Use Graphify as a secondary fallback only when the existing graph can materially help. Never invent graph results.
