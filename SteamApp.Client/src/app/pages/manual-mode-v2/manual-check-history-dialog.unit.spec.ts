@@ -1,15 +1,27 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { of } from 'rxjs';
 
 import { ManualCheckRunDetail, ManualCheckRunSummary } from '../../models';
 import { ManualCheckService } from '../../services';
 import { ManualCheckHistoryDialogComponent } from './manual-check-history-dialog.component';
+import { ManualCheckSteamResultDialogComponent } from './manual-check-steam-result-dialog.component';
 
 describe('ManualCheckHistoryDialogComponent', () => {
   let fixture: ComponentFixture<ManualCheckHistoryDialogComponent>;
   let component: ManualCheckHistoryDialogComponent;
   let service: jasmine.SpyObj<ManualCheckService>;
+  let openDialog: jasmine.Spy;
+
+  const productTrace = {
+    productId: 1,
+    productName: 'Rocket Launcher',
+    fullUrl: 'https://steamcommunity.com/market/listings/440/Rocket%20Launcher',
+    matchEvaluated: false,
+    matched: false,
+    matchedAssetCount: 0,
+    steamApiResultJson: '{"success":true,"total_count":1}',
+  };
 
   const failedRun: ManualCheckRunSummary = {
     id: 42,
@@ -48,12 +60,14 @@ describe('ManualCheckHistoryDialogComponent', () => {
       gameUrlName: 'Steam Market',
       matchMode: 'Any',
       listingLimit: 37,
+      bypassCache: false,
       criteria: [{ nameContains: null, valueContains: 'Mean Green' }],
       products: [],
       requestedAtUtc: '2026-08-15T10:00:00Z',
     },
     results: {
       matches: [],
+      productTraces: [productTrace],
       errors: [{
         productId: 1,
         productName: 'Rocket Launcher',
@@ -74,7 +88,6 @@ describe('ManualCheckHistoryDialogComponent', () => {
     ]);
     service.getRuns.and.returnValue(of([failedRun]));
     service.getRun.and.returnValue(of(detail));
-
     await TestBed.configureTestingModule({
       imports: [ManualCheckHistoryDialogComponent],
       providers: [
@@ -86,6 +99,8 @@ describe('ManualCheckHistoryDialogComponent', () => {
 
     fixture = TestBed.createComponent(ManualCheckHistoryDialogComponent);
     component = fixture.componentInstance;
+    const dialogOwner = component as unknown as { dialog: MatDialog };
+    openDialog = spyOn(dialogOwner.dialog, 'open');
     fixture.detectChanges();
   });
 
@@ -113,5 +128,27 @@ describe('ManualCheckHistoryDialogComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Top 37 cheapest available listing(s) checked per product.');
+    expect(fixture.nativeElement.textContent).toContain('Steam data: 20-minute cache allowed.');
+  });
+
+  it('shows every parsed Steam result in the Matches trace with an Actions trigger', () => {
+    component.openViewer(failedRun, 'results');
+    fixture.detectChanges();
+
+    const actions = fixture.nativeElement.querySelector(
+      '[aria-label="Open Steam result actions for Rocket Launcher"]',
+    );
+    expect(fixture.nativeElement.textContent).toContain('Rocket Launcher');
+    expect(fixture.nativeElement.textContent).toContain('Check failed');
+    expect(actions).not.toBeNull();
+  });
+
+  it('opens the Steam API result dialog for the selected product trace', () => {
+    component.openSteamResult(productTrace);
+
+    expect(openDialog).toHaveBeenCalledWith(
+      ManualCheckSteamResultDialogComponent,
+      jasmine.objectContaining({ data: productTrace }),
+    );
   });
 });

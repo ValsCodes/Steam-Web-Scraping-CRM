@@ -35,6 +35,7 @@ public sealed class ManualCheckRunRequestDto
 {
     public long GameUrlId { get; set; }
     public long PresetId { get; set; }
+    public bool BypassCache { get; set; }
 }
 
 public sealed class ManualCheckRunAcceptedDto
@@ -95,6 +96,7 @@ public sealed class ManualCheckSetupDto
     public ManualCheckMatchModeEnum MatchMode { get; set; }
 
     public int ListingLimit { get; set; } = ManualCheckPreset.DefaultListingLimit;
+    public bool BypassCache { get; set; }
     public List<ManualCheckCriterionDto> Criteria { get; set; } = [];
     public List<ManualCheckProductInputDto> Products { get; set; } = [];
     public DateTime RequestedAtUtc { get; set; }
@@ -114,7 +116,19 @@ public sealed class ManualCheckProductInputDto
 public sealed class ManualCheckRunResultsDto
 {
     public List<ManualCheckProductResultDto> Matches { get; set; } = [];
+    public List<ManualCheckProductTraceDto> ProductTraces { get; set; } = [];
     public List<ManualCheckProductErrorDto> Errors { get; set; } = [];
+}
+
+public sealed class ManualCheckProductTraceDto
+{
+    public long ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string FullUrl { get; set; } = string.Empty;
+    public bool MatchEvaluated { get; set; }
+    public bool Matched { get; set; }
+    public int MatchedAssetCount { get; set; }
+    public string SteamApiResultJson { get; set; } = string.Empty;
 }
 
 public sealed class ManualCheckProductResultDto

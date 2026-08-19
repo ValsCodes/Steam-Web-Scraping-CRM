@@ -9,7 +9,11 @@ public interface IManualCheckDataService
     Task<ManualCheckPresetDto> CreatePresetAsync(ManualCheckPresetWriteDto input, CancellationToken cancellationToken);
     Task<ManualCheckPresetDto> UpdatePresetAsync(long id, ManualCheckPresetWriteDto input, CancellationToken cancellationToken);
     Task DeletePresetAsync(long id, CancellationToken cancellationToken);
-    Task<ManualCheckRunSummaryDto> CreateRunAsync(long gameUrlId, long presetId, CancellationToken cancellationToken);
+    Task<ManualCheckRunSummaryDto> CreateRunAsync(
+        long gameUrlId,
+        long presetId,
+        bool bypassCache,
+        CancellationToken cancellationToken);
     Task<ManualCheckRunSummaryDto> RerunAsync(long runId, CancellationToken cancellationToken);
     Task<ManualCheckRunDetailDto> CancelAsync(long runId, CancellationToken cancellationToken);
     Task<IReadOnlyList<ManualCheckRunSummaryDto>> GetRunsAsync(long? gameId, int take, CancellationToken cancellationToken);

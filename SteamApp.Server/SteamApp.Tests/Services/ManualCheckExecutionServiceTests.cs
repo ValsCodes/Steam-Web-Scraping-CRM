@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -40,7 +41,13 @@ public sealed class ManualCheckExecutionServiceTests
         data.Verify(x => x.CompleteAsync(
             10,
             ManualCheckRunStatusEnum.Succeeded,
-            It.Is<ManualCheckRunResultsDto>(r => r.Errors.Count == 0),
+            It.Is<ManualCheckRunResultsDto>(r =>
+                r.Errors.Count == 0 &&
+                r.ProductTraces.Count == 1 &&
+                r.ProductTraces[0].ProductId == 1 &&
+                r.ProductTraces[0].MatchEvaluated &&
+                !r.ProductTraces[0].Matched &&
+                r.ProductTraces[0].SteamApiResultJson.Contains("\"success\":true")),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -171,6 +178,10 @@ public sealed class ManualCheckExecutionServiceTests
             It.Is<ManualCheckRunResultsDto>(results =>
                 results.Errors.Count == 0 &&
                 results.Matches.Count == 1 &&
+                results.ProductTraces.Count == 1 &&
+                results.ProductTraces[0].MatchEvaluated &&
+                results.ProductTraces[0].Matched &&
+                results.ProductTraces[0].MatchedAssetCount == 1 &&
                 results.Matches[0].MatchedAssets.Count == 1 &&
                 results.Matches[0].MatchedAssets[0].Descriptions[0].Value == "Sheen: Mean Green"),
             It.IsAny<CancellationToken>()), Times.Once);
@@ -197,15 +208,106 @@ public sealed class ManualCheckExecutionServiceTests
             ManualCheckRunStatusEnum.CompletedWithErrors,
             It.Is<ManualCheckRunResultsDto>(results =>
                 results.Errors.Count == 1 &&
+                results.ProductTraces.Count == 1 &&
+                !results.ProductTraces[0].MatchEvaluated &&
+                !results.ProductTraces[0].Matched &&
                 results.Errors[0].ErrorType == nameof(InvalidOperationException) &&
                 results.Errors[0].Error.Contains("usable price and asset information")),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_SuccessfulResponseIsCachedForTwentyMinutes()
+    {
+        var attempts = 0;
+        var handler = new HttpMessageHandlerStub((_, _) =>
+        {
+            attempts++;
+            return JsonResponse(new Listing { Success = true });
+        });
+        DistributedCacheEntryOptions? cacheOptions = null;
+        var cache = StatefulCache(options => cacheOptions = options);
+        var data = DataServiceMock(Setup(Product(1, "First")));
+        var service = CreateService(handler, data.Object, maxAttempts: 1, cache.Object);
+
+        await service.ExecuteAsync(16, CancellationToken.None);
+        await service.ExecuteAsync(17, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(attempts, Is.EqualTo(1));
+            Assert.That(cacheOptions?.AbsoluteExpirationRelativeToNow, Is.EqualTo(TimeSpan.FromMinutes(20)));
+        });
+    }
+
+    [Test]
+    public async Task ExecuteAsync_BypassCacheFetchesAndReplacesSteamResponse()
+    {
+        var attempts = 0;
+        var handler = new HttpMessageHandlerStub((_, _) =>
+        {
+            attempts++;
+            return JsonResponse(new Listing { Success = true });
+        });
+        var cache = StatefulCache();
+        var cachedRun = CreateService(
+            handler,
+            DataServiceMock(Setup(Product(1, "First"))).Object,
+            maxAttempts: 1,
+            cache.Object);
+        var refreshRun = CreateService(
+            handler,
+            DataServiceMock(Setup(true, Product(1, "First"))).Object,
+            maxAttempts: 1,
+            cache.Object);
+
+        await cachedRun.ExecuteAsync(18, CancellationToken.None);
+        await refreshRun.ExecuteAsync(19, CancellationToken.None);
+
+        Assert.That(attempts, Is.EqualTo(2));
+        cache.Verify(x => x.SetAsync(
+            It.IsAny<string>(),
+            It.IsAny<byte[]>(),
+            It.IsAny<DistributedCacheEntryOptions>(),
+            It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_CacheReadFailureFallsBackToSteam()
+    {
+        var attempts = 0;
+        var handler = new HttpMessageHandlerStub((_, _) =>
+        {
+            attempts++;
+            return JsonResponse(new Listing { Success = true });
+        });
+        var cache = new Mock<IDistributedCache>();
+        cache.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Cache unavailable"));
+        cache.Setup(x => x.SetAsync(
+                It.IsAny<string>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<DistributedCacheEntryOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var data = DataServiceMock(Setup(Product(1, "First")));
+        var service = CreateService(handler, data.Object, maxAttempts: 1, cache.Object);
+
+        await service.ExecuteAsync(20, CancellationToken.None);
+
+        Assert.That(attempts, Is.EqualTo(1));
+        data.Verify(x => x.CompleteAsync(
+            20,
+            ManualCheckRunStatusEnum.Succeeded,
+            It.IsAny<ManualCheckRunResultsDto>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
     private static ManualCheckExecutionService CreateService(
         HttpMessageHandler handler,
         IManualCheckDataService dataService,
-        int maxAttempts)
+        int maxAttempts,
+        IDistributedCache? cache = null)
     {
         var client = new HttpClient(handler);
         var factory = new Mock<IHttpClientFactory>();
@@ -220,6 +322,7 @@ public sealed class ManualCheckExecutionServiceTests
         return new ManualCheckExecutionService(
             factory.Object,
             options,
+            cache ?? EmptyCache().Object,
             dataService,
             NullLogger<ManualCheckExecutionService>.Instance);
     }
@@ -235,13 +338,56 @@ public sealed class ManualCheckExecutionServiceTests
 
     private static ManualCheckSetupDto Setup(params ManualCheckProductInputDto[] products)
     {
+        return Setup(false, products);
+    }
+
+    private static ManualCheckSetupDto Setup(
+        bool bypassCache,
+        params ManualCheckProductInputDto[] products)
+    {
         return new ManualCheckSetupDto
         {
             MatchMode = ManualCheckMatchModeEnum.Any,
             ListingLimit = 10,
+            BypassCache = bypassCache,
             Criteria = [new ManualCheckCriterionDto { ValueContains = "Mean Green" }],
             Products = products.ToList()
         };
+    }
+
+    private static Mock<IDistributedCache> EmptyCache()
+    {
+        var cache = new Mock<IDistributedCache>();
+        cache.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
+        cache.Setup(x => x.SetAsync(
+                It.IsAny<string>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<DistributedCacheEntryOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return cache;
+    }
+
+    private static Mock<IDistributedCache> StatefulCache(
+        Action<DistributedCacheEntryOptions>? onSet = null)
+    {
+        byte[]? value = null;
+        var cache = new Mock<IDistributedCache>();
+        cache.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => value);
+        cache.Setup(x => x.SetAsync(
+                It.IsAny<string>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<DistributedCacheEntryOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Callback((string _, byte[] bytes, DistributedCacheEntryOptions options, CancellationToken _) =>
+            {
+                value = bytes;
+                onSet?.Invoke(options);
+            })
+            .Returns(Task.CompletedTask);
+        return cache;
     }
 
     private static ManualCheckProductInputDto Product(long id, string name)

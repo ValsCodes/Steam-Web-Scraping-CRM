@@ -43,11 +43,11 @@ public sealed class ManualCheckDataServiceTests
         var preset = await service.CreatePresetAsync(PresetInput("Check"), CancellationToken.None);
 
         var invalid = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
-            service.CreateRunAsync(source.Id, preset.Id, CancellationToken.None));
+            service.CreateRunAsync(source.Id, preset.Id, false, CancellationToken.None));
         source.ScrapingModeId = (long)ScrapingModeEnum.ManualBatch;
         database.Context.SaveChanges();
 
-        var run = await service.CreateRunAsync(source.Id, preset.Id, CancellationToken.None);
+        var run = await service.CreateRunAsync(source.Id, preset.Id, true, CancellationToken.None);
         var detail = await service.GetRunAsync(run.Id, CancellationToken.None);
 
         Assert.Multiple(() =>
@@ -56,6 +56,7 @@ public sealed class ManualCheckDataServiceTests
             Assert.That(run.Status, Is.EqualTo(ManualCheckRunStatusEnum.Queued));
             Assert.That(detail!.Setup.Products, Has.Count.EqualTo(1));
             Assert.That(detail.Setup.ListingLimit, Is.EqualTo(10));
+            Assert.That(detail.Setup.BypassCache, Is.True);
             Assert.That(detail.Setup.Products[0].FullUrl, Is.EqualTo(
                 "https://steamcommunity.com/market/listings/440/Rocket%20Launcher"));
         });
@@ -73,7 +74,7 @@ public sealed class ManualCheckDataServiceTests
         var presetInput = PresetInput("Snapshot");
         presetInput.ListingLimit = 37;
         var preset = await service.CreatePresetAsync(presetInput, CancellationToken.None);
-        var original = await service.CreateRunAsync(source.Id, preset.Id, CancellationToken.None);
+        var original = await service.CreateRunAsync(source.Id, preset.Id, true, CancellationToken.None);
 
         presetInput.ListingLimit = 5;
         await service.UpdatePresetAsync(preset.Id, presetInput, CancellationToken.None);
@@ -98,6 +99,7 @@ public sealed class ManualCheckDataServiceTests
             Assert.That(originalDetail!.Setup.Products, Has.Count.EqualTo(1));
             Assert.That(rerunDetail!.Setup.Products, Has.Count.EqualTo(2));
             Assert.That(rerunDetail.Setup.ListingLimit, Is.EqualTo(37));
+            Assert.That(rerunDetail.Setup.BypassCache, Is.False);
             Assert.That(rerunDetail.Setup.Criteria[0].ValueContains, Is.EqualTo("Mean Green"));
             Assert.That(rerunDetail.Setup.Products.Select(x => x.ProductName), Does.Contain("New Item"));
         });
@@ -115,7 +117,7 @@ public sealed class ManualCheckDataServiceTests
         var presetInput = PresetInput("Legacy snapshot");
         presetInput.ListingLimit = 37;
         var preset = await service.CreatePresetAsync(presetInput, CancellationToken.None);
-        var original = await service.CreateRunAsync(source.Id, preset.Id, CancellationToken.None);
+        var original = await service.CreateRunAsync(source.Id, preset.Id, false, CancellationToken.None);
 
         var originalRow = database.Context.ManualCheckRuns.Single(x => x.Id == original.Id);
         var legacySetup = JObject.Parse(originalRow.SetupJson);
@@ -157,10 +159,19 @@ public sealed class ManualCheckDataServiceTests
         database.Context.SaveChanges();
         var service = new ManualCheckDataService(database.Factory);
         var preset = await service.CreatePresetAsync(PresetInput("Cancelable"), CancellationToken.None);
-        var run = await service.CreateRunAsync(source.Id, preset.Id, CancellationToken.None);
+        var run = await service.CreateRunAsync(source.Id, preset.Id, false, CancellationToken.None);
         await service.MarkRunningAndGetSetupAsync(run.Id, CancellationToken.None);
         var results = new ManualCheckRunResultsDto
         {
+            ProductTraces =
+            [
+                new ManualCheckProductTraceDto
+                {
+                    ProductId = 1,
+                    ProductName = "Rocket Launcher",
+                    SteamApiResultJson = "{\"success\":true}"
+                }
+            ],
             Errors =
             [
                 new ManualCheckProductErrorDto
@@ -179,10 +190,27 @@ public sealed class ManualCheckDataServiceTests
         {
             Assert.That(canceled.Status, Is.EqualTo(ManualCheckRunStatusEnum.Canceled));
             Assert.That(canceled.CheckedProducts, Is.EqualTo(1));
+            Assert.That(canceled.Results.ProductTraces, Has.Count.EqualTo(1));
+            Assert.That(canceled.Results.ProductTraces[0].SteamApiResultJson, Does.Contain("success"));
             Assert.That(canceled.Results.Errors, Has.Count.EqualTo(1));
             Assert.That(canceled.ErrorText, Does.Contain("Canceled by the user after checking 1 of 1 products."));
             Assert.That(canceled.CompletedAtUtc, Is.Not.Null);
         });
+    }
+
+    [Test]
+    public async Task GetRun_OldResultsWithoutProductTraces_ReturnsAnEmptyTraceList()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var row = Run(99, ManualCheckRunStatusEnum.Succeeded);
+        row.ResultsJson = "{\"Matches\":[],\"Errors\":[]}";
+        database.Context.ManualCheckRuns.Add(row);
+        database.Context.SaveChanges();
+        var service = new ManualCheckDataService(database.Factory);
+
+        var detail = await service.GetRunAsync(row.Id, CancellationToken.None);
+
+        Assert.That(detail!.Results.ProductTraces, Is.Empty);
     }
 
     [Test]

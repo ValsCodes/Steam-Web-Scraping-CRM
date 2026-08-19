@@ -31,6 +31,11 @@ export interface ManualCheckSetupDialogData {
   preselectedPresetId?: number | null;
 }
 
+export interface ManualCheckSetupDialogResult {
+  presetId: number;
+  bypassCache: boolean;
+}
+
 @Component({
   selector: 'steam-manual-check-setup-dialog',
   standalone: true,
@@ -147,6 +152,23 @@ export interface ManualCheckSetupDialogData {
             <p class="manual-check-dialog__validation" role="alert">Enter a positive whole number.</p>
           }
         </section>
+
+        <fieldset>
+          <legend>Steam response cache</legend>
+          <label class="manual-check-dialog__radio">
+            <input
+              type="checkbox"
+              name="manualCheckBypassCache"
+              [(ngModel)]="bypassCache"
+              aria-describedby="manualCheckBypassCacheDescription" />
+            <span>
+              <strong>Refresh Steam data</strong><br />
+              <small id="manualCheckBypassCacheDescription">
+                Bypass existing cached responses and replace them. Otherwise responses are reused for up to 20 minutes.
+              </small>
+            </span>
+          </label>
+        </fieldset>
 
         <div class="manual-check-dialog__criteria-heading">
           <strong>Criteria</strong>
@@ -266,7 +288,7 @@ export interface ManualCheckSetupDialogData {
 })
 export class ManualCheckSetupDialogComponent implements OnInit {
   readonly data = inject<ManualCheckSetupDialogData>(MAT_DIALOG_DATA);
-  readonly dialogRef = inject<MatDialogRef<ManualCheckSetupDialogComponent, number>>(MatDialogRef);
+  readonly dialogRef = inject<MatDialogRef<ManualCheckSetupDialogComponent, ManualCheckSetupDialogResult>>(MatDialogRef);
   private readonly manualCheckService = inject(ManualCheckService);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -275,6 +297,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   name = '';
   matchMode: ManualCheckMatchMode = 'Any';
   listingLimit: number | null = 10;
+  bypassCache = false;
   criteria: ManualCheckCriterion[] = [this.emptyCriterion()];
   loading = true;
   loadError = false;
@@ -434,7 +457,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
         this.selectedPresetId = saved.id;
         this.selectPreset(saved.id);
         if (startAfterSave) {
-          this.dialogRef.close(saved.id);
+          this.closeForStart(saved.id);
           return;
         }
         this.successMessage = `Preset “${saved.name}” saved.`;
@@ -483,7 +506,11 @@ export class ManualCheckSetupDialogComponent implements OnInit {
       return;
     }
 
-    this.dialogRef.close(this.selectedPresetId);
+    this.closeForStart(this.selectedPresetId);
+  }
+
+  private closeForStart(presetId: number): void {
+    this.dialogRef.close({ presetId, bypassCache: this.bypassCache });
   }
 
   private toWriteModel(): ManualCheckPresetWrite {

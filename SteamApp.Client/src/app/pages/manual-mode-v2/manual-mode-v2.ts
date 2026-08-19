@@ -51,6 +51,7 @@ import {
 import {
   ManualCheckSetupDialogComponent,
   ManualCheckSetupDialogData,
+  ManualCheckSetupDialogResult,
 } from './manual-check-setup-dialog.component';
 import {
   ManualCheckHistoryDialogComponent,
@@ -252,15 +253,15 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       preselectedPresetId: this.lastPresetByGame.get(gameId),
     };
 
-    this.dialog.open<ManualCheckSetupDialogComponent, ManualCheckSetupDialogData, number>(
+    this.dialog.open<ManualCheckSetupDialogComponent, ManualCheckSetupDialogData, ManualCheckSetupDialogResult>(
       ManualCheckSetupDialogComponent,
       { data, width: 'min(52rem, 94vw)', maxWidth: '94vw', disableClose: true },
-    ).afterClosed().pipe(takeUntil(this.destroy$)).subscribe((presetId) => {
-      if (presetId === undefined) {
+    ).afterClosed().pipe(takeUntil(this.destroy$)).subscribe((result) => {
+      if (result === undefined) {
         return;
       }
-      this.lastPresetByGame.set(gameId, presetId);
-      this.startAutomatedRun(source.id, presetId);
+      this.lastPresetByGame.set(gameId, result.presetId);
+      this.startAutomatedRun(source.id, result.presetId, result.bypassCache);
     });
   }
 
@@ -675,13 +676,13 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       });
   }
 
-  private startAutomatedRun(gameUrlId: number, presetId: number): void {
+  private startAutomatedRun(gameUrlId: number, presetId: number, bypassCache: boolean): void {
     this.resetAutomatedCheck();
     this.loadProductsGrid(gameUrlId);
     this.automatedRunActive = true;
     this.cdr.markForCheck();
 
-    this.manualCheckService.createRun({ gameUrlId, presetId })
+    this.manualCheckService.createRun({ gameUrlId, presetId, bypassCache })
       .pipe(
         takeUntil(this.automatedRunStop$),
         takeUntil(this.destroy$),

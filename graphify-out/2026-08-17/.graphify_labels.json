@@ -252,12 +252,9 @@
   "250": "ChangePasswordRequest.cs",
   "251": "DeleteUserRequest.cs",
   "252": "20260515171509_AddUserOwnership.Designer.cs",
-  "253": "ClaimsPrincipalExtensions.cs",
   "254": "20260627144144_AddFeedbackRequestHistory.Designer.cs",
   "255": "ScrapingMode",
-  "256": "SecurityHeadersMiddlewareExtensions.cs",
   "257": "ScrapingModeEndpoints",
-  "258": "SecurityPolicies.cs",
   "259": "WatchListEndpoints",
   "260": "WishListEndpoints"
 }

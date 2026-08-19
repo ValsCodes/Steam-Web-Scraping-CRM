@@ -103,7 +103,11 @@ public sealed class ManualChecksController(
     {
         try
         {
-            var run = await dataService.CreateRunAsync(input.GameUrlId, input.PresetId, cancellationToken);
+            var run = await dataService.CreateRunAsync(
+                input.GameUrlId,
+                input.PresetId,
+                input.BypassCache,
+                cancellationToken);
             await queue.EnqueueAsync(run.Id, cancellationToken);
             return AcceptedAtAction(nameof(GetRun), new { id = run.Id }, new ManualCheckRunAcceptedDto
             {

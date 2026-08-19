@@ -1,19 +1,27 @@
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.ManualCheck;
 using SteamApp.Application.JsonObjects;
 using SteamApp.Domain.Enums;
+using SteamApp.WebAPI.Caching;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace SteamApp.WebAPI.Services;
 
 public sealed class ManualCheckExecutionService(
     IHttpClientFactory httpClientFactory,
     IOptions<ManualCheckOptions> options,
+    IDistributedCache cache,
     IManualCheckDataService dataService,
     ILogger<ManualCheckExecutionService> logger) : IManualCheckExecutionService
 {
+    private static readonly TimeSpan SteamListingCacheDuration = TimeSpan.FromMinutes(20);
+
     public async Task ExecuteAsync(long runId, CancellationToken cancellationToken)
     {
         var setup = await dataService.MarkRunningAndGetSetupAsync(runId, cancellationToken);
@@ -44,7 +52,12 @@ public sealed class ManualCheckExecutionService(
                         throw new InvalidOperationException("The product URL is not a supported Steam Community listing URL.");
                     }
 
-                    var listing = await FetchListingAsync(listingUri, cancellationToken);
+                    var listing = await FetchListingAsync(
+                        listingUri,
+                        setup.BypassCache,
+                        cancellationToken);
+                    var productTrace = CreateProductTrace(product, listing);
+                    results.ProductTraces.Add(productTrace);
                     successfulProducts++;
 
                     var match = ManualCheckMatcher.MatchProduct(
@@ -53,6 +66,9 @@ public sealed class ManualCheckExecutionService(
                         setup.MatchMode,
                         setup.Criteria,
                         setup.ListingLimit);
+                    productTrace.MatchEvaluated = true;
+                    productTrace.Matched = match is not null;
+                    productTrace.MatchedAssetCount = match?.MatchedAssets.Count ?? 0;
                     if (match is not null)
                     {
                         results.Matches.Add(match);
@@ -120,7 +136,73 @@ public sealed class ManualCheckExecutionService(
         }
     }
 
-    private async Task<Listing> FetchListingAsync(Uri uri, CancellationToken cancellationToken)
+    private static ManualCheckProductTraceDto CreateProductTrace(
+        ManualCheckProductInputDto product,
+        Listing listing)
+    {
+        return new ManualCheckProductTraceDto
+        {
+            ProductId = product.ProductId,
+            ProductName = product.ProductName,
+            FullUrl = product.FullUrl,
+            SteamApiResultJson = JsonConvert.SerializeObject(listing)
+        };
+    }
+
+    private async Task<Listing> FetchListingAsync(
+        Uri uri,
+        bool bypassCache,
+        CancellationToken cancellationToken)
+    {
+        var cacheKey = BuildCacheKey(uri);
+        if (!bypassCache)
+        {
+            try
+            {
+                var cachedListing = await cache.GetJsonAsync<Listing>(cacheKey, cancellationToken);
+                if (cachedListing?.Success == true)
+                {
+                    return cachedListing;
+                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                logger.LogWarning(
+                    exception,
+                    "Unable to read cached Steam listing response for key {CacheKey}; fetching a fresh response.",
+                    cacheKey);
+            }
+        }
+
+        var listing = await FetchListingFromSteamAsync(uri, cancellationToken);
+        try
+        {
+            await cache.SetJsonAsync(
+                cacheKey,
+                listing,
+                SteamListingCacheDuration,
+                cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(
+                exception,
+                "Unable to cache Steam listing response for key {CacheKey}.",
+                cacheKey);
+        }
+
+        return listing;
+    }
+
+    private async Task<Listing> FetchListingFromSteamAsync(Uri uri, CancellationToken cancellationToken)
     {
         var client = httpClientFactory.CreateClient(ManualCheckOptions.HttpClientName);
         var maxAttempts = Math.Clamp(options.Value.MaxAttempts, 1, 10);
@@ -202,6 +284,13 @@ public sealed class ManualCheckExecutionService(
         }
 
         throw new TimeoutException("Steam listing request timed out after all retry attempts.");
+    }
+
+    private static string BuildCacheKey(Uri uri)
+    {
+        var urlHash = Convert.ToHexString(
+            SHA256.HashData(Encoding.UTF8.GetBytes(uri.AbsoluteUri)));
+        return string.Format(CacheKeys.ManualCheckSteamListing, urlHash);
     }
 
     private static bool IsHtmlResponse(string? contentType, string payload)

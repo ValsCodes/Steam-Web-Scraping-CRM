@@ -31,6 +31,7 @@ export interface ManualCheckPreset extends ManualCheckPresetWrite {
 export interface ManualCheckRunRequest {
   gameUrlId: number;
   presetId: number;
+  bypassCache: boolean;
 }
 
 export interface ManualCheckProgress {
@@ -85,6 +86,7 @@ export interface ManualCheckSetup {
   gameUrlName: string | null;
   matchMode: ManualCheckMatchMode;
   listingLimit: number;
+  bypassCache: boolean;
   criteria: ManualCheckCriterion[];
   products: ManualCheckProductInput[];
   requestedAtUtc: string;
@@ -112,6 +114,16 @@ export interface ManualCheckProductResult extends ManualCheckProductInput {
   matchedAssets: ManualCheckAssetMatch[];
 }
 
+export interface ManualCheckProductTrace {
+  productId: number;
+  productName: string;
+  fullUrl: string;
+  matchEvaluated: boolean;
+  matched: boolean;
+  matchedAssetCount: number;
+  steamApiResultJson: string;
+}
+
 export interface ManualCheckProductError {
   productId: number;
   productName: string;
@@ -124,6 +136,7 @@ export interface ManualCheckProductError {
 
 export interface ManualCheckRunResults {
   matches: ManualCheckProductResult[];
+  productTraces: ManualCheckProductTrace[];
   errors: ManualCheckProductError[];
 }
 

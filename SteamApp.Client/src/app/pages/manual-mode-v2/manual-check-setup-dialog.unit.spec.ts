@@ -5,13 +5,16 @@ import { of, throwError } from 'rxjs';
 
 import { ManualCheckPreset } from '../../models';
 import { ManualCheckService } from '../../services';
-import { ManualCheckSetupDialogComponent } from './manual-check-setup-dialog.component';
+import {
+  ManualCheckSetupDialogComponent,
+  ManualCheckSetupDialogResult,
+} from './manual-check-setup-dialog.component';
 
 describe('ManualCheckSetupDialogComponent', () => {
   let fixture: ComponentFixture<ManualCheckSetupDialogComponent>;
   let component: ManualCheckSetupDialogComponent;
   let service: jasmine.SpyObj<ManualCheckService>;
-  let dialogRef: jasmine.SpyObj<MatDialogRef<ManualCheckSetupDialogComponent, number>>;
+  let dialogRef: jasmine.SpyObj<MatDialogRef<ManualCheckSetupDialogComponent, ManualCheckSetupDialogResult>>;
 
   const presets: ManualCheckPreset[] = [
     preset(1, 'First', 'Any'),
@@ -59,6 +62,7 @@ describe('ManualCheckSetupDialogComponent', () => {
     expect(component.name).toBe('Preferred');
     expect(component.matchMode).toBe('All');
     expect(component.listingLimit).toBe(10);
+    expect(component.bypassCache).toBeFalse();
     expect(component.criteria[0].valueContains).toBe('Mean Green');
     expect(component.canStart).toBeTrue();
     expect(component.loading).toBeFalse();
@@ -119,11 +123,21 @@ describe('ManualCheckSetupDialogComponent', () => {
     component.newPreset();
     component.name = saved.name;
     component.criteria[0].valueContains = 'Mean Green';
+    component.bypassCache = true;
 
     component.startOrSave();
 
     expect(service.createPreset).toHaveBeenCalled();
-    expect(dialogRef.close).toHaveBeenCalledWith(3);
+    expect(dialogRef.close).toHaveBeenCalledWith({ presetId: 3, bypassCache: true });
+  });
+
+  it('starts an existing preset with the selected cache behavior without marking it dirty', () => {
+    component.bypassCache = true;
+
+    component.startOrSave();
+
+    expect(service.updatePreset).not.toHaveBeenCalled();
+    expect(dialogRef.close).toHaveBeenCalledWith({ presetId: 2, bypassCache: true });
   });
 
   it('shows a useful retry message for rate-limited preset requests', () => {

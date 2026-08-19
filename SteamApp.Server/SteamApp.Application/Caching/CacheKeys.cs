@@ -15,6 +15,8 @@
 
         public const string BatchPage = "v1:batch-page:{0}:{1}:{2}";
 
+        public const string ManualCheckSteamListing = "v1:manual-check:steam-listing:{0}";
+
         // Steam Repository
         public const string GameUrl = "game-url:{0}";
 

@@ -18,14 +18,14 @@ public sealed class ManualChecksControllerTests
     {
         var data = new Mock<IManualCheckDataService>();
         var queue = new Mock<IManualCheckQueue>();
-        data.Setup(x => x.CreateRunAsync(8, 4, It.IsAny<CancellationToken>()))
+        data.Setup(x => x.CreateRunAsync(8, 4, true, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Summary(55));
         queue.Setup(x => x.EnqueueAsync(55, It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask);
         var controller = Controller(data, queue);
 
         var result = await controller.CreateRun(
-            new ManualCheckRunRequestDto { GameUrlId = 8, PresetId = 4 });
+            new ManualCheckRunRequestDto { GameUrlId = 8, PresetId = 4, BypassCache = true });
 
         var accepted = result as AcceptedAtActionResult;
         Assert.Multiple(() =>

@@ -2805,13 +2805,13 @@
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/models/manual-check.model.ts": {
-    "mtime": 1786950877.4712546,
-    "ast_hash": "97481484b7b700ceb13c6baa1fc14296",
+    "mtime": 1786950259.6698627,
+    "ast_hash": "68c6e3e0c662895542cfb3b71a496ca5",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-check-history-dialog.component.ts": {
-    "mtime": 1786950882.3793888,
-    "ast_hash": "7ffe8c1137793777916f190f9986f5fd",
+    "mtime": 1786950328.4539535,
+    "ast_hash": "26f83d6dbb6c9f8c1abbe4dd4510f28e",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-check-setup-dialog.component.ts": {
@@ -2830,8 +2830,8 @@
     "semantic_hash": ""
   },
   "SteamApp.Server/SteamApp.Application/DTOs/ManualCheck/ManualCheckDtos.cs": {
-    "mtime": 1786950870.236185,
-    "ast_hash": "056d0e8ce026fa54a3d9557ef03fb02d",
+    "mtime": 1786950253.1749418,
+    "ast_hash": "987205deb4554d213d726283556b964b",
     "semantic_hash": ""
   },
   "SteamApp.Server/SteamApp.Models/Entities/ManualCheckPreset.cs": {
@@ -2865,8 +2865,8 @@
     "semantic_hash": ""
   },
   "SteamApp.Server/SteamApp.Tests/Services/ManualCheckExecutionServiceTests.cs": {
-    "mtime": 1786950893.6894164,
-    "ast_hash": "3f639284c8c9cead997284baac508d33",
+    "mtime": 1786950389.0697732,
+    "ast_hash": "2e596f38d6cb2a80636cc8ad6aac1301",
     "semantic_hash": ""
   },
   "SteamApp.Server/SteamApp.Tests/Services/ManualCheckMatcherTests.cs": {
@@ -2910,8 +2910,8 @@
     "semantic_hash": ""
   },
   "SteamApp.Server/SteamApp.WebAPI/Services/ManualCheckExecutionService.cs": {
-    "mtime": 1786950873.7328396,
-    "ast_hash": "416c7b7949c24ec8a8315f29d0346999",
+    "mtime": 1786950256.3717139,
+    "ast_hash": "002214f25fa2fe3b3178979f876143bd",
     "semantic_hash": ""
   },
   "SteamApp.Server/SteamApp.WebAPI/Services/ManualCheckMatcher.cs": {
@@ -2935,8 +2935,8 @@
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-check-history-dialog.unit.spec.ts": {
-    "mtime": 1786951067.1896393,
-    "ast_hash": "899f7d7b4f16c9640562ac9a362fcfe0",
+    "mtime": 1786950600.6806772,
+    "ast_hash": "2ebf2afd7815f077d3f150ed9a107cd1",
     "semantic_hash": ""
   },
   "SteamApp.Server/SteamApp.Tests/Services/ManualCheckQueueTests.cs": {
@@ -3055,13 +3055,13 @@
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-check-steam-result-dialog.component.ts": {
-    "mtime": 1786950905.7299216,
-    "ast_hash": "2222f7c1e1a2688ebe5ca5497d1a9e12",
+    "mtime": 1786950325.0014577,
+    "ast_hash": "d1a49eb3c659c49fcbacf2662fad553d",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-check-steam-result-dialog.unit.spec.ts": {
-    "mtime": 1786950890.1512783,
-    "ast_hash": "1ff39d54b1935309acf24658d0dd11f5",
+    "mtime": 1786950385.7057865,
+    "ast_hash": "108e23ae425a8f960c4d2ed5200339bd",
     "semantic_hash": ""
   }
 }

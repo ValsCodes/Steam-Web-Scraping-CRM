@@ -156,6 +156,7 @@ public sealed class ManualCheckDataService(
     public async Task<ManualCheckRunSummaryDto> CreateRunAsync(
         long gameUrlId,
         long presetId,
+        bool bypassCache,
         CancellationToken cancellationToken)
     {
         await using var db = dbContextFactory.CreateDbContext();
@@ -172,6 +173,7 @@ public sealed class ManualCheckDataService(
             preset.GameId,
             preset.MatchMode,
             preset.ListingLimit,
+            bypassCache,
             DeserializeCriteria(preset.CriteriaJson),
             cancellationToken);
     }
@@ -201,6 +203,7 @@ public sealed class ManualCheckDataService(
             original.GameId,
             setup.MatchMode,
             setup.ListingLimit,
+            false,
             NormalizeCriteria(setup.Criteria),
             cancellationToken);
     }
@@ -392,6 +395,7 @@ public sealed class ManualCheckDataService(
         long presetGameId,
         ManualCheckMatchModeEnum matchMode,
         int listingLimit,
+        bool bypassCache,
         List<ManualCheckCriterionDto> criteria,
         CancellationToken cancellationToken)
     {
@@ -481,6 +485,7 @@ public sealed class ManualCheckDataService(
             GameUrlName = gameUrl.Name,
             MatchMode = matchMode,
             ListingLimit = NormalizeListingLimit(listingLimit),
+            BypassCache = bypassCache,
             Criteria = criteria,
             Products = inputs,
             RequestedAtUtc = now

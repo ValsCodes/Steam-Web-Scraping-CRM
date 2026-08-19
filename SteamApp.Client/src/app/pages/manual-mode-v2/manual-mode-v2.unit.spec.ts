@@ -292,12 +292,42 @@ describe('ManualModeV2 external link disclosure', () => {
     manualCheckService.getRun.and.returnValue(of(completed));
 
     (component as unknown as {
-      startAutomatedRun(gameUrlId: number, presetId: number): void;
-    }).startAutomatedRun(2, 3);
+      startAutomatedRun(gameUrlId: number, presetId: number, bypassCache: boolean): void;
+    }).startAutomatedRun(2, 3, false);
     tick(0);
 
     expect(gameUrlProductService.existsByGameUrl).toHaveBeenCalledOnceWith(2);
+    expect(manualCheckService.createRun).toHaveBeenCalledOnceWith({
+      gameUrlId: 2,
+      presetId: 3,
+      bypassCache: false,
+    });
     expect(component.products.map((product) => product.productName)).toEqual(['Loaded Item']);
+  }));
+
+  it('passes the manual refresh choice from the setup panel to the run request', fakeAsync(() => {
+    const completed = runDetail('Succeeded', 0, 0);
+    component.gameIdControl.setValue(1);
+    component.selectedGameUrl = {
+      id: 2,
+      name: 'Market',
+      isActive: true,
+      scrapingModeId: ScrapingModeEnum.ManualBatch,
+    } as never;
+    dialog.open.and.returnValue({
+      afterClosed: () => of({ presetId: 3, bypassCache: true }),
+    });
+    manualCheckService.createRun.and.returnValue(of({ runId: 77, run: completed }));
+    manualCheckService.getRun.and.returnValue(of(completed));
+
+    component.automatedCheckButtonClicked();
+    tick(0);
+
+    expect(manualCheckService.createRun).toHaveBeenCalledOnceWith({
+      gameUrlId: 2,
+      presetId: 3,
+      bypassCache: true,
+    });
   }));
 
   it('includes the resolved product URL in warning tooltips', () => {
@@ -347,6 +377,7 @@ describe('ManualModeV2 external link disclosure', () => {
         gameUrlName: 'Market',
         matchMode: 'Any',
         listingLimit: 10,
+        bypassCache: false,
         criteria: [{ nameContains: null, valueContains: 'Mean Green' }],
         products: [],
         requestedAtUtc: now,
@@ -376,6 +407,7 @@ describe('ManualModeV2 external link disclosure', () => {
             }],
           }],
         }] : [],
+        productTraces: [],
         errors: failures ? [{
           productId: 6,
           productName: 'Failed Item',
