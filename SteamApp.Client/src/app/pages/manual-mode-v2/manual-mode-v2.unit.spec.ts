@@ -1,6 +1,7 @@
 import { ChangeDetectorRef } from '@angular/core';
 import { fakeAsync, tick } from '@angular/core/testing';
 import { of } from 'rxjs';
+import * as XLSX from 'xlsx';
 
 import {
   ExternalLinkDisclosureService,
@@ -8,6 +9,7 @@ import {
   ManualCheckService,
 } from '../../services';
 import { GameUrlProduct, ManualCheckRunDetail, ScrapingModeEnum } from '../../models';
+import { ManualCheckTraceDialogComponent } from './manual-check-trace-dialog.component';
 import { ManualModeV2 } from './manual-mode-v2';
 
 describe('ManualModeV2 external link disclosure', () => {
@@ -245,7 +247,152 @@ describe('ManualModeV2 external link disclosure', () => {
     expect(component.getAutomatedMatch(5)?.matchedAssets.length).toBe(1);
     expect(component.automatedCheckWarning).toContain('1 product page(s) failed');
     expect(component.hasAutomatedCheckResult).toBeTrue();
+    expect(component.formatDuration(component.automatedRun?.durationMilliseconds)).toBe('1.2 s');
   }));
+
+  it('opens a terminal automated result directly in the result dialog', () => {
+    const completed = runDetail('CompletedWithErrors', 1, 1);
+    component.automatedRun = completed;
+
+    component.openAutomatedResult();
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      ManualCheckTraceDialogComponent,
+      jasmine.objectContaining({
+        data: { detail: completed, initialView: 'errors' },
+      }),
+    );
+  });
+
+  it('does not open the result dialog while the run is still active', () => {
+    component.automatedRun = runDetail('Running', 0, 0);
+    component.automatedRunActive = true;
+
+    component.openAutomatedResult();
+
+    expect(component.canViewAutomatedResult).toBeFalse();
+    expect(dialog.open).not.toHaveBeenCalled();
+  });
+
+  it('opens a canceled result with no product failures on the checks view', () => {
+    const canceled = runDetail('Canceled', 1, 0);
+    component.automatedRun = canceled;
+
+    component.openAutomatedResult();
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      ManualCheckTraceDialogComponent,
+      jasmine.objectContaining({
+        data: { detail: canceled, initialView: 'results' },
+      }),
+    );
+  });
+
+  it('filters the product list to partial matches from a canceled run', () => {
+    const canceled = runDetail('Canceled', 1, 0);
+    manualCheckService.cancelRun.and.returnValue(of(canceled));
+    component.products = [
+      {
+        productId: 5,
+        productName: 'Matched Item',
+        fullUrl: 'https://steamcommunity.com/market/listings/440/Matched%20Item',
+        isActive: true,
+        tags: ['primary'],
+        rating: 7,
+      },
+      {
+        productId: 6,
+        productName: 'Other Item',
+        fullUrl: 'https://steamcommunity.com/market/listings/440/Other%20Item',
+        isActive: true,
+        tags: [],
+        rating: 3,
+      },
+    ] as never;
+    component.automatedRunId = 77;
+    component.automatedRunActive = true;
+
+    component.cancelAutomatedRun();
+    component.setAutomatedMatchesOnly(true);
+
+    expect(component.canViewAutomatedResult).toBeTrue();
+    expect(component.productsFiltered.map((product) => product.productId)).toEqual([5]);
+  });
+
+  it('composes matched-only filtering with the existing rating filter', () => {
+    const completed = runDetail('Succeeded', 1, 0);
+    manualCheckService.cancelRun.and.returnValue(of(completed));
+    component.products = [
+      { productId: 5, productName: 'Matched Item', isActive: true, rating: 7 },
+      { productId: 6, productName: 'Other Item', isActive: true, rating: 10 },
+    ] as never;
+    component.automatedRunId = 77;
+    component.automatedRunActive = true;
+    component.cancelAutomatedRun();
+    component.searchByRatingFilterControl.setValue(8);
+
+    component.setAutomatedMatchesOnly(true);
+
+    expect(component.productsFiltered).toEqual([]);
+  });
+
+  it('uses the matched-only filtered list for Open All and clears the filter', () => {
+    const completed = runDetail('Succeeded', 1, 0);
+    manualCheckService.cancelRun.and.returnValue(of(completed));
+    component.products = [
+      {
+        productId: 5,
+        productName: 'Matched Item',
+        fullUrl: 'https://steamcommunity.com/market/listings/440/Matched%20Item',
+        isActive: true,
+      },
+      {
+        productId: 6,
+        productName: 'Other Item',
+        fullUrl: 'https://steamcommunity.com/market/listings/440/Other%20Item',
+        isActive: true,
+      },
+    ] as never;
+    component.automatedRunId = 77;
+    component.automatedRunActive = true;
+    disclosure.openTrustedUrl.and.returnValue('opened');
+    component.cancelAutomatedRun();
+    component.setAutomatedMatchesOnly(true);
+
+    component.openAllButtonClicked();
+
+    expect(disclosure.openTrustedUrl).toHaveBeenCalledOnceWith(
+      'https://steamcommunity.com/market/listings/440/Matched%20Item',
+      '/manual-mode-v2',
+    );
+
+    component.clearFiltersButtonClicked();
+
+    expect(component.showAutomatedMatchesOnly).toBeFalse();
+    expect(component.productsFiltered).toEqual(component.products);
+  });
+
+  it('exports only the matched products when the automated filter is enabled', () => {
+    const completed = runDetail('Succeeded', 1, 0);
+    manualCheckService.cancelRun.and.returnValue(of(completed));
+    component.products = [
+      { productId: 5, productName: 'Matched Item', isActive: true },
+      { productId: 6, productName: 'Other Item', isActive: true },
+    ] as never;
+    component.automatedRunId = 77;
+    component.automatedRunActive = true;
+    component.cancelAutomatedRun();
+    component.setAutomatedMatchesOnly(true);
+    const worksheet = {} as XLSX.WorkSheet;
+    const workbook = {} as XLSX.WorkBook;
+    const toSheet = spyOn(XLSX.utils, 'json_to_sheet').and.returnValue(worksheet);
+    spyOn(XLSX.utils, 'book_new').and.returnValue(workbook);
+    spyOn(XLSX.utils, 'book_append_sheet').and.throwError('Stop before browser download.');
+
+    expect(() => component.exportButtonClicked()).toThrowError('Stop before browser download.');
+
+    expect(toSheet).toHaveBeenCalledOnceWith([component.products[0]]);
+  });
 
   it('keeps the loaded product grid after a successful zero-match run', fakeAsync(() => {
     dialog.open.and.returnValue({ afterClosed: () => of(78) });
@@ -367,6 +514,7 @@ describe('ManualModeV2 external link disclosure', () => {
       date: now,
       startedAtUtc: now,
       completedAtUtc: now,
+      durationMilliseconds: 1234,
       correlationId: 'test',
       setup: {
         presetId: 3,
@@ -375,10 +523,11 @@ describe('ManualModeV2 external link disclosure', () => {
         gameName: 'TF2',
         gameUrlId: 2,
         gameUrlName: 'Market',
-        matchMode: 'Any',
         listingLimit: 10,
+        cooldownMinutes: null,
+        cooldownSeconds: null,
         bypassCache: false,
-        criteria: [{ nameContains: null, valueContains: 'Mean Green' }],
+        criteria: [{ conditionOperatorId: null, nameContains: null, valueContains: 'Mean Green' }],
         products: [],
         requestedAtUtc: now,
       },

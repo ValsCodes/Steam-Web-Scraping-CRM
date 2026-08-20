@@ -2,26 +2,19 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { of } from 'rxjs';
 
-import { ManualCheckRunDetail, ManualCheckRunSummary } from '../../models';
+import { ManualCheckRunSummary } from '../../models';
 import { ManualCheckService } from '../../services';
 import { ManualCheckHistoryDialogComponent } from './manual-check-history-dialog.component';
-import { ManualCheckSteamResultDialogComponent } from './manual-check-steam-result-dialog.component';
+import {
+  ManualCheckTraceDialogComponent,
+  ManualCheckTraceDialogData,
+} from './manual-check-trace-dialog.component';
 
 describe('ManualCheckHistoryDialogComponent', () => {
   let fixture: ComponentFixture<ManualCheckHistoryDialogComponent>;
   let component: ManualCheckHistoryDialogComponent;
   let service: jasmine.SpyObj<ManualCheckService>;
   let openDialog: jasmine.Spy;
-
-  const productTrace = {
-    productId: 1,
-    productName: 'Rocket Launcher',
-    fullUrl: 'https://steamcommunity.com/market/listings/440/Rocket%20Launcher',
-    matchEvaluated: false,
-    matched: false,
-    matchedAssetCount: 0,
-    steamApiResultJson: '{"success":true,"total_count":1}',
-  };
 
   const failedRun: ManualCheckRunSummary = {
     id: 42,
@@ -45,49 +38,15 @@ describe('ManualCheckHistoryDialogComponent', () => {
     date: '2026-08-15T10:00:00Z',
     startedAtUtc: '2026-08-15T10:00:01Z',
     completedAtUtc: '2026-08-15T10:00:10Z',
+    durationMilliseconds: 9000,
     correlationId: 'trace-42',
     errorText: 'All 2 product checks failed. Most common error: Steam returned HTTP 429.',
   };
 
-  const detail: ManualCheckRunDetail = {
-    ...failedRun,
-    setup: {
-      presetId: 3,
-      presetName: 'Mean Green',
-      gameId: 440,
-      gameName: 'Team Fortress 2',
-      gameUrlId: 8,
-      gameUrlName: 'Steam Market',
-      matchMode: 'Any',
-      listingLimit: 37,
-      bypassCache: false,
-      criteria: [{ nameContains: null, valueContains: 'Mean Green' }],
-      products: [],
-      requestedAtUtc: '2026-08-15T10:00:00Z',
-    },
-    results: {
-      matches: [],
-      productTraces: [productTrace],
-      errors: [{
-        productId: 1,
-        productName: 'Rocket Launcher',
-        fullUrl: 'https://steamcommunity.com/market/listings/440/Rocket%20Launcher',
-        error: 'Steam returned HTTP 429 (Too Many Requests).',
-        errorType: 'HttpRequestException',
-        httpStatusCode: 429,
-        occurredAtUtc: '2026-08-15T10:00:09Z',
-      }],
-    },
-  };
-
   beforeEach(async () => {
-    service = jasmine.createSpyObj<ManualCheckService>('ManualCheckService', [
-      'getRuns',
-      'getRun',
-      'rerun',
-    ]);
+    service = jasmine.createSpyObj<ManualCheckService>('ManualCheckService', ['getRuns', 'rerun']);
     service.getRuns.and.returnValue(of([failedRun]));
-    service.getRun.and.returnValue(of(detail));
+
     await TestBed.configureTestingModule({
       imports: [ManualCheckHistoryDialogComponent],
       providers: [
@@ -104,51 +63,41 @@ describe('ManualCheckHistoryDialogComponent', () => {
     fixture.detectChanges();
   });
 
-  it('shows the run failure and correlation trace in the history table', () => {
+  it('shows failure, correlation, and duration in the history table without inline details', () => {
     const text = fixture.nativeElement.textContent;
 
     expect(text).toContain('All 2 product checks failed');
     expect(text).toContain('Trace trace-42');
+    expect(text).toContain('9.0 s');
+    expect(fixture.nativeElement.querySelector('.manual-check-history__viewer')).toBeNull();
   });
 
-  it('renders a readable product-level error trace instead of raw JSON', () => {
-    component.openViewer(failedRun, 'errors');
-    fixture.detectChanges();
-
-    const text = fixture.nativeElement.textContent;
-    expect(service.getRun).toHaveBeenCalledWith(42);
-    expect(text).toContain('Rocket Launcher');
-    expect(text).toContain('HTTP 429');
-    expect(text).toContain('HttpRequestException');
-    expect(text).toContain('Steam returned HTTP 429');
-  });
-
-  it('shows the snapshotted listing limit in the setup trace', () => {
-    component.openViewer(failedRun, 'setup');
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.textContent).toContain('Top 37 cheapest available listing(s) checked per product.');
-    expect(fixture.nativeElement.textContent).toContain('Steam data: 20-minute cache allowed.');
-  });
-
-  it('shows every parsed Steam result in the Matches trace with an Actions trigger', () => {
-    component.openViewer(failedRun, 'results');
-    fixture.detectChanges();
-
-    const actions = fixture.nativeElement.querySelector(
-      '[aria-label="Open Steam result actions for Rocket Launcher"]',
-    );
-    expect(fixture.nativeElement.textContent).toContain('Rocket Launcher');
-    expect(fixture.nativeElement.textContent).toContain('Check failed');
-    expect(actions).not.toBeNull();
-  });
-
-  it('opens the Steam API result dialog for the selected product trace', () => {
-    component.openSteamResult(productTrace);
+  it('opens failed history traces in the separate result dialog', () => {
+    component.openTrace(failedRun);
 
     expect(openDialog).toHaveBeenCalledWith(
-      ManualCheckSteamResultDialogComponent,
-      jasmine.objectContaining({ data: productTrace }),
+      ManualCheckTraceDialogComponent,
+      jasmine.objectContaining<Partial<{ data: ManualCheckTraceDialogData }>>({
+        data: { runId: 42, initialView: 'errors' },
+      }),
+    );
+  });
+
+  it('opens successful history traces on the checks view', () => {
+    const succeeded: ManualCheckRunSummary = {
+      ...failedRun,
+      status: 'Succeeded',
+      failedProducts: 0,
+      errorText: null,
+    };
+
+    component.openTrace(succeeded);
+
+    expect(openDialog).toHaveBeenCalledWith(
+      ManualCheckTraceDialogComponent,
+      jasmine.objectContaining<Partial<{ data: ManualCheckTraceDialogData }>>({
+        data: { runId: 42, initialView: 'results' },
+      }),
     );
   });
 });

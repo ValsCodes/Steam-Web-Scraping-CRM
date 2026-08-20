@@ -17,13 +17,14 @@ describe('ManualCheckSetupDialogComponent', () => {
   let dialogRef: jasmine.SpyObj<MatDialogRef<ManualCheckSetupDialogComponent, ManualCheckSetupDialogResult>>;
 
   const presets: ManualCheckPreset[] = [
-    preset(1, 'First', 'Any'),
-    preset(2, 'Preferred', 'All'),
+    preset(1, 'First'),
+    preset(2, 'Preferred'),
   ];
 
   beforeEach(async () => {
     service = jasmine.createSpyObj<ManualCheckService>('ManualCheckService', [
       'getPresets',
+      'getConditionOperators',
       'createPreset',
       'updatePreset',
       'deletePreset',
@@ -33,6 +34,15 @@ describe('ManualCheckSetupDialogComponent', () => {
       ...item,
       criteria: item.criteria.map((criterion) => ({ ...criterion })),
     }))));
+    service.getConditionOperators.and.returnValue(of([
+      { id: 1, name: 'AND' },
+      { id: 2, name: 'OR' },
+      { id: 3, name: 'AND NOT' },
+      { id: 4, name: 'OR NOT' },
+      { id: 5, name: 'XOR' },
+      { id: 6, name: 'NAND' },
+      { id: 7, name: 'NOR' },
+    ]));
 
     await TestBed.configureTestingModule({
       imports: [ManualCheckSetupDialogComponent],
@@ -60,8 +70,8 @@ describe('ManualCheckSetupDialogComponent', () => {
     expect(service.getPresets).toHaveBeenCalledWith(440);
     expect(component.selectedPresetId).toBe(2);
     expect(component.name).toBe('Preferred');
-    expect(component.matchMode).toBe('All');
     expect(component.listingLimit).toBe(10);
+    expect(component.customCooldown).toBeFalse();
     expect(component.bypassCache).toBeFalse();
     expect(component.criteria[0].valueContains).toBe('Mean Green');
     expect(component.canStart).toBeTrue();
@@ -75,15 +85,16 @@ describe('ManualCheckSetupDialogComponent', () => {
 
     const saved = {
       ...presets[1],
-      criteria: [{ nameContains: 'attribute', valueContains: 'Hot Rod' }],
+      criteria: [{ conditionOperatorId: null, nameContains: 'attribute', valueContains: 'Hot Rod' }],
     };
     service.updatePreset.and.returnValue(of(saved));
     component.savePreset();
 
     expect(service.updatePreset).toHaveBeenCalledWith(2, jasmine.objectContaining({
       gameId: 440,
-      matchMode: 'All',
       listingLimit: 10,
+      cooldownMinutes: null,
+      cooldownSeconds: null,
     }));
     expect(component.canStart).toBeTrue();
   });
@@ -117,8 +128,42 @@ describe('ManualCheckSetupDialogComponent', () => {
     expect(component.isListingLimitValid).toBeFalse();
   });
 
+  it('validates and serializes an explicit custom cooldown', () => {
+    component.setCustomCooldown(true);
+    component.cooldownMinutes = 1;
+    component.cooldownSeconds = 9;
+    component.criteria[0].valueContains = 'Mean Green';
+    service.updatePreset.and.returnValue(of({
+      ...presets[1],
+      cooldownMinutes: 1,
+      cooldownSeconds: 9,
+    }));
+
+    component.savePreset();
+
+    expect(service.updatePreset).toHaveBeenCalledWith(2, jasmine.objectContaining({
+      cooldownMinutes: 1,
+      cooldownSeconds: 9,
+    }));
+    component.cooldownSeconds = 60;
+    expect(component.isCooldownValid).toBeFalse();
+  });
+
+  it('assigns and requires an operator after the first criterion', () => {
+    component.addCriterion();
+    component.criteria[0].valueContains = 'Mean Green';
+    component.criteria[1].valueContains = 'Tradable';
+
+    expect(component.criteria[0].conditionOperatorId).toBeNull();
+    expect(component.criteria[1].conditionOperatorId).toBe(1);
+    expect(component.isDraftValid).toBeTrue();
+
+    component.criteria[1].conditionOperatorId = null;
+    expect(component.isDraftValid).toBeFalse();
+  });
+
   it('creates a new preset and starts it in one action', () => {
-    const saved = preset(3, 'One click', 'Any');
+    const saved = preset(3, 'One click');
     service.createPreset.and.returnValue(of(saved));
     component.newPreset();
     component.name = saved.name;
@@ -157,16 +202,16 @@ describe('ManualCheckSetupDialogComponent', () => {
   function preset(
     id: number,
     name: string,
-    matchMode: ManualCheckPreset['matchMode'],
   ): ManualCheckPreset {
     return {
       id,
       gameId: 440,
       gameName: 'Team Fortress 2',
       name,
-      matchMode,
       listingLimit: 10,
-      criteria: [{ nameContains: 'attribute', valueContains: 'Mean Green' }],
+      cooldownMinutes: null,
+      cooldownSeconds: null,
+      criteria: [{ conditionOperatorId: null, nameContains: 'attribute', valueContains: 'Mean Green' }],
       createdAtUtc: '2026-08-14T00:00:00Z',
       updatedAtUtc: '2026-08-14T00:00:00Z',
     };

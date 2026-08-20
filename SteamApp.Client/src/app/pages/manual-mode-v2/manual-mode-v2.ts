@@ -45,6 +45,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import {
   ExternalLinkDirective,
   externalUrlWarning,
+  formatDuration,
   openableExternalUrl,
   openableSteamUrl,
 } from '../../common';
@@ -56,6 +57,11 @@ import {
 import {
   ManualCheckHistoryDialogComponent,
 } from './manual-check-history-dialog.component';
+import {
+  ManualCheckTraceDialogComponent,
+  ManualCheckTraceDialogData,
+  ManualCheckTraceView,
+} from './manual-check-trace-dialog.component';
 
 @Component({
   selector: 'steam-manual-mode-v2',
@@ -73,6 +79,7 @@ import {
   styleUrl: './manual-mode-v2.scss',
 })
 export class ManualModeV2 implements OnInit, OnDestroy {
+  readonly formatDuration = formatDuration;
   readonly externalUrlWarning = externalUrlWarning;
   readonly openableExternalUrl = openableExternalUrl;
 
@@ -94,6 +101,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   automatedRunActive = false;
   automatedCancelPending = false;
   hasAutomatedCheckResult = false;
+  showAutomatedMatchesOnly = false;
   automatedCheckWarning = '';
   automatedCheckError = '';
 
@@ -276,6 +284,37 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     });
   }
 
+  get canViewAutomatedResult(): boolean {
+    return this.automatedRun !== null && this.isTerminalStatus(this.automatedRun);
+  }
+
+  openAutomatedResult(): void {
+    const detail = this.automatedRun;
+    if (!detail || !this.isTerminalStatus(detail)) {
+      return;
+    }
+
+    const initialView: ManualCheckTraceView = detail.failedProducts > 0 || detail.status === 'Failed'
+      ? 'errors'
+      : 'results';
+    const data: ManualCheckTraceDialogData = { detail, initialView };
+    this.dialog.open<ManualCheckTraceDialogComponent, ManualCheckTraceDialogData>(
+      ManualCheckTraceDialogComponent,
+      {
+        width: 'min(68rem, 96vw)',
+        maxWidth: '96vw',
+        maxHeight: '92vh',
+        data,
+      },
+    );
+  }
+
+  setAutomatedMatchesOnly(enabled: boolean): void {
+    this.showAutomatedMatchesOnly = enabled;
+    this.loadFilteredProducts();
+    this.cdr.markForCheck();
+  }
+
   isAutomatedCheckEligible(gameUrl: GameUrl | null): boolean {
     return !!gameUrl?.isActive && gameUrl.scrapingModeId === ScrapingModeEnum.ManualBatch;
   }
@@ -422,6 +461,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   clearFiltersButtonClicked(): void {
     this.searchByNameFilterControl.setValue('', { emitEvent: false });
     this.searchByRatingFilterControl.setValue(null, { emitEvent: false });
+    this.showAutomatedMatchesOnly = false;
 
     this.tagsFilter = [];
 
@@ -648,7 +688,10 @@ export class ManualModeV2 implements OnInit, OnDestroy {
           product.tags?.some((tag) => tag.toLowerCase().includes(filter)),
         );
 
-      return matchesName && matchesRating && matchesTags;
+      const matchesAutomatedResult =
+        !this.showAutomatedMatchesOnly || this.automatedMatches.has(product.productId);
+
+      return matchesName && matchesRating && matchesTags && matchesAutomatedResult;
     });
   }
 
@@ -753,6 +796,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.automatedRunActive = false;
     this.automatedCancelPending = false;
     this.hasAutomatedCheckResult = false;
+    this.showAutomatedMatchesOnly = false;
     this.automatedCheckWarning = '';
     this.automatedCheckError = '';
     this.automatedMatches.clear();

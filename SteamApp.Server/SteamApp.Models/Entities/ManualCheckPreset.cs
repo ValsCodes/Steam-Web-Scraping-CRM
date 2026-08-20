@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using SteamApp.Domain.Enums;
 
 namespace SteamApp.Domain.Entities;
 
@@ -25,15 +24,14 @@ public sealed class ManualCheckPreset
     [Column("name")]
     public string Name { get; set; } = string.Empty;
 
-    [Column("match_mode")]
-    public ManualCheckMatchModeEnum MatchMode { get; set; }
-
     [Column("listing_limit")]
     public int ListingLimit { get; set; } = DefaultListingLimit;
 
-    [Required]
-    [Column("criteria_json")]
-    public string CriteriaJson { get; set; } = "[]";
+    [Column("cooldown_minutes")]
+    public int? CooldownMinutes { get; set; }
+
+    [Column("cooldown_seconds")]
+    public int? CooldownSeconds { get; set; }
 
     [Column("created_at_utc")]
     public DateTime CreatedAtUtc { get; set; }
@@ -42,4 +40,5 @@ public sealed class ManualCheckPreset
     public DateTime UpdatedAtUtc { get; set; }
 
     public ICollection<ManualCheckRun> Runs { get; set; } = [];
+    public ICollection<ManualCheckCriterion> Criteria { get; set; } = [];
 }

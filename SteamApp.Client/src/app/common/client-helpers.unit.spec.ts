@@ -1,5 +1,6 @@
 import {
   externalUrlWarning,
+  formatDuration,
   formatMs,
   makeEnumHelpers,
   openableExternalUrl,
@@ -74,6 +75,13 @@ describe('client helper unit tests', () => {
     expect(externalUrlWarning('https://evil.example/market')).toContain('Warning');
     expect(externalUrlWarning('javascript:alert(1)')).toContain('Warning');
     expect(externalUrlWarning('https://steamcommunity.com/market')).toBeNull();
+  });
+
+  it('formats optional check durations for traces and panels', () => {
+    expect(formatDuration(null)).toBe('Not recorded');
+    expect(formatDuration(125)).toBe('125 ms');
+    expect(formatDuration(1234)).toBe('1.2 s');
+    expect(formatDuration(69000)).toBe('1m 09s');
   });
 
   it('optionally prefixes HTTPS URLs for Steam open-url mode', () => {

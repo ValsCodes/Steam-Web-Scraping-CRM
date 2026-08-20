@@ -347,6 +347,7 @@ public class Program
         builder.Services.AddScoped<IScrapeExecutionService, ScrapeExecutionService>();
         builder.Services.AddScoped<IManualCheckDataService, ManualCheckDataService>();
         builder.Services.AddScoped<IManualCheckExecutionService, ManualCheckExecutionService>();
+        builder.Services.AddSingleton<IManualCheckDelay, ManualCheckDelay>();
         builder.Services.AddScoped<IWishlistNotificationRecipientService, WishlistNotificationRecipientService>();
         builder.Services.AddScoped<ISteamRepository, SteamRepository>();
         builder.Services.AddScoped<ISteamService, SteamService>();

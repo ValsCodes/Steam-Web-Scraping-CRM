@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using SteamApp.Application.DTOs.ManualCheck;
 using SteamApp.Application.Utilities;
 using SteamApp.Domain.Entities;
@@ -12,7 +13,21 @@ public sealed class ManualCheckDataService(
     IDbContextFactory<ApplicationDbContext> dbContextFactory) : IManualCheckDataService
 {
     private const int MaxCriteria = 25;
-    private const int CriterionMaxLength = 200;
+
+    public async Task<IReadOnlyList<ManualCheckConditionOperatorDto>> GetConditionOperatorsAsync(
+        CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        return await db.ManualCheckConditionOperators
+            .AsNoTracking()
+            .OrderBy(x => x.Id)
+            .Select(x => new ManualCheckConditionOperatorDto
+            {
+                Id = x.Id,
+                Name = x.Name
+            })
+            .ToListAsync(cancellationToken);
+    }
 
     public async Task<IReadOnlyList<ManualCheckPresetDto>> GetPresetsAsync(
         long? gameId,
@@ -20,7 +35,11 @@ public sealed class ManualCheckDataService(
     {
         await using var db = dbContextFactory.CreateDbContext();
 
-        var query = db.ManualCheckPresets.AsNoTracking();
+        IQueryable<ManualCheckPreset> query = db.ManualCheckPresets
+            .AsNoTracking()
+            .Include(x => x.Game)
+            .Include(x => x.Criteria)
+            .ThenInclude(x => x.ConditionOperator);
         if (gameId.HasValue)
         {
             query = query.Where(x => x.GameId == gameId.Value);
@@ -29,32 +48,9 @@ public sealed class ManualCheckDataService(
         var presets = await query
             .OrderBy(x => x.Game.Name)
             .ThenBy(x => x.Name)
-            .Select(x => new
-            {
-                x.Id,
-                x.GameId,
-                GameName = x.Game.Name,
-                x.Name,
-                x.MatchMode,
-                x.ListingLimit,
-                x.CriteriaJson,
-                x.CreatedAtUtc,
-                x.UpdatedAtUtc
-            })
             .ToListAsync(cancellationToken);
 
-        return presets.Select(x => new ManualCheckPresetDto
-        {
-            Id = x.Id,
-            GameId = x.GameId,
-            GameName = x.GameName,
-            Name = x.Name,
-            MatchMode = x.MatchMode,
-            ListingLimit = x.ListingLimit,
-            Criteria = DeserializeCriteria(x.CriteriaJson),
-            CreatedAtUtc = x.CreatedAtUtc,
-            UpdatedAtUtc = x.UpdatedAtUtc
-        }).ToList();
+        return presets.Select(x => ToPresetDto(x, x.Game.Name)).ToList();
     }
 
     public async Task<ManualCheckPresetDto> CreatePresetAsync(
@@ -88,9 +84,10 @@ public sealed class ManualCheckDataService(
         {
             GameId = normalized.GameId,
             Name = normalized.Name,
-            MatchMode = normalized.MatchMode,
             ListingLimit = normalized.ListingLimit,
-            CriteriaJson = JsonConvert.SerializeObject(normalized.Criteria),
+            CooldownMinutes = normalized.CooldownMinutes,
+            CooldownSeconds = normalized.CooldownSeconds,
+            Criteria = CreateCriterionEntities(normalized.Criteria),
             CreatedAtUtc = now,
             UpdatedAtUtc = now
         };
@@ -98,7 +95,7 @@ public sealed class ManualCheckDataService(
         db.ManualCheckPresets.Add(entity);
         await db.SaveChangesAsync(cancellationToken);
 
-        return ToPresetDto(entity, gameName, normalized.Criteria);
+        return ToPresetDto(entity, gameName);
     }
 
     public async Task<ManualCheckPresetDto> UpdatePresetAsync(
@@ -110,6 +107,7 @@ public sealed class ManualCheckDataService(
         await using var db = dbContextFactory.CreateDbContext();
 
         var entity = await db.ManualCheckPresets
+            .Include(x => x.Criteria)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
             ?? throw RequestError(StatusCodes.Status404NotFound, "Preset was not found.");
 
@@ -133,13 +131,37 @@ public sealed class ManualCheckDataService(
 
         entity.GameId = normalized.GameId;
         entity.Name = normalized.Name;
-        entity.MatchMode = normalized.MatchMode;
         entity.ListingLimit = normalized.ListingLimit;
-        entity.CriteriaJson = JsonConvert.SerializeObject(normalized.Criteria);
+        entity.CooldownMinutes = normalized.CooldownMinutes;
+        entity.CooldownSeconds = normalized.CooldownSeconds;
+        var existingCriteria = entity.Criteria.OrderBy(x => x.SortOrder).ToList();
+        for (var index = 0; index < normalized.Criteria.Count; index++)
+        {
+            var criterion = index < existingCriteria.Count
+                ? existingCriteria[index]
+                : new ManualCheckCriterion { ManualCheckPreset = entity };
+            criterion.ConditionOperatorId = normalized.Criteria[index].ConditionOperatorId;
+            criterion.SortOrder = index;
+            criterion.NameContains = normalized.Criteria[index].NameContains;
+            criterion.ValueContains = normalized.Criteria[index].ValueContains;
+            if (index >= existingCriteria.Count)
+            {
+                entity.Criteria.Add(criterion);
+            }
+        }
+        if (existingCriteria.Count > normalized.Criteria.Count)
+        {
+            var removedCriteria = existingCriteria.Skip(normalized.Criteria.Count).ToList();
+            db.ManualCheckCriteria.RemoveRange(removedCriteria);
+            foreach (var removedCriterion in removedCriteria)
+            {
+                entity.Criteria.Remove(removedCriterion);
+            }
+        }
         entity.UpdatedAtUtc = DateTime.UtcNow;
 
         await db.SaveChangesAsync(cancellationToken);
-        return ToPresetDto(entity, gameName, normalized.Criteria);
+        return ToPresetDto(entity, gameName);
     }
 
     public async Task DeletePresetAsync(long id, CancellationToken cancellationToken)
@@ -162,6 +184,8 @@ public sealed class ManualCheckDataService(
         await using var db = dbContextFactory.CreateDbContext();
         var preset = await db.ManualCheckPresets
             .AsNoTracking()
+            .Include(x => x.Criteria)
+            .ThenInclude(x => x.ConditionOperator)
             .FirstOrDefaultAsync(x => x.Id == presetId, cancellationToken)
             ?? throw RequestError(StatusCodes.Status404NotFound, "Preset was not found.");
 
@@ -171,10 +195,11 @@ public sealed class ManualCheckDataService(
             preset.Id,
             preset.Name,
             preset.GameId,
-            preset.MatchMode,
             preset.ListingLimit,
+            preset.CooldownMinutes,
+            preset.CooldownSeconds,
             bypassCache,
-            DeserializeCriteria(preset.CriteriaJson),
+            ToCriterionDtos(preset.Criteria),
             cancellationToken);
     }
 
@@ -201,8 +226,9 @@ public sealed class ManualCheckDataService(
             presetId,
             original.PresetName,
             original.GameId,
-            setup.MatchMode,
             setup.ListingLimit,
+            setup.CooldownMinutes,
+            setup.CooldownSeconds,
             false,
             NormalizeCriteria(setup.Criteria),
             cancellationToken);
@@ -393,12 +419,14 @@ public sealed class ManualCheckDataService(
         long? presetId,
         string presetName,
         long presetGameId,
-        ManualCheckMatchModeEnum matchMode,
         int listingLimit,
+        int? cooldownMinutes,
+        int? cooldownSeconds,
         bool bypassCache,
         List<ManualCheckCriterionDto> criteria,
         CancellationToken cancellationToken)
     {
+        var cooldown = NormalizeCooldown(cooldownMinutes, cooldownSeconds);
         var gameUrl = await db.GameUrls
             .AsNoTracking()
             .Where(x => x.Id == gameUrlId)
@@ -483,8 +511,9 @@ public sealed class ManualCheckDataService(
             GameName = gameUrl.GameName,
             GameUrlId = gameUrl.Id,
             GameUrlName = gameUrl.Name,
-            MatchMode = matchMode,
             ListingLimit = NormalizeListingLimit(listingLimit),
+            CooldownMinutes = cooldown.Minutes,
+            CooldownSeconds = cooldown.Seconds,
             BypassCache = bypassCache,
             Criteria = criteria,
             Products = inputs,
@@ -522,17 +551,15 @@ public sealed class ManualCheckDataService(
             throw RequestError(StatusCodes.Status400BadRequest, $"Preset name must be between 1 and {ManualCheckPreset.NameMaxLength} characters.");
         }
 
-        if (!Enum.IsDefined(input.MatchMode))
-        {
-            throw RequestError(StatusCodes.Status400BadRequest, "Match mode must be Any or All.");
-        }
+        var cooldown = NormalizeCooldown(input.CooldownMinutes, input.CooldownSeconds);
 
         return new ManualCheckPresetWriteDto
         {
             GameId = input.GameId,
             Name = name,
-            MatchMode = input.MatchMode,
             ListingLimit = NormalizeListingLimit(input.ListingLimit),
+            CooldownMinutes = cooldown.Minutes,
+            CooldownSeconds = cooldown.Seconds,
             Criteria = NormalizeCriteria(input.Criteria)
         };
     }
@@ -547,11 +574,37 @@ public sealed class ManualCheckDataService(
         return listingLimit;
     }
 
+    private static (int? Minutes, int? Seconds) NormalizeCooldown(int? minutes, int? seconds)
+    {
+        if (!minutes.HasValue && !seconds.HasValue)
+        {
+            return (null, null);
+        }
+
+        if (!minutes.HasValue || !seconds.HasValue)
+        {
+            throw RequestError(
+                StatusCodes.Status400BadRequest,
+                "Cooldown minutes and seconds must both be provided or both be empty.");
+        }
+
+        if (minutes.Value is < 0 or > 59 || seconds.Value is < 0 or > 59)
+        {
+            throw RequestError(
+                StatusCodes.Status400BadRequest,
+                "Cooldown minutes and seconds must each be between 0 and 59.");
+        }
+
+        return (minutes, seconds);
+    }
+
     private static List<ManualCheckCriterionDto> NormalizeCriteria(IEnumerable<ManualCheckCriterionDto>? criteria)
     {
         var normalized = (criteria ?? [])
             .Select(x => new ManualCheckCriterionDto
             {
+                ConditionOperatorId = x.ConditionOperatorId,
+                ConditionOperatorName = null,
                 NameContains = NormalizeTerm(x.NameContains),
                 ValueContains = NormalizeTerm(x.ValueContains)
             })
@@ -567,6 +620,25 @@ public sealed class ManualCheckDataService(
             throw RequestError(StatusCodes.Status400BadRequest, "Each criterion requires a name or value search term.");
         }
 
+        if (normalized[0].ConditionOperatorId.HasValue)
+        {
+            throw RequestError(StatusCodes.Status400BadRequest, "The first criterion cannot have a condition operator.");
+        }
+
+        for (var index = 1; index < normalized.Count; index++)
+        {
+            var conditionOperatorId = normalized[index].ConditionOperatorId;
+            if (!conditionOperatorId.HasValue ||
+                !IsSupportedConditionOperator(conditionOperatorId.Value))
+            {
+                throw RequestError(
+                    StatusCodes.Status400BadRequest,
+                    $"Criterion #{index + 1} requires a supported condition operator.");
+            }
+
+            normalized[index].ConditionOperatorName = GetOperatorName(conditionOperatorId.Value);
+        }
+
         return normalized;
     }
 
@@ -578,9 +650,11 @@ public sealed class ManualCheckDataService(
             return null;
         }
 
-        if (normalized.Length > CriterionMaxLength)
+        if (normalized.Length > ManualCheckCriterion.TermMaxLength)
         {
-            throw RequestError(StatusCodes.Status400BadRequest, $"Criterion terms cannot exceed {CriterionMaxLength} characters.");
+            throw RequestError(
+                StatusCodes.Status400BadRequest,
+                $"Criterion terms cannot exceed {ManualCheckCriterion.TermMaxLength} characters.");
         }
 
         return normalized;
@@ -588,8 +662,7 @@ public sealed class ManualCheckDataService(
 
     private static ManualCheckPresetDto ToPresetDto(
         ManualCheckPreset entity,
-        string? gameName,
-        List<ManualCheckCriterionDto> criteria)
+        string? gameName)
     {
         return new ManualCheckPresetDto
         {
@@ -597,9 +670,10 @@ public sealed class ManualCheckDataService(
             GameId = entity.GameId,
             GameName = gameName,
             Name = entity.Name,
-            MatchMode = entity.MatchMode,
             ListingLimit = entity.ListingLimit,
-            Criteria = criteria,
+            CooldownMinutes = entity.CooldownMinutes,
+            CooldownSeconds = entity.CooldownSeconds,
+            Criteria = ToCriterionDtos(entity.Criteria),
             CreatedAtUtc = entity.CreatedAtUtc,
             UpdatedAtUtc = entity.UpdatedAtUtc
         };
@@ -632,6 +706,7 @@ public sealed class ManualCheckDataService(
             Date = row.Date,
             StartedAtUtc = row.StartedAtUtc,
             CompletedAtUtc = row.CompletedAtUtc,
+            DurationMilliseconds = GetRunDurationMilliseconds(row),
             CorrelationId = row.CorrelationId,
             ErrorText = row.ErrorText
         };
@@ -658,6 +733,7 @@ public sealed class ManualCheckDataService(
             Date = summary.Date,
             StartedAtUtc = summary.StartedAtUtc,
             CompletedAtUtc = summary.CompletedAtUtc,
+            DurationMilliseconds = summary.DurationMilliseconds,
             CorrelationId = summary.CorrelationId,
             Setup = DeserializeSetup(row.SetupJson),
             Results = DeserializeResults(row.ResultsJson),
@@ -665,14 +741,104 @@ public sealed class ManualCheckDataService(
         };
     }
 
-    private static List<ManualCheckCriterionDto> DeserializeCriteria(string json)
+    private static ICollection<ManualCheckCriterion> CreateCriterionEntities(
+        IReadOnlyList<ManualCheckCriterionDto> criteria)
     {
-        return JsonConvert.DeserializeObject<List<ManualCheckCriterionDto>>(json) ?? [];
+        return criteria.Select((criterion, index) => new ManualCheckCriterion
+        {
+            ConditionOperatorId = criterion.ConditionOperatorId,
+            SortOrder = index,
+            NameContains = criterion.NameContains,
+            ValueContains = criterion.ValueContains
+        }).ToList();
+    }
+
+    private static List<ManualCheckCriterionDto> ToCriterionDtos(
+        IEnumerable<ManualCheckCriterion> criteria)
+    {
+        return criteria
+            .OrderBy(x => x.SortOrder)
+            .Select(x => new ManualCheckCriterionDto
+            {
+                ConditionOperatorId = x.ConditionOperatorId,
+                ConditionOperatorName = x.ConditionOperator?.Name ??
+                    (x.ConditionOperatorId.HasValue ? GetOperatorName(x.ConditionOperatorId.Value) : null),
+                NameContains = x.NameContains,
+                ValueContains = x.ValueContains
+            })
+            .ToList();
+    }
+
+    private static string GetOperatorName(long conditionOperatorId)
+    {
+        return (ManualCheckConditionOperatorEnum)conditionOperatorId switch
+        {
+            ManualCheckConditionOperatorEnum.And => "AND",
+            ManualCheckConditionOperatorEnum.Or => "OR",
+            ManualCheckConditionOperatorEnum.AndNot => "AND NOT",
+            ManualCheckConditionOperatorEnum.OrNot => "OR NOT",
+            ManualCheckConditionOperatorEnum.Xor => "XOR",
+            ManualCheckConditionOperatorEnum.Nand => "NAND",
+            ManualCheckConditionOperatorEnum.Nor => "NOR",
+            _ => throw new InvalidOperationException($"Unknown manual-check condition operator #{conditionOperatorId}.")
+        };
+    }
+
+    private static bool IsSupportedConditionOperator(long conditionOperatorId)
+    {
+        return conditionOperatorId is >= (long)ManualCheckConditionOperatorEnum.And and <= (long)ManualCheckConditionOperatorEnum.Nor &&
+               Enum.IsDefined(typeof(ManualCheckConditionOperatorEnum), (int)conditionOperatorId);
+    }
+
+    private static long? GetRunDurationMilliseconds(ManualCheckRun row)
+    {
+        if (!row.StartedAtUtc.HasValue)
+        {
+            return null;
+        }
+
+        var end = row.CompletedAtUtc ?? DateTime.UtcNow;
+        return Math.Max(0, (long)Math.Round((end - row.StartedAtUtc.Value).TotalMilliseconds));
     }
 
     private static ManualCheckSetupDto DeserializeSetup(string json)
     {
-        return JsonConvert.DeserializeObject<ManualCheckSetupDto>(json) ?? new ManualCheckSetupDto();
+        var jsonObject = JObject.Parse(json);
+        var setup = jsonObject.ToObject<ManualCheckSetupDto>() ?? new ManualCheckSetupDto();
+        if (setup.Criteria.Count == 0)
+        {
+            return setup;
+        }
+
+        setup.Criteria[0].ConditionOperatorId = null;
+        setup.Criteria[0].ConditionOperatorName = null;
+
+        var legacyMatchModeText = jsonObject.GetValue(
+            "MatchMode",
+            StringComparison.OrdinalIgnoreCase)?.ToString();
+        var hasLegacyMatchMode = Enum.TryParse<ManualCheckMatchModeEnum>(
+            legacyMatchModeText,
+            ignoreCase: true,
+            out var legacyMatchMode);
+
+        for (var index = 1; index < setup.Criteria.Count; index++)
+        {
+            if (!setup.Criteria[index].ConditionOperatorId.HasValue && hasLegacyMatchMode)
+            {
+                setup.Criteria[index].ConditionOperatorId = legacyMatchMode == ManualCheckMatchModeEnum.All
+                    ? (long)ManualCheckConditionOperatorEnum.And
+                    : (long)ManualCheckConditionOperatorEnum.Or;
+            }
+
+            var conditionOperatorId = setup.Criteria[index].ConditionOperatorId;
+            if (conditionOperatorId.HasValue &&
+                IsSupportedConditionOperator(conditionOperatorId.Value))
+            {
+                setup.Criteria[index].ConditionOperatorName = GetOperatorName(conditionOperatorId.Value);
+            }
+        }
+
+        return setup;
     }
 
     private static ManualCheckRunResultsDto DeserializeResults(string? json)

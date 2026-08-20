@@ -5,6 +5,7 @@ namespace SteamApp.WebAPI.Services;
 
 public interface IManualCheckDataService
 {
+    Task<IReadOnlyList<ManualCheckConditionOperatorDto>> GetConditionOperatorsAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<ManualCheckPresetDto>> GetPresetsAsync(long? gameId, CancellationToken cancellationToken);
     Task<ManualCheckPresetDto> CreatePresetAsync(ManualCheckPresetWriteDto input, CancellationToken cancellationToken);
     Task<ManualCheckPresetDto> UpdatePresetAsync(long id, ManualCheckPresetWriteDto input, CancellationToken cancellationToken);

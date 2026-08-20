@@ -14,6 +14,21 @@ namespace SteamApp.Tests.Controllers;
 public sealed class ManualChecksControllerTests
 {
     [Test]
+    public async Task GetConditionOperators_ReturnsSeededLookupValues()
+    {
+        var data = new Mock<IManualCheckDataService>();
+        var queue = new Mock<IManualCheckQueue>();
+        data.Setup(x => x.GetConditionOperatorsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ManualCheckConditionOperatorDto { Id = 1, Name = "AND" }]);
+        var controller = Controller(data, queue);
+
+        var result = await controller.GetConditionOperators();
+
+        var values = (result as OkObjectResult)?.Value as IReadOnlyList<ManualCheckConditionOperatorDto>;
+        Assert.That(values?.Single().Name, Is.EqualTo("AND"));
+    }
+
+    [Test]
     public async Task CreateRunReturnsAcceptedAndEnqueuesTheNewSharedRun()
     {
         var data = new Mock<IManualCheckDataService>();
@@ -45,8 +60,14 @@ public sealed class ManualChecksControllerTests
         {
             GameId = 440,
             Name = "Shared",
-            MatchMode = ManualCheckMatchModeEnum.Any,
-            Criteria = [new ManualCheckCriterionDto { ValueContains = "Sheen" }]
+            Criteria =
+            [
+                new ManualCheckCriterionDto
+                {
+                    ConditionOperatorId = null,
+                    ValueContains = "Sheen"
+                }
+            ]
         };
         data.Setup(x => x.CreatePresetAsync(input, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ManualCheckPresetDto { Id = 9, GameId = 440, Name = "Shared" });

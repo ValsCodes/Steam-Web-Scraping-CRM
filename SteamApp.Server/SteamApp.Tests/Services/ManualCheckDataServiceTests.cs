@@ -26,9 +26,101 @@ public sealed class ManualCheckDataServiceTests
         {
             Assert.That(visible.Select(x => x.Id), Does.Contain(created.Id));
             Assert.That(created.ListingLimit, Is.EqualTo(10));
+            Assert.That(created.CooldownMinutes, Is.Null);
+            Assert.That(created.Criteria[0].ValueContains, Is.EqualTo("Mean Green"));
             Assert.That(typeof(ManualCheckPreset).GetProperty("UserId"), Is.Null);
             Assert.That(typeof(ManualCheckRun).GetProperty("UserId"), Is.Null);
             Assert.That(duplicate!.StatusCode, Is.EqualTo(409));
+        });
+    }
+
+    [Test]
+    public async Task CreatePresetAsync_OrderedOperatorsAndCooldown_PersistRelationally()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var service = new ManualCheckDataService(database.Factory);
+        var input = PresetInput("Ordered");
+        input.CooldownMinutes = 1;
+        input.CooldownSeconds = 9;
+        input.Criteria.Add(new ManualCheckCriterionDto
+        {
+            ConditionOperatorId = (long)ManualCheckConditionOperatorEnum.AndNot,
+            NameContains = "cannot trade"
+        });
+
+        var created = await service.CreatePresetAsync(input, CancellationToken.None);
+        var operators = await service.GetConditionOperatorsAsync(CancellationToken.None);
+        var storedCriteria = database.Context.ManualCheckCriteria
+            .Where(x => x.ManualCheckPresetId == created.Id)
+            .OrderBy(x => x.SortOrder)
+            .ToList();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(created.CooldownMinutes, Is.EqualTo(1));
+            Assert.That(created.CooldownSeconds, Is.EqualTo(9));
+            Assert.That(created.Criteria.Select(x => x.ConditionOperatorName), Is.EqualTo(new[] { null, "AND NOT" }));
+            Assert.That(storedCriteria.Select(x => x.SortOrder), Is.EqualTo(new[] { 0, 1 }));
+            Assert.That(storedCriteria[1].ConditionOperatorId, Is.EqualTo((long)ManualCheckConditionOperatorEnum.AndNot));
+            Assert.That(operators.Select(x => x.Name), Is.EqualTo(new[] { "AND", "OR", "AND NOT", "OR NOT", "XOR", "NAND", "NOR" }));
+        });
+    }
+
+    [Test]
+    public void CreatePresetAsync_MissingOperatorOrPartialCooldown_RejectsRequest()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var service = new ManualCheckDataService(database.Factory);
+        var missingOperator = PresetInput("Missing operator");
+        missingOperator.Criteria.Add(new ManualCheckCriterionDto { ValueContains = "Second" });
+        var unsupportedOperator = PresetInput("Unsupported operator");
+        unsupportedOperator.Criteria.Add(new ManualCheckCriterionDto
+        {
+            ConditionOperatorId = 999,
+            ValueContains = "Second"
+        });
+        var partialCooldown = PresetInput("Partial cooldown");
+        partialCooldown.CooldownMinutes = 1;
+
+        var operatorException = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.CreatePresetAsync(missingOperator, CancellationToken.None));
+        var unsupportedOperatorException = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.CreatePresetAsync(unsupportedOperator, CancellationToken.None));
+        var cooldownException = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.CreatePresetAsync(partialCooldown, CancellationToken.None));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(operatorException!.StatusCode, Is.EqualTo(400));
+            Assert.That(operatorException.Message, Does.Contain("requires a supported condition operator"));
+            Assert.That(unsupportedOperatorException!.StatusCode, Is.EqualTo(400));
+            Assert.That(cooldownException!.StatusCode, Is.EqualTo(400));
+            Assert.That(cooldownException.Message, Does.Contain("both be provided"));
+        });
+    }
+
+    [Test]
+    public async Task CreatePresetAsync_CooldownBoundaries_AcceptsZeroAndRejectsSixty()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var service = new ManualCheckDataService(database.Factory);
+        var zeroCooldown = PresetInput("Zero cooldown");
+        zeroCooldown.CooldownMinutes = 0;
+        zeroCooldown.CooldownSeconds = 0;
+        var invalidCooldown = PresetInput("Invalid cooldown");
+        invalidCooldown.CooldownMinutes = 0;
+        invalidCooldown.CooldownSeconds = 60;
+
+        var created = await service.CreatePresetAsync(zeroCooldown, CancellationToken.None);
+        var exception = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.CreatePresetAsync(invalidCooldown, CancellationToken.None));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(created.CooldownMinutes, Is.Zero);
+            Assert.That(created.CooldownSeconds, Is.Zero);
+            Assert.That(exception!.StatusCode, Is.EqualTo(400));
+            Assert.That(exception.Message, Does.Contain("between 0 and 59"));
         });
     }
 
@@ -56,6 +148,7 @@ public sealed class ManualCheckDataServiceTests
             Assert.That(run.Status, Is.EqualTo(ManualCheckRunStatusEnum.Queued));
             Assert.That(detail!.Setup.Products, Has.Count.EqualTo(1));
             Assert.That(detail.Setup.ListingLimit, Is.EqualTo(10));
+            Assert.That(detail.Setup.CooldownMinutes, Is.Null);
             Assert.That(detail.Setup.BypassCache, Is.True);
             Assert.That(detail.Setup.Products[0].FullUrl, Is.EqualTo(
                 "https://steamcommunity.com/market/listings/440/Rocket%20Launcher"));
@@ -129,6 +222,45 @@ public sealed class ManualCheckDataServiceTests
         var rerunDetail = await service.GetRunAsync(rerun.Id, CancellationToken.None);
 
         Assert.That(rerunDetail!.Setup.ListingLimit, Is.EqualTo(10));
+    }
+
+    [Test]
+    public async Task Rerun_LegacyAllSnapshot_TranslatesToAndOperators()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var source = database.Context.GameUrls.Single(x => x.Id == 1);
+        source.ScrapingModeId = (long)ScrapingModeEnum.ManualBatch;
+        source.PartialUrl = "https://steamcommunity.com/market/listings/440/";
+        database.Context.SaveChanges();
+        var service = new ManualCheckDataService(database.Factory);
+        var input = PresetInput("Legacy operators");
+        input.Criteria.Add(new ManualCheckCriterionDto
+        {
+            ConditionOperatorId = (long)ManualCheckConditionOperatorEnum.Or,
+            NameContains = "attribute"
+        });
+        var preset = await service.CreatePresetAsync(input, CancellationToken.None);
+        var original = await service.CreateRunAsync(source.Id, preset.Id, false, CancellationToken.None);
+        var originalRow = database.Context.ManualCheckRuns.Single(x => x.Id == original.Id);
+        var legacySetup = JObject.Parse(originalRow.SetupJson);
+        legacySetup["MatchMode"] = "All";
+        foreach (var criterion in legacySetup[nameof(ManualCheckSetupDto.Criteria)]!.Children<JObject>())
+        {
+            criterion.Remove(nameof(ManualCheckCriterionDto.ConditionOperatorId));
+            criterion.Remove(nameof(ManualCheckCriterionDto.ConditionOperatorName));
+        }
+        originalRow.SetupJson = legacySetup.ToString();
+        database.Context.SaveChanges();
+
+        var rerun = await service.RerunAsync(original.Id, CancellationToken.None);
+        var detail = await service.GetRunAsync(rerun.Id, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(detail!.Setup.Criteria[0].ConditionOperatorId, Is.Null);
+            Assert.That(detail.Setup.Criteria[1].ConditionOperatorId, Is.EqualTo((long)ManualCheckConditionOperatorEnum.And));
+            Assert.That(detail.Setup.Criteria[1].ConditionOperatorName, Is.EqualTo("AND"));
+        });
     }
 
     [Test]
@@ -214,6 +346,22 @@ public sealed class ManualCheckDataServiceTests
     }
 
     [Test]
+    public async Task GetRun_CompletedTimestamps_ReturnsExecutionDuration()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var row = Run(100, ManualCheckRunStatusEnum.Succeeded);
+        row.StartedAtUtc = new DateTime(2026, 8, 19, 10, 0, 0, DateTimeKind.Utc);
+        row.CompletedAtUtc = row.StartedAtUtc.Value.AddMilliseconds(4321);
+        database.Context.ManualCheckRuns.Add(row);
+        database.Context.SaveChanges();
+        var service = new ManualCheckDataService(database.Factory);
+
+        var detail = await service.GetRunAsync(row.Id, CancellationToken.None);
+
+        Assert.That(detail!.DurationMilliseconds, Is.EqualTo(4321));
+    }
+
+    [Test]
     public async Task StartupReconciliationMarksQueuedAndRunningJobsAsInterruptedFailures()
     {
         using var database = TestDb.CreateSeededDatabase();
@@ -244,9 +392,15 @@ public sealed class ManualCheckDataServiceTests
         {
             GameId = 1,
             Name = name,
-            MatchMode = ManualCheckMatchModeEnum.Any,
             ListingLimit = 10,
-            Criteria = [new ManualCheckCriterionDto { ValueContains = " Mean Green " }]
+            Criteria =
+            [
+                new ManualCheckCriterionDto
+                {
+                    ConditionOperatorId = null,
+                    ValueContains = " Mean Green "
+                }
+            ]
         };
     }
 

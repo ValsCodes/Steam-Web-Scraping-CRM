@@ -14,11 +14,11 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { finalize, timeout, TimeoutError } from 'rxjs';
+import { finalize, forkJoin, timeout, TimeoutError } from 'rxjs';
 
 import {
+  ManualCheckConditionOperator,
   ManualCheckCriterion,
-  ManualCheckMatchMode,
   ManualCheckPreset,
   ManualCheckPresetWrite,
 } from '../../models';
@@ -93,28 +93,6 @@ export interface ManualCheckSetupDialogResult {
             placeholder="Preset name" />
         </label>
 
-        <fieldset>
-          <legend>Match mode</legend>
-          <label class="manual-check-dialog__radio">
-            <input
-              type="radio"
-              name="manualCheckMatchMode"
-              value="Any"
-              [(ngModel)]="matchMode"
-              (ngModelChange)="markDirty()" />
-            Any criterion
-          </label>
-          <label class="manual-check-dialog__radio">
-            <input
-              type="radio"
-              name="manualCheckMatchMode"
-              value="All"
-              [(ngModel)]="matchMode"
-              (ngModelChange)="markDirty()" />
-            All criteria in the same asset
-          </label>
-        </fieldset>
-
         <section class="manual-check-dialog__listing-limit" aria-labelledby="manualCheckListingLimitLabel">
           <div>
             <strong id="manualCheckListingLimitLabel">Listings to check</strong>
@@ -153,6 +131,51 @@ export interface ManualCheckSetupDialogResult {
           }
         </section>
 
+        <section class="manual-check-dialog__cooldown" aria-labelledby="manualCheckCooldownLabel">
+          <label class="manual-check-dialog__radio">
+            <input
+              type="checkbox"
+              name="manualCheckCustomCooldown"
+              [ngModel]="customCooldown"
+              (ngModelChange)="setCustomCooldown($event)" />
+            <span>
+              <strong id="manualCheckCooldownLabel">Custom cooldown between product checks</strong><br />
+              <small>When disabled, the server default is used (currently 3 seconds).</small>
+            </span>
+          </label>
+          @if (customCooldown) {
+            <div class="manual-check-dialog__cooldown-controls">
+              <label>
+                <span>Minutes</span>
+                <input
+                  type="number"
+                  name="manualCheckCooldownMinutes"
+                  min="0"
+                  max="59"
+                  step="1"
+                  [(ngModel)]="cooldownMinutes"
+                  (ngModelChange)="markDirty()" />
+              </label>
+              <label>
+                <span>Seconds</span>
+                <input
+                  type="number"
+                  name="manualCheckCooldownSeconds"
+                  min="0"
+                  max="59"
+                  step="1"
+                  [(ngModel)]="cooldownSeconds"
+                  (ngModelChange)="markDirty()" />
+              </label>
+            </div>
+            @if (!isCooldownValid) {
+              <p class="manual-check-dialog__validation" role="alert">
+                Enter whole minutes and seconds between 0 and 59.
+              </p>
+            }
+          }
+        </section>
+
         <fieldset>
           <legend>Steam response cache</legend>
           <label class="manual-check-dialog__radio">
@@ -184,6 +207,22 @@ export interface ManualCheckSetupDialogResult {
         @for (criterion of criteria; track $index; let i = $index) {
           <div class="manual-check-dialog__criterion">
             <span class="manual-check-dialog__criterion-number">{{ i + 1 }}</span>
+            @if (i === 0) {
+              <select [name]="'manualCheckOperator' + i" disabled aria-label="First criterion starts the expression">
+                <option>Start</option>
+              </select>
+            } @else {
+              <select
+                [name]="'manualCheckOperator' + i"
+                [(ngModel)]="criterion.conditionOperatorId"
+                (ngModelChange)="markDirty()"
+                [attr.aria-label]="'Condition operator for criterion ' + (i + 1)">
+                <option [ngValue]="null">Select operator</option>
+                @for (operator of conditionOperators; track operator.id) {
+                  <option [ngValue]="operator.id">{{ operator.name }}</option>
+                }
+              </select>
+            }
             <input
               [name]="'manualCheckName' + i"
               maxlength="200"
@@ -275,10 +314,13 @@ export interface ManualCheckSetupDialogResult {
     .manual-check-dialog__listing-limit p { margin: .2rem 0 0; color: #64748b; }
     .manual-check-dialog__listing-limit-controls { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; }
     .manual-check-dialog__listing-limit-controls label { min-width: 9rem; }
+    .manual-check-dialog__cooldown { display: flex; flex-direction: column; gap: .65rem; border: 1px solid #e2e8f0; border-radius: .375rem; padding: .75rem; }
+    .manual-check-dialog__cooldown-controls { display: flex; flex-wrap: wrap; gap: .6rem; }
+    .manual-check-dialog__cooldown-controls label { width: 8rem; }
     .manual-check-dialog__quick-option--active { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
     .manual-check-dialog__validation { color: #b91c1c !important; }
     .manual-check-dialog__criteria-heading { display: flex; align-items: center; justify-content: space-between; }
-    .manual-check-dialog__criterion { display: grid; grid-template-columns: 2rem 1fr 1fr auto; gap: .5rem; align-items: center; }
+    .manual-check-dialog__criterion { display: grid; grid-template-columns: 2rem 8rem 1fr 1fr auto; gap: .5rem; align-items: center; }
     .manual-check-dialog__criterion-number { color: #64748b; text-align: center; }
     .manual-check-dialog__hint { color: #92400e; margin: 0; }
     .manual-check-dialog__spacer { flex: 1; }
@@ -293,10 +335,13 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
 
   presets: ManualCheckPreset[] = [];
+  conditionOperators: ManualCheckConditionOperator[] = [];
   selectedPresetId: number | null = null;
   name = '';
-  matchMode: ManualCheckMatchMode = 'Any';
   listingLimit: number | null = 10;
+  customCooldown = false;
+  cooldownMinutes: number | null = 0;
+  cooldownSeconds: number | null = 0;
   bypassCache = false;
   criteria: ManualCheckCriterion[] = [this.emptyCriterion()];
   loading = true;
@@ -316,15 +361,19 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.manualCheckService.getPresets(this.data.gameId).pipe(
+    forkJoin({
+      presets: this.manualCheckService.getPresets(this.data.gameId),
+      conditionOperators: this.manualCheckService.getConditionOperators(),
+    }).pipe(
       timeout({ first: 15000 }),
       finalize(() => {
         this.loading = false;
         this.cdr.markForCheck();
       }),
     ).subscribe({
-      next: (presets) => {
+      next: ({ presets, conditionOperators }) => {
         this.presets = presets;
+        this.conditionOperators = conditionOperators;
         const preferred = presets.find((x) => x.id === this.data.preselectedPresetId)
           ?? presets[0];
         if (preferred) {
@@ -347,10 +396,14 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     return this.name.trim().length >= 1
       && this.name.trim().length <= 100
       && this.isListingLimitValid
+      && this.isCooldownValid
       && this.criteria.length >= 1
       && this.criteria.length <= 25
-      && this.criteria.every((x) =>
-        !!x.nameContains?.trim() || !!x.valueContains?.trim());
+      && this.criteria.every((x, index) =>
+        (!!x.nameContains?.trim() || !!x.valueContains?.trim())
+        && (index === 0
+          ? x.conditionOperatorId === null
+          : this.conditionOperators.some((operator) => operator.id === x.conditionOperatorId)));
   }
 
   get canStart(): boolean {
@@ -362,6 +415,15 @@ export class ManualCheckSetupDialogComponent implements OnInit {
       && Number.isInteger(this.listingLimit)
       && this.listingLimit >= 1
       && this.listingLimit <= 2147483647;
+  }
+
+  get isCooldownValid(): boolean {
+    if (!this.customCooldown) {
+      return true;
+    }
+
+    return this.isCooldownPartValid(this.cooldownMinutes)
+      && this.isCooldownPartValid(this.cooldownSeconds);
   }
 
   get primaryActionLabel(): string {
@@ -384,8 +446,10 @@ export class ManualCheckSetupDialogComponent implements OnInit {
 
     this.selectedPresetId = preset.id;
     this.name = preset.name;
-    this.matchMode = preset.matchMode;
     this.listingLimit = preset.listingLimit;
+    this.customCooldown = preset.cooldownMinutes !== null && preset.cooldownSeconds !== null;
+    this.cooldownMinutes = preset.cooldownMinutes ?? 0;
+    this.cooldownSeconds = preset.cooldownSeconds ?? 0;
     this.criteria = preset.criteria.map((x) => ({ ...x }));
     this.dirty = false;
     this.errorMessage = '';
@@ -396,8 +460,10 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   newPreset(): void {
     this.selectedPresetId = null;
     this.name = '';
-    this.matchMode = 'Any';
     this.listingLimit = 10;
+    this.customCooldown = false;
+    this.cooldownMinutes = 0;
+    this.cooldownSeconds = 0;
     this.criteria = [this.emptyCriterion()];
     this.dirty = true;
     this.errorMessage = '';
@@ -416,9 +482,14 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.markDirty();
   }
 
+  setCustomCooldown(enabled: boolean): void {
+    this.customCooldown = enabled;
+    this.markDirty();
+  }
+
   addCriterion(): void {
     if (this.criteria.length < 25) {
-      this.criteria.push(this.emptyCriterion());
+      this.criteria.push(this.emptyCriterion(false));
       this.markDirty();
     }
   }
@@ -426,6 +497,8 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   removeCriterion(index: number): void {
     if (this.criteria.length > 1) {
       this.criteria.splice(index, 1);
+      this.criteria[0].conditionOperatorId = null;
+      this.criteria[0].conditionOperatorName = null;
       this.markDirty();
     }
   }
@@ -517,17 +590,27 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     return {
       gameId: this.data.gameId,
       name: this.name.trim(),
-      matchMode: this.matchMode,
       listingLimit: this.listingLimit!,
+      cooldownMinutes: this.customCooldown ? this.cooldownMinutes! : null,
+      cooldownSeconds: this.customCooldown ? this.cooldownSeconds! : null,
       criteria: this.criteria.map((x) => ({
+        conditionOperatorId: x.conditionOperatorId,
         nameContains: x.nameContains?.trim() || null,
         valueContains: x.valueContains?.trim() || null,
       })),
     };
   }
 
-  private emptyCriterion(): ManualCheckCriterion {
-    return { nameContains: null, valueContains: null };
+  private emptyCriterion(first = true): ManualCheckCriterion {
+    return {
+      conditionOperatorId: first ? null : (this.conditionOperators[0]?.id ?? null),
+      nameContains: null,
+      valueContains: null,
+    };
+  }
+
+  private isCooldownPartValid(value: number | null): boolean {
+    return value !== null && Number.isInteger(value) && value >= 0 && value <= 59;
   }
 
   private getError(error: unknown, fallback: string): string {

@@ -16,6 +16,12 @@ public sealed class ManualChecksController(
     IManualCheckQueue queue,
     ILogger<ManualChecksController> logger) : ControllerBase
 {
+    [HttpGet("condition-operators")]
+    public async Task<IActionResult> GetConditionOperators(CancellationToken cancellationToken = default)
+    {
+        return Ok(await dataService.GetConditionOperatorsAsync(cancellationToken));
+    }
+
     [HttpGet("presets")]
     public async Task<IActionResult> GetPresets(
         [FromQuery] long? gameId,

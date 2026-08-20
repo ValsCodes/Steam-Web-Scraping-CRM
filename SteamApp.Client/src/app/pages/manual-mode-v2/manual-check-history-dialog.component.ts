@@ -7,41 +7,38 @@ import {
   inject,
   OnInit,
 } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
   MatDialog,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatMenuModule } from '@angular/material/menu';
 import { finalize } from 'rxjs';
 
-import {
-  ManualCheckProductTrace,
-  ManualCheckRunDetail,
-  ManualCheckRunSummary,
-} from '../../models';
+import { formatDuration } from '../../common';
+import { ManualCheckRunSummary } from '../../models';
 import { ManualCheckService } from '../../services';
-import { ManualCheckSteamResultDialogComponent } from './manual-check-steam-result-dialog.component';
+import {
+  ManualCheckTraceDialogComponent,
+  ManualCheckTraceDialogData,
+  ManualCheckTraceView,
+} from './manual-check-trace-dialog.component';
 
 export interface ManualCheckHistoryDialogData {
   gameId?: number;
 }
 
-type HistoryView = 'setup' | 'results' | 'errors';
-
 @Component({
   selector: 'steam-manual-check-history-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule, MatMenuModule],
+  imports: [CommonModule, MatDialogModule, MatButtonModule],
   template: `
     <h2 mat-dialog-title>Automated Check History</h2>
     <mat-dialog-content class="manual-check-history">
       <p class="manual-check-history__intro">
-        Every run keeps its setup, timestamps, correlation ID, matches, parsed Steam results, and product-level failure trace.
+        Every run keeps its setup, timestamps, durations, correlation ID, matches, parsed Steam results, and product-level failure trace.
       </p>
 
       @if (loading) {
@@ -67,6 +64,7 @@ type HistoryView = 'setup' | 'results' | 'errors';
                 <th>Preset</th>
                 <th>Status</th>
                 <th>Progress</th>
+                <th>Duration</th>
                 <th>Outcome</th>
                 <th>Failure trace</th>
                 <th>Actions</th>
@@ -92,6 +90,7 @@ type HistoryView = 'setup' | 'results' | 'errors';
                     </span>
                   </td>
                   <td>{{ run.checkedProducts }} / {{ run.totalProducts }}</td>
+                  <td>{{ formatDuration(run.durationMilliseconds) }}</td>
                   <td>
                     <span class="manual-check-history__outcome--match">{{ run.matchedProducts }} matched</span><br />
                     <span [class.manual-check-history__outcome--failed]="run.failedProducts > 0">
@@ -109,12 +108,7 @@ type HistoryView = 'setup' | 'results' | 'errors';
                     <small title="Correlation ID">Trace {{ run.correlationId }}</small>
                   </td>
                   <td class="manual-check-history__actions">
-                    <button
-                      mat-stroked-button
-                      type="button"
-                      (click)="openViewer(run, run.failedProducts > 0 || run.errorText ? 'errors' : 'results')">
-                      View trace
-                    </button>
+                    <button mat-stroked-button type="button" (click)="openTrace(run)">View trace</button>
                     <button
                       mat-button
                       type="button"
@@ -129,155 +123,6 @@ type HistoryView = 'setup' | 'results' | 'errors';
           </table>
         </div>
       }
-
-      @if (viewerTitle) {
-        <section class="manual-check-history__viewer" aria-live="polite">
-          <div class="manual-check-history__viewer-heading">
-            <div>
-              <h3>{{ viewerTitle }}</h3>
-              @if (viewerDetail) {
-                <small>Correlation ID: {{ viewerDetail.correlationId }}</small>
-              }
-            </div>
-            <button mat-button type="button" (click)="closeViewer()">Close details</button>
-          </div>
-
-          @if (viewerLoading) {
-            <p>Loading run trace…</p>
-          } @else if (viewerError) {
-            <div class="manual-check-history__callout manual-check-history__callout--error" role="alert">
-              {{ viewerError }}
-            </div>
-          } @else if (viewerDetail; as detail) {
-            <nav class="manual-check-history__tabs" aria-label="Run trace sections">
-              <button mat-stroked-button type="button" (click)="viewerView = 'setup'" [class.manual-check-history__tab--active]="viewerView === 'setup'">Setup</button>
-              <button mat-stroked-button type="button" (click)="viewerView = 'results'" [class.manual-check-history__tab--active]="viewerView === 'results'">Matches ({{ detail.results.matches.length }})</button>
-              <button mat-stroked-button type="button" (click)="viewerView = 'errors'" [class.manual-check-history__tab--active]="viewerView === 'errors'">Errors ({{ detail.results.errors.length }})</button>
-            </nav>
-
-            <dl class="manual-check-history__timeline">
-              <div><dt>Requested</dt><dd>{{ detail.setup.requestedAtUtc | date:'medium' }}</dd></div>
-              <div><dt>Started</dt><dd>{{ detail.startedAtUtc ? (detail.startedAtUtc | date:'medium') : 'Not started' }}</dd></div>
-              <div><dt>Completed</dt><dd>{{ detail.completedAtUtc ? (detail.completedAtUtc | date:'medium') : 'Not completed' }}</dd></div>
-            </dl>
-
-            @if (viewerView === 'setup') {
-              <div class="manual-check-history__panel">
-                <h4>Preset snapshot</h4>
-                <p><strong>{{ detail.setup.presetName }}</strong> · {{ detail.setup.matchMode === 'All' ? 'All criteria' : 'Any criterion' }}</p>
-                <p>Top {{ detail.setup.listingLimit }} cheapest available listing(s) checked per product.</p>
-                <p>Steam data: {{ detail.setup.bypassCache ? 'fresh fetch requested; cache bypassed' : '20-minute cache allowed' }}.</p>
-                <p>{{ detail.setup.products.length }} product(s) captured from {{ detail.setup.gameUrlName || ('Source #' + detail.setup.gameUrlId) }}.</p>
-                <ol class="manual-check-history__criteria">
-                  @for (criterion of detail.setup.criteria; track $index) {
-                    <li>
-                      @if (criterion.nameContains) { <span>Name contains “{{ criterion.nameContains }}”</span> }
-                      @if (criterion.nameContains && criterion.valueContains) { <span> and </span> }
-                      @if (criterion.valueContains) { <span>Value contains “{{ criterion.valueContains }}”</span> }
-                    </li>
-                  }
-                </ol>
-              </div>
-            } @else if (viewerView === 'results') {
-              <div class="manual-check-history__panel">
-                @if (detail.results.productTraces.length === 0) {
-                  <div class="manual-check-history__callout">
-                    No parsed Steam API result was stored. The product request may have failed before parsing, or this run predates Steam result tracing.
-                  </div>
-                  @for (match of detail.results.matches; track match.productId) {
-                    <article class="manual-check-history__record">
-                      <h4>{{ match.productName }}</h4>
-                      <p>{{ match.matchedAssets.length }} matched asset(s). Steam result trace unavailable.</p>
-                    </article>
-                  }
-                } @else {
-                  <p class="manual-check-history__muted">
-                    Parsed Steam results are retained for every successfully fetched product, including products that did not match the preset.
-                  </p>
-                  <div class="manual-check-history__product-results-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Product</th>
-                          <th>Match result</th>
-                          <th>Matched assets</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @for (trace of detail.results.productTraces; track trace.productId) {
-                          <tr>
-                            <td>
-                              <strong>{{ trace.productName || ('Product #' + trace.productId) }}</strong><br />
-                              <small>Product #{{ trace.productId }}</small>
-                            </td>
-                            <td>
-                              <span
-                                class="manual-check-history__result-status"
-                                [class.manual-check-history__result-status--failed]="!trace.matchEvaluated"
-                                [class.manual-check-history__result-status--matched]="trace.matchEvaluated && trace.matched">
-                                {{ !trace.matchEvaluated ? 'Check failed' : trace.matched ? 'Matched' : 'No match' }}
-                              </span>
-                            </td>
-                            <td>{{ trace.matchedAssetCount }}</td>
-                            <td>
-                              <div class="table-actions-cell">
-                                <button
-                                  type="button"
-                                  mat-icon-button
-                                  class="table-actions-trigger"
-                                  [matMenuTriggerFor]="steamResultActionsMenu"
-                                  [attr.aria-label]="'Open Steam result actions for ' + (trace.productName || ('product ' + trace.productId))">
-                                  <mat-icon>more_horiz</mat-icon>
-                                </button>
-                                <mat-menu #steamResultActionsMenu="matMenu" xPosition="before" panelClass="table-actions-menu">
-                                  <button type="button" mat-menu-item (click)="openSteamResult(trace)">
-                                    <span>View Steam API result</span>
-                                  </button>
-                                </mat-menu>
-                              </div>
-                            </td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
-                  </div>
-                }
-              </div>
-            } @else {
-              <div class="manual-check-history__panel">
-                @if (detail.errorText) {
-                  <div class="manual-check-history__callout manual-check-history__callout--error">
-                    <strong>Run failure</strong>
-                    <span>{{ detail.errorText }}</span>
-                  </div>
-                }
-
-                @if (detail.results.errors.length === 0) {
-                  <p>No product-level errors were recorded for this run.</p>
-                } @else {
-                  <div class="manual-check-history__error-list">
-                    @for (failure of detail.results.errors; track failure.productId) {
-                      <article class="manual-check-history__record manual-check-history__record--error">
-                        <div class="manual-check-history__record-heading">
-                          <h4>{{ failure.productName || ('Product #' + failure.productId) }}</h4>
-                          <div class="manual-check-history__badges">
-                            @if (failure.httpStatusCode) { <span>HTTP {{ failure.httpStatusCode }}</span> }
-                            @if (failure.errorType) { <span>{{ failure.errorType }}</span> }
-                          </div>
-                        </div>
-                        <p>{{ failure.error }}</p>
-                        @if (failure.occurredAtUtc) { <small>{{ failure.occurredAtUtc | date:'medium' }}</small> }
-                        <code>{{ failure.fullUrl }}</code>
-                      </article>
-                    }
-                  </div>
-                }
-              </div>
-            }
-          }
-        </section>
-      }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button type="button" (click)="load()" [disabled]="loading">Refresh</button>
@@ -288,7 +133,7 @@ type HistoryView = 'setup' | 'results' | 'errors';
     .manual-check-history { min-width: min(74rem, 90vw); }
     .manual-check-history__intro { margin: 0 0 1rem; color: #64748b; }
     .manual-check-history__loading, .manual-check-history__empty { display: flex; min-height: 12rem; flex-direction: column; align-items: center; justify-content: center; gap: .4rem; color: #64748b; text-align: center; }
-    .manual-check-history__table-wrap { overflow: auto; max-height: 55vh; border: 1px solid #e2e8f0; border-radius: .5rem; }
+    .manual-check-history__table-wrap { overflow: auto; max-height: 65vh; border: 1px solid #e2e8f0; border-radius: .5rem; }
     table { width: 100%; border-collapse: collapse; font-size: .875rem; }
     th, td { border-bottom: 1px solid #e2e8f0; padding: .7rem; text-align: left; vertical-align: top; }
     th { color: #475569; position: sticky; top: 0; z-index: 1; background: #f8fafc; }
@@ -309,36 +154,13 @@ type HistoryView = 'setup' | 'results' | 'errors';
     .manual-check-history__trace-summary small { display: block; margin-top: .35rem; overflow-wrap: anywhere; }
     .manual-check-history__callout { display: flex; flex-direction: column; align-items: flex-start; gap: .4rem; border: 1px solid #cbd5e1; border-radius: .375rem; background: #f8fafc; padding: .75rem; color: #334155; }
     .manual-check-history__callout--error { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
-    .manual-check-history__viewer { margin-top: 1rem; border: 1px solid #cbd5e1; border-radius: .5rem; padding: 1rem; }
-    .manual-check-history__viewer-heading, .manual-check-history__record-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-    .manual-check-history__viewer h3, .manual-check-history__viewer h4 { margin: 0; }
-    .manual-check-history__tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem 0; }
-    .manual-check-history__tab--active { background: #dbeafe; border-color: #93c5fd; }
-    .manual-check-history__timeline { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin: 0 0 1rem; }
-    .manual-check-history__timeline div { border-radius: .375rem; background: #f8fafc; padding: .65rem; }
-    .manual-check-history__timeline dt { color: #64748b; font-size: .75rem; text-transform: uppercase; }
-    .manual-check-history__timeline dd { margin: .2rem 0 0; }
-    .manual-check-history__panel { display: flex; flex-direction: column; gap: .75rem; }
-    .manual-check-history__product-results-wrap { overflow: auto; border: 1px solid #e2e8f0; border-radius: .5rem; }
-    .manual-check-history__result-status { display: inline-block; border-radius: 999px; background: #e2e8f0; padding: .2rem .5rem; color: #475569; }
-    .manual-check-history__result-status--matched { background: #dcfce7; color: #166534; }
-    .manual-check-history__result-status--failed { background: #fee2e2; color: #991b1b; }
-    .table-actions-cell { display: flex; justify-content: center; }
-    .manual-check-history__criteria { margin: 0; padding-left: 1.5rem; }
-    .manual-check-history__error-list { display: grid; gap: .75rem; }
-    .manual-check-history__record { border: 1px solid #e2e8f0; border-radius: .375rem; padding: .75rem; }
-    .manual-check-history__record p { margin: .35rem 0; }
-    .manual-check-history__record--error { border-color: #fecaca; background: #fffafa; }
-    .manual-check-history__badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; }
-    .manual-check-history__badges span { border-radius: 999px; background: #fee2e2; padding: .15rem .45rem; color: #991b1b; font-size: .75rem; }
-    .manual-check-history__record code { display: block; margin-top: .5rem; overflow-wrap: anywhere; color: #475569; white-space: normal; }
     @media (max-width: 800px) {
-      .manual-check-history__timeline { grid-template-columns: 1fr; }
-      .manual-check-history__viewer-heading, .manual-check-history__record-heading { flex-direction: column; }
+      .manual-check-history { min-width: 0; }
     }
   `],
 })
 export class ManualCheckHistoryDialogComponent implements OnInit {
+  readonly formatDuration = formatDuration;
   readonly data = inject<ManualCheckHistoryDialogData>(MAT_DIALOG_DATA);
   readonly dialogRef = inject<MatDialogRef<ManualCheckHistoryDialogComponent, number>>(MatDialogRef);
   private readonly dialog = inject(MatDialog);
@@ -349,11 +171,6 @@ export class ManualCheckHistoryDialogComponent implements OnInit {
   loading = true;
   busyRunId: number | null = null;
   errorMessage = '';
-  viewerTitle = '';
-  viewerView: HistoryView = 'results';
-  viewerDetail: ManualCheckRunDetail | null = null;
-  viewerLoading = false;
-  viewerError = '';
 
   ngOnInit(): void {
     this.load();
@@ -383,42 +200,20 @@ export class ManualCheckHistoryDialogComponent implements OnInit {
     return run.status === 'CompletedWithErrors' ? 'Completed with errors' : run.status;
   }
 
-  openViewer(run: ManualCheckRunSummary, view: HistoryView): void {
-    this.viewerTitle = `Run #${run.id} · ${run.presetName}`;
-    this.viewerView = view;
-    this.viewerDetail = null;
-    this.viewerError = '';
-    this.viewerLoading = true;
-    this.manualCheckService.getRun(run.id)
-      .pipe(finalize(() => {
-        this.viewerLoading = false;
-        this.cdr.markForCheck();
-      }))
-      .subscribe({
-        next: (detail) => {
-          this.viewerDetail = detail;
-          this.cdr.markForCheck();
-        },
-        error: (error) => {
-          this.viewerError = this.getError(error, 'Unable to load the run trace.');
-          this.cdr.markForCheck();
-        },
-      });
-  }
-
-  closeViewer(): void {
-    this.viewerTitle = '';
-    this.viewerDetail = null;
-    this.viewerError = '';
-  }
-
-  openSteamResult(trace: ManualCheckProductTrace): void {
-    this.dialog.open(ManualCheckSteamResultDialogComponent, {
-      width: '64rem',
-      maxWidth: '96vw',
-      maxHeight: '90vh',
-      data: trace,
-    });
+  openTrace(run: ManualCheckRunSummary): void {
+    const initialView: ManualCheckTraceView = run.failedProducts > 0 || run.status === 'Failed'
+      ? 'errors'
+      : 'results';
+    const data: ManualCheckTraceDialogData = { runId: run.id, initialView };
+    this.dialog.open<ManualCheckTraceDialogComponent, ManualCheckTraceDialogData>(
+      ManualCheckTraceDialogComponent,
+      {
+        width: 'min(68rem, 96vw)',
+        maxWidth: '96vw',
+        maxHeight: '92vh',
+        data,
+      },
+    );
   }
 
   rerun(run: ManualCheckRunSummary): void {

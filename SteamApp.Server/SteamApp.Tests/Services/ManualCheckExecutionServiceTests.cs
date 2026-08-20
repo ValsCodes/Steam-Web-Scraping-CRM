@@ -47,7 +47,8 @@ public sealed class ManualCheckExecutionServiceTests
                 r.ProductTraces[0].ProductId == 1 &&
                 r.ProductTraces[0].MatchEvaluated &&
                 !r.ProductTraces[0].Matched &&
-                r.ProductTraces[0].SteamApiResultJson.Contains("\"success\":true")),
+                r.ProductTraces[0].DurationMilliseconds.HasValue &&
+                r.ProductTraces[0].SteamApiResultJson!.Contains("\"success\":true")),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -95,7 +96,11 @@ public sealed class ManualCheckExecutionServiceTests
         data.Verify(x => x.CompleteAsync(
             11,
             ManualCheckRunStatusEnum.CompletedWithErrors,
-            It.Is<ManualCheckRunResultsDto>(r => r.Matches.Count == 1 && r.Errors.Count == 1),
+            It.Is<ManualCheckRunResultsDto>(r =>
+                r.Matches.Count == 1 &&
+                r.Errors.Count == 1 &&
+                r.ProductTraces.Count == 2 &&
+                r.ProductTraces.All(trace => trace.DurationMilliseconds.HasValue)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -116,6 +121,10 @@ public sealed class ManualCheckExecutionServiceTests
                 message.Contains("HTTP 400")),
             It.Is<ManualCheckRunResultsDto>(r =>
                 r.Errors.Count == 2 &&
+                r.ProductTraces.Count == 2 &&
+                r.ProductTraces.All(trace =>
+                    trace.DurationMilliseconds.HasValue &&
+                    trace.SteamApiResultJson == null) &&
                 r.Errors.All(error =>
                     error.HttpStatusCode == 400 &&
                     error.ErrorType == nameof(HttpRequestException) &&
@@ -303,18 +312,94 @@ public sealed class ManualCheckExecutionServiceTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Test]
+    public async Task ExecuteAsync_CustomCooldown_AppliesOnceBetweenTwoChecks()
+    {
+        var handler = new HttpMessageHandlerStub((_, _) => JsonResponse(new Listing { Success = true }));
+        var setup = Setup(Product(1, "First"), Product(2, "Second"));
+        setup.CooldownMinutes = 1;
+        setup.CooldownSeconds = 9;
+        var data = DataServiceMock(setup);
+        var delay = new Mock<IManualCheckDelay>();
+        delay.Setup(x => x.DelayAsync(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var service = CreateService(handler, data.Object, maxAttempts: 1, delay: delay.Object);
+
+        await service.ExecuteAsync(21, CancellationToken.None);
+
+        delay.Verify(x => x.DelayAsync(TimeSpan.FromSeconds(69), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_NullCooldown_UsesConfiguredDefault()
+    {
+        var handler = new HttpMessageHandlerStub((_, _) => JsonResponse(new Listing { Success = true }));
+        var data = DataServiceMock(Setup(Product(1, "First"), Product(2, "Second")));
+        var delay = new Mock<IManualCheckDelay>();
+        delay.Setup(x => x.DelayAsync(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var service = CreateService(
+            handler,
+            data.Object,
+            maxAttempts: 1,
+            delay: delay.Object,
+            defaultDelay: TimeSpan.FromSeconds(3));
+
+        await service.ExecuteAsync(22, CancellationToken.None);
+
+        delay.Verify(x => x.DelayAsync(TimeSpan.FromSeconds(3), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public void ExecuteAsync_CancellationDuringCooldown_StopsBeforeNextProduct()
+    {
+        var attempts = 0;
+        var handler = new HttpMessageHandlerStub((_, _) =>
+        {
+            attempts++;
+            return JsonResponse(new Listing { Success = true });
+        });
+        var data = DataServiceMock(Setup(Product(1, "First"), Product(2, "Second")));
+        using var cancellation = new CancellationTokenSource();
+        var delay = new Mock<IManualCheckDelay>();
+        delay.Setup(x => x.DelayAsync(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .Returns((TimeSpan _, CancellationToken token) =>
+            {
+                cancellation.Cancel();
+                return Task.FromCanceled(token);
+            });
+        var service = CreateService(handler, data.Object, maxAttempts: 1, delay: delay.Object);
+
+        Assert.CatchAsync<OperationCanceledException>(async () =>
+            await service.ExecuteAsync(23, cancellation.Token));
+
+        Assert.That(attempts, Is.EqualTo(1));
+        data.Verify(x => x.CompleteAsync(
+            It.IsAny<long>(),
+            It.IsAny<ManualCheckRunStatusEnum>(),
+            It.IsAny<ManualCheckRunResultsDto>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        data.Verify(x => x.FailAsync(
+            It.IsAny<long>(),
+            It.IsAny<string>(),
+            It.IsAny<ManualCheckRunResultsDto>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     private static ManualCheckExecutionService CreateService(
         HttpMessageHandler handler,
         IManualCheckDataService dataService,
         int maxAttempts,
-        IDistributedCache? cache = null)
+        IDistributedCache? cache = null,
+        IManualCheckDelay? delay = null,
+        TimeSpan? defaultDelay = null)
     {
         var client = new HttpClient(handler);
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(x => x.CreateClient(ManualCheckOptions.HttpClientName)).Returns(client);
         var options = Options.Create(new ManualCheckOptions
         {
-            DelayBetweenRequests = TimeSpan.Zero,
+            DelayBetweenRequests = defaultDelay ?? TimeSpan.Zero,
             RetryBaseDelay = TimeSpan.FromMilliseconds(1),
             RequestTimeout = TimeSpan.FromSeconds(2),
             MaxAttempts = maxAttempts
@@ -324,6 +409,7 @@ public sealed class ManualCheckExecutionServiceTests
             options,
             cache ?? EmptyCache().Object,
             dataService,
+            delay ?? new ImmediateManualCheckDelay(),
             NullLogger<ManualCheckExecutionService>.Instance);
     }
 
@@ -347,10 +433,16 @@ public sealed class ManualCheckExecutionServiceTests
     {
         return new ManualCheckSetupDto
         {
-            MatchMode = ManualCheckMatchModeEnum.Any,
             ListingLimit = 10,
             BypassCache = bypassCache,
-            Criteria = [new ManualCheckCriterionDto { ValueContains = "Mean Green" }],
+            Criteria =
+            [
+                new ManualCheckCriterionDto
+                {
+                    ConditionOperatorId = null,
+                    ValueContains = "Mean Green"
+                }
+            ],
             Products = products.ToList()
         };
     }
@@ -477,5 +569,13 @@ public sealed class ManualCheckExecutionServiceTests
         });
         var renderContext = JsonConvert.SerializeObject(new { queryData });
         return $"<!DOCTYPE html><html><script>window.SSR.renderContext=JSON.parse({JsonConvert.SerializeObject(renderContext)});</script></html>";
+    }
+
+    private sealed class ImmediateManualCheckDelay : IManualCheckDelay
+    {
+        public Task DelayAsync(TimeSpan delay, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
     }
 }

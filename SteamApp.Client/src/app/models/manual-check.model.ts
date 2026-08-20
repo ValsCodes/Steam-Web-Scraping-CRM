@@ -1,5 +1,3 @@
-export type ManualCheckMatchMode = 'Any' | 'All';
-
 export type ManualCheckRunStatus =
   | 'Queued'
   | 'Running'
@@ -9,15 +7,23 @@ export type ManualCheckRunStatus =
   | 'Canceled';
 
 export interface ManualCheckCriterion {
+  conditionOperatorId: number | null;
+  conditionOperatorName?: string | null;
   nameContains: string | null;
   valueContains: string | null;
+}
+
+export interface ManualCheckConditionOperator {
+  id: number;
+  name: string;
 }
 
 export interface ManualCheckPresetWrite {
   gameId: number;
   name: string;
-  matchMode: ManualCheckMatchMode;
   listingLimit: number;
+  cooldownMinutes: number | null;
+  cooldownSeconds: number | null;
   criteria: ManualCheckCriterion[];
 }
 
@@ -58,6 +64,7 @@ export interface ManualCheckRunSummary {
   date: string;
   startedAtUtc: string | null;
   completedAtUtc: string | null;
+  durationMilliseconds: number | null;
   correlationId: string;
   errorText: string | null;
 }
@@ -84,8 +91,9 @@ export interface ManualCheckSetup {
   gameName: string | null;
   gameUrlId: number;
   gameUrlName: string | null;
-  matchMode: ManualCheckMatchMode;
   listingLimit: number;
+  cooldownMinutes: number | null;
+  cooldownSeconds: number | null;
   bypassCache: boolean;
   criteria: ManualCheckCriterion[];
   products: ManualCheckProductInput[];
@@ -121,7 +129,8 @@ export interface ManualCheckProductTrace {
   matchEvaluated: boolean;
   matched: boolean;
   matchedAssetCount: number;
-  steamApiResultJson: string;
+  steamApiResultJson: string | null;
+  durationMilliseconds: number | null;
 }
 
 export interface ManualCheckProductError {

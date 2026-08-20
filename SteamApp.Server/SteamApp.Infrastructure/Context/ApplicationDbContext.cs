@@ -25,6 +25,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<ProductTags> ProductTags { get; set; }
     public DbSet<AutomatedScrapeHistory> AutomatedScrapeHistories { get; set; }
     public DbSet<ManualCheckPreset> ManualCheckPresets { get; set; }
+    public DbSet<ManualCheckCriterion> ManualCheckCriteria { get; set; }
+    public DbSet<ManualCheckConditionOperator> ManualCheckConditionOperators { get; set; }
     public DbSet<ManualCheckRun> ManualCheckRuns { get; set; }
     public DbSet<FeedbackRequest> FeedbackRequests { get; set; }
     public DbSet<FeedbackRequestHistory> FeedbackRequestHistories { get; set; }
@@ -179,15 +181,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   .HasMaxLength(ManualCheckPreset.NameMaxLength)
                   .HasColumnName("name");
 
-            entity.Property(x => x.MatchMode)
-                  .HasColumnName("match_mode");
-
             entity.Property(x => x.ListingLimit)
                   .HasDefaultValue(ManualCheckPreset.DefaultListingLimit)
                   .HasColumnName("listing_limit");
 
-            entity.Property(x => x.CriteriaJson)
-                  .HasColumnName("criteria_json");
+            entity.Property(x => x.CooldownMinutes)
+                  .HasColumnName("cooldown_minutes");
+
+            entity.Property(x => x.CooldownSeconds)
+                  .HasColumnName("cooldown_seconds");
 
             entity.HasOne(x => x.Game)
                   .WithMany()
@@ -196,6 +198,44 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
             entity.HasIndex(x => new { x.GameId, x.Name })
                   .IsUnique();
+        });
+        modelBuilder.Entity<ManualCheckCriterion>(entity =>
+        {
+            entity.Property(x => x.NameContains)
+                  .HasMaxLength(ManualCheckCriterion.TermMaxLength)
+                  .HasColumnName("name_contains");
+
+            entity.Property(x => x.ValueContains)
+                  .HasMaxLength(ManualCheckCriterion.TermMaxLength)
+                  .HasColumnName("value_contains");
+
+            entity.HasOne(x => x.ManualCheckPreset)
+                  .WithMany(x => x.Criteria)
+                  .HasForeignKey(x => x.ManualCheckPresetId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.ConditionOperator)
+                  .WithMany(x => x.Criteria)
+                  .HasForeignKey(x => x.ConditionOperatorId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => new { x.ManualCheckPresetId, x.SortOrder })
+                  .IsUnique();
+        });
+        modelBuilder.Entity<ManualCheckConditionOperator>(entity =>
+        {
+            entity.Property(x => x.Name)
+                  .HasMaxLength(ManualCheckConditionOperator.NameMaxLength)
+                  .HasColumnName("name");
+
+            entity.HasData(
+                new ManualCheckConditionOperator { Id = (long)ManualCheckConditionOperatorEnum.And, Name = "AND" },
+                new ManualCheckConditionOperator { Id = (long)ManualCheckConditionOperatorEnum.Or, Name = "OR" },
+                new ManualCheckConditionOperator { Id = (long)ManualCheckConditionOperatorEnum.AndNot, Name = "AND NOT" },
+                new ManualCheckConditionOperator { Id = (long)ManualCheckConditionOperatorEnum.OrNot, Name = "OR NOT" },
+                new ManualCheckConditionOperator { Id = (long)ManualCheckConditionOperatorEnum.Xor, Name = "XOR" },
+                new ManualCheckConditionOperator { Id = (long)ManualCheckConditionOperatorEnum.Nand, Name = "NAND" },
+                new ManualCheckConditionOperator { Id = (long)ManualCheckConditionOperatorEnum.Nor, Name = "NOR" });
         });
         modelBuilder.Entity<ManualCheckRun>(entity =>
         {

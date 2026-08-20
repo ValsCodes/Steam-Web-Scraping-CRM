@@ -15,6 +15,7 @@ describe('ManualCheckSteamResultDialogComponent', () => {
     matched: true,
     matchedAssetCount: 1,
     steamApiResultJson: '{"success":true,"value":"<script>alert(1)</script>"}',
+    durationMilliseconds: 10,
   };
 
   beforeEach(async () => {

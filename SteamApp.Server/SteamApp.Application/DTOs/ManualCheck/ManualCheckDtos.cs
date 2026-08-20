@@ -7,8 +7,16 @@ namespace SteamApp.Application.DTOs.ManualCheck;
 
 public sealed class ManualCheckCriterionDto
 {
+    public long? ConditionOperatorId { get; set; }
+    public string? ConditionOperatorName { get; set; }
     public string? NameContains { get; set; }
     public string? ValueContains { get; set; }
+}
+
+public sealed class ManualCheckConditionOperatorDto
+{
+    public long Id { get; set; }
+    public string Name { get; set; } = string.Empty;
 }
 
 public class ManualCheckPresetWriteDto
@@ -16,10 +24,9 @@ public class ManualCheckPresetWriteDto
     public long GameId { get; set; }
     public string Name { get; set; } = string.Empty;
 
-    [JsonConverter(typeof(StringEnumConverter))]
-    public ManualCheckMatchModeEnum MatchMode { get; set; }
-
     public int ListingLimit { get; set; } = ManualCheckPreset.DefaultListingLimit;
+    public int? CooldownMinutes { get; set; }
+    public int? CooldownSeconds { get; set; }
     public List<ManualCheckCriterionDto> Criteria { get; set; } = [];
 }
 
@@ -73,6 +80,7 @@ public class ManualCheckRunSummaryDto
     public DateTime Date { get; set; }
     public DateTime? StartedAtUtc { get; set; }
     public DateTime? CompletedAtUtc { get; set; }
+    public long? DurationMilliseconds { get; set; }
     public string CorrelationId { get; set; } = string.Empty;
     public string? ErrorText { get; set; }
 }
@@ -92,10 +100,9 @@ public sealed class ManualCheckSetupDto
     public long GameUrlId { get; set; }
     public string? GameUrlName { get; set; }
 
-    [JsonConverter(typeof(StringEnumConverter))]
-    public ManualCheckMatchModeEnum MatchMode { get; set; }
-
     public int ListingLimit { get; set; } = ManualCheckPreset.DefaultListingLimit;
+    public int? CooldownMinutes { get; set; }
+    public int? CooldownSeconds { get; set; }
     public bool BypassCache { get; set; }
     public List<ManualCheckCriterionDto> Criteria { get; set; } = [];
     public List<ManualCheckProductInputDto> Products { get; set; } = [];
@@ -128,7 +135,8 @@ public sealed class ManualCheckProductTraceDto
     public bool MatchEvaluated { get; set; }
     public bool Matched { get; set; }
     public int MatchedAssetCount { get; set; }
-    public string SteamApiResultJson { get; set; } = string.Empty;
+    public string? SteamApiResultJson { get; set; }
+    public long? DurationMilliseconds { get; set; }
 }
 
 public sealed class ManualCheckProductResultDto

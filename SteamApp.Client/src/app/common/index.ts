@@ -1,6 +1,7 @@
 export * from './constants';
 export * from './url.encoder';
 export * from './datetime.formatter';
+export * from './duration.formatter';
 export * from './makeEnumHelper';
 export * from './url-security';
 export * from './external-link.directive';

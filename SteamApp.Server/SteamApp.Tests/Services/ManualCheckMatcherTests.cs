@@ -43,7 +43,6 @@ public sealed class ManualCheckMatcherTests
         var result = ManualCheckMatcher.MatchProduct(
             Product(),
             listing,
-            ManualCheckMatchModeEnum.Any,
             [new ManualCheckCriterionDto { ValueContains = "mean green" }],
             10);
 
@@ -67,7 +66,6 @@ public sealed class ManualCheckMatcherTests
         var result = ManualCheckMatcher.MatchProduct(
             Product(),
             listing,
-            ManualCheckMatchModeEnum.Any,
             [new ManualCheckCriterionDto
             {
                 NameContains = "attribute",
@@ -84,14 +82,24 @@ public sealed class ManualCheckMatcherTests
         var listing = ListingWithAssets(
             ("440", "2", "a1", AssetWith(("attribute", "Sheen: Mean Green"))),
             ("440", "2", "a2", AssetWith(("attribute", "Killstreaks Active"))));
-        var criteria = new[]
+        var orCriteria = new[]
         {
             new ManualCheckCriterionDto { ValueContains = "mean green" },
-            new ManualCheckCriterionDto { ValueContains = "killstreaks" }
+            new ManualCheckCriterionDto
+            {
+                ConditionOperatorId = (long)ManualCheckConditionOperatorEnum.Or,
+                ValueContains = "killstreaks"
+            }
         };
+        var andCriteria = orCriteria.Select(x => new ManualCheckCriterionDto
+        {
+            ConditionOperatorId = x.ConditionOperatorId,
+            ValueContains = x.ValueContains
+        }).ToArray();
+        andCriteria[1].ConditionOperatorId = (long)ManualCheckConditionOperatorEnum.And;
 
-        var any = ManualCheckMatcher.MatchProduct(Product(), listing, ManualCheckMatchModeEnum.Any, criteria, 10);
-        var all = ManualCheckMatcher.MatchProduct(Product(), listing, ManualCheckMatchModeEnum.All, criteria, 10);
+        var any = ManualCheckMatcher.MatchProduct(Product(), listing, orCriteria, 10);
+        var all = ManualCheckMatcher.MatchProduct(Product(), listing, andCriteria, 10);
 
         Assert.Multiple(() =>
         {
@@ -110,10 +118,14 @@ public sealed class ManualCheckMatcherTests
         var result = ManualCheckMatcher.MatchProduct(
             Product(),
             listing,
-            ManualCheckMatchModeEnum.All,
             [
                 new ManualCheckCriterionDto { ValueContains = "MEAN GREEN" },
-                new ManualCheckCriterionDto { NameContains = "ATTRIBUTE", ValueContains = "active" }
+                new ManualCheckCriterionDto
+                {
+                    ConditionOperatorId = (long)ManualCheckConditionOperatorEnum.And,
+                    NameContains = "ATTRIBUTE",
+                    ValueContains = "active"
+                }
             ],
             10);
 
@@ -136,7 +148,6 @@ public sealed class ManualCheckMatcherTests
         var result = ManualCheckMatcher.MatchProduct(
             Product(),
             listing,
-            ManualCheckMatchModeEnum.Any,
             [new ManualCheckCriterionDto { ValueContains = "Mean Green" }],
             1);
 
@@ -158,7 +169,6 @@ public sealed class ManualCheckMatcherTests
         var result = ManualCheckMatcher.MatchProduct(
             Product(),
             listing,
-            ManualCheckMatchModeEnum.Any,
             [new ManualCheckCriterionDto { ValueContains = "Mean Green" }],
             3);
 
@@ -177,7 +187,6 @@ public sealed class ManualCheckMatcherTests
         var result = ManualCheckMatcher.MatchProduct(
             Product(),
             listing,
-            ManualCheckMatchModeEnum.Any,
             [new ManualCheckCriterionDto { ValueContains = "Mean Green" }],
             50);
 
@@ -195,11 +204,67 @@ public sealed class ManualCheckMatcherTests
         var exception = Assert.Throws<InvalidOperationException>(() => ManualCheckMatcher.MatchProduct(
             Product(),
             listing,
-            ManualCheckMatchModeEnum.Any,
             [new ManualCheckCriterionDto { ValueContains = "Mean Green" }],
             10));
 
         Assert.That(exception!.Message, Does.Contain("usable price and asset information"));
+    }
+
+    [TestCase(ManualCheckConditionOperatorEnum.And, "Present", "Present", true)]
+    [TestCase(ManualCheckConditionOperatorEnum.Or, "Missing", "Present", true)]
+    [TestCase(ManualCheckConditionOperatorEnum.AndNot, "Present", "Missing", true)]
+    [TestCase(ManualCheckConditionOperatorEnum.OrNot, "Missing", "Present", false)]
+    [TestCase(ManualCheckConditionOperatorEnum.Xor, "Present", "Missing", true)]
+    [TestCase(ManualCheckConditionOperatorEnum.Nand, "Present", "Present", false)]
+    [TestCase(ManualCheckConditionOperatorEnum.Nor, "Missing", "Missing", true)]
+    public void MatchProduct_ConditionOperator_EvaluatesLeftToRight(
+        ManualCheckConditionOperatorEnum conditionOperator,
+        string firstTerm,
+        string secondTerm,
+        bool expectedMatch)
+    {
+        var listing = ListingWithAssets(("440", "2", "a1", AssetWith(("attribute", "Present"))));
+
+        var result = ManualCheckMatcher.MatchProduct(
+            Product(),
+            listing,
+            [
+                new ManualCheckCriterionDto { ValueContains = firstTerm },
+                new ManualCheckCriterionDto
+                {
+                    ConditionOperatorId = (long)conditionOperator,
+                    ValueContains = secondTerm
+                }
+            ],
+            10);
+
+        Assert.That(result is not null, Is.EqualTo(expectedMatch));
+    }
+
+    [Test]
+    public void MatchProduct_MixedOperators_UsesStrictDisplayedOrder()
+    {
+        var listing = ListingWithAssets(("440", "2", "a1", AssetWith(("attribute", "Present"))));
+
+        var result = ManualCheckMatcher.MatchProduct(
+            Product(),
+            listing,
+            [
+                new ManualCheckCriterionDto { ValueContains = "Present" },
+                new ManualCheckCriterionDto
+                {
+                    ConditionOperatorId = (long)ManualCheckConditionOperatorEnum.Or,
+                    ValueContains = "Missing"
+                },
+                new ManualCheckCriterionDto
+                {
+                    ConditionOperatorId = (long)ManualCheckConditionOperatorEnum.And,
+                    ValueContains = "Missing"
+                }
+            ],
+            10);
+
+        Assert.That(result, Is.Null);
     }
 
     private static ManualCheckProductInputDto Product()

@@ -6,6 +6,7 @@ using SteamApp.Application.DTOs.ManualCheck;
 using SteamApp.Application.JsonObjects;
 using SteamApp.Domain.Enums;
 using SteamApp.WebAPI.Caching;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -18,6 +19,7 @@ public sealed class ManualCheckExecutionService(
     IOptions<ManualCheckOptions> options,
     IDistributedCache cache,
     IManualCheckDataService dataService,
+    IManualCheckDelay delay,
     ILogger<ManualCheckExecutionService> logger) : IManualCheckExecutionService
 {
     private static readonly TimeSpan SteamListingCacheDuration = TimeSpan.FromMinutes(20);
@@ -32,6 +34,7 @@ public sealed class ManualCheckExecutionService(
 
         var results = new ManualCheckRunResultsDto();
         var successfulProducts = 0;
+        var delayBetweenChecks = GetDelayBetweenChecks(setup);
 
         try
         {
@@ -42,9 +45,12 @@ public sealed class ManualCheckExecutionService(
 
                 if (index > 0)
                 {
-                    await Task.Delay(NormalizedDelay(options.Value.DelayBetweenRequests), cancellationToken);
+                    await delay.DelayAsync(delayBetweenChecks, cancellationToken);
                 }
 
+                var productTrace = CreateProductTrace(product);
+                results.ProductTraces.Add(productTrace);
+                var productStartedTimestamp = Stopwatch.GetTimestamp();
                 try
                 {
                     if (!ManualCheckMatcher.TryBuildListingUri(product.FullUrl, out var listingUri) || listingUri is null)
@@ -56,14 +62,12 @@ public sealed class ManualCheckExecutionService(
                         listingUri,
                         setup.BypassCache,
                         cancellationToken);
-                    var productTrace = CreateProductTrace(product, listing);
-                    results.ProductTraces.Add(productTrace);
+                    productTrace.SteamApiResultJson = JsonConvert.SerializeObject(listing);
                     successfulProducts++;
 
                     var match = ManualCheckMatcher.MatchProduct(
                         product,
                         listing,
-                        setup.MatchMode,
                         setup.Criteria,
                         setup.ListingLimit);
                     productTrace.MatchEvaluated = true;
@@ -98,6 +102,12 @@ public sealed class ManualCheckExecutionService(
                             : null,
                         OccurredAtUtc = DateTime.UtcNow
                     });
+                }
+                finally
+                {
+                    productTrace.DurationMilliseconds = Math.Max(
+                        0,
+                        (long)Math.Round(Stopwatch.GetElapsedTime(productStartedTimestamp).TotalMilliseconds));
                 }
 
                 await dataService.UpdateProgressAsync(
@@ -136,17 +146,31 @@ public sealed class ManualCheckExecutionService(
         }
     }
 
-    private static ManualCheckProductTraceDto CreateProductTrace(
-        ManualCheckProductInputDto product,
-        Listing listing)
+    private static ManualCheckProductTraceDto CreateProductTrace(ManualCheckProductInputDto product)
     {
         return new ManualCheckProductTraceDto
         {
             ProductId = product.ProductId,
             ProductName = product.ProductName,
-            FullUrl = product.FullUrl,
-            SteamApiResultJson = JsonConvert.SerializeObject(listing)
+            FullUrl = product.FullUrl
         };
+    }
+
+    private TimeSpan GetDelayBetweenChecks(ManualCheckSetupDto setup)
+    {
+        if (setup.CooldownMinutes is >= 0 and <= 59 && setup.CooldownSeconds is >= 0 and <= 59)
+        {
+            return TimeSpan.FromMinutes(setup.CooldownMinutes.Value) +
+                   TimeSpan.FromSeconds(setup.CooldownSeconds.Value);
+        }
+
+        if (setup.CooldownMinutes.HasValue || setup.CooldownSeconds.HasValue)
+        {
+            logger.LogWarning(
+                "Manual-check setup contains an invalid custom cooldown; the configured server delay will be used.");
+        }
+
+        return NormalizedDelay(options.Value.DelayBetweenRequests);
     }
 
     private async Task<Listing> FetchListingAsync(

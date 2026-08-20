@@ -36,7 +36,11 @@ export class ManualCheckSteamResultDialogComponent {
   readonly data = inject<ManualCheckProductTrace>(MAT_DIALOG_DATA);
   readonly formattedResult = this.formatJson(this.data.steamApiResultJson);
 
-  private formatJson(value: string): string {
+  private formatJson(value: string | null): string {
+    if (value === null) {
+      return 'No parsed Steam response was recorded for this check.';
+    }
+
     try {
       return JSON.stringify(JSON.parse(value), null, 2);
     } catch {

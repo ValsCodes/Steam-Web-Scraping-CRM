@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import {
+  ManualCheckConditionOperator,
   ManualCheckPreset,
   ManualCheckPresetWrite,
   ManualCheckRunAccepted,
@@ -19,6 +20,12 @@ export class ManualCheckService {
   private readonly baseUrl = `${g.localHost}api/manual-checks`;
 
   constructor(private readonly http: HttpClient) {}
+
+  getConditionOperators(): Observable<ManualCheckConditionOperator[]> {
+    return this.http
+      .get<ManualCheckConditionOperator[]>(`${this.baseUrl}/condition-operators`)
+      .pipe(catchError(handleError));
+  }
 
   getPresets(gameId?: number): Observable<ManualCheckPreset[]> {
     const params = gameId === undefined

@@ -559,6 +559,104 @@ namespace SteamApp.WebAPI.Migrations
                     b.ToTable("game_url_products");
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckConditionOperator", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("manual_check_condition_operator");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            Name = "AND"
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            Name = "OR"
+                        },
+                        new
+                        {
+                            Id = 3L,
+                            Name = "AND NOT"
+                        },
+                        new
+                        {
+                            Id = 4L,
+                            Name = "OR NOT"
+                        },
+                        new
+                        {
+                            Id = 5L,
+                            Name = "XOR"
+                        },
+                        new
+                        {
+                            Id = 6L,
+                            Name = "NAND"
+                        },
+                        new
+                        {
+                            Id = 7L,
+                            Name = "NOR"
+                        });
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckCriterion", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("ConditionOperatorId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("condition_operator_id");
+
+                    b.Property<long>("ManualCheckPresetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("manual_check_preset_id");
+
+                    b.Property<string>("NameContains")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("name_contains");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("ValueContains")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("value_contains");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConditionOperatorId");
+
+                    b.HasIndex("ManualCheckPresetId", "SortOrder")
+                        .IsUnique();
+
+                    b.ToTable("manual_check_criterion");
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckPreset", b =>
                 {
                     b.Property<long>("Id")
@@ -568,14 +666,17 @@ namespace SteamApp.WebAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<int?>("CooldownMinutes")
+                        .HasColumnType("int")
+                        .HasColumnName("cooldown_minutes");
+
+                    b.Property<int?>("CooldownSeconds")
+                        .HasColumnType("int")
+                        .HasColumnName("cooldown_seconds");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2")
                         .HasColumnName("created_at_utc");
-
-                    b.Property<string>("CriteriaJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("criteria_json");
 
                     b.Property<long>("GameId")
                         .HasColumnType("bigint")
@@ -586,10 +687,6 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(10)
                         .HasColumnName("listing_limit");
-
-                    b.Property<int>("MatchMode")
-                        .HasColumnType("int")
-                        .HasColumnName("match_mode");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1198,6 +1295,24 @@ namespace SteamApp.WebAPI.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckCriterion", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.ManualCheckConditionOperator", "ConditionOperator")
+                        .WithMany("Criteria")
+                        .HasForeignKey("ConditionOperatorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SteamApp.Domain.Entities.ManualCheckPreset", "ManualCheckPreset")
+                        .WithMany("Criteria")
+                        .HasForeignKey("ManualCheckPresetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ConditionOperator");
+
+                    b.Navigation("ManualCheckPreset");
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckPreset", b =>
                 {
                     b.HasOne("SteamApp.Domain.Entities.Game", "Game")
@@ -1362,8 +1477,15 @@ namespace SteamApp.WebAPI.Migrations
                     b.Navigation("WatchLists");
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckConditionOperator", b =>
+                {
+                    b.Navigation("Criteria");
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckPreset", b =>
                 {
+                    b.Navigation("Criteria");
+
                     b.Navigation("Runs");
                 });
 
