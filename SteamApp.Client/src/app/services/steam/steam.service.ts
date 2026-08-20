@@ -7,6 +7,7 @@ import * as g from '../general-data';
 import {
   ScrapeHistory,
   ScrapeHistoryDetail,
+  ScrapeJobAccepted,
   ScrapeHistoryRerunResponse,
   WhishListResponse,
 } from '../../models';
@@ -27,11 +28,25 @@ export class SteamService {
     );
   }
 
+  queueScrapePage(gameUrlId: number, page: number): Observable<ScrapeJobAccepted> {
+    const url = `${this.baseUrl}scrape-jobs/scrape-page/gameUrl/${gameUrlId}/page/${page}`;
+    return this.http.post<ScrapeJobAccepted>(url, {}).pipe(
+      catchError(handleError)
+    );
+  }
+
   scrapeFromPublicApi(gameUrlId: number, page: number): Observable<any> {
     const url = `${this.baseUrl}scrape-public-api/gameUrl/${gameUrlId}/page/${page}`;
 
     console.log(url);
     return this.http.get<any>(url).pipe(
+      catchError(handleError)
+    );
+  }
+
+  queueScrapeFromPublicApi(gameUrlId: number, page: number): Observable<ScrapeJobAccepted> {
+    const url = `${this.baseUrl}scrape-jobs/scrape-public-api/gameUrl/${gameUrlId}/page/${page}`;
+    return this.http.post<ScrapeJobAccepted>(url, {}).pipe(
       catchError(handleError)
     );
   }
@@ -51,6 +66,13 @@ export class SteamService {
 
     const url = `${this.baseUrl}scrape-pixels/gameUrl/${gameUrlId}/page/${page}`;
     return this.http.get<any>(url).pipe(
+      catchError(handleError)
+    );
+  }
+
+  queueScrapeForPixels(gameUrlId: number, page: number): Observable<ScrapeJobAccepted> {
+    const url = `${this.baseUrl}scrape-jobs/scrape-pixels/gameUrl/${gameUrlId}/page/${page}`;
+    return this.http.post<ScrapeJobAccepted>(url, {}).pipe(
       catchError(handleError)
     );
   }
@@ -81,6 +103,13 @@ export class SteamService {
   rerunScrapeHistory(id: number): Observable<ScrapeHistoryRerunResponse> {
     const url = `${this.baseUrl}scrape-history/${id}/rerun`;
     return this.http.post<ScrapeHistoryRerunResponse>(url, {}).pipe(
+      catchError(handleError)
+    );
+  }
+
+  rerunScrapeHistoryAsync(id: number): Observable<ScrapeJobAccepted> {
+    const url = `${this.baseUrl}scrape-history/${id}/rerun-async`;
+    return this.http.post<ScrapeJobAccepted>(url, {}).pipe(
       catchError(handleError)
     );
   }

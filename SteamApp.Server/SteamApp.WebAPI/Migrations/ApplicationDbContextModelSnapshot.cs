@@ -164,6 +164,15 @@ namespace SteamApp.WebAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("completed_at_utc");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("correlation_id");
+
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2")
                         .HasColumnName("date");
@@ -209,6 +218,14 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("setup_json");
 
+                    b.Property<DateTime?>("StartedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("started_at_utc");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int")
+                        .HasColumnName("status");
+
                     b.Property<string>("UserId")
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)")
@@ -220,7 +237,154 @@ namespace SteamApp.WebAPI.Migrations
 
                     b.HasIndex("UserId", "Date");
 
+                    b.HasIndex("UserId", "Status");
+
                     b.ToTable("automated_scrape_history");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.FeedbackRequest", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Area")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)")
+                        .HasColumnName("area");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)")
+                        .HasColumnName("description");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("StatusChangedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("status_changed_at_utc");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(140)
+                        .HasColumnType("nvarchar(140)")
+                        .HasColumnName("title");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int")
+                        .HasColumnName("type");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "CreatedAtUtc");
+
+                    b.HasIndex("UserId", "Status");
+
+                    b.ToTable("feedback_request");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.FeedbackRequestHistory", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("Action")
+                        .HasColumnType("int")
+                        .HasColumnName("action");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<long>("FeedbackRequestId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("feedback_request_id");
+
+                    b.Property<string>("NewArea")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)")
+                        .HasColumnName("new_area");
+
+                    b.Property<string>("NewDescription")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)")
+                        .HasColumnName("new_description");
+
+                    b.Property<int?>("NewStatus")
+                        .HasColumnType("int")
+                        .HasColumnName("new_status");
+
+                    b.Property<string>("NewTitle")
+                        .HasMaxLength(140)
+                        .HasColumnType("nvarchar(140)")
+                        .HasColumnName("new_title");
+
+                    b.Property<int?>("NewType")
+                        .HasColumnType("int")
+                        .HasColumnName("new_type");
+
+                    b.Property<string>("PreviousArea")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)")
+                        .HasColumnName("previous_area");
+
+                    b.Property<string>("PreviousDescription")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)")
+                        .HasColumnName("previous_description");
+
+                    b.Property<int?>("PreviousStatus")
+                        .HasColumnType("int")
+                        .HasColumnName("previous_status");
+
+                    b.Property<string>("PreviousTitle")
+                        .HasMaxLength(140)
+                        .HasColumnType("nvarchar(140)")
+                        .HasColumnName("previous_title");
+
+                    b.Property<int?>("PreviousType")
+                        .HasColumnType("int")
+                        .HasColumnName("previous_type");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FeedbackRequestId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "FeedbackRequestId", "CreatedAtUtc");
+
+                    b.ToTable("feedback_request_history");
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.Game", b =>
@@ -393,6 +557,246 @@ namespace SteamApp.WebAPI.Migrations
                     b.HasIndex("GameUrlId");
 
                     b.ToTable("game_url_products");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckConditionOperator", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("manual_check_condition_operator");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            Name = "AND"
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            Name = "OR"
+                        },
+                        new
+                        {
+                            Id = 3L,
+                            Name = "AND NOT"
+                        },
+                        new
+                        {
+                            Id = 4L,
+                            Name = "OR NOT"
+                        },
+                        new
+                        {
+                            Id = 5L,
+                            Name = "XOR"
+                        },
+                        new
+                        {
+                            Id = 6L,
+                            Name = "NAND"
+                        },
+                        new
+                        {
+                            Id = 7L,
+                            Name = "NOR"
+                        });
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckCriterion", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("ConditionOperatorId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("condition_operator_id");
+
+                    b.Property<long>("ManualCheckPresetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("manual_check_preset_id");
+
+                    b.Property<string>("NameContains")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("name_contains");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("ValueContains")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("value_contains");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConditionOperatorId");
+
+                    b.HasIndex("ManualCheckPresetId", "SortOrder")
+                        .IsUnique();
+
+                    b.ToTable("manual_check_criterion");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckPreset", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int?>("CooldownMinutes")
+                        .HasColumnType("int")
+                        .HasColumnName("cooldown_minutes");
+
+                    b.Property<int?>("CooldownSeconds")
+                        .HasColumnType("int")
+                        .HasColumnName("cooldown_seconds");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<long>("GameId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("game_id");
+
+                    b.Property<int>("ListingLimit")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(10)
+                        .HasColumnName("listing_limit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("manual_check_preset");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckRun", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("CheckedProducts")
+                        .HasColumnType("int")
+                        .HasColumnName("checked_products");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("completed_at_utc");
+
+                    b.Property<string>("CorrelationId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("correlation_id");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("date");
+
+                    b.Property<string>("ErrorText")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("error_text");
+
+                    b.Property<int>("FailedProducts")
+                        .HasColumnType("int")
+                        .HasColumnName("failed_products");
+
+                    b.Property<long>("GameId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("game_id");
+
+                    b.Property<long>("GameUrlId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("game_url_id");
+
+                    b.Property<long?>("ManualCheckPresetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("manual_check_preset_id");
+
+                    b.Property<int>("MatchedProducts")
+                        .HasColumnType("int")
+                        .HasColumnName("matched_products");
+
+                    b.Property<string>("PresetName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("preset_name");
+
+                    b.Property<string>("ResultsJson")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("results_json");
+
+                    b.Property<string>("SetupJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("setup_json");
+
+                    b.Property<DateTime?>("StartedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("started_at_utc");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int")
+                        .HasColumnName("status");
+
+                    b.Property<int>("TotalProducts")
+                        .HasColumnType("int")
+                        .HasColumnName("total_products");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Date");
+
+                    b.HasIndex("GameId");
+
+                    b.HasIndex("GameUrlId");
+
+                    b.HasIndex("ManualCheckPresetId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("manual_check_run");
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.Pixel", b =>
@@ -787,6 +1191,30 @@ namespace SteamApp.WebAPI.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.FeedbackRequest", b =>
+                {
+                    b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.FeedbackRequestHistory", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.FeedbackRequest", "FeedbackRequest")
+                        .WithMany()
+                        .HasForeignKey("FeedbackRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("FeedbackRequest");
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.Game", b =>
                 {
                     b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
@@ -865,6 +1293,61 @@ namespace SteamApp.WebAPI.Migrations
                     b.Navigation("GameUrl");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckCriterion", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.ManualCheckConditionOperator", "ConditionOperator")
+                        .WithMany("Criteria")
+                        .HasForeignKey("ConditionOperatorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SteamApp.Domain.Entities.ManualCheckPreset", "ManualCheckPreset")
+                        .WithMany("Criteria")
+                        .HasForeignKey("ManualCheckPresetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ConditionOperator");
+
+                    b.Navigation("ManualCheckPreset");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckPreset", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.Game", "Game")
+                        .WithMany()
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckRun", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.Game", "Game")
+                        .WithMany()
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SteamApp.Domain.Entities.GameUrl", "GameUrl")
+                        .WithMany()
+                        .HasForeignKey("GameUrlId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SteamApp.Domain.Entities.ManualCheckPreset", "ManualCheckPreset")
+                        .WithMany("Runs")
+                        .HasForeignKey("ManualCheckPresetId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Game");
+
+                    b.Navigation("GameUrl");
+
+                    b.Navigation("ManualCheckPreset");
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.Pixel", b =>
@@ -992,6 +1475,18 @@ namespace SteamApp.WebAPI.Migrations
                     b.Navigation("GameUrlsProducts");
 
                     b.Navigation("WatchLists");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckConditionOperator", b =>
+                {
+                    b.Navigation("Criteria");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckPreset", b =>
+                {
+                    b.Navigation("Criteria");
+
+                    b.Navigation("Runs");
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.Pixel", b =>

@@ -4,6 +4,7 @@ using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
 using SteamApp.Infrastructure.Context;
 using SteamApp.Infrastructure.Identity;
+using SteamApp.WebAPI.Security;
 
 namespace SteamApp.IntegrationTests.Support;
 
@@ -32,9 +33,14 @@ public static class IntegrationSeed
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
 
-        if (!await roleManager.RoleExistsAsync("Admin"))
+        if (!await roleManager.RoleExistsAsync(SecurityPolicies.UserRole))
         {
-            await roleManager.CreateAsync(new IdentityRole("Admin"));
+            await roleManager.CreateAsync(new IdentityRole(SecurityPolicies.UserRole));
+        }
+
+        if (!await roleManager.RoleExistsAsync(SecurityPolicies.AdminRole))
+        {
+            await roleManager.CreateAsync(new IdentityRole(SecurityPolicies.AdminRole));
         }
 
         var user = new ApplicationUser
@@ -52,7 +58,8 @@ public static class IntegrationSeed
                 string.Join("; ", createResult.Errors.Select(x => x.Description)));
         }
 
-        await userManager.AddToRoleAsync(user, "Admin");
+        await userManager.AddToRoleAsync(user, SecurityPolicies.UserRole);
+        await userManager.AddToRoleAsync(user, SecurityPolicies.AdminRole);
     }
 
     private static void SeedDomain(ApplicationDbContext db)

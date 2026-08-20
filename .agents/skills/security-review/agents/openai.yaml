@@ -1,0 +1,4 @@
+interface:
+  display_name: "Security Review"
+  short_description: "Review SteamApp security-sensitive changes"
+  default_prompt: "Use $security-review to assess the current SteamApp change against repository security controls."

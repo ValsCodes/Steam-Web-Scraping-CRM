@@ -2,6 +2,8 @@
   <nav class="site-header__nav" aria-label="Primary navigation">
     <a routerLink="/home" routerLinkActive="active">Home</a>
     <a routerLink="/pricing" routerLinkActive="active">Pricing</a>
+    <a routerLink="/about" routerLinkActive="active">About</a>
+    <a routerLink="/faq" routerLinkActive="active">FAQ</a>
 
     @if (isLoggedIn) {
       <steam-dropdown
@@ -18,6 +20,11 @@
       <a routerLink="/pixels" routerLinkActive="active">Pixels</a>
       <a routerLink="/wishlist" routerLinkActive="active">Game Wish List</a>
       <a routerLink="/watch-list" routerLinkActive="active">Custom Watch List</a>
+      <a routerLink="/feedback" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Feedback</a>
+      <a routerLink="/feedback/send" routerLinkActive="active">Send Feedback</a>
+      @if (currentUser?.isAdmin) {
+        <a routerLink="/admin/users" routerLinkActive="active">Users</a>
+      }
     }
   </nav>
 

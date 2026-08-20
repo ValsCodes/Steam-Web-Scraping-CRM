@@ -1,4 +1,4 @@
-import { Router, UrlTree } from '@angular/router';
+import { ActivatedRouteSnapshot, Router, UrlTree } from '@angular/router';
 
 import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
@@ -9,16 +9,26 @@ describe('AuthGuard unit tests', () => {
   let guard: AuthGuard;
   let loginTree: UrlTree;
   let sessionExpiredTree: UrlTree;
+  let homeTree: UrlTree;
 
   beforeEach(() => {
     loginTree = { toString: () => '/login' } as UrlTree;
     sessionExpiredTree = { toString: () => '/session-expired' } as UrlTree;
+    homeTree = { toString: () => '/home' } as UrlTree;
 
-    auth = jasmine.createSpyObj<AuthService>('AuthService', ['isLoggedIn', 'hasToken']);
+    auth = jasmine.createSpyObj<AuthService>('AuthService', [
+      'isLoggedIn',
+      'hasToken',
+      'getCurrentUser',
+    ]);
     router = jasmine.createSpyObj<Router>('Router', ['createUrlTree']);
     router.createUrlTree.and.callFake((commands: unknown[]) => {
       if (commands[0] === '/session-expired') {
         return sessionExpiredTree;
+      }
+
+      if (commands[0] === '/home') {
+        return homeTree;
       }
 
       return loginTree;
@@ -30,7 +40,7 @@ describe('AuthGuard unit tests', () => {
   it('allows activation when the current token is valid', () => {
     auth.isLoggedIn.and.returnValue(true);
 
-    expect(guard.canActivate()).toBeTrue();
+    expect(guard.canActivate(route())).toBeTrue();
     expect(router.createUrlTree).not.toHaveBeenCalled();
   });
 
@@ -38,7 +48,7 @@ describe('AuthGuard unit tests', () => {
     auth.isLoggedIn.and.returnValue(false);
     auth.hasToken.and.returnValue(false);
 
-    expect(guard.canActivate()).toBe(loginTree);
+    expect(guard.canActivate(route())).toBe(loginTree);
     expect(router.createUrlTree).toHaveBeenCalledWith(['/login']);
   });
 
@@ -46,7 +56,32 @@ describe('AuthGuard unit tests', () => {
     auth.isLoggedIn.and.returnValue(false);
     auth.hasToken.and.returnValue(true);
 
-    expect(guard.canActivateChild()).toBe(sessionExpiredTree);
+    expect(guard.canActivateChild(route())).toBe(sessionExpiredTree);
     expect(router.createUrlTree).toHaveBeenCalledWith(['/session-expired']);
   });
+
+  it('allows admin-only routes for admin users', () => {
+    auth.isLoggedIn.and.returnValue(true);
+    auth.getCurrentUser.and.returnValue({
+      roles: ['User', 'Admin'],
+    } as never);
+
+    expect(guard.canActivate(route(['Admin']))).toBeTrue();
+  });
+
+  it('blocks admin-only routes for non-admin users', () => {
+    auth.isLoggedIn.and.returnValue(true);
+    auth.getCurrentUser.and.returnValue({
+      roles: ['User'],
+    } as never);
+
+    expect(guard.canActivate(route(['Admin']))).toBe(homeTree);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/home']);
+  });
+
+  function route(roles?: unknown): ActivatedRouteSnapshot {
+    return {
+      data: roles === undefined ? {} : { roles },
+    } as ActivatedRouteSnapshot;
+  }
 });

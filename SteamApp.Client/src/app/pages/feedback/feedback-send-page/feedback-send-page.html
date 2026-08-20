@@ -1,0 +1,70 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form app-form feedback-send-form">
+  <div class="app-form__header">
+    <span class="app-form__eyebrow">Send Feedback</span>
+    <h2 class="app-form__title">Tell us what needs attention</h2>
+    <p class="app-form__description">
+      Send a request or bug report. New submissions are saved as Active so you can track them later.
+    </p>
+  </div>
+
+  <div class="app-form__grid">
+    <div class="form-group">
+      <label for="feedback-send-type">Type *</label>
+      <select id="feedback-send-type" name="type" formControlName="type" class="px-2 py-1">
+        @for (option of typeOptions; track option.value) {
+          <option [ngValue]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="feedback-send-area">Area</label>
+      <input
+        id="feedback-send-area"
+        name="area"
+        formControlName="area"
+        class="px-2 py-1"
+        maxlength="120"
+        placeholder="Catalog, exports, login, scraper..." />
+    </div>
+
+    <div class="form-group form-group--full">
+      <label for="feedback-send-title">Title *</label>
+      <input
+        id="feedback-send-title"
+        name="title"
+        formControlName="title"
+        class="px-2 py-1"
+        maxlength="140"
+        placeholder="Short summary" />
+      @if (form.controls.title.touched && form.controls.title.invalid) {
+        <div class="error">Title is required and must be 140 characters or fewer.</div>
+      }
+    </div>
+
+    <div class="form-group form-group--full">
+      <label for="feedback-send-description">Description *</label>
+      <textarea
+        id="feedback-send-description"
+        name="description"
+        formControlName="description"
+        class="px-2 py-1"
+        rows="8"
+        maxlength="4000"
+        placeholder="What happened, what did you expect, and any useful details."></textarea>
+      @if (form.controls.description.touched && form.controls.description.invalid) {
+        <div class="error">Description is required and must be 4000 characters or fewer.</div>
+      }
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" [disabled]="form.invalid || isSubmitting" [class.busy-cursor]="isSubmitting">
+      {{ isSubmitting ? 'Sending...' : 'Send request' }}
+    </button>
+
+    <button type="button" class="form-back-button" (click)="cancel()">
+      Back
+    </button>
+  </div>
+</form>

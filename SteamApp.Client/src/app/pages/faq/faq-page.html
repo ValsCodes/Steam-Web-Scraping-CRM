@@ -1,0 +1,41 @@
+<div class="faq-page">
+  <section class="faq-hero">
+    <div class="faq-hero__content">
+      <span class="faq-hero__eyebrow">FAQ</span>
+      <h1>Answers for evaluating Steam Web Scraping CRM.</h1>
+      <p>
+        A concise guide to the product, catalog setup, scraping workflows, monitoring,
+        exports, account access, pricing, and external links.
+      </p>
+    </div>
+
+    <div class="faq-hero__actions" aria-label="FAQ page actions">
+      <a class="faq-button faq-button--primary" routerLink="/about">About The CRM</a>
+      <a class="faq-button faq-button--secondary" routerLink="/pricing">Compare Plans</a>
+    </div>
+  </section>
+
+  <section class="faq-section" aria-labelledby="faq-list-heading">
+    <div class="faq-section__heading">
+      <span class="faq-section__eyebrow">Common Questions</span>
+      <h2 id="faq-list-heading">What public visitors usually need to know first</h2>
+    </div>
+
+    <div class="faq-groups">
+      @for (group of groups; track group.title) {
+        <section class="faq-group" [attr.aria-labelledby]="'faq-group-' + $index">
+          <h3 [id]="'faq-group-' + $index">{{ group.title }}</h3>
+
+          <div class="faq-items">
+            @for (item of group.items; track item.question) {
+              <details class="faq-item">
+                <summary>{{ item.question }}</summary>
+                <p>{{ item.answer }}</p>
+              </details>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  </section>
+</div>

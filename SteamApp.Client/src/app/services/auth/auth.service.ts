@@ -1,5 +1,5 @@
 // auth.service.ts
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -21,6 +21,8 @@ export interface CurrentUser {
   phone: string | null;
   clientId: string | null;
   scope: string | null;
+  roles: string[];
+  isAdmin: boolean;
 }
 
 export interface UserProfile {
@@ -51,9 +53,9 @@ export interface DeleteUserRequest {
 }
 
 @Injectable({ providedIn: 'root' })
-export class AuthService {
+export class AuthService implements OnDestroy {
   private readonly tokenKey = 'access_token';
-  private accessToken: string | null = null;
+  private accessToken: string | null = this.readPersistedToken();
   private readonly endpoint = `${g.localHost.replace(/\/$/, '')}/api/Auth/`;
 
   private readonly loggedInSubject =
@@ -65,7 +67,15 @@ export class AuthService {
   readonly currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(private http: HttpClient) {
-    this.clearPersistedToken();
+    if (!this.hasValidToken()) {
+      this.clearSessionToken();
+    }
+
+    window.addEventListener('storage', this.handleStorageEvent);
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('storage', this.handleStorageEvent);
   }
 
   login(emailOrUserName: string, password: string) {
@@ -166,9 +176,25 @@ export class AuthService {
 
   private storeSession(token: string): void {
     this.accessToken = token;
-    this.clearPersistedToken();
+    this.persistToken(token);
     this.setSessionState(true);
   }
+
+  private readonly handleStorageEvent = (event: StorageEvent): void => {
+    if (event.key !== this.tokenKey && event.key !== null) {
+      return;
+    }
+
+    this.accessToken = event.newValue;
+
+    if (this.hasValidToken()) {
+      this.setSessionState(true);
+      return;
+    }
+
+    this.accessToken = null;
+    this.setSessionState(false);
+  };
 
   private setSessionState(isLoggedIn: boolean): void {
     if (this.loggedInSubject.value !== isLoggedIn) {
@@ -245,6 +271,12 @@ export class AuthService {
     );
     const clientId = this.readStringClaim(payload, 'client_id');
     const scope = this.readStringClaim(payload, 'scope');
+    const roles = this.readStringArrayClaim(
+      payload,
+      'role',
+      'roles',
+      'http://schemas.microsoft.com/ws/2008/06/identity/claims/role',
+    );
 
     return {
       id,
@@ -262,10 +294,15 @@ export class AuthService {
       phone,
       clientId,
       scope,
+      roles,
+      isAdmin: this.hasRole(roles, 'Admin'),
     };
   }
 
   private publishCurrentUserFromProfile(profile: UserProfile): void {
+    const currentUser = this.currentUserSubject.value;
+    const roles = currentUser?.roles ?? [];
+
     this.currentUserSubject.next({
       id: profile.id,
       displayName: profile.displayName
@@ -280,7 +317,9 @@ export class AuthService {
       email: profile.email,
       phone: profile.phone,
       clientId: null,
-      scope: this.currentUserSubject.value?.scope ?? 'user',
+      scope: currentUser?.scope ?? 'user',
+      roles,
+      isAdmin: this.hasRole(roles, 'Admin'),
     });
   }
 
@@ -308,6 +347,39 @@ export class AuthService {
     return null;
   }
 
+  private readStringArrayClaim(
+    payload: Record<string, unknown>,
+    ...claimNames: string[]
+  ): string[] {
+    const values: string[] = [];
+
+    for (const claimName of claimNames) {
+      const value = payload[claimName];
+
+      if (typeof value === 'string') {
+        values.push(value);
+        continue;
+      }
+
+      if (Array.isArray(value)) {
+        values.push(
+          ...value.filter((item): item is string => typeof item === 'string'),
+        );
+      }
+    }
+
+    return values
+      .map(value => value.trim())
+      .filter((value, index, all) =>
+        !!value &&
+        all.findIndex(item => item.toLowerCase() === value.toLowerCase()) === index,
+      );
+  }
+
+  private hasRole(roles: readonly string[], role: string): boolean {
+    return roles.some(value => value.toLowerCase() === role.toLowerCase());
+  }
+
   private decodeBase64Url(value: string): string {
     const base64 = value
       .replace(/-/g, '+')
@@ -322,8 +394,29 @@ export class AuthService {
     this.clearPersistedToken();
   }
 
+  private persistToken(token: string): void {
+    try {
+      localStorage.setItem(this.tokenKey, token);
+      sessionStorage.removeItem(this.tokenKey);
+    } catch {
+      // If browser storage is unavailable, keep the current tab session in memory.
+    }
+  }
+
+  private readPersistedToken(): string | null {
+    try {
+      return localStorage.getItem(this.tokenKey);
+    } catch {
+      return null;
+    }
+  }
+
   private clearPersistedToken(): void {
-    localStorage.removeItem(this.tokenKey);
-    sessionStorage.removeItem(this.tokenKey);
+    try {
+      localStorage.removeItem(this.tokenKey);
+      sessionStorage.removeItem(this.tokenKey);
+    } catch {
+      // Storage may be unavailable in restricted browser contexts.
+    }
   }
 }

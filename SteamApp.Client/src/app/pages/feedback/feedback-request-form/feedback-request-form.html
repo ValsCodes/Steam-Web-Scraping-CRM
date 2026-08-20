@@ -1,0 +1,125 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form app-form feedback-form">
+  <div class="app-form__header">
+    <span class="app-form__eyebrow">Feedback</span>
+    <h2 class="app-form__title">{{ isEditMode ? 'Edit Feedback Request' : 'Create Feedback Request' }}</h2>
+    <p class="app-form__description">
+      Capture a request with enough detail to track it through Active, Processed, and Closed states.
+    </p>
+    @if (currentRequest?.referenceId; as referenceId) {
+      <p class="feedback-form__reference">Ticket {{ referenceId }}</p>
+    }
+  </div>
+
+  <div class="app-form__grid">
+    <div class="form-group">
+      <label for="feedback-request-type">Type *</label>
+      <select id="feedback-request-type" name="type" formControlName="type" class="px-2 py-1">
+        @for (option of typeOptions; track option.value) {
+          <option [ngValue]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="feedback-request-status">Status *</label>
+      <select id="feedback-request-status" name="status" formControlName="status" class="px-2 py-1">
+        @for (option of statusOptions; track option.value) {
+          <option [ngValue]="option.value">{{ option.label }}</option>
+        }
+      </select>
+      @if (!isEditMode) {
+        <p class="feedback-form__hint">New requests start as Active.</p>
+      }
+    </div>
+
+    <div class="form-group form-group--full">
+      <label for="feedback-request-title">Title *</label>
+      <input
+        id="feedback-request-title"
+        name="title"
+        formControlName="title"
+        class="px-2 py-1"
+        maxlength="140"
+        placeholder="Short summary" />
+      @if (form.controls.title.touched && form.controls.title.invalid) {
+        <div class="error">Title is required and must be 140 characters or fewer.</div>
+      }
+    </div>
+
+    <div class="form-group form-group--full">
+      <label for="feedback-request-area">Area</label>
+      <input
+        id="feedback-request-area"
+        name="area"
+        formControlName="area"
+        class="px-2 py-1"
+        maxlength="120"
+        placeholder="Catalog, exports, login, scraper..." />
+    </div>
+
+    <div class="form-group form-group--full">
+      <label for="feedback-request-description">Description *</label>
+      <textarea
+        id="feedback-request-description"
+        name="description"
+        formControlName="description"
+        class="px-2 py-1"
+        rows="8"
+        maxlength="4000"
+        placeholder="What happened, what did you expect, and any useful details."></textarea>
+      @if (form.controls.description.touched && form.controls.description.invalid) {
+        <div class="error">Description is required and must be 4000 characters or fewer.</div>
+      }
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" [disabled]="form.invalid || isSubmitting" [class.busy-cursor]="isSubmitting">
+      {{ isSubmitting ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save changes' : 'Create request') }}
+    </button>
+
+    <button type="button" class="form-back-button" (click)="cancel()">
+      Back
+    </button>
+  </div>
+
+  @if (isEditMode) {
+    <section class="feedback-history" aria-labelledby="feedback-history-title">
+      <div class="feedback-history__header">
+        <h3 id="feedback-history-title">Ticket History</h3>
+        @if (isHistoryLoading) {
+          <span role="status">Loading...</span>
+        }
+      </div>
+
+      @if (!isHistoryLoading && history.length === 0) {
+        <p class="feedback-history__empty">No ticket history has been recorded yet.</p>
+      }
+
+      @for (entry of history; track entry.id) {
+        <article class="feedback-history__entry">
+          <div class="feedback-history__entry-header">
+            <strong>{{ historyActionLabel(entry.action) }}</strong>
+            <time [attr.datetime]="entry.createdAtUtc">{{ entry.createdAtUtc | date:'medium' }}</time>
+          </div>
+
+          <div class="feedback-history__changes">
+            @for (change of historyFieldChanges(entry); track change.field) {
+              <div class="feedback-history__change">
+                <span class="feedback-history__field">{{ change.label }}</span>
+                <div>
+                  <span class="feedback-history__value-label">Previous</span>
+                  <p>{{ change.previousValue }}</p>
+                </div>
+                <div>
+                  <span class="feedback-history__value-label">New</span>
+                  <p>{{ change.newValue }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        </article>
+      }
+    </section>
+  }
+</form>

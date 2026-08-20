@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
 using SteamApp.Infrastructure.Context;
@@ -70,6 +72,12 @@ public static class TestDb
     public static MemoryCache CreateMemoryCache()
     {
         return new MemoryCache(new MemoryCacheOptions());
+    }
+
+    public static MemoryDistributedCache CreateDistributedCache()
+    {
+        return new MemoryDistributedCache(
+            Options.Create(new MemoryDistributedCacheOptions()));
     }
 
     public static void SeedBaseline(ApplicationDbContext db)
@@ -209,6 +217,34 @@ public static class TestDb
                 Url = "https://steam.example/watch/2",
                 RegistrationDate = new DateOnly(2026, 2, 1),
                 IsActive = false,
+                UserId = TestUserId
+            });
+
+        db.FeedbackRequests.AddRange(
+            new FeedbackRequest
+            {
+                Id = 1,
+                Type = FeedbackRequestTypeEnum.Feedback,
+                Title = "Improve filters",
+                Description = "Please make the search filters easier to scan.",
+                Area = "Catalog",
+                Status = FeedbackRequestStatusEnum.Active,
+                CreatedAtUtc = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc),
+                UpdatedAtUtc = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc),
+                StatusChangedAtUtc = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc),
+                UserId = TestUserId
+            },
+            new FeedbackRequest
+            {
+                Id = 2,
+                Type = FeedbackRequestTypeEnum.Bug,
+                Title = "Export bug",
+                Description = "The export button should keep the current filters.",
+                Area = "Exports",
+                Status = FeedbackRequestStatusEnum.Processed,
+                CreatedAtUtc = new DateTime(2026, 1, 2, 10, 0, 0, DateTimeKind.Utc),
+                UpdatedAtUtc = new DateTime(2026, 1, 2, 10, 0, 0, DateTimeKind.Utc),
+                StatusChangedAtUtc = new DateTime(2026, 1, 2, 10, 0, 0, DateTimeKind.Utc),
                 UserId = TestUserId
             });
 

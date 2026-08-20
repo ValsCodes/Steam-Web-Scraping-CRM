@@ -1,0 +1,4 @@
+interface:
+  display_name: "Graphify"
+  short_description: "Query the SteamApp persistent knowledge graph"
+  default_prompt: "Use $graphify to explore SteamApp architecture with its persistent knowledge graph."

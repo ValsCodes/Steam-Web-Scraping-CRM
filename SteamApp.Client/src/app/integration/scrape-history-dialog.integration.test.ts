@@ -19,6 +19,7 @@ describe('ScrapeHistoryDialogComponent integration tests', () => {
       resultCount: 0,
       date: new Date('2026-05-16T10:00:00Z').toISOString(),
       isHaveError: true,
+      status: 'Failed',
     },
   ];
 
@@ -28,6 +29,7 @@ describe('ScrapeHistoryDialogComponent integration tests', () => {
     getScrapeHistory: jest.Mock;
     getScrapeHistoryDetail: jest.Mock;
     rerunScrapeHistory: jest.Mock;
+    rerunScrapeHistoryAsync: jest.Mock;
   };
   let dialog: {
     open: jest.Mock;
@@ -51,6 +53,14 @@ describe('ScrapeHistoryDialogComponent integration tests', () => {
         of({
           history: { ...history[0], isHaveError: false, resultCount: 1 },
           results: [{ name: 'Alpha', price: 1, imageUrl: '', quantity: 1, pixelName: '', linkUrl: '', pageUrl: '', redValue: null, greenValue: null, blueValue: null, isPainted: false }],
+        }),
+      ),
+      rerunScrapeHistoryAsync: jest.fn(() =>
+        of({
+          historyId: 8,
+          history: { ...history[0], id: 8, isHaveError: false, status: 'Queued' },
+          status: 'Queued',
+          correlationId: 'rerun',
         }),
       ),
     };
@@ -78,7 +88,6 @@ describe('ScrapeHistoryDialogComponent integration tests', () => {
   function initializeDialog(): void {
     fixture.detectChanges();
     tick();
-    fixture.detectChanges();
   }
 
   it('renders historical rows with action buttons', fakeAsync(() => {
@@ -109,9 +118,9 @@ describe('ScrapeHistoryDialogComponent integration tests', () => {
 
     component.rerun(history[0]);
 
-    expect(steamService.rerunScrapeHistory).toHaveBeenCalledWith(7);
+    expect(steamService.rerunScrapeHistoryAsync).toHaveBeenCalledWith(7);
     expect(dialogRef.close).toHaveBeenCalledWith(expect.objectContaining({
-      results: expect.any(Array),
+      historyId: 8,
     }));
   }));
 });

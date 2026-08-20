@@ -24,6 +24,12 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Tag> Tags { get; set; }
     public DbSet<ProductTags> ProductTags { get; set; }
     public DbSet<AutomatedScrapeHistory> AutomatedScrapeHistories { get; set; }
+    public DbSet<ManualCheckPreset> ManualCheckPresets { get; set; }
+    public DbSet<ManualCheckCriterion> ManualCheckCriteria { get; set; }
+    public DbSet<ManualCheckConditionOperator> ManualCheckConditionOperators { get; set; }
+    public DbSet<ManualCheckRun> ManualCheckRuns { get; set; }
+    public DbSet<FeedbackRequest> FeedbackRequests { get; set; }
+    public DbSet<FeedbackRequestHistory> FeedbackRequestHistories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,6 +46,93 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   .OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<WishList>(ConfigureUserOwnedEntity);
+        modelBuilder.Entity<FeedbackRequest>(entity =>
+        {
+            ConfigureUserOwnedEntity(entity);
+
+            entity.Property(x => x.Type)
+                  .HasColumnName("type");
+
+            entity.Property(x => x.Title)
+                  .HasMaxLength(FeedbackRequest.TitleMaxLength)
+                  .HasColumnName("title");
+
+            entity.Property(x => x.Description)
+                  .HasMaxLength(FeedbackRequest.DescriptionMaxLength)
+                  .HasColumnName("description");
+
+            entity.Property(x => x.Area)
+                  .HasMaxLength(FeedbackRequest.AreaMaxLength)
+                  .HasColumnName("area");
+
+            entity.Property(x => x.Status)
+                  .HasColumnName("status");
+
+            entity.Property(x => x.CreatedAtUtc)
+                  .HasColumnName("created_at_utc");
+
+            entity.Property(x => x.UpdatedAtUtc)
+                  .HasColumnName("updated_at_utc");
+
+            entity.Property(x => x.StatusChangedAtUtc)
+                  .HasColumnName("status_changed_at_utc");
+
+            entity.HasIndex(x => new { x.UserId, x.Status });
+            entity.HasIndex(x => new { x.UserId, x.CreatedAtUtc });
+        });
+        modelBuilder.Entity<FeedbackRequestHistory>(entity =>
+        {
+            ConfigureUserOwnedEntity(entity);
+
+            entity.Property(x => x.Action)
+                  .HasColumnName("action");
+
+            entity.Property(x => x.CreatedAtUtc)
+                  .HasColumnName("created_at_utc");
+
+            entity.Property(x => x.PreviousType)
+                  .HasColumnName("previous_type");
+
+            entity.Property(x => x.NewType)
+                  .HasColumnName("new_type");
+
+            entity.Property(x => x.PreviousTitle)
+                  .HasMaxLength(FeedbackRequest.TitleMaxLength)
+                  .HasColumnName("previous_title");
+
+            entity.Property(x => x.NewTitle)
+                  .HasMaxLength(FeedbackRequest.TitleMaxLength)
+                  .HasColumnName("new_title");
+
+            entity.Property(x => x.PreviousDescription)
+                  .HasMaxLength(FeedbackRequest.DescriptionMaxLength)
+                  .HasColumnName("previous_description");
+
+            entity.Property(x => x.NewDescription)
+                  .HasMaxLength(FeedbackRequest.DescriptionMaxLength)
+                  .HasColumnName("new_description");
+
+            entity.Property(x => x.PreviousArea)
+                  .HasMaxLength(FeedbackRequest.AreaMaxLength)
+                  .HasColumnName("previous_area");
+
+            entity.Property(x => x.NewArea)
+                  .HasMaxLength(FeedbackRequest.AreaMaxLength)
+                  .HasColumnName("new_area");
+
+            entity.Property(x => x.PreviousStatus)
+                  .HasColumnName("previous_status");
+
+            entity.Property(x => x.NewStatus)
+                  .HasColumnName("new_status");
+
+            entity.HasOne(x => x.FeedbackRequest)
+                  .WithMany()
+                  .HasForeignKey(x => x.FeedbackRequestId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(x => new { x.UserId, x.FeedbackRequestId, x.CreatedAtUtc });
+        });
         modelBuilder.Entity<GameAddOn>();
         modelBuilder.Entity<ScrapingMode>();
         modelBuilder.Entity<AutomatedScrapeHistory>(entity =>
@@ -65,7 +158,125 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(x => x.ErrorText)
                   .HasColumnName("error_text");
 
+            entity.Property(x => x.Status)
+                  .HasColumnName("status");
+
+            entity.Property(x => x.StartedAtUtc)
+                  .HasColumnName("started_at_utc");
+
+            entity.Property(x => x.CompletedAtUtc)
+                  .HasColumnName("completed_at_utc");
+
+            entity.Property(x => x.CorrelationId)
+                  .HasMaxLength(64)
+                  .HasColumnName("correlation_id");
+
             entity.HasIndex(x => new { x.UserId, x.Date });
+            entity.HasIndex(x => new { x.UserId, x.Status });
+            entity.HasIndex(x => x.GameUrlId);
+        });
+        modelBuilder.Entity<ManualCheckPreset>(entity =>
+        {
+            entity.Property(x => x.Name)
+                  .HasMaxLength(ManualCheckPreset.NameMaxLength)
+                  .HasColumnName("name");
+
+            entity.Property(x => x.ListingLimit)
+                  .HasDefaultValue(ManualCheckPreset.DefaultListingLimit)
+                  .HasColumnName("listing_limit");
+
+            entity.Property(x => x.CooldownMinutes)
+                  .HasColumnName("cooldown_minutes");
+
+            entity.Property(x => x.CooldownSeconds)
+                  .HasColumnName("cooldown_seconds");
+
+            entity.HasOne(x => x.Game)
+                  .WithMany()
+                  .HasForeignKey(x => x.GameId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => new { x.GameId, x.Name })
+                  .IsUnique();
+        });
+        modelBuilder.Entity<ManualCheckCriterion>(entity =>
+        {
+            entity.Property(x => x.NameContains)
+                  .HasMaxLength(ManualCheckCriterion.TermMaxLength)
+                  .HasColumnName("name_contains");
+
+            entity.Property(x => x.ValueContains)
+                  .HasMaxLength(ManualCheckCriterion.TermMaxLength)
+                  .HasColumnName("value_contains");
+
+            entity.HasOne(x => x.ManualCheckPreset)
+                  .WithMany(x => x.Criteria)
+                  .HasForeignKey(x => x.ManualCheckPresetId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.ConditionOperator)
+                  .WithMany(x => x.Criteria)
+                  .HasForeignKey(x => x.ConditionOperatorId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => new { x.ManualCheckPresetId, x.SortOrder })
+                  .IsUnique();
+        });
+        modelBuilder.Entity<ManualCheckConditionOperator>(entity =>
+        {
+            entity.Property(x => x.Name)
+                  .HasMaxLength(ManualCheckConditionOperator.NameMaxLength)
+                  .HasColumnName("name");
+
+            entity.HasData(
+                new ManualCheckConditionOperator { Id = (long)ManualCheckConditionOperatorEnum.And, Name = "AND" },
+                new ManualCheckConditionOperator { Id = (long)ManualCheckConditionOperatorEnum.Or, Name = "OR" },
+                new ManualCheckConditionOperator { Id = (long)ManualCheckConditionOperatorEnum.AndNot, Name = "AND NOT" },
+                new ManualCheckConditionOperator { Id = (long)ManualCheckConditionOperatorEnum.OrNot, Name = "OR NOT" },
+                new ManualCheckConditionOperator { Id = (long)ManualCheckConditionOperatorEnum.Xor, Name = "XOR" },
+                new ManualCheckConditionOperator { Id = (long)ManualCheckConditionOperatorEnum.Nand, Name = "NAND" },
+                new ManualCheckConditionOperator { Id = (long)ManualCheckConditionOperatorEnum.Nor, Name = "NOR" });
+        });
+        modelBuilder.Entity<ManualCheckRun>(entity =>
+        {
+            entity.Property(x => x.PresetName)
+                  .HasMaxLength(ManualCheckPreset.NameMaxLength)
+                  .HasColumnName("preset_name");
+
+            entity.Property(x => x.SetupJson)
+                  .HasColumnName("setup_json");
+
+            entity.Property(x => x.ResultsJson)
+                  .HasColumnName("results_json");
+
+            entity.Property(x => x.Status)
+                  .HasColumnName("status");
+
+            entity.Property(x => x.ErrorText)
+                  .HasColumnName("error_text");
+
+            entity.Property(x => x.CorrelationId)
+                  .HasMaxLength(64)
+                  .HasColumnName("correlation_id");
+
+            entity.HasOne(x => x.ManualCheckPreset)
+                  .WithMany(x => x.Runs)
+                  .HasForeignKey(x => x.ManualCheckPresetId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(x => x.Game)
+                  .WithMany()
+                  .HasForeignKey(x => x.GameId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.GameUrl)
+                  .WithMany()
+                  .HasForeignKey(x => x.GameUrlId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.Date);
+            entity.HasIndex(x => x.Status);
+            entity.HasIndex(x => x.GameId);
             entity.HasIndex(x => x.GameUrlId);
         });
         modelBuilder.Entity<WatchList>(entity =>

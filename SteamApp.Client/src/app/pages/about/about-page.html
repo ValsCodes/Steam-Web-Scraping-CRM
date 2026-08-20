@@ -1,0 +1,86 @@
+<div class="about-page">
+  <section class="about-hero">
+    <div class="about-hero__content">
+      <span class="about-hero__eyebrow">About Steam Web Scraping CRM</span>
+      <h1>Steam market operations, organized from source setup to monitoring.</h1>
+      <p>
+        Steam Web Scraping CRM helps teams configure Steam market sources, manage
+        catalog metadata, run scraping workflows, and monitor priority market targets
+        from one focused workspace.
+      </p>
+
+      <div class="about-hero__actions" aria-label="About page actions">
+        <a class="about-button about-button--primary" routerLink="/pricing">View Pricing</a>
+        <a class="about-button about-button--secondary" routerLink="/login">Sign In</a>
+      </div>
+    </div>
+
+    <aside class="about-hero__summary" aria-label="Platform summary">
+      <strong>Built for repeatable market intelligence</strong>
+      <p>
+        The platform connects catalog setup, scraping modes, wish and watch tracking,
+        exports, and background checks so operators can move faster with cleaner data.
+      </p>
+    </aside>
+  </section>
+
+  <section class="about-section about-section--mission">
+    <span class="about-section__eyebrow">Mission</span>
+    <h2>Reduce the manual work behind Steam market monitoring.</h2>
+    <p>
+      The CRM exists to turn scattered Steam market checks into a repeatable operating
+      flow. Instead of rebuilding context every time, teams can define sources, enrich
+      them with catalog data, run the right scraping workflow, and keep high-value
+      targets visible over time.
+    </p>
+  </section>
+
+  <section class="about-section" aria-labelledby="about-manages-heading">
+    <div class="about-section__heading">
+      <span class="about-section__eyebrow">What It Manages</span>
+      <h2 id="about-manages-heading">The core objects behind reliable scraping work</h2>
+    </div>
+
+    <div class="about-grid about-grid--three">
+      @for (area of managementAreas; track area.title) {
+        <article class="about-card">
+          <h3>{{ area.title }}</h3>
+          <p>{{ area.description }}</p>
+        </article>
+      }
+    </div>
+  </section>
+
+  <section class="about-section" aria-labelledby="about-audience-heading">
+    <div class="about-section__heading">
+      <span class="about-section__eyebrow">Who It Helps</span>
+      <h2 id="about-audience-heading">Designed for the people keeping market data useful</h2>
+    </div>
+
+    <div class="about-grid about-grid--three">
+      @for (audience of audiences; track audience.role) {
+        <article class="about-card about-card--accent">
+          <h3>{{ audience.role }}</h3>
+          <p>{{ audience.summary }}</p>
+        </article>
+      }
+    </div>
+  </section>
+
+  <section class="about-section about-section--split" aria-labelledby="about-capabilities-heading">
+    <div>
+      <span class="about-section__eyebrow">Capabilities</span>
+      <h2 id="about-capabilities-heading">A practical workflow for catalog, scraping, and monitoring</h2>
+      <p>
+        The public product surface stays concise, but the app itself is built around
+        day-to-day operational work: setup, execution, review, export, and refinement.
+      </p>
+    </div>
+
+    <ul class="about-checklist">
+      @for (capability of capabilities; track capability) {
+        <li>{{ capability }}</li>
+      }
+    </ul>
+  </section>
+</div>

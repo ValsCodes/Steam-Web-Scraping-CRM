@@ -1,4 +1,5 @@
 export * from './auth/auth.service';
+export * from './admin-user/admin-user.service';
 export * from './product/product.service';
 export * from './game/game.service';
 export * from './game-url/game-url.service';
@@ -13,3 +14,5 @@ export * from './game-url-pixel/game-url-pixel.service';
 export * from './scraping-mode/scraping-mode.service';
 export * from './seo/seo-meta.service';
 export * from './external-link-disclosure.service';
+export * from './feedback-request/feedback-request.service';
+export * from './manual-check/manual-check.service';

@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
@@ -26,14 +26,63 @@ describe('AuthService unit tests', () => {
 
   afterEach(() => {
     http.verify();
+    service.ngOnDestroy();
     localStorage.clear();
     sessionStorage.clear();
   });
 
-  it('clears persisted tokens when the service is created', () => {
+  it('clears invalid persisted tokens when the service is created', () => {
     expect(localStorage.getItem('access_token')).toBeNull();
     expect(sessionStorage.getItem('access_token')).toBeNull();
     expect(service.hasToken()).toBeFalse();
+  });
+
+  it('hydrates a valid persisted token for new tabs', () => {
+    const token = createJwt({
+      sub: 'user-1',
+      name: 'Val',
+      email: 'val@example.test',
+      scope: 'user',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    localStorage.setItem('access_token', token);
+
+    const hydratedService = new AuthService(TestBed.inject(HttpClient));
+
+    expect(hydratedService.getToken()).toBe(token);
+    expect(hydratedService.isLoggedIn()).toBeTrue();
+    expect(hydratedService.getCurrentUser()?.displayName).toBe('Val');
+
+    hydratedService.ngOnDestroy();
+  });
+
+  it('syncs login and logout changes from other tabs', () => {
+    const token = createJwt({
+      sub: 'user-2',
+      name: 'Other Tab User',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'access_token',
+      newValue: token,
+      storageArea: localStorage,
+    }));
+
+    expect(service.getToken()).toBe(token);
+    expect(service.isLoggedIn()).toBeTrue();
+    expect(service.getCurrentUser()?.displayName).toBe('Other Tab User');
+
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'access_token',
+      newValue: null,
+      storageArea: localStorage,
+    }));
+
+    expect(service.getToken()).toBeNull();
+    expect(service.isLoggedIn()).toBeFalse();
+    expect(service.getCurrentUser()).toBeNull();
   });
 
   it('stores the login token in memory and exposes the current user claims', () => {
@@ -47,7 +96,7 @@ describe('AuthService unit tests', () => {
 
     service.login('val@example.test', 'Password1').subscribe();
 
-    const request = http.expectOne('https://localhost:7273/api/Auth/login');
+    const request = http.expectOne('https://localhost:7443/api/Auth/login');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({
       emailOrUserName: 'val@example.test',
@@ -57,6 +106,8 @@ describe('AuthService unit tests', () => {
     request.flush({ token });
 
     expect(service.getToken()).toBe(token);
+    expect(localStorage.getItem('access_token')).toBe(token);
+    expect(sessionStorage.getItem('access_token')).toBeNull();
     expect(service.isLoggedIn()).toBeTrue();
     expect(service.getCurrentUser()).toEqual({
       id: 'user-1',
@@ -68,7 +119,25 @@ describe('AuthService unit tests', () => {
       phone: null,
       clientId: null,
       scope: 'steam.read',
+      roles: [],
+      isAdmin: false,
     });
+  });
+
+  it('parses single and multiple role claims from the current token', () => {
+    const token = createJwt({
+      sub: 'admin-1',
+      name: 'Admin User',
+      role: ['User', 'Admin'],
+      'http://schemas.microsoft.com/ws/2008/06/identity/claims/role': 'Auditor',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    service.login('admin@example.test', 'Password1').subscribe();
+    http.expectOne('https://localhost:7443/api/Auth/login').flush({ token });
+
+    expect(service.getCurrentUser()?.roles).toEqual(['User', 'Admin', 'Auditor']);
+    expect(service.getCurrentUser()?.isAdmin).toBeTrue();
   });
 
   it('stores the registration token and uses username claims as the display name', () => {
@@ -86,7 +155,7 @@ describe('AuthService unit tests', () => {
       '+3595550100',
     ).subscribe();
 
-    const request = http.expectOne('https://localhost:7273/api/Auth/register');
+    const request = http.expectOne('https://localhost:7443/api/Auth/register');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({
       firstName: 'Steam',
@@ -108,7 +177,7 @@ describe('AuthService unit tests', () => {
       expect(profile.displayName).toBe('Val Tester');
     });
 
-    const request = http.expectOne('https://localhost:7273/api/Auth/profile');
+    const request = http.expectOne('https://localhost:7443/api/Auth/profile');
     expect(request.request.method).toBe('GET');
 
     request.flush({
@@ -131,6 +200,8 @@ describe('AuthService unit tests', () => {
       phone: '+3595550100',
       clientId: null,
       scope: 'user',
+      roles: [],
+      isAdmin: false,
     });
   });
 
@@ -143,7 +214,7 @@ describe('AuthService unit tests', () => {
       phone: '+3595550100',
     }).subscribe();
 
-    const profileRequest = http.expectOne('https://localhost:7273/api/Auth/profile');
+    const profileRequest = http.expectOne('https://localhost:7443/api/Auth/profile');
     expect(profileRequest.request.method).toBe('PUT');
     expect(profileRequest.request.body).toEqual({
       firstName: 'Val',
@@ -167,7 +238,7 @@ describe('AuthService unit tests', () => {
       newPassword: 'Password2',
     }).subscribe();
 
-    const passwordRequest = http.expectOne('https://localhost:7273/api/Auth/profile/password');
+    const passwordRequest = http.expectOne('https://localhost:7443/api/Auth/profile/password');
     expect(passwordRequest.request.method).toBe('PUT');
     expect(passwordRequest.request.body).toEqual({
       currentPassword: 'Password1',
@@ -183,11 +254,11 @@ describe('AuthService unit tests', () => {
     });
 
     service.login('val@example.test', 'Password1').subscribe();
-    http.expectOne('https://localhost:7273/api/Auth/login').flush({ token });
+    http.expectOne('https://localhost:7443/api/Auth/login').flush({ token });
 
     service.deleteProfile({ password: 'Password1' }).subscribe();
 
-    const request = http.expectOne('https://localhost:7273/api/Auth/profile');
+    const request = http.expectOne('https://localhost:7443/api/Auth/profile');
     expect(request.request.method).toBe('DELETE');
     expect(request.request.body).toEqual({ password: 'Password1' });
 
@@ -204,7 +275,7 @@ describe('AuthService unit tests', () => {
     });
 
     service.login('expired@example.test', 'Password1').subscribe();
-    http.expectOne('https://localhost:7273/api/Auth/login').flush({ token });
+    http.expectOne('https://localhost:7443/api/Auth/login').flush({ token });
 
     expect(service.hasToken()).toBeTrue();
     expect(service.isLoggedIn()).toBeFalse();
@@ -219,12 +290,14 @@ describe('AuthService unit tests', () => {
     });
 
     service.login('val@example.test', 'Password1').subscribe();
-    http.expectOne('https://localhost:7273/api/Auth/login').flush({ token });
+    http.expectOne('https://localhost:7443/api/Auth/login').flush({ token });
 
     service.logout();
 
     expect(service.getToken()).toBeNull();
+    expect(localStorage.getItem('access_token')).toBeNull();
     expect(service.isLoggedIn()).toBeFalse();
     expect(service.getCurrentUser()).toBeNull();
   });
 });
+

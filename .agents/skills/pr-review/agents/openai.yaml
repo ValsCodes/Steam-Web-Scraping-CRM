@@ -1,0 +1,4 @@
+interface:
+  display_name: "PR Review"
+  short_description: "Run SteamApp pre-PR validation"
+  default_prompt: "Use $pr-review to review the current SteamApp changes before a pull request."

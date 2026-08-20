@@ -1,9 +1,10 @@
-using System.Net;
+using System.Net.Sockets;
+using MailKit.Security;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using MimeKit;
 using SteamApp.Infrastructure.Services;
 using SteamApp.Interfaces.Services;
-using SteamApp.Tests.TestSupport;
 
 namespace SteamApp.Tests.Services;
 
@@ -11,65 +12,41 @@ namespace SteamApp.Tests.Services;
 public sealed class EmailServiceTests
 {
     [Test]
-    public async Task SendAsync_BuildsMailtrapRequestWithBearerTokenAndMessageBody()
+    public async Task SendAsync_ConnectsWithStartTlsAuthenticatesAndBuildsMessage()
     {
-        string? body = null;
-        Uri? requestUri = null;
-        string? authScheme = null;
-        string? authParameter = null;
-        HttpMethod? method = null;
-
-        var handler = new HttpMessageHandlerStub((request, _) =>
-        {
-            requestUri = request.RequestUri;
-            method = request.Method;
-            authScheme = request.Headers.Authorization?.Scheme;
-            authParameter = request.Headers.Authorization?.Parameter;
-            body = request.Content?.ReadAsStringAsync().GetAwaiter().GetResult();
-            return new HttpResponseMessage(HttpStatusCode.OK);
-        });
-        var client = new HttpClient(handler)
-        {
-            BaseAddress = new Uri("https://sandbox.api.mailtrap.io/")
-        };
-        var service = new EmailService(
-            Options.Create(new EmailOptions
-            {
-                ApiToken = "secret-token",
-                SandboxID = "123"
-            }),
-            client);
+        var client = new FakeEmailSmtpClient();
+        var service = CreateService(new FakeEmailSmtpClientFactory(client));
 
         await service.SendAsync(new EmailMessage(
             "user@example.com",
             "Price reached",
             "The watched price dropped."));
 
+        var sentMessage = client.SentMessage!;
+        Assert.That(sentMessage.Body, Is.TypeOf<TextPart>());
+        var sentBody = (TextPart)sentMessage.Body!;
+
         Assert.Multiple(() =>
         {
-            Assert.That(method, Is.EqualTo(HttpMethod.Post));
-            Assert.That(requestUri?.ToString(), Is.EqualTo("https://sandbox.api.mailtrap.io/api/send/123"));
-            Assert.That(authScheme, Is.EqualTo("Bearer"));
-            Assert.That(authParameter, Is.EqualTo("secret-token"));
-            Assert.That(body, Does.Contain("user@example.com"));
-            Assert.That(body, Does.Contain("Price reached"));
-            Assert.That(body, Does.Contain("The watched price dropped."));
+            Assert.That(client.Host, Is.EqualTo("mail.example.com"));
+            Assert.That(client.Port, Is.EqualTo(587));
+            Assert.That(client.SecureSocketOptions, Is.EqualTo(SecureSocketOptions.StartTls));
+            Assert.That(client.UserName, Is.EqualTo("notifications@example.com"));
+            Assert.That(client.Password, Is.EqualTo("secret-password"));
+            Assert.That(client.Disconnected, Is.True);
+            Assert.That(client.Disposed, Is.True);
+            Assert.That(sentMessage.From.Mailboxes.Single().Address, Is.EqualTo("notifications@example.com"));
+            Assert.That(sentMessage.From.Mailboxes.Single().Name, Is.EqualTo("SteamApp"));
+            Assert.That(sentMessage.To.Mailboxes.Single().Address, Is.EqualTo("user@example.com"));
+            Assert.That(sentMessage.Subject, Is.EqualTo("Price reached"));
+            Assert.That(sentBody.Text, Is.EqualTo("The watched price dropped."));
         });
     }
 
     [Test]
     public void SendAsync_RethrowsCallerCancellation()
     {
-        var service = new EmailService(
-            Options.Create(new EmailOptions
-            {
-                ApiToken = "secret-token",
-                SandboxID = "123"
-            }),
-            new HttpClient(HttpMessageHandlerStub.Ok())
-            {
-                BaseAddress = new Uri("https://sandbox.api.mailtrap.io/")
-            });
+        var service = CreateService(new FakeEmailSmtpClientFactory(new FakeEmailSmtpClient()));
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -81,23 +58,14 @@ public sealed class EmailServiceTests
     }
 
     [Test]
-    public async Task SendAsync_RetriesTransientMailtrapFailures()
+    public async Task SendAsync_RetriesTransientSmtpFailures()
     {
-        var attempts = 0;
-
-        var handler = new HttpMessageHandlerStub((_, _) =>
+        var failingClient = new FakeEmailSmtpClient
         {
-            attempts++;
-            return new HttpResponseMessage(
-                attempts == 1
-                    ? HttpStatusCode.ServiceUnavailable
-                    : HttpStatusCode.OK);
-        });
-
-        var client = new HttpClient(handler)
-        {
-            BaseAddress = new Uri("https://sandbox.api.mailtrap.io/")
+            SendException = new SocketException((int)SocketError.TimedOut)
         };
+        var succeedingClient = new FakeEmailSmtpClient();
+        var factory = new FakeEmailSmtpClientFactory(failingClient, succeedingClient);
         var retryPolicy = new TransientRetryPolicyService(
             Options.Create(new TransientRetryPolicyOptions
             {
@@ -107,20 +75,157 @@ public sealed class EmailServiceTests
                 UseJitter = false
             }),
             NullLogger<TransientRetryPolicyService>.Instance);
-        var service = new EmailService(
-            Options.Create(new EmailOptions
-            {
-                ApiToken = "secret-token",
-                SandboxID = "123"
-            }),
-            client,
-            retryPolicy);
+        var service = CreateService(factory, retryPolicy);
 
         await service.SendAsync(new EmailMessage(
             "user@example.com",
             "Price reached",
             "The watched price dropped."));
 
-        Assert.That(attempts, Is.EqualTo(2));
+        Assert.Multiple(() =>
+        {
+            Assert.That(factory.CreateCalls, Is.EqualTo(2));
+            Assert.That(failingClient.SendAttempts, Is.EqualTo(1));
+            Assert.That(succeedingClient.SendAttempts, Is.EqualTo(1));
+            Assert.That(succeedingClient.SentMessage, Is.Not.Null);
+        });
+    }
+
+    [Test]
+    public async Task SendAsync_AllowsInvalidServerCertificateWhenConfigured()
+    {
+        var client = new FakeEmailSmtpClient();
+        var service = CreateService(
+            new FakeEmailSmtpClientFactory(client),
+            options: new EmailOptions
+            {
+                Host = "localhost",
+                Port = 587,
+                UserName = "notifications@steamapp.test",
+                Password = "secret-password",
+                FromAddress = "notifications@steamapp.test",
+                FromName = "SteamApp",
+                UseStartTls = true,
+                AllowInvalidCertificate = true
+            });
+
+        await service.SendAsync(new EmailMessage(
+            "user@example.com",
+            "Price reached",
+            "The watched price dropped."));
+
+        Assert.That(client.InvalidServerCertificateAllowed, Is.True);
+    }
+
+    private static EmailService CreateService(
+        IEmailSmtpClientFactory factory,
+        ITransientRetryPolicyService? retryPolicy = null,
+        EmailOptions? options = null)
+    {
+        return new EmailService(
+            Options.Create(options ?? new EmailOptions
+            {
+                Host = "mail.example.com",
+                Port = 587,
+                UserName = "notifications@example.com",
+                Password = "secret-password",
+                FromAddress = "notifications@example.com",
+                FromName = "SteamApp",
+                UseStartTls = true
+            }),
+            factory,
+            retryPolicy ?? new TransientRetryPolicyService(
+                Options.Create(new TransientRetryPolicyOptions()),
+                NullLogger<TransientRetryPolicyService>.Instance),
+            NullLogger<EmailService>.Instance);
+    }
+
+    private sealed class FakeEmailSmtpClientFactory(
+        params FakeEmailSmtpClient[] clients) : IEmailSmtpClientFactory
+    {
+        private readonly Queue<FakeEmailSmtpClient> clients = new(clients);
+
+        public int CreateCalls { get; private set; }
+
+        public IEmailSmtpClient Create()
+        {
+            CreateCalls++;
+            return clients.Dequeue();
+        }
+    }
+
+    private sealed class FakeEmailSmtpClient : IEmailSmtpClient
+    {
+        public string? Host { get; private set; }
+        public int Port { get; private set; }
+        public SecureSocketOptions SecureSocketOptions { get; private set; }
+        public string? UserName { get; private set; }
+        public string? Password { get; private set; }
+        public MimeMessage? SentMessage { get; private set; }
+        public Exception? SendException { get; init; }
+        public int SendAttempts { get; private set; }
+        public bool Disconnected { get; private set; }
+        public bool Disposed { get; private set; }
+        public bool InvalidServerCertificateAllowed { get; private set; }
+
+        public void AllowInvalidServerCertificate()
+        {
+            InvalidServerCertificateAllowed = true;
+        }
+
+        public Task ConnectAsync(
+            string host,
+            int port,
+            SecureSocketOptions options,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Host = host;
+            Port = port;
+            SecureSocketOptions = options;
+            return Task.CompletedTask;
+        }
+
+        public Task AuthenticateAsync(
+            string userName,
+            string password,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            UserName = userName;
+            Password = password;
+            return Task.CompletedTask;
+        }
+
+        public Task SendAsync(
+            MimeMessage message,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            SendAttempts++;
+
+            if (SendException is not null)
+            {
+                throw SendException;
+            }
+
+            SentMessage = message;
+            return Task.CompletedTask;
+        }
+
+        public Task DisconnectAsync(
+            bool quit,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Disconnected = quit;
+            return Task.CompletedTask;
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            Disposed = true;
+            return ValueTask.CompletedTask;
+        }
     }
 }

@@ -15,7 +15,18 @@ import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { startWith, map, finalize, Subject, takeUntil, Observable } from 'rxjs';
+import {
+  startWith,
+  map,
+  finalize,
+  Subject,
+  takeUntil,
+  Observable,
+  switchMap,
+  takeWhile,
+  timer,
+  tap,
+} from 'rxjs';
 import * as XLSX from 'xlsx';
 
 import { SteamService } from '../../services/steam/steam.service';
@@ -23,7 +34,9 @@ import { StopwatchComponent } from '../../components';
 import {
   Game,
   GameUrl,
-  ScrapeHistoryRerunResponse,
+  ScrapeHistoryDetail,
+  ScrapeJobAccepted,
+  ScrapeJobStatus,
   ScrapingMode as ScrapingModeLookup,
   ScrapingModeEnum,
 } from '../../models';
@@ -35,6 +48,7 @@ import {
   externalUrlWarning,
   getListingUrl,
   openableExternalUrl,
+  openableSteamUrl,
   safeExternalImageUrl,
 } from '../../common';
 import { ScrapeHistoryDialogComponent } from './scrape-history-dialog.component';
@@ -205,6 +219,7 @@ export class WebScraperComponent {
   readonly statusLabel = signal<string>('');
   readonly isLoading = signal<boolean>(false);
   readonly pageNumber = signal<number>(1);
+  readonly openInSteamMode = signal<boolean>(false);
 
   readonly canRun = computed(() => {
     return (
@@ -326,24 +341,197 @@ export class WebScraperComponent {
     this.isLoading.set(false);
   }
 
-  private getRequestForMode(mode: ScraperExecutionMode): Observable<Listing[]> {
+  private queueRequestForMode(mode: ScraperExecutionMode): Observable<ScrapeJobAccepted> {
     const gameUrlId = this.requireGameUrlId();
     const page = this.pageNumber();
 
     switch (mode) {
       case ScraperExecutionMode.WebScrape: {
-        return this.steamService.scrapePage(gameUrlId, page);
+        return this.steamService.queueScrapePage(gameUrlId, page);
       }
       case ScraperExecutionMode.PublicApi: {
-        return this.steamService.scrapeFromPublicApi(gameUrlId, page);
+        return this.steamService.queueScrapeFromPublicApi(gameUrlId, page);
       }
       case ScraperExecutionMode.PixelScrape: {
-        return this.steamService.scrapeForPixels(gameUrlId, page);
+        return this.steamService.queueScrapeForPixels(gameUrlId, page);
       }
       default: {
         throw new Error('Unsupported scraping mode.');
       }
     }
+  }
+
+  private pollScrapeJob(historyId: number): Observable<ScrapeHistoryDetail> {
+    return timer(0, 2000).pipe(
+      switchMap(() => this.steamService.getScrapeHistoryDetail(historyId)),
+      takeWhile((detail) => !this.isTerminalStatus(this.getStatus(detail)), true),
+    );
+  }
+
+  private applyScrapeJobDetail(
+    detail: ScrapeHistoryDetail,
+    successMessage: string,
+  ): void {
+    const status = this.getStatus(detail);
+
+    if (status === 'Succeeded') {
+      this.dataSource.data = this.parseListings(detail.resultsJson);
+      this.attachTableControls();
+      this.statusLabel.set(successMessage);
+      this.cdr.markForCheck();
+      return;
+    }
+
+    if (status === 'Failed') {
+      this.dataSource.data = [];
+      this.statusLabel.set(
+        detail.errorText ?? `Failed to run ${detail.scrapeType}.`,
+      );
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.statusLabel.set(`${detail.scrapeType} ${status.toLowerCase()}...`);
+    this.cdr.markForCheck();
+  }
+
+  private parseListings(resultsJson: string | null | undefined): Listing[] {
+    if (!resultsJson) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(resultsJson);
+      const rows = Array.isArray(parsed)
+        ? parsed
+        : this.isRecord(parsed) && Array.isArray(parsed['results'])
+          ? parsed['results']
+          : [];
+
+      return rows
+        .map((row) => this.normalizeListing(row))
+        .filter((row): row is Listing => row !== null);
+    } catch {
+      return [];
+    }
+  }
+
+  private normalizeListing(value: unknown): Listing | null {
+    if (!this.isRecord(value)) {
+      return null;
+    }
+
+    const isPainted = this.readBoolean(value, 'isPainted', 'IsPainted') ?? false;
+    const directPrice = this.readNumber(value, 'price', 'Price');
+    const sellPriceInCents = this.readNumber(value, 'sellPrice', 'SellPrice', 'sell_price');
+    const iconUrl = this.readString(value, 'iconUrl', 'IconUrl', 'icon_url')
+      ?? this.readNestedString(value, ['assetDescription', 'iconUrl'], ['AssetDescription', 'IconUrl'], ['asset_description', 'icon_url']);
+
+    return {
+      name: this.readString(value, 'name', 'Name', 'marketName', 'MarketName', 'market_name') ?? '',
+      price: directPrice ?? (sellPriceInCents !== null ? sellPriceInCents / 100 : 0),
+      imageUrl: this.readString(value, 'imageUrl', 'ImageUrl', 'appIcon', 'AppIcon', 'app_icon')
+        ?? (iconUrl ? `https://community.akamai.steamstatic.com/economy/image/${iconUrl}/62fx62f` : ''),
+      quantity: this.readNumber(value, 'quantity', 'Quantity', 'sellListings', 'SellListings', 'sell_listings') ?? 0,
+      pixelName: this.readString(value, 'pixelName', 'PixelName') ?? '',
+      linkUrl: this.readString(value, 'linkUrl', 'LinkUrl', 'listingUrl', 'ListingUrl') ?? '',
+      pageUrl: this.readString(value, 'pageUrl', 'PageUrl') ?? '',
+      redValue: isPainted ? this.readNumber(value, 'redValue', 'RedValue') : null,
+      greenValue: isPainted ? this.readNumber(value, 'greenValue', 'GreenValue') : null,
+      blueValue: isPainted ? this.readNumber(value, 'blueValue', 'BlueValue') : null,
+      isPainted,
+    };
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+  }
+
+  private readString(
+    source: Record<string, unknown>,
+    ...keys: string[]
+  ): string | null {
+    for (const key of keys) {
+      const value = source[key];
+      if (typeof value === 'string' && value.trim()) {
+        return value;
+      }
+    }
+
+    return null;
+  }
+
+  private readNumber(
+    source: Record<string, unknown>,
+    ...keys: string[]
+  ): number | null {
+    for (const key of keys) {
+      const value = source[key];
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+      }
+
+      if (typeof value === 'string' && value.trim()) {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) {
+          return parsed;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private readBoolean(
+    source: Record<string, unknown>,
+    ...keys: string[]
+  ): boolean | null {
+    for (const key of keys) {
+      const value = source[key];
+      if (typeof value === 'boolean') {
+        return value;
+      }
+    }
+
+    return null;
+  }
+
+  private readNestedString(
+    source: Record<string, unknown>,
+    ...paths: string[][]
+  ): string | null {
+    for (const path of paths) {
+      let current: unknown = source;
+
+      for (const segment of path) {
+        if (!this.isRecord(current)) {
+          current = null;
+          break;
+        }
+
+        current = current[segment];
+      }
+
+      if (typeof current === 'string' && current.trim()) {
+        return current;
+      }
+    }
+
+    return null;
+  }
+
+  private getStatus(history: { status?: ScrapeJobStatus | null; isHaveError?: boolean }): ScrapeJobStatus {
+    return history.status ?? (history.isHaveError ? 'Failed' : 'Succeeded');
+  }
+
+  private isTerminalStatus(status: ScrapeJobStatus): boolean {
+    return status === 'Succeeded' || status === 'Failed';
+  }
+
+  private getErrorMessage(err: any, fallback: string): string {
+    return typeof err?.error === 'string'
+      ? err.error
+      : err?.error?.message ?? err?.message ?? fallback;
   }
 
   runButtonClicked(): void {
@@ -367,23 +555,29 @@ export class WebScraperComponent {
 
     this.setLoading();
 
-    this.getRequestForMode(selectedMode.id)
+    this.queueRequestForMode(selectedMode.id)
       .pipe(
+        tap((response) => {
+          this.statusLabel.set(
+            `Queued ${selectedMode.name} on page ${this.pageNumber()}.`,
+          );
+          this.cdr.markForCheck();
+        }),
+        switchMap((response) => this.pollScrapeJob(response.historyId)),
         takeUntil(this.cancel$),
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.finishLoading()),
       )
       .subscribe({
-        next: (response: Listing[]) => {
-          this.dataSource.data = response ?? [];
-          this.attachTableControls();
-          this.statusLabel.set(
+        next: (detail) => {
+          this.applyScrapeJobDetail(
+            detail,
             `Successfully ran ${selectedMode.name} on page ${this.pageNumber()}.`,
           );
         },
         error: (err: any) => {
           this.statusLabel.set(
-            err?.error ?? err?.message ?? `Failed to run ${selectedMode.name}.`,
+            this.getErrorMessage(err, `Failed to run ${selectedMode.name}.`),
           );
         },
       });
@@ -438,7 +632,7 @@ export class WebScraperComponent {
       .open<
         ScrapeHistoryDialogComponent,
         unknown,
-        ScrapeHistoryRerunResponse | undefined
+        ScrapeJobAccepted | undefined
       >(ScrapeHistoryDialogComponent, {
         maxWidth: '96vw',
         maxHeight: '90vh',
@@ -450,12 +644,30 @@ export class WebScraperComponent {
           return;
         }
 
-        this.dataSource.data = response.results ?? [];
-        this.attachTableControls();
+        this.setLoading();
         this.statusLabel.set(
-          `Reran ${response.history.scrapeType} from history on page ${response.history.page}.`,
+          `Queued rerun for ${response.history.scrapeType} on page ${response.history.page}.`,
         );
-        this.cdr.markForCheck();
+
+        this.pollScrapeJob(response.historyId)
+          .pipe(
+            takeUntil(this.cancel$),
+            takeUntilDestroyed(this.destroyRef),
+            finalize(() => this.finishLoading()),
+          )
+          .subscribe({
+            next: (detail) => {
+              this.applyScrapeJobDetail(
+                detail,
+                `Reran ${response.history.scrapeType} from history on page ${response.history.page}.`,
+              );
+            },
+            error: (err: any) => {
+              this.statusLabel.set(
+                this.getErrorMessage(err, 'Failed to rerun scrape history.'),
+              );
+            },
+          });
       });
   }
 
@@ -481,7 +693,7 @@ export class WebScraperComponent {
   }
 
   getSafeShowPageUrl(): string | null {
-    return openableExternalUrl(this.getShowPageUrl());
+    return openableSteamUrl(this.getShowPageUrl(), this.openInSteamMode());
   }
 
   getSafeListingUrl(listingName: string | null | undefined): string | null {

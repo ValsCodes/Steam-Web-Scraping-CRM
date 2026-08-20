@@ -60,6 +60,30 @@
               ],
               "outputHashing": "all"
             },
+            "local-release": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environment/environment.ts",
+                  "with": "src/environment/environment.local-release.ts"
+                }
+              ],
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "1.5mb",
+                  "maximumError": "2mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "10kb"
+                }
+              ],
+              "optimization": true,
+              "extractLicenses": true,
+              "sourceMap": false,
+              "outputHashing": "all"
+            },
             "development": {
               "fileReplacements": [
                 {
@@ -79,6 +103,9 @@
           "configurations": {
             "production": {
               "buildTarget": "steam-app-angular-client:build:production"
+            },
+            "local-release": {
+              "buildTarget": "steam-app-angular-client:build:local-release"
             },
             "development": {
               "buildTarget": "steam-app-angular-client:build:development"

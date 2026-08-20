@@ -15,6 +15,8 @@
 
         public const string BatchPage = "v1:batch-page:{0}:{1}:{2}";
 
+        public const string ManualCheckSteamListing = "v1:manual-check:steam-listing:{0}";
+
         // Steam Repository
         public const string GameUrl = "game-url:{0}";
 
@@ -25,5 +27,7 @@
 
         // Background Job
         public const string WishListBackgroundJob = "v1:background-job-check-wishlist:{0}";
+
+        public const string WishListBackgroundJobQueued = "v1:background-job-check-wishlist-queued:{0}";
     }
 }

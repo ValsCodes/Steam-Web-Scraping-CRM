@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using SteamApp.Application.Caching;
+using SteamApp.Application.DTOs.FeedbackRequest;
 using SteamApp.Application.DTOs.Game;
 using SteamApp.Application.DTOs.GameUrl;
 using SteamApp.Application.DTOs.Pixel;
@@ -26,6 +27,8 @@ public sealed class MinimalApiEndpointTests
     [TestCase("/api/pixels/")]
     [TestCase("/api/watch-list/")]
     [TestCase("/api/wish-list/")]
+    [TestCase("/api/feedback-requests/")]
+    [TestCase("/api/feedback-requests/1/history")]
     [TestCase("/api/game-url-products/")]
     [TestCase("/api/tags/")]
     [TestCase("/api/product-tags/")]
@@ -46,6 +49,8 @@ public sealed class MinimalApiEndpointTests
     [TestCase("/api/pixels/1")]
     [TestCase("/api/watch-list/1")]
     [TestCase("/api/wish-list/1")]
+    [TestCase("/api/feedback-requests/1")]
+    [TestCase("/api/feedback-requests/reference/FB-000001")]
     [TestCase("/api/tags/1")]
     public async Task GetByIdEndpoints_ReturnOkWhenFound(string path)
     {
@@ -63,6 +68,8 @@ public sealed class MinimalApiEndpointTests
     [TestCase("/api/pixels/404")]
     [TestCase("/api/watch-list/404")]
     [TestCase("/api/wish-list/404")]
+    [TestCase("/api/feedback-requests/404")]
+    [TestCase("/api/feedback-requests/reference/FB-000404")]
     [TestCase("/api/tags/404")]
     public async Task GetByIdEndpoints_ReturnNotFoundWhenMissing(string path)
     {
@@ -134,6 +141,286 @@ public sealed class MinimalApiEndpointTests
         });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
+    [Test]
+    public async Task FeedbackRequests_ReturnOnlyCurrentUsersRequests()
+    {
+        await using var app = await MinimalApiTestApp.CreateAsync(db =>
+        {
+            TestDb.SeedBaseline(db);
+            db.FeedbackRequests.Add(new FeedbackRequest
+            {
+                Id = 99,
+                Type = FeedbackRequestTypeEnum.Bug,
+                Title = "Other user bug",
+                Description = "This belongs to a different user.",
+                Status = FeedbackRequestStatusEnum.Active,
+                CreatedAtUtc = new DateTime(2026, 1, 3, 10, 0, 0, DateTimeKind.Utc),
+                UpdatedAtUtc = new DateTime(2026, 1, 3, 10, 0, 0, DateTimeKind.Utc),
+                StatusChangedAtUtc = new DateTime(2026, 1, 3, 10, 0, 0, DateTimeKind.Utc),
+                UserId = "other-user"
+            });
+            db.SaveChanges();
+        });
+
+        var response = await app.Client.GetAsync("/api/feedback-requests/");
+        var items = await app.ReadJsonAsync<List<FeedbackRequestDto>>(response);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(items.Select(x => x.Id), Is.EquivalentTo(new[] { 1L, 2L }));
+            Assert.That(items.Single(x => x.Id == 1).ReferenceId, Is.EqualTo("FB-000001"));
+            Assert.That(items.Any(x => x.Id == 99), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task PostFeedbackRequest_DefaultsToActiveAndCurrentUser()
+    {
+        await using var app = await MinimalApiTestApp.CreateAsync(TestDb.SeedBaseline);
+
+        var response = await app.Client.PostAsJsonAsync("/api/feedback-requests/", new FeedbackRequestCreateDto
+        {
+            Type = FeedbackRequestTypeEnum.Bug,
+            Title = "  Broken status menu  ",
+            Description = "  The status menu does not update after save.  ",
+            Area = "  Feedback  "
+        });
+        var dto = await app.ReadJsonAsync<FeedbackRequestDto>(response);
+
+        using var scope = app.App.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var created = db.FeedbackRequests.SingleOrDefault(x => x.Title == "Broken status menu");
+        var history = created is null
+            ? null
+            : db.FeedbackRequestHistories.SingleOrDefault(x => x.FeedbackRequestId == created.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+            Assert.That(response.Headers.Location?.ToString(), Does.StartWith("/api/feedback-requests/"));
+            Assert.That(dto.ReferenceId, Does.Match("^FB-\\d{6}$"));
+            Assert.That(created, Is.Not.Null);
+            Assert.That(created?.UserId, Is.EqualTo(TestDb.TestUserId));
+            Assert.That(created?.Type, Is.EqualTo(FeedbackRequestTypeEnum.Bug));
+            Assert.That(created?.Status, Is.EqualTo(FeedbackRequestStatusEnum.Active));
+            Assert.That(created?.Description, Is.EqualTo("The status menu does not update after save."));
+            Assert.That(created?.Area, Is.EqualTo("Feedback"));
+            Assert.That(created?.CreatedAtUtc, Is.Not.EqualTo(default(DateTime)));
+            Assert.That(created?.UpdatedAtUtc, Is.Not.EqualTo(default(DateTime)));
+            Assert.That(created?.StatusChangedAtUtc, Is.Not.EqualTo(default(DateTime)));
+            Assert.That(history?.Action, Is.EqualTo(FeedbackRequestHistoryActionEnum.Created));
+            Assert.That(history?.PreviousTitle, Is.Null);
+            Assert.That(history?.NewTitle, Is.EqualTo("Broken status menu"));
+            Assert.That(history?.NewDescription, Is.EqualTo("The status menu does not update after save."));
+            Assert.That(history?.NewStatus, Is.EqualTo(FeedbackRequestStatusEnum.Active));
+            Assert.That(history?.UserId, Is.EqualTo(TestDb.TestUserId));
+        });
+    }
+
+    [Test]
+    public async Task PutFeedbackRequest_UpdatesFieldsAndStatusTimestamp()
+    {
+        await using var app = await MinimalApiTestApp.CreateAsync(TestDb.SeedBaseline);
+
+        var response = await app.Client.PutAsJsonAsync("/api/feedback-requests/1", new FeedbackRequestUpdateDto
+        {
+            Type = FeedbackRequestTypeEnum.Bug,
+            Title = "Updated title",
+            Description = "Updated description",
+            Area = "Updated area",
+            Status = FeedbackRequestStatusEnum.Closed
+        });
+
+        using var scope = app.App.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var updated = await db.FeedbackRequests.FindAsync(1L);
+        var history = db.FeedbackRequestHistories.SingleOrDefault(x => x.FeedbackRequestId == 1L);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(updated?.Type, Is.EqualTo(FeedbackRequestTypeEnum.Bug));
+            Assert.That(updated?.Title, Is.EqualTo("Updated title"));
+            Assert.That(updated?.Description, Is.EqualTo("Updated description"));
+            Assert.That(updated?.Area, Is.EqualTo("Updated area"));
+            Assert.That(updated?.Status, Is.EqualTo(FeedbackRequestStatusEnum.Closed));
+            Assert.That(updated?.UpdatedAtUtc, Is.GreaterThan(new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc)));
+            Assert.That(updated?.StatusChangedAtUtc, Is.GreaterThan(new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc)));
+            Assert.That(history?.Action, Is.EqualTo(FeedbackRequestHistoryActionEnum.Updated));
+            Assert.That(history?.PreviousTitle, Is.EqualTo("Improve filters"));
+            Assert.That(history?.NewTitle, Is.EqualTo("Updated title"));
+            Assert.That(history?.PreviousDescription, Is.EqualTo("Please make the search filters easier to scan."));
+            Assert.That(history?.NewDescription, Is.EqualTo("Updated description"));
+            Assert.That(history?.PreviousStatus, Is.EqualTo(FeedbackRequestStatusEnum.Active));
+            Assert.That(history?.NewStatus, Is.EqualTo(FeedbackRequestStatusEnum.Closed));
+        });
+    }
+
+    [Test]
+    public async Task PatchFeedbackRequestStatus_UpdatesOnlyStatus()
+    {
+        await using var app = await MinimalApiTestApp.CreateAsync(TestDb.SeedBaseline);
+
+        var response = await app.Client.PatchAsJsonAsync("/api/feedback-requests/1/status", new
+        {
+            status = FeedbackRequestStatusEnum.Processed
+        });
+
+        using var scope = app.App.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var updated = await db.FeedbackRequests.FindAsync(1L);
+        var history = db.FeedbackRequestHistories.SingleOrDefault(x => x.FeedbackRequestId == 1L);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(updated?.Title, Is.EqualTo("Improve filters"));
+            Assert.That(updated?.Status, Is.EqualTo(FeedbackRequestStatusEnum.Processed));
+            Assert.That(updated?.UpdatedAtUtc, Is.GreaterThan(new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc)));
+            Assert.That(updated?.StatusChangedAtUtc, Is.GreaterThan(new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc)));
+            Assert.That(history?.Action, Is.EqualTo(FeedbackRequestHistoryActionEnum.StatusChanged));
+            Assert.That(history?.PreviousStatus, Is.EqualTo(FeedbackRequestStatusEnum.Active));
+            Assert.That(history?.NewStatus, Is.EqualTo(FeedbackRequestStatusEnum.Processed));
+            Assert.That(history?.PreviousTitle, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task PatchFeedbackRequestStatus_DoesNotCreateHistoryWhenStatusDoesNotChange()
+    {
+        await using var app = await MinimalApiTestApp.CreateAsync(TestDb.SeedBaseline);
+
+        var response = await app.Client.PatchAsJsonAsync("/api/feedback-requests/2/status", new
+        {
+            status = FeedbackRequestStatusEnum.Processed
+        });
+
+        using var scope = app.App.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var historyCount = db.FeedbackRequestHistories.Count(x => x.FeedbackRequestId == 2L);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(historyCount, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public async Task FeedbackRequestHistoryEndpoint_ReturnsOwnedHistoryAndClosedTransition()
+    {
+        await using var app = await MinimalApiTestApp.CreateAsync(TestDb.SeedBaseline);
+
+        var patch = await app.Client.PatchAsJsonAsync("/api/feedback-requests/1/status", new
+        {
+            status = FeedbackRequestStatusEnum.Closed
+        });
+        var historyResponse = await app.Client.GetAsync("/api/feedback-requests/1/history");
+        var history = await app.ReadJsonAsync<List<FeedbackRequestHistoryDto>>(historyResponse);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(patch.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(historyResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(history, Has.Count.EqualTo(1));
+            Assert.That(history[0].Action, Is.EqualTo(FeedbackRequestHistoryActionEnum.StatusChanged));
+            Assert.That(history[0].PreviousStatus, Is.EqualTo(FeedbackRequestStatusEnum.Active));
+            Assert.That(history[0].NewStatus, Is.EqualTo(FeedbackRequestStatusEnum.Closed));
+        });
+    }
+
+    [Test]
+    public async Task FeedbackRequestHistoryEndpoint_RequiresAuthAndEnforcesOwnership()
+    {
+        await using var app = await MinimalApiTestApp.CreateAsync(db =>
+        {
+            TestDb.SeedBaseline(db);
+            db.FeedbackRequests.Add(new FeedbackRequest
+            {
+                Id = 99,
+                Type = FeedbackRequestTypeEnum.Bug,
+                Title = "Other user bug",
+                Description = "This belongs to a different user.",
+                Status = FeedbackRequestStatusEnum.Active,
+                CreatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.UtcNow,
+                StatusChangedAtUtc = DateTime.UtcNow,
+                UserId = "other-user"
+            });
+            db.FeedbackRequestHistories.Add(new FeedbackRequestHistory
+            {
+                Id = 99,
+                FeedbackRequestId = 99,
+                Action = FeedbackRequestHistoryActionEnum.Created,
+                CreatedAtUtc = DateTime.UtcNow,
+                NewTitle = "Other user bug",
+                UserId = "other-user"
+            });
+            db.SaveChanges();
+        });
+
+        var noAuthClient = app.CreateClientWithoutAuth();
+        var noAuth = await noAuthClient.GetAsync("/api/feedback-requests/1/history");
+        var otherUserHistory = await app.Client.GetAsync("/api/feedback-requests/99/history");
+        var otherUserReference = await app.Client.GetAsync("/api/feedback-requests/reference/FB-000099");
+        var invalidReference = await app.Client.GetAsync("/api/feedback-requests/reference/not-a-ticket");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(noAuth.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+            Assert.That(otherUserHistory.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(otherUserReference.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(invalidReference.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        });
+    }
+
+    [Test]
+    public async Task FeedbackRequestEndpoints_RejectInvalidEnumsAndMissingOwnership()
+    {
+        await using var app = await MinimalApiTestApp.CreateAsync(db =>
+        {
+            TestDb.SeedBaseline(db);
+            db.FeedbackRequests.Add(new FeedbackRequest
+            {
+                Id = 99,
+                Type = FeedbackRequestTypeEnum.Bug,
+                Title = "Other user bug",
+                Description = "This belongs to a different user.",
+                Status = FeedbackRequestStatusEnum.Active,
+                CreatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.UtcNow,
+                StatusChangedAtUtc = DateTime.UtcNow,
+                UserId = "other-user"
+            });
+            db.SaveChanges();
+        });
+
+        var invalidType = await app.Client.PostAsJsonAsync("/api/feedback-requests/", new
+        {
+            type = 99,
+            title = "Invalid",
+            description = "Invalid enum"
+        });
+        var invalidStatus = await app.Client.PatchAsJsonAsync("/api/feedback-requests/1/status", new
+        {
+            status = 99
+        });
+        var otherUserGet = await app.Client.GetAsync("/api/feedback-requests/99");
+        var otherUserPatch = await app.Client.PatchAsJsonAsync("/api/feedback-requests/99/status", new
+        {
+            status = FeedbackRequestStatusEnum.Closed
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(invalidType.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            Assert.That(invalidStatus.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            Assert.That(otherUserGet.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(otherUserPatch.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        });
     }
 
     [Test]

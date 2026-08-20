@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using SteamApp.Domain.Enums;
 
 namespace SteamApp.Domain.Entities
 {
@@ -45,5 +46,18 @@ namespace SteamApp.Domain.Entities
 
         [Column("is_have_error")]
         public bool IsHaveError { get; set; }
+
+        [Column("status")]
+        public ScrapeJobStatusEnum Status { get; set; } = ScrapeJobStatusEnum.Succeeded;
+
+        [Column("started_at_utc")]
+        public DateTime? StartedAtUtc { get; set; }
+
+        [Column("completed_at_utc")]
+        public DateTime? CompletedAtUtc { get; set; }
+
+        [MaxLength(64)]
+        [Column("correlation_id")]
+        public string? CorrelationId { get; set; }
     }
 }

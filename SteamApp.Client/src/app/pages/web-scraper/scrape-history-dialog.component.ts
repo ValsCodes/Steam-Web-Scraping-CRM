@@ -21,7 +21,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 import {
   ScrapeHistory,
-  ScrapeHistoryRerunResponse,
+  ScrapeJobAccepted,
+  ScrapeJobStatus,
 } from '../../models';
 import { SteamService } from '../../services';
 
@@ -178,8 +179,10 @@ export class ScrapeHistoryJsonDialogComponent {
             <th mat-header-cell *matHeaderCellDef>Status</th>
             <td mat-cell *matCellDef="let row">
               <span class="scrape-history-dialog__status"
-                [class.scrape-history-dialog__status--error]="row.isHaveError">
-                {{ row.isHaveError ? 'Error' : 'Success' }}
+                [class.scrape-history-dialog__status--pending]="getStatus(row) === 'Queued'"
+                [class.scrape-history-dialog__status--running]="getStatus(row) === 'Running'"
+                [class.scrape-history-dialog__status--error]="getStatus(row) === 'Failed'">
+                {{ getStatusLabel(row) }}
               </span>
             </td>
           </ng-container>
@@ -211,7 +214,7 @@ export class ScrapeHistoryJsonDialogComponent {
 
                 <button mat-icon-button type="button" matTooltip="View error"
                   (click)="openError(row)"
-                  [disabled]="!row.isHaveError || detailLoadingId === row.id"
+                  [disabled]="getStatus(row) !== 'Failed' || detailLoadingId === row.id"
                   aria-label="View scrape error">
                   <mat-icon>error_outline</mat-icon>
                 </button>
@@ -308,6 +311,16 @@ export class ScrapeHistoryJsonDialogComponent {
       background: #fee2e2;
       color: #991b1b;
     }
+
+    .scrape-history-dialog__status--pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .scrape-history-dialog__status--running {
+      background: #dbeafe;
+      color: #1e40af;
+    }
   `],
 })
 export class ScrapeHistoryDialogComponent implements OnInit {
@@ -335,7 +348,7 @@ export class ScrapeHistoryDialogComponent implements OnInit {
   public constructor(
     private readonly dialogRef: MatDialogRef<
       ScrapeHistoryDialogComponent,
-      ScrapeHistoryRerunResponse | undefined
+      ScrapeJobAccepted | undefined
     >,
   ) {}
 
@@ -355,12 +368,26 @@ export class ScrapeHistoryDialogComponent implements OnInit {
     return row.gameUrlName?.trim() || `Game URL #${row.gameUrlId}`;
   }
 
+  public getStatus(row: ScrapeHistory): ScrapeJobStatus {
+    return row.status ?? (row.isHaveError ? 'Failed' : 'Succeeded');
+  }
+
+  public getStatusLabel(row: ScrapeHistory): string {
+    const status = this.getStatus(row);
+
+    return status === 'Succeeded'
+      ? 'Success'
+      : status === 'Failed'
+        ? 'Error'
+        : status;
+  }
+
   public rerun(row: ScrapeHistory): void {
     this.rerunningId = row.id;
     this.cdr.markForCheck();
 
     this.steamService
-      .rerunScrapeHistory(row.id)
+      .rerunScrapeHistoryAsync(row.id)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
       )
@@ -387,7 +414,7 @@ export class ScrapeHistoryDialogComponent implements OnInit {
   }
 
   public openError(row: ScrapeHistory): void {
-    if (!row.isHaveError) {
+    if (this.getStatus(row) !== 'Failed') {
       return;
     }
 
@@ -408,13 +435,13 @@ export class ScrapeHistoryDialogComponent implements OnInit {
         next: (history) => {
           this.history = history;
           this.isLoading = false;
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         },
         error: () => {
           this.history = [];
           this.isLoading = false;
           this.loadError = 'History could not be loaded. Check the API response and try again.';
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         },
       });
   }

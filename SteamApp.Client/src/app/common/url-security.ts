@@ -6,6 +6,8 @@ const TRUSTED_EXTERNAL_HOST_SUFFIXES = [
   'akamaihd.net',
 ] as const;
 
+const STEAM_OPEN_URL_PREFIX = 'steam://openurl/';
+
 export function safeExternalUrl(value: string | null | undefined): string | null {
   const url = parseWebUrl(value);
   if (!url) {
@@ -22,6 +24,31 @@ export function safeExternalUrl(value: string | null | undefined): string | null
 export function openableExternalUrl(value: string | null | undefined): string | null {
   const rawUrl = value?.trim();
   return rawUrl || null;
+}
+
+export function openableSteamUrl(
+  value: string | null | undefined,
+  openInSteamMode: boolean,
+): string | null {
+  const openableUrl = openableExternalUrl(value);
+  if (!openableUrl) {
+    return null;
+  }
+
+  if (!openInSteamMode) {
+    return openableUrl;
+  }
+
+  const normalizedUrl = openableUrl.toLowerCase();
+  if (normalizedUrl.startsWith(STEAM_OPEN_URL_PREFIX)) {
+    return openableUrl;
+  }
+
+  if (normalizedUrl.startsWith('https://')) {
+    return `${STEAM_OPEN_URL_PREFIX}${openableUrl}`;
+  }
+
+  return openableUrl;
 }
 
 export function externalUrlWarning(value: string | null | undefined): string | null {

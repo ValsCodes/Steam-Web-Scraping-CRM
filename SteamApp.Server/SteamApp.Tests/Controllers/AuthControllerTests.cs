@@ -159,9 +159,13 @@ public sealed class AuthControllerTests
             Assert.That(createdUser?.Email, Is.EqualTo("user@example.com"));
             Assert.That(createdUser?.PhoneNumber, Is.EqualTo("+3595550100"));
             Assert.That(token.Claims.Any(x => x.Type == "scope" && x.Value == SecurityPolicies.UserScope), Is.True);
+            Assert.That(token.Claims.Any(x => x.Type == ClaimTypes.Role && x.Value == SecurityPolicies.UserRole), Is.True);
             Assert.That(token.Claims.Any(x => x.Type == "given_name" && x.Value == "Test"), Is.True);
             Assert.That(token.Claims.Any(x => x.Type == "family_name" && x.Value == "User"), Is.True);
         });
+        userManager.Verify(
+            x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), SecurityPolicies.UserRole),
+            Times.Once);
     }
 
     [Test]
@@ -231,6 +235,49 @@ public sealed class AuthControllerTests
             Assert.That(token.Claims.Any(x => x.Type == ClaimTypes.Role && x.Value == "Admin"), Is.True);
             Assert.That(token.Claims.Any(x => x.Type == "scope" && x.Value == SecurityPolicies.UserScope), Is.True);
         });
+    }
+
+    [Test]
+    public async Task Login_ConfiguredAdminEmailGetsAdminRole()
+    {
+        var user = new ApplicationUser
+        {
+            Id = "admin-id",
+            UserName = "owner",
+            Email = "OWNER@example.com"
+        };
+        var userManager = CreateUserManager();
+        userManager.Setup(x => x.FindByEmailAsync("owner@example.com")).ReturnsAsync(user);
+        userManager.Setup(x => x.GetRolesAsync(user)).ReturnsAsync(Array.Empty<string>());
+
+        var signInManager = CreateSignInManager(userManager);
+        signInManager
+            .Setup(x => x.CheckPasswordSignInAsync(user, "Password1", true))
+            .ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Success);
+
+        var controller = CreateController(
+            userManager: userManager,
+            signInManager: signInManager,
+            configuration: Config(("Authentication:AdminEmails:0", "owner@example.com")));
+
+        var result = await controller.Login(new LoginRequest
+        {
+            EmailOrUserName = "owner@example.com",
+            Password = "Password1"
+        });
+
+        var ok = result as OkObjectResult;
+        var response = ok?.Value as AuthResponse;
+        var token = new JwtSecurityTokenHandler().ReadJwtToken(response!.Token);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ok, Is.Not.Null);
+            Assert.That(token.Claims.Any(x => x.Type == ClaimTypes.Role && x.Value == SecurityPolicies.UserRole), Is.True);
+            Assert.That(token.Claims.Any(x => x.Type == ClaimTypes.Role && x.Value == SecurityPolicies.AdminRole), Is.True);
+        });
+        userManager.Verify(x => x.AddToRoleAsync(user, SecurityPolicies.UserRole), Times.Once);
+        userManager.Verify(x => x.AddToRoleAsync(user, SecurityPolicies.AdminRole), Times.Once);
     }
 
     [Test]
@@ -456,7 +503,7 @@ public sealed class AuthControllerTests
 
     private static Mock<UserManager<ApplicationUser>> CreateUserManager()
     {
-        return new Mock<UserManager<ApplicationUser>>(
+        var userManager = new Mock<UserManager<ApplicationUser>>(
             Mock.Of<IUserStore<ApplicationUser>>(),
             Options.Create(new IdentityOptions()),
             Mock.Of<IPasswordHasher<ApplicationUser>>(),
@@ -466,6 +513,15 @@ public sealed class AuthControllerTests
             new IdentityErrorDescriber(),
             Mock.Of<IServiceProvider>(),
             NullLogger<UserManager<ApplicationUser>>.Instance);
+
+        userManager
+            .Setup(x => x.GetRolesAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(Array.Empty<string>());
+        userManager
+            .Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
+            .ReturnsAsync(IdentityResult.Success);
+
+        return userManager;
     }
 
     private static Mock<SignInManager<ApplicationUser>> CreateSignInManager(

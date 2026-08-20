@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using SteamApp.Infrastructure.Context;
 
 namespace SteamApp.WebAPI.Services;
@@ -12,11 +14,18 @@ public class IdentitySchemaInitializer(
     public async Task EnsureCreatedAsync(CancellationToken cancellationToken = default)
     {
 
-        //logger.LogInformation("Ensuring ASP.NET Identity tables exist.");
+        logger.LogInformation("Ensuring ASP.NET Identity tables exist.");
 
-        //await dbContext.Database.ExecuteSqlRawAsync(
-        //    IdentitySchemaSql,
-        //    cancellationToken);
+        var databaseCreator = dbContext.GetService<IRelationalDatabaseCreator>();
+        if (!await databaseCreator.ExistsAsync(cancellationToken))
+        {
+            logger.LogInformation("Creating the database before initializing its schema.");
+            await databaseCreator.CreateAsync(cancellationToken);
+        }
+
+        await dbContext.Database.ExecuteSqlRawAsync(
+            IdentitySchemaSql,
+            cancellationToken);
     }
 
     private const string IdentitySchemaSql = """

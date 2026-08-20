@@ -60,8 +60,20 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
 
         var imageUrlBase = "https://community.akamai.steamstatic.com/economy/image/{0}/62fx62f";
 
-        return [.. filteredResult.OrderBy(x => x.SellPrice).Select(x => new WatchItemDto { Name = x.Name, Price = x.SellPrice / 100, Quantity = x.SellListings,
-        ImageUrl = string.Format(imageUrlBase, x.AssetDescription.IconUrl ?? null)})];
+        return [.. filteredResult.OrderBy(x => x.SellPrice).Select(x =>
+        {
+            var iconUrl = x.AssetDescription?.IconUrl;
+
+            return new WatchItemDto
+            {
+                Name = x.Name,
+                Price = x.SellPrice / 100,
+                Quantity = x.SellListings,
+                ImageUrl = string.IsNullOrWhiteSpace(iconUrl)
+                    ? null
+                    : string.Format(imageUrlBase, iconUrl)
+            };
+        })];
     }
 
     public async Task<IEnumerable<WatchItemDto>> ScrapeWithPixels(long gameUrlId, short page)

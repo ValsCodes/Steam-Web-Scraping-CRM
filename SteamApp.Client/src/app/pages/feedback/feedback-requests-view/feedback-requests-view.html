@@ -1,0 +1,212 @@
+<div class="p-4 feedback-page">
+  <div class="feedback-header">
+    <div>
+      <h2 class="text-2xl font-semibold text-gray-500">Feedback Requests</h2>
+      <p class="feedback-header__description">
+        Send feedback, report bugs, and track the state of requests you have submitted.
+      </p>
+    </div>
+
+    <div class="feedback-header__actions">
+      <button
+        type="button"
+        (click)="refreshButtonClicked()"
+        class="button button-small-secondary"
+        [disabled]="isGridLoading"
+        [class.busy-cursor]="isGridLoading"
+        title="Reload current data">
+        {{ isGridLoading ? 'Loading...' : 'Refresh' }}
+      </button>
+
+      <button type="button" class="button button-small-primary" (click)="sendButtonClicked()">
+        Send Feedback
+      </button>
+
+      <button type="button" class="create-button" (click)="createButtonClicked()">
+        Create Request
+      </button>
+    </div>
+  </div>
+
+  <div class="filter-toolbar">
+    <div class="filter-group">
+      <label for="feedback-filter-text">Search</label>
+      <input
+        id="feedback-filter-text"
+        name="feedbackFilterText"
+        class="px-2 py-1"
+        type="text"
+        placeholder="Title, description, or area"
+        [formControl]="textFilterControl" />
+    </div>
+
+    <div class="filter-group">
+      <label for="feedback-filter-type">Type</label>
+      <select
+        id="feedback-filter-type"
+        name="feedbackFilterType"
+        class="px-2 py-1"
+        [formControl]="typeFilterControl">
+        <option [ngValue]="null">All</option>
+        @for (option of typeOptions; track option.value) {
+          <option [ngValue]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="feedback-filter-status">Status</label>
+      <select
+        id="feedback-filter-status"
+        name="feedbackFilterStatus"
+        class="px-2 py-1"
+        [formControl]="statusFilterControl">
+        <option [ngValue]="null">All</option>
+        @for (option of statusOptions; track option.value) {
+          <option [ngValue]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </div>
+
+    <button type="button" (click)="clearFiltersButtonClicked()" class="button button-small-danger">
+      Clear
+    </button>
+
+    <div class="filter-toolbar__spacer" aria-hidden="true"></div>
+
+    <div class="filter-group filter-group--page-size">
+      <label for="feedback-page-size">Items per page</label>
+      <select
+        id="feedback-page-size"
+        name="feedbackPageSize"
+        class="px-2 py-1"
+        [value]="pageSize"
+        [disabled]="isGridLoading"
+        (change)="pageSizeChanged($any($event.target).value)">
+        @for (size of pageSizeOptions; track size) {
+          <option [value]="size">{{ size }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <div
+    class="table-container table-container--with-loading"
+    [class.table-container--loading]="isGridLoading"
+    [attr.aria-busy]="isGridLoading">
+    @if (isGridLoading) {
+      <div class="grid-loading-overlay" role="status" aria-live="polite">
+        <div class="grid-loading-card">
+          <span class="grid-loading-spinner" aria-hidden="true"></span>
+          <span>Loading feedback requests...</span>
+        </div>
+      </div>
+    }
+
+    <table mat-table [dataSource]="dataSource" matSort class="app-data-table">
+      <ng-container matColumnDef="referenceId">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Ticket</th>
+        <td mat-cell *matCellDef="let row">{{ row.referenceId }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="title">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Title</th>
+        <td mat-cell *matCellDef="let row">{{ row.title }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="type">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+        <td mat-cell *matCellDef="let row">{{ typeLabel(row.type) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="area">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Area</th>
+        <td mat-cell *matCellDef="let row">{{ row.area || '-' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+        <td mat-cell *matCellDef="let row">
+          <span
+            class="status-pill"
+            [class.status-pill--active]="row.status === FeedbackRequestStatus.Active"
+            [class.status-pill--inactive]="row.status === FeedbackRequestStatus.Closed"
+            [class.feedback-status--processed]="row.status === FeedbackRequestStatus.Processed">
+            {{ statusLabel(row.status) }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="createdAtUtc">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Created</th>
+        <td mat-cell *matCellDef="let row">{{ row.createdAtUtc | date:'mediumDate' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="updatedAtUtc">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Updated</th>
+        <td mat-cell *matCellDef="let row">{{ row.updatedAtUtc | date:'mediumDate' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Actions</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="table-actions-cell">
+            <button
+              type="button"
+              mat-icon-button
+              class="table-actions-trigger"
+              [matMenuTriggerFor]="feedbackActionsMenu"
+              [disabled]="isStatusUpdating(row.id)"
+              [class.busy-cursor]="isStatusUpdating(row.id)"
+              aria-label="Open feedback request actions">
+              <mat-icon>more_horiz</mat-icon>
+            </button>
+
+            <mat-menu #feedbackActionsMenu="matMenu" xPosition="before" panelClass="table-actions-menu">
+              @for (option of statusOptions; track option.value) {
+                @if (option.value !== row.status) {
+                  <button
+                    type="button"
+                    mat-menu-item
+                    (click)="statusButtonClicked(row, option.value)"
+                    [disabled]="isStatusUpdating(row.id)">
+                    <span>Mark {{ option.label }}</span>
+                  </button>
+                }
+              }
+
+              <button
+                type="button"
+                mat-menu-item
+                (click)="editButtonClicked(row.id)"
+                [disabled]="isStatusUpdating(row.id)">
+                <span>Edit</span>
+              </button>
+            </mat-menu>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    @if (showNoItemsEmptyState) {
+      <div class="feedback-empty-state">
+        No feedback requests yet. Send feedback or create a request to start tracking it.
+      </div>
+    }
+
+    @if (showFilteredEmptyState) {
+      <div class="feedback-empty-state">
+        No feedback requests match the current filters.
+      </div>
+    }
+
+    <mat-paginator
+      showFirstLastButtons
+      [disabled]="isGridLoading"
+      [hidePageSize]="true"
+      [pageSize]="pageSize"></mat-paginator>
+  </div>
+</div>

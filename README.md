@@ -14,10 +14,30 @@ A full-stack application for tracking and analyzing Steam Community Market listi
 - [Getting Started](docs/GETTING_STARTED.md)
 - [Architecture Overview](docs/ARCHITECTURE.md)
 - [API Reference](docs/API_REFERENCE.md)
+- [Self-Hosted Mailserver](docs/MAILSERVER.md)
 - [Contributing Guide](docs/CONTRIBUTING.md)
 - [Project Detailed Description](docs/PROJECT_DESCRIPTION.md)
 
 ## Quick start
+
+### One-click local Release (Windows)
+
+After configuring the backend user-secrets once, double-click
+`Start-SteamApp-Local-Release.bat` in the repository root. It starts:
+
+- the .NET API with `--configuration Release` on `https://localhost:7443`;
+- the optimized Angular `local-release` configuration on `http://localhost:4200`;
+- the existing SQL Server LocalDB database `db_steam_app2`, with automatic EF
+  Core migrations.
+
+The launcher points `DefaultConnection` to the existing database and stops with
+an error if that database is missing; it does not create a replacement database.
+JWT and client secrets stay in .NET user-secrets and are not written into the
+batch file. It waits until both services are ready before opening the default
+browser. Each run stops API/client listeners that belong to this SteamApp
+checkout and starts both again, guaranteeing that the API receives the explicit
+`db_steam_app2` LocalDB connection. It refuses to terminate an unrelated process
+if another application owns port 7443 or 4200.
 
 ### 1) Clone
 

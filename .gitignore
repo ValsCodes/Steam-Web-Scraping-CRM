@@ -288,6 +288,7 @@ node_modules/
 # Local Docker Compose environment files
 env/*.env
 !env/*.env.example
+docker-data/
 
 # Visual Studio 6 build log
 *.plg

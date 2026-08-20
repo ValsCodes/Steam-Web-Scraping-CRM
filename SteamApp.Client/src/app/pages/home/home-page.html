@@ -5,7 +5,7 @@
       <h1>Operate Steam market intelligence from one control surface.</h1>
       <p class="hero__lead">
         Manage source configuration, catalog metadata, wish and watch monitoring,
-        and scraping workflows through the Angular workspace backed by the .NET API.
+        and scraping workflows from one focused operating workspace.
       </p>
 
       <div class="hero__actions">
@@ -42,7 +42,7 @@
       <p>
         The product documentation describes SteamApp as an operational platform
         for flexible source configuration, relation-driven administration,
-        filter-first analysis, Excel export, and backend automation.
+        filter-first analysis, Excel export, and repeatable monitoring.
       </p>
     </div>
 
@@ -66,7 +66,7 @@
       <article class="principle">
         <h3>Scraping and Analysis</h3>
         <p>
-          Run page, public API, and pixel-based workflows, then review and export
+          Run page, source-based, and pixel-based workflows, then review and export
           the results from the admin UI.
         </p>
       </article>
@@ -118,25 +118,4 @@
     </div>
   </section>
 
-  <section class="section">
-    <div class="section__heading">
-      <span class="section__eyebrow">Architecture</span>
-      <h2>Frontend, API, and workers aligned around one domain model</h2>
-      <p>
-        The current repository separates the Angular client, ASP.NET Core API,
-        and SQL-backed infrastructure so UI workflows, protected endpoints, and
-        background processing stay cleanly bounded.
-      </p>
-    </div>
-
-    <div class="architecture-grid">
-      @for (card of architectureCards; track card.title) {
-        <article class="architecture-card">
-          <h3>{{ card.title }}</h3>
-          <span>{{ card.subtitle }}</span>
-          <p>{{ card.description }}</p>
-        </article>
-      }
-    </div>
-  </section>
 </div>

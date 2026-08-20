@@ -17,12 +17,6 @@ type Workflow = {
   steps: readonly string[];
 };
 
-type ArchitectureCard = {
-  title: string;
-  subtitle: string;
-  description: string;
-};
-
 @Component({
   selector: 'steam-home-page',
   standalone: true,
@@ -46,7 +40,7 @@ export class HomePage {
       route: '/wishlist',
       category: 'Operational Monitoring',
       description:
-        'Track target price conditions, run checks, and manage the worker-driven monitoring scenarios described in the platform docs.',
+        'Track target price conditions, run checks, and keep priority monitoring scenarios organized.',
       cta: 'Review Wish List',
       accent: 'ops',
     },
@@ -74,7 +68,7 @@ export class HomePage {
       title: 'Game URLs',
       route: '/game-urls',
       category: 'Configuration',
-      description: 'Control paging, public API mode, and pixel-based scraping settings for each market source.',
+      description: 'Control paging, source mode, and pixel-based scraping settings for each market source.',
       cta: 'Open Game URLs',
       accent: 'catalog',
     },
@@ -134,7 +128,7 @@ export class HomePage {
       summary: 'Start with the core data model, then connect the supporting entities around it.',
       steps: [
         'Create a game entry as the main context.',
-        'Add a Game URL with paging, API, and pixel settings.',
+        'Add a Game URL with paging, source mode, and pixel settings.',
         'Create products and pixels for that game.',
         'Link Game URL to products and pixels, then apply tags.',
       ],
@@ -144,7 +138,7 @@ export class HomePage {
       summary: 'Move from source selection to execution and export with a filter-first workflow.',
       steps: [
         'Select the game and source configuration.',
-        'Run scraping with page or public API mode.',
+        'Run scraping with the configured source mode.',
         'Review the resulting data in table views.',
         'Export the current slice to Excel for analysis.',
       ],
@@ -156,29 +150,8 @@ export class HomePage {
         'Create or adjust wish list thresholds.',
         'Update watch list targets as market focus changes.',
         'Run checks, review results, and tune thresholds.',
-        'Use the worker-backed flow for periodic monitoring.',
+        'Use scheduled checks for periodic monitoring.',
       ],
-    },
-  ];
-
-  readonly architectureCards: readonly ArchitectureCard[] = [
-    {
-      title: 'Angular Client',
-      subtitle: 'Route-level workspaces and reusable UI',
-      description:
-        'The frontend organizes operations into pages, services, models, and components so operators can move quickly between catalog, monitoring, and scraping screens.',
-    },
-    {
-      title: '.NET Web API',
-      subtitle: 'Protected application and scraping endpoints',
-      description:
-        'The backend provides CRUD APIs, relation endpoints, JWT-protected routes, and Steam scraping workflows behind a single operational layer.',
-    },
-    {
-      title: 'SQL Server and Workers',
-      subtitle: 'Persistence with background automation',
-      description:
-        'EF Core stores the domain model, while hosted workers support recurring wish list checks and other operational automation.',
     },
   ];
 }

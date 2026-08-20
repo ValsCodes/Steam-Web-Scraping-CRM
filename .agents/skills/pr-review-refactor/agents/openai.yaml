@@ -1,0 +1,4 @@
+interface:
+  display_name: "PR Refactor Review"
+  short_description: "Validate behavior-preserving refactors"
+  default_prompt: "Use $pr-review-refactor to validate that the current SteamApp refactor preserves behavior."
