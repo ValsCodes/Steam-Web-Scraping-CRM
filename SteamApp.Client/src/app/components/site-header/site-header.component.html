@@ -6,19 +6,19 @@
     <a routerLink="/faq" routerLinkActive="active">FAQ</a>
 
     @if (isLoggedIn) {
-      <steam-dropdown
+      <!-- <steam-dropdown
         label="Scraping"
         [links]="[
           { label: 'Web Scraper', route: '/web-scraper' },
           { label: 'Manual Scraper', route: '/manual-mode-v2' }
         ]">
-      </steam-dropdown>
-      <!-- <a routerLink="/manual-mode-v2" routerLinkActive="active">Manual Scraper</a> -->
+      </steam-dropdown> -->
+      <a routerLink="/manual-mode-v2" routerLinkActive="active">Manual Scraper</a>
       <a routerLink="/games" routerLinkActive="active">Games</a>
       <a routerLink="/game-urls" routerLinkActive="active">Game URLs</a>
       <a routerLink="/products" routerLinkActive="active">Products</a>
       <a routerLink="/tags" routerLinkActive="active">Tags</a>
-      <a routerLink="/pixels" routerLinkActive="active">Pixels</a>
+      <!-- <a routerLink="/pixels" routerLinkActive="active">Pixels</a> -->
       <a routerLink="/wishlist" routerLinkActive="active">Price Alerts</a>
       <a routerLink="/watch-list" routerLinkActive="active">Custom Watch List</a>     
       <a routerLink="/feedback/send" routerLinkActive="active">Send Feedback</a>

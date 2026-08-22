@@ -249,13 +249,13 @@ export const routes: Routes = [
       },
     },
     children: [
-      {
-        path: 'web-scraper',
-        loadComponent: () =>
-          import('./pages/web-scraper/web-scraper.component').then((m) => m.WebScraperComponent),
-        title: 'Web Scraper',
-        data: { seo: { title: 'Web Scraper', canonicalPath: '/web-scraper' } },
-      },
+      // {
+      //   path: 'web-scraper',
+      //   loadComponent: () =>
+      //     import('./pages/web-scraper/web-scraper.component').then((m) => m.WebScraperComponent),
+      //   title: 'Web Scraper',
+      //   data: { seo: { title: 'Web Scraper', canonicalPath: '/web-scraper' } },
+      // },
       {
         path: 'manual-mode-v2',
         loadComponent: () =>
@@ -375,25 +375,25 @@ export const routes: Routes = [
         title: 'Edit Product',
         data: { seo: { title: 'Edit Product', canonicalPath: '/products/edit' } },
       },
-      {
-        path: 'pixels',
-        loadComponent: () =>
-          import('./pages/pixel/pixels-view/pixels-view').then((m) => m.PixelsView),
-        title: 'Pixels',
-        data: { seo: { title: 'Pixels', canonicalPath: '/pixels' } },
-      },
-      {
-        path: 'pixels/create',
-        loadComponent: () => import('./pages/pixel/pixel-form/pixel-form').then((m) => m.PixelForm),
-        title: 'Create Pixel',
-        data: { seo: { title: 'Create Pixel', canonicalPath: '/pixels/create' } },
-      },
-      {
-        path: 'pixels/edit/:id',
-        loadComponent: () => import('./pages/pixel/pixel-form/pixel-form').then((m) => m.PixelForm),
-        title: 'Edit Pixel',
-        data: { seo: { title: 'Edit Pixel', canonicalPath: '/pixels/edit' } },
-      },
+      // {
+      //   path: 'pixels',
+      //   loadComponent: () =>
+      //     import('./pages/pixel/pixels-view/pixels-view').then((m) => m.PixelsView),
+      //   title: 'Pixels',
+      //   data: { seo: { title: 'Pixels', canonicalPath: '/pixels' } },
+      // },
+      // {
+      //   path: 'pixels/create',
+      //   loadComponent: () => import('./pages/pixel/pixel-form/pixel-form').then((m) => m.PixelForm),
+      //   title: 'Create Pixel',
+      //   data: { seo: { title: 'Create Pixel', canonicalPath: '/pixels/create' } },
+      // },
+      // {
+      //   path: 'pixels/edit/:id',
+      //   loadComponent: () => import('./pages/pixel/pixel-form/pixel-form').then((m) => m.PixelForm),
+      //   title: 'Edit Pixel',
+      //   data: { seo: { title: 'Edit Pixel', canonicalPath: '/pixels/edit' } },
+      // },
       {
         path: 'wishlist',
         loadComponent: () =>
