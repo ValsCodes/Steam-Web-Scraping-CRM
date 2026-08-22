@@ -10,6 +10,7 @@ import {
 } from '../../services';
 import { GameUrlProduct, ManualCheckRunDetail, ScrapingModeEnum } from '../../models';
 import { ManualCheckSetupDialogComponent } from './manual-check-setup-dialog.component';
+import { ManualCheckSteamResultDialogComponent } from './manual-check-steam-result-dialog.component';
 import { ManualCheckTraceDialogComponent } from './manual-check-trace-dialog.component';
 import { ManualModeV2 } from './manual-mode-v2';
 
@@ -44,6 +45,8 @@ describe('ManualModeV2 external link disclosure', () => {
       'createRun',
       'getRun',
       'cancelRun',
+      'pauseRun',
+      'continueRun',
     ]);
     dialog = { open: jasmine.createSpy('open') };
 
@@ -440,8 +443,13 @@ describe('ManualModeV2 external link disclosure', () => {
     manualCheckService.getRun.and.returnValue(of(completed));
 
     (component as unknown as {
-      startAutomatedRun(gameUrlId: number, presetId: number, bypassCache: boolean): void;
-    }).startAutomatedRun(2, 3, false);
+      startAutomatedRun(
+        gameUrlId: number,
+        presetId: number,
+        bypassCache: boolean,
+        productIds: number[] | null,
+      ): void;
+    }).startAutomatedRun(2, 3, false, null);
     tick(0);
 
     expect(gameUrlProductService.existsByGameUrl).toHaveBeenCalledOnceWith(2);
@@ -449,6 +457,7 @@ describe('ManualModeV2 external link disclosure', () => {
       gameUrlId: 2,
       presetId: 3,
       bypassCache: false,
+      productIds: null,
     });
     expect(component.products.map((product) => product.productName)).toEqual(['Loaded Item']);
   }));
@@ -485,8 +494,195 @@ describe('ManualModeV2 external link disclosure', () => {
       gameUrlId: 2,
       presetId: 3,
       bypassCache: true,
+      productIds: null,
     });
   }));
+
+  it('runs an automated check for selected products in grid order', fakeAsync(() => {
+    const completed = runDetail('Succeeded', 0, 0);
+    component.gameIdControl.setValue(1);
+    component.selectedGameUrl = {
+      id: 2,
+      name: 'Market',
+      isActive: true,
+      scrapingModeId: ScrapingModeEnum.ManualBatch,
+    } as never;
+    component.products = [
+      { productId: 5, productName: 'First', isActive: true },
+      { productId: 6, productName: 'Second', isActive: true },
+    ] as never;
+    component.productsFiltered = [...component.products];
+    component.setProductSelected(6, true);
+    component.setProductSelected(5, true);
+    dialog.open.and.returnValue({
+      afterClosed: () => of({ presetId: 3, bypassCache: false }),
+    });
+    manualCheckService.createRun.and.returnValue(of({ runId: 77, run: completed }));
+    manualCheckService.getRun.and.returnValue(of(completed));
+
+    component.automatedCheckSelectedProducts();
+    tick(0);
+
+    expect(manualCheckService.createRun).toHaveBeenCalledOnceWith({
+      gameUrlId: 2,
+      presetId: 3,
+      bypassCache: false,
+      productIds: [5, 6],
+    });
+  }));
+
+  it('runs an automated check for one product from its card action', fakeAsync(() => {
+    const completed = runDetail('Succeeded', 0, 0);
+    const product = { productId: 6, productName: 'Second', isActive: true } as GameUrlProduct;
+    component.gameIdControl.setValue(1);
+    component.selectedGameUrl = {
+      id: 2,
+      name: 'Market',
+      isActive: true,
+      scrapingModeId: ScrapingModeEnum.ManualBatch,
+    } as never;
+    component.products = [product];
+    dialog.open.and.returnValue({
+      afterClosed: () => of({ presetId: 3, bypassCache: true }),
+    });
+    manualCheckService.createRun.and.returnValue(of({ runId: 77, run: completed }));
+    manualCheckService.getRun.and.returnValue(of(completed));
+
+    component.automatedCheckProduct(product);
+    tick(0);
+
+    expect(manualCheckService.createRun).toHaveBeenCalledOnceWith({
+      gameUrlId: 2,
+      presetId: 3,
+      bypassCache: true,
+      productIds: [6],
+    });
+  }));
+
+  it('preserves selection across filters and selects only currently shown products', () => {
+    component.products = [
+      { productId: 5, productName: 'First', isActive: true },
+      { productId: 6, productName: 'Second', isActive: true },
+      { productId: 7, productName: 'Third', isActive: true },
+    ] as never;
+    component.productsFiltered = [component.products[0], component.products[1]];
+
+    component.setFilteredProductsSelected(true);
+    component.productsFiltered = [component.products[2]];
+
+    expect(component.selectedProductCount).toBe(2);
+    expect(component.isProductSelected(5)).toBeTrue();
+    expect(component.isProductSelected(6)).toBeTrue();
+    expect(component.isProductSelected(7)).toBeFalse();
+  });
+
+  it('applies matched, no-match, failed, and pending outcomes from a running poll', fakeAsync(() => {
+    const running = runDetail('Running', 1, 1);
+    running.totalProducts = 4;
+    running.checkedProducts = 3;
+    running.setup.products = [5, 6, 7, 8].map((productId) => ({
+      productId,
+      productName: `Product ${productId}`,
+      gameUrlId: 2,
+      gameUrlName: 'Market',
+      fullUrl: `https://steamcommunity.com/market/listings/440/Product%20${productId}`,
+      tags: [],
+      rating: null,
+    }));
+    running.results.productTraces = [
+      { productId: 5, productName: 'Matched', fullUrl: '', matchEvaluated: true, matched: true, matchedAssetCount: 1, steamApiResultJson: null, durationMilliseconds: 1 },
+      { productId: 6, productName: 'Failed', fullUrl: '', matchEvaluated: false, matched: false, matchedAssetCount: 0, steamApiResultJson: null, durationMilliseconds: 1 },
+      { productId: 7, productName: 'No match', fullUrl: '', matchEvaluated: true, matched: false, matchedAssetCount: 0, steamApiResultJson: null, durationMilliseconds: 1 },
+    ];
+    dialog.open.and.returnValue({ afterClosed: () => of(77) });
+    manualCheckService.getRun.and.returnValue(of(running));
+
+    component.automatedCheckHistoryButtonClicked();
+    tick(0);
+
+    expect(component.getAutomatedProductOutcome(5)).toBe('Matched');
+    expect(component.getAutomatedProductOutcome(6)).toBe('Failed');
+    expect(component.getAutomatedProductOutcome(7)).toBe('No match');
+    expect(component.getAutomatedProductOutcome(8)).toBe('Pending');
+    expect(component.automatedRunActive).toBeTrue();
+    component.ngOnDestroy();
+  }));
+
+  it('opens a product Steam API result only when the response is available', fakeAsync(() => {
+    const running = runDetail('Running', 0, 0);
+    const availableTrace = {
+      productId: 5,
+      productName: 'Available',
+      fullUrl: 'https://steamcommunity.com/market/listings/440/Available',
+      matchEvaluated: true,
+      matched: false,
+      matchedAssetCount: 0,
+      steamApiResultJson: '{"success":true}',
+      durationMilliseconds: 1,
+    };
+    running.setup.products = [5, 6].map((productId) => ({
+      productId,
+      productName: `Product ${productId}`,
+      gameUrlId: 2,
+      gameUrlName: 'Market',
+      fullUrl: `https://steamcommunity.com/market/listings/440/Product%20${productId}`,
+      tags: [],
+      rating: null,
+    }));
+    running.results.productTraces = [
+      availableTrace,
+      {
+        ...availableTrace,
+        productId: 6,
+        productName: 'Unavailable',
+        steamApiResultJson: null,
+      },
+    ];
+    dialog.open.and.returnValue({ afterClosed: () => of(77) });
+    manualCheckService.getRun.and.returnValue(of(running));
+
+    component.automatedCheckHistoryButtonClicked();
+    tick(0);
+    dialog.open.calls.reset();
+
+    expect(component.getAutomatedSteamApiResult(5)).toBe(availableTrace);
+    expect(component.getAutomatedSteamApiResult(6)).toBeNull();
+
+    component.openAutomatedSteamApiResult(5);
+    component.openAutomatedSteamApiResult(6);
+
+    expect(dialog.open).toHaveBeenCalledOnceWith(
+      ManualCheckSteamResultDialogComponent,
+      jasmine.objectContaining({ data: availableTrace }),
+    );
+    component.ngOnDestroy();
+  }));
+
+  it('pauses and continues the same automated run', () => {
+    const running = runDetail('Running', 0, 0);
+    const pausing = { ...running, status: 'PauseRequested' as const };
+    const paused = { ...running, status: 'Paused' as const };
+    component.automatedRun = running;
+    component.automatedRunId = 77;
+    component.automatedRunActive = true;
+    manualCheckService.pauseRun.and.returnValue(of(pausing));
+
+    component.pauseAutomatedRun();
+
+    expect(manualCheckService.pauseRun).toHaveBeenCalledOnceWith(77);
+    expect(component.automatedRun?.status).toBe('PauseRequested');
+
+    component.automatedRun = paused;
+    manualCheckService.continueRun.and.returnValue(of({
+      runId: 77,
+      run: { ...paused, status: 'Queued' },
+    }));
+
+    component.continueAutomatedRun();
+
+    expect(manualCheckService.continueRun).toHaveBeenCalledOnceWith(77);
+    expect(component.automatedRun?.status).toBe('Queued');
+  });
 
   it('includes the resolved product URL in warning tooltips', () => {
     const productUrl = 'https://steamcommunity.com/market/listings/440/Alpha%20Item';
@@ -538,6 +734,7 @@ describe('ManualModeV2 external link disclosure', () => {
         cooldownMinutes: null,
         cooldownSeconds: null,
         bypassCache: false,
+        requestedProductIds: null,
         criteria: [{ conditionOperatorId: null, nameContains: null, valueContains: 'Mean Green' }],
         products: [],
         requestedAtUtc: now,

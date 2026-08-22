@@ -65,6 +65,7 @@ describe('ManualCheckTraceDialogComponent', () => {
       cooldownMinutes: 1,
       cooldownSeconds: 9,
       bypassCache: false,
+      requestedProductIds: null,
       criteria: [
         { conditionOperatorId: null, nameContains: null, valueContains: 'Mean Green' },
         { conditionOperatorId: 3, conditionOperatorName: 'AND NOT', nameContains: 'Wear', valueContains: 'Battle Scarred' },

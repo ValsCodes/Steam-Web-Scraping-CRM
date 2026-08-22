@@ -7,5 +7,7 @@ public enum ManualCheckRunStatusEnum
     Succeeded = 3,
     CompletedWithErrors = 4,
     Failed = 5,
-    Canceled = 6
+    Canceled = 6,
+    PauseRequested = 7,
+    Paused = 8
 }

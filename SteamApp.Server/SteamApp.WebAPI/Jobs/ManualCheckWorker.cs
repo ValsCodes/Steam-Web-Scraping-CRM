@@ -20,7 +20,10 @@ public sealed class ManualCheckWorker(
             {
                 using var scope = scopeFactory.CreateScope();
                 var execution = scope.ServiceProvider.GetRequiredService<IManualCheckExecutionService>();
-                await execution.ExecuteAsync(workItem.RunId, runCancellation.Token);
+                await execution.ExecuteAsync(
+                    workItem.RunId,
+                    runCancellation.Token,
+                    workItem.PauseToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -39,7 +42,7 @@ public sealed class ManualCheckWorker(
             }
             finally
             {
-                queue.Complete(workItem.RunId);
+                queue.Complete(workItem.RunId, workItem.WorkItemId);
             }
         }
     }

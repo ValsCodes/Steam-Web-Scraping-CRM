@@ -14,13 +14,17 @@ public interface IManualCheckDataService
         long gameUrlId,
         long presetId,
         bool bypassCache,
+        IReadOnlyList<long>? productIds,
         CancellationToken cancellationToken);
     Task<ManualCheckRunSummaryDto> RerunAsync(long runId, CancellationToken cancellationToken);
+    Task<ManualCheckRunDetailDto> PauseAsync(long runId, CancellationToken cancellationToken);
+    Task<ManualCheckRunSummaryDto> ContinueAsync(long runId, CancellationToken cancellationToken);
     Task<ManualCheckRunDetailDto> CancelAsync(long runId, CancellationToken cancellationToken);
     Task<IReadOnlyList<ManualCheckRunSummaryDto>> GetRunsAsync(long? gameId, int take, CancellationToken cancellationToken);
     Task<ManualCheckRunDetailDto?> GetRunAsync(long id, CancellationToken cancellationToken);
-    Task<ManualCheckSetupDto?> MarkRunningAndGetSetupAsync(long id, CancellationToken cancellationToken);
-    Task UpdateProgressAsync(
+    Task<ManualCheckRunDetailDto?> MarkRunningAndGetRunAsync(long id, CancellationToken cancellationToken);
+    Task<ManualCheckRunStatusEnum?> MarkPausedAsync(long id, CancellationToken cancellationToken);
+    Task<ManualCheckRunStatusEnum?> UpdateProgressAsync(
         long id,
         int checkedProducts,
         int matchedProducts,

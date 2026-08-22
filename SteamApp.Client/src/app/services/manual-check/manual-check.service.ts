@@ -82,6 +82,18 @@ export class ManualCheckService {
       .pipe(catchError(handleError));
   }
 
+  pauseRun(id: number): Observable<ManualCheckRunDetail> {
+    return this.http
+      .post<ManualCheckRunDetail>(`${this.baseUrl}/runs/${id}/pause`, {})
+      .pipe(catchError(handleError));
+  }
+
+  continueRun(id: number): Observable<ManualCheckRunAccepted> {
+    return this.http
+      .post<ManualCheckRunAccepted>(`${this.baseUrl}/runs/${id}/continue`, {})
+      .pipe(catchError(handleError));
+  }
+
   rerun(id: number): Observable<ManualCheckRunAccepted> {
     return this.http
       .post<ManualCheckRunAccepted>(`${this.baseUrl}/runs/${id}/rerun`, {})

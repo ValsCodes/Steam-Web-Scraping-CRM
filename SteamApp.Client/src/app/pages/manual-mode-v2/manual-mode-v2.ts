@@ -24,7 +24,9 @@ import {
   Game,
   GameUrl,
   GameUrlProduct,
+  ManualCheckProductError,
   ManualCheckProductResult,
+  ManualCheckProductTrace,
   ManualCheckRunDetail,
   ScrapingMode,
   ScrapingModeEnum,
@@ -39,9 +41,11 @@ import {
   ScrapingModeService,
   TagService,
 } from '../../services';
-import { CopyLinkComponent } from '../../components';
 import { MatTooltip } from "@angular/material/tooltip";
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import {
   ExternalLinkDirective,
   externalUrlWarning,
@@ -62,6 +66,7 @@ import {
   ManualCheckTraceDialogData,
   ManualCheckTraceView,
 } from './manual-check-trace-dialog.component';
+import { ManualCheckSteamResultDialogComponent } from './manual-check-steam-result-dialog.component';
 
 @Component({
   selector: 'steam-manual-mode-v2',
@@ -70,9 +75,11 @@ import {
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    CopyLinkComponent,
     MatTooltip,
     MatDialogModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
     ExternalLinkDirective
 ],
   templateUrl: './manual-mode-v2.html',
@@ -100,10 +107,13 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   automatedRunId: number | null = null;
   automatedRunActive = false;
   automatedCancelPending = false;
+  automatedPausePending = false;
+  automatedContinuePending = false;
   hasAutomatedCheckResult = false;
   showAutomatedMatchesOnly = false;
   automatedCheckWarning = '';
   automatedCheckError = '';
+  readonly selectedProductIds = new Set<number>();
 
   readonly gameIdControl = new FormControl<number | null>(null);
   readonly scrapingModeIdControl = new FormControl<number | null>(null);
@@ -130,6 +140,9 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   private gameUrlsAll: GameUrl[] = [];
   private gameTagsAll: Tag[] = [];
   private readonly automatedMatches = new Map<number, ManualCheckProductResult>();
+  private readonly automatedProductTraces = new Map<number, ManualCheckProductTrace>();
+  private readonly automatedProductErrors = new Map<number, ManualCheckProductError>();
+  private readonly automatedTargetProductIds = new Set<number>();
   private readonly lastPresetByGame = new Map<number, number>();
 
   constructor(
@@ -169,6 +182,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
           this.selectedGameUrl = null;
           this.products = [];
           this.productsFiltered = [];
+          this.clearProductSelection();
           this.resetAutomatedCheck();
           this.cdr.markForCheck();
           return;
@@ -178,6 +192,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
           this.gameUrlsFiltered$.value.find((u) => u.id === gameUrlId) ?? null;
 
         this.clearBatchButtonClicked();
+        this.clearProductSelection();
         this.resetAutomatedCheck();
 
         this.cdr.markForCheck();
@@ -232,6 +247,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
     this.products = [];
     this.productsFiltered = [];
+    this.clearProductSelection();
     this.resetAutomatedCheck();
 
     this.clearFiltersButtonClicked();
@@ -247,9 +263,33 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   }
 
   automatedCheckButtonClicked(): void {
+    this.openAutomatedCheckSetup(null);
+  }
+
+  automatedCheckSelectedProducts(): void {
+    const productIds = this.products
+      .filter((product) => this.selectedProductIds.has(product.productId))
+      .map((product) => product.productId);
+    if (productIds.length === 0) {
+      return;
+    }
+
+    this.openAutomatedCheckSetup(productIds);
+  }
+
+  automatedCheckProduct(product: GameUrlProduct): void {
+    this.openAutomatedCheckSetup([product.productId]);
+  }
+
+  private openAutomatedCheckSetup(productIds: number[] | null): void {
     const source = this.selectedGameUrl;
     const gameId = this.gameIdControl.value;
-    if (!source || gameId === null || !this.isAutomatedCheckEligible(source)) {
+    if (
+      !source ||
+      gameId === null ||
+      !this.isAutomatedCheckEligible(source) ||
+      this.automatedRunActive
+    ) {
       return;
     }
 
@@ -276,7 +316,12 @@ export class ManualModeV2 implements OnInit, OnDestroy {
         return;
       }
       this.lastPresetByGame.set(gameId, result.presetId);
-      this.startAutomatedRun(source.id, result.presetId, result.bypassCache);
+      this.startAutomatedRun(
+        source.id,
+        result.presetId,
+        result.bypassCache,
+        productIds,
+      );
     });
   }
 
@@ -328,6 +373,155 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
   getAutomatedMatch(productId: number): ManualCheckProductResult | null {
     return this.automatedMatches.get(productId) ?? null;
+  }
+
+  getAutomatedProductError(productId: number): ManualCheckProductError | null {
+    return this.automatedProductErrors.get(productId) ?? null;
+  }
+
+  getAutomatedSteamApiResult(productId: number): ManualCheckProductTrace | null {
+    const trace = this.automatedProductTraces.get(productId);
+    return trace?.steamApiResultJson ? trace : null;
+  }
+
+  openAutomatedSteamApiResult(productId: number): void {
+    const trace = this.getAutomatedSteamApiResult(productId);
+    if (!trace) {
+      return;
+    }
+
+    this.dialog.open(ManualCheckSteamResultDialogComponent, {
+      width: '64rem',
+      maxWidth: '96vw',
+      maxHeight: '90vh',
+      data: trace,
+    });
+  }
+
+  getAutomatedProductOutcome(
+    productId: number,
+  ): 'Pending' | 'Matched' | 'No match' | 'Failed' | null {
+    if (!this.automatedTargetProductIds.has(productId)) {
+      return null;
+    }
+
+    if (this.automatedProductErrors.has(productId)) {
+      return 'Failed';
+    }
+
+    if (this.automatedMatches.has(productId)) {
+      return 'Matched';
+    }
+
+    const trace = this.automatedProductTraces.get(productId);
+    return trace?.matchEvaluated ? 'No match' : 'Pending';
+  }
+
+  get selectedProductCount(): number {
+    return this.selectedProductIds.size;
+  }
+
+  get areAllFilteredProductsSelected(): boolean {
+    return this.productsFiltered.length > 0 &&
+      this.productsFiltered.every((product) => this.selectedProductIds.has(product.productId));
+  }
+
+  get areSomeFilteredProductsSelected(): boolean {
+    const selectedCount = this.productsFiltered.filter(
+      (product) => this.selectedProductIds.has(product.productId),
+    ).length;
+    return selectedCount > 0 && selectedCount < this.productsFiltered.length;
+  }
+
+  isProductSelected(productId: number): boolean {
+    return this.selectedProductIds.has(productId);
+  }
+
+  setProductSelected(productId: number, selected: boolean): void {
+    if (selected) {
+      this.selectedProductIds.add(productId);
+    } else {
+      this.selectedProductIds.delete(productId);
+    }
+    this.cdr.markForCheck();
+  }
+
+  setFilteredProductsSelected(selected: boolean): void {
+    for (const product of this.productsFiltered) {
+      if (selected) {
+        this.selectedProductIds.add(product.productId);
+      } else {
+        this.selectedProductIds.delete(product.productId);
+      }
+    }
+    this.cdr.markForCheck();
+  }
+
+  get canPauseAutomatedRun(): boolean {
+    return this.automatedRun?.status === 'Queued' || this.automatedRun?.status === 'Running';
+  }
+
+  get canContinueAutomatedRun(): boolean {
+    return this.automatedRun?.status === 'Paused';
+  }
+
+  pauseAutomatedRun(): void {
+    const runId = this.automatedRunId;
+    if (runId === null || !this.canPauseAutomatedRun || this.automatedPausePending) {
+      return;
+    }
+
+    this.automatedPausePending = true;
+    this.automatedCheckError = '';
+    this.manualCheckService.pauseRun(runId)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.automatedPausePending = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: (run) => {
+          this.automatedRun = run;
+          this.applyAutomatedRun(run);
+          this.cdr.markForCheck();
+        },
+        error: (error) => {
+          this.automatedCheckError = this.getRequestError(error, 'Unable to pause the automated check.');
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  continueAutomatedRun(): void {
+    const runId = this.automatedRunId;
+    if (runId === null || !this.canContinueAutomatedRun || this.automatedContinuePending) {
+      return;
+    }
+
+    this.automatedContinuePending = true;
+    this.automatedCheckError = '';
+    this.manualCheckService.continueRun(runId)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.automatedContinuePending = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: (accepted) => {
+          if (this.automatedRun) {
+            this.automatedRun = { ...this.automatedRun, ...accepted.run };
+          }
+          this.cdr.markForCheck();
+        },
+        error: (error) => {
+          this.automatedCheckError = this.getRequestError(error, 'Unable to continue the automated check.');
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   cancelAutomatedRun(): void {
@@ -636,6 +830,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
       this.products = [];
       this.productsFiltered = [];
+      this.clearProductSelection();
       this.resetAutomatedCheck();
 
       this.cdr.markForCheck();
@@ -668,6 +863,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
     this.products = [];
     this.productsFiltered = [];
+    this.clearProductSelection();
     this.resetAutomatedCheck();
 
     this.cdr.markForCheck();
@@ -713,6 +909,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
           }
 
           this.products = products.filter((product) => product.isActive === true);
+          this.clearProductSelection();
           this.loadFilteredProducts();
           this.cdr.detectChanges();
         },
@@ -726,13 +923,20 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       });
   }
 
-  private startAutomatedRun(gameUrlId: number, presetId: number, bypassCache: boolean): void {
+  private startAutomatedRun(
+    gameUrlId: number,
+    presetId: number,
+    bypassCache: boolean,
+    productIds: number[] | null,
+  ): void {
     this.resetAutomatedCheck();
-    this.loadProductsGrid(gameUrlId);
+    if (this.products.length === 0) {
+      this.loadProductsGrid(gameUrlId);
+    }
     this.automatedRunActive = true;
     this.cdr.markForCheck();
 
-    this.manualCheckService.createRun({ gameUrlId, presetId, bypassCache })
+    this.manualCheckService.createRun({ gameUrlId, presetId, bypassCache, productIds })
       .pipe(
         takeUntil(this.automatedRunStop$),
         takeUntil(this.destroy$),
@@ -762,9 +966,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     ).subscribe({
       next: (run) => {
         this.automatedRun = run;
-        if (this.isTerminalStatus(run)) {
-          this.applyAutomatedRun(run);
-        }
+        this.applyAutomatedRun(run);
         this.cdr.markForCheck();
       },
       error: (error) => {
@@ -776,15 +978,47 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   }
 
   private applyAutomatedRun(run: ManualCheckRunDetail): void {
-    this.automatedRunActive = false;
-    this.hasAutomatedCheckResult = true;
+    const isTerminal = this.isTerminalStatus(run);
+    this.automatedRunActive = !isTerminal;
+    this.hasAutomatedCheckResult = isTerminal;
+
+    if (
+      run.setup.products.length > 0 &&
+      (this.products.length === 0 || this.products.some((product) => product.gameUrlId !== run.gameUrlId))
+    ) {
+      this.products = run.setup.products.map((product) => ({
+        ...product,
+        isActive: true,
+      }));
+      this.clearProductSelection();
+    }
+
     this.automatedMatches.clear();
+    this.automatedProductTraces.clear();
+    this.automatedProductErrors.clear();
+    this.automatedTargetProductIds.clear();
+
+    for (const product of run.setup.products) {
+      this.automatedTargetProductIds.add(product.productId);
+    }
 
     for (const match of run.results.matches) {
       this.automatedMatches.set(match.productId, match);
     }
 
+    for (const trace of run.results.productTraces) {
+      this.automatedProductTraces.set(trace.productId, trace);
+    }
+
+    for (const error of run.results.errors) {
+      this.automatedProductErrors.set(error.productId, error);
+    }
+
     this.loadFilteredProducts();
+
+    if (!isTerminal) {
+      return;
+    }
 
     if (run.status === 'CompletedWithErrors') {
       this.automatedCheckWarning = run.errorText
@@ -802,11 +1036,16 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.automatedRunId = null;
     this.automatedRunActive = false;
     this.automatedCancelPending = false;
+    this.automatedPausePending = false;
+    this.automatedContinuePending = false;
     this.hasAutomatedCheckResult = false;
     this.showAutomatedMatchesOnly = false;
     this.automatedCheckWarning = '';
     this.automatedCheckError = '';
     this.automatedMatches.clear();
+    this.automatedProductTraces.clear();
+    this.automatedProductErrors.clear();
+    this.automatedTargetProductIds.clear();
   }
 
   private isTerminalStatus(run: ManualCheckRunDetail): boolean {
@@ -814,6 +1053,10 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       || run.status === 'CompletedWithErrors'
       || run.status === 'Failed'
       || run.status === 'Canceled';
+  }
+
+  private clearProductSelection(): void {
+    this.selectedProductIds.clear();
   }
 
   private getRequestError(error: unknown, fallback: string): string {

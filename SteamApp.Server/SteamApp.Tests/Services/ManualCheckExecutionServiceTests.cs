@@ -37,7 +37,7 @@ public sealed class ManualCheckExecutionServiceTests
         var data = DataServiceMock(Setup(Product(1, "First")));
         var service = CreateService(handler, data.Object, maxAttempts: 4);
 
-        await service.ExecuteAsync(10, CancellationToken.None);
+        await service.ExecuteAsync(10, CancellationToken.None, CancellationToken.None);
 
         Assert.That(attempts, Is.EqualTo(4));
         data.Verify(x => x.CompleteAsync(
@@ -86,7 +86,7 @@ public sealed class ManualCheckExecutionServiceTests
         var data = DataServiceMock(Setup(Product(1, "First"), Product(2, "Second")));
         var service = CreateService(handler, data.Object, maxAttempts: 1);
 
-        await service.ExecuteAsync(11, CancellationToken.None);
+        await service.ExecuteAsync(11, CancellationToken.None, CancellationToken.None);
 
         data.Verify(x => x.UpdateProgressAsync(
             11,
@@ -114,7 +114,7 @@ public sealed class ManualCheckExecutionServiceTests
         var data = DataServiceMock(Setup(Product(1, "First"), Product(2, "Second")));
         var service = CreateService(handler, data.Object, maxAttempts: 1);
 
-        await service.ExecuteAsync(12, CancellationToken.None);
+        await service.ExecuteAsync(12, CancellationToken.None, CancellationToken.None);
 
         data.Verify(x => x.FailAsync(
             12,
@@ -153,7 +153,7 @@ public sealed class ManualCheckExecutionServiceTests
         var data = DataServiceMock(Setup(Product(1, "First")));
         var service = CreateService(handler, data.Object, maxAttempts: 1);
 
-        await service.ExecuteAsync(13, CancellationToken.None);
+        await service.ExecuteAsync(13, CancellationToken.None, CancellationToken.None);
 
         data.Verify(x => x.FailAsync(
             13,
@@ -181,7 +181,7 @@ public sealed class ManualCheckExecutionServiceTests
         var data = DataServiceMock(Setup(Product(1, "First")));
         var service = CreateService(handler, data.Object, maxAttempts: 1);
 
-        await service.ExecuteAsync(14, CancellationToken.None);
+        await service.ExecuteAsync(14, CancellationToken.None, CancellationToken.None);
 
         data.Verify(x => x.CompleteAsync(
             14,
@@ -212,7 +212,7 @@ public sealed class ManualCheckExecutionServiceTests
         var data = DataServiceMock(Setup(Product(1, "First")));
         var service = CreateService(handler, data.Object, maxAttempts: 1);
 
-        await service.ExecuteAsync(15, CancellationToken.None);
+        await service.ExecuteAsync(15, CancellationToken.None, CancellationToken.None);
 
         data.Verify(x => x.CompleteAsync(
             15,
@@ -241,8 +241,8 @@ public sealed class ManualCheckExecutionServiceTests
         var data = DataServiceMock(Setup(Product(1, "First")));
         var service = CreateService(handler, data.Object, maxAttempts: 1, cache.Object);
 
-        await service.ExecuteAsync(16, CancellationToken.None);
-        await service.ExecuteAsync(17, CancellationToken.None);
+        await service.ExecuteAsync(16, CancellationToken.None, CancellationToken.None);
+        await service.ExecuteAsync(17, CancellationToken.None, CancellationToken.None);
 
         Assert.Multiple(() =>
         {
@@ -272,8 +272,8 @@ public sealed class ManualCheckExecutionServiceTests
             maxAttempts: 1,
             cache.Object);
 
-        await cachedRun.ExecuteAsync(18, CancellationToken.None);
-        await refreshRun.ExecuteAsync(19, CancellationToken.None);
+        await cachedRun.ExecuteAsync(18, CancellationToken.None, CancellationToken.None);
+        await refreshRun.ExecuteAsync(19, CancellationToken.None, CancellationToken.None);
 
         Assert.That(attempts, Is.EqualTo(2));
         cache.Verify(x => x.SetAsync(
@@ -304,7 +304,7 @@ public sealed class ManualCheckExecutionServiceTests
         var data = DataServiceMock(Setup(Product(1, "First")));
         var service = CreateService(handler, data.Object, maxAttempts: 1, cache.Object);
 
-        await service.ExecuteAsync(20, CancellationToken.None);
+        await service.ExecuteAsync(20, CancellationToken.None, CancellationToken.None);
 
         Assert.That(attempts, Is.EqualTo(1));
         data.Verify(x => x.CompleteAsync(
@@ -327,7 +327,7 @@ public sealed class ManualCheckExecutionServiceTests
             .Returns(Task.CompletedTask);
         var service = CreateService(handler, data.Object, maxAttempts: 1, delay: delay.Object);
 
-        await service.ExecuteAsync(21, CancellationToken.None);
+        await service.ExecuteAsync(21, CancellationToken.None, CancellationToken.None);
 
         delay.Verify(x => x.DelayAsync(TimeSpan.FromSeconds(69), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -347,9 +347,125 @@ public sealed class ManualCheckExecutionServiceTests
             delay: delay.Object,
             defaultDelay: TimeSpan.FromSeconds(3));
 
-        await service.ExecuteAsync(22, CancellationToken.None);
+        await service.ExecuteAsync(22, CancellationToken.None, CancellationToken.None);
 
         delay.Verify(x => x.DelayAsync(TimeSpan.FromSeconds(3), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_PauseDuringProduct_FinishesAndPersistsTheCurrentProduct()
+    {
+        var attempts = 0;
+        using var pause = new CancellationTokenSource();
+        var handler = new HttpMessageHandlerStub((_, _) =>
+        {
+            attempts++;
+            pause.Cancel();
+            return JsonResponse(new Listing { Success = true });
+        });
+        var data = DataServiceMock(Setup(Product(1, "First"), Product(2, "Second")));
+        data.Setup(x => x.UpdateProgressAsync(
+                23,
+                1,
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<ManualCheckRunResultsDto>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ManualCheckRunStatusEnum.Paused);
+        var service = CreateService(handler, data.Object, maxAttempts: 1);
+
+        await service.ExecuteAsync(23, CancellationToken.None, pause.Token);
+
+        Assert.That(attempts, Is.EqualTo(1));
+        data.Verify(x => x.UpdateProgressAsync(
+            23,
+            1,
+            0,
+            0,
+            It.Is<ManualCheckRunResultsDto>(results =>
+                results.ProductTraces.Count == 1 &&
+                results.ProductTraces[0].MatchEvaluated),
+            It.IsAny<CancellationToken>()), Times.Once);
+        data.Verify(x => x.CompleteAsync(
+            It.IsAny<long>(),
+            It.IsAny<ManualCheckRunStatusEnum>(),
+            It.IsAny<ManualCheckRunResultsDto>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_PauseDuringCooldown_ReleasesBeforeTheNextProduct()
+    {
+        var attempts = 0;
+        using var pause = new CancellationTokenSource();
+        var handler = new HttpMessageHandlerStub((_, _) =>
+        {
+            attempts++;
+            return JsonResponse(new Listing { Success = true });
+        });
+        var data = DataServiceMock(Setup(Product(1, "First"), Product(2, "Second")));
+        var delay = new Mock<IManualCheckDelay>();
+        delay.Setup(x => x.DelayAsync(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .Returns((TimeSpan _, CancellationToken token) =>
+            {
+                pause.Cancel();
+                return Task.FromCanceled(token);
+            });
+        var service = CreateService(handler, data.Object, maxAttempts: 1, delay: delay.Object);
+
+        await service.ExecuteAsync(24, CancellationToken.None, pause.Token);
+
+        Assert.That(attempts, Is.EqualTo(1));
+        data.Verify(x => x.MarkPausedAsync(24, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ContinuedRun_ResumesAtTheFirstUncheckedProduct()
+    {
+        var requestedProducts = new List<string>();
+        var handler = new HttpMessageHandlerStub((request, _) =>
+        {
+            requestedProducts.Add(request.RequestUri!.AbsoluteUri);
+            return JsonResponse(new Listing { Success = true });
+        });
+        var setup = Setup(Product(1, "First"), Product(2, "Second"));
+        var data = new Mock<IManualCheckDataService>();
+        data.Setup(x => x.MarkRunningAndGetRunAsync(25, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ManualCheckRunDetailDto
+            {
+                Id = 25,
+                Status = ManualCheckRunStatusEnum.Running,
+                CheckedProducts = 1,
+                Setup = setup,
+                Results = new ManualCheckRunResultsDto
+                {
+                    ProductTraces =
+                    [
+                        new ManualCheckProductTraceDto
+                        {
+                            ProductId = 1,
+                            ProductName = "First",
+                            MatchEvaluated = true
+                        }
+                    ]
+                }
+            });
+        var service = CreateService(handler, data.Object, maxAttempts: 1);
+
+        await service.ExecuteAsync(25, CancellationToken.None, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(requestedProducts, Has.Count.EqualTo(1));
+            Assert.That(requestedProducts[0], Does.Contain("Second"));
+        });
+        data.Verify(x => x.UpdateProgressAsync(
+            25,
+            2,
+            0,
+            0,
+            It.Is<ManualCheckRunResultsDto>(results => results.ProductTraces.Count == 2),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
@@ -373,7 +489,7 @@ public sealed class ManualCheckExecutionServiceTests
         var service = CreateService(handler, data.Object, maxAttempts: 1, delay: delay.Object);
 
         Assert.CatchAsync<OperationCanceledException>(async () =>
-            await service.ExecuteAsync(23, cancellation.Token));
+            await service.ExecuteAsync(23, cancellation.Token, CancellationToken.None));
 
         Assert.That(attempts, Is.EqualTo(1));
         data.Verify(x => x.CompleteAsync(
@@ -418,9 +534,14 @@ public sealed class ManualCheckExecutionServiceTests
     private static Mock<IManualCheckDataService> DataServiceMock(ManualCheckSetupDto setup)
     {
         var data = new Mock<IManualCheckDataService>();
-        data.Setup(x => x.MarkRunningAndGetSetupAsync(
+        data.Setup(x => x.MarkRunningAndGetRunAsync(
                 It.IsAny<long>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(setup);
+            .ReturnsAsync(new ManualCheckRunDetailDto
+            {
+                Status = ManualCheckRunStatusEnum.Running,
+                Setup = setup,
+                Results = new ManualCheckRunResultsDto()
+            });
         return data;
     }
 

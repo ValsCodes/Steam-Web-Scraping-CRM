@@ -7,30 +7,32 @@ namespace SteamApp.WebAPI.Jobs;
 
 public sealed class ManualCheckQueue : IManualCheckQueue
 {
-    private readonly Channel<long> channel = Channel.CreateUnbounded<long>(
+    private readonly Channel<ManualCheckQueueItem> channel = Channel.CreateUnbounded<ManualCheckQueueItem>(
         new UnboundedChannelOptions
         {
             SingleReader = true,
             SingleWriter = false
         });
-    private readonly ConcurrentDictionary<long, CancellationTokenSource> cancellations = new();
+    private readonly ConcurrentDictionary<Guid, ManualCheckQueueControl> controls = new();
+    private readonly ConcurrentDictionary<long, Guid> currentWorkItems = new();
 
     public async ValueTask EnqueueAsync(long runId, CancellationToken cancellationToken = default)
     {
-        var runCancellation = new CancellationTokenSource();
-        if (!cancellations.TryAdd(runId, runCancellation))
+        var control = new ManualCheckQueueControl(runId);
+        if (!controls.TryAdd(control.WorkItemId, control))
         {
-            runCancellation.Dispose();
-            throw new InvalidOperationException($"Manual check run {runId} is already queued.");
+            control.Dispose();
+            throw new InvalidOperationException($"Unable to register manual check run {runId}.");
         }
 
         try
         {
-            await channel.Writer.WriteAsync(runId, cancellationToken);
+            SetCurrentWorkItem(control);
+            await channel.Writer.WriteAsync(control.CreateWorkItem(), cancellationToken);
         }
         catch
         {
-            Complete(runId);
+            Complete(runId, control.WorkItemId);
             throw;
         }
     }
@@ -38,38 +40,87 @@ public sealed class ManualCheckQueue : IManualCheckQueue
     public async IAsyncEnumerable<ManualCheckQueueItem> ReadAllAsync(
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        await foreach (var runId in channel.Reader.ReadAllAsync(cancellationToken))
+        await foreach (var workItem in channel.Reader.ReadAllAsync(cancellationToken))
         {
-            if (cancellations.TryGetValue(runId, out var runCancellation))
+            if (IsCurrent(workItem.RunId, workItem.WorkItemId))
             {
-                yield return new ManualCheckQueueItem(runId, runCancellation.Token);
+                yield return workItem;
+            }
+            else
+            {
+                Complete(workItem.RunId, workItem.WorkItemId);
             }
         }
     }
 
+    public bool TryPause(long runId)
+    {
+        return TryGetCurrentControl(runId, out var control) && control.TryPause();
+    }
+
     public bool TryCancel(long runId)
     {
-        if (!cancellations.TryGetValue(runId, out var cancellation))
-        {
-            return false;
-        }
+        return TryGetCurrentControl(runId, out var control) && control.TryCancel();
+    }
 
-        try
+    public void Complete(long runId, Guid workItemId)
+    {
+        RemoveCurrent(runId, workItemId);
+        if (controls.TryRemove(workItemId, out var control))
         {
-            cancellation.Cancel();
-            return true;
-        }
-        catch (ObjectDisposedException)
-        {
-            return false;
+            control.Dispose();
         }
     }
 
-    public void Complete(long runId)
+    private void SetCurrentWorkItem(ManualCheckQueueControl control)
     {
-        if (cancellations.TryRemove(runId, out var cancellation))
+        while (true)
         {
-            cancellation.Dispose();
+            if (!currentWorkItems.TryGetValue(control.RunId, out var existingWorkItemId))
+            {
+                if (currentWorkItems.TryAdd(control.RunId, control.WorkItemId))
+                {
+                    return;
+                }
+
+                continue;
+            }
+
+            if (!controls.TryGetValue(existingWorkItemId, out var existingControl) ||
+                !existingControl.IsPauseRequested)
+            {
+                throw new InvalidOperationException($"Manual check run {control.RunId} is already queued.");
+            }
+
+            if (currentWorkItems.TryUpdate(control.RunId, control.WorkItemId, existingWorkItemId))
+            {
+                return;
+            }
         }
+    }
+
+    private bool TryGetCurrentControl(long runId, out ManualCheckQueueControl control)
+    {
+        if (currentWorkItems.TryGetValue(runId, out var workItemId) &&
+            controls.TryGetValue(workItemId, out var currentControl))
+        {
+            control = currentControl;
+            return true;
+        }
+
+        control = null!;
+        return false;
+    }
+
+    private bool IsCurrent(long runId, Guid workItemId)
+    {
+        return currentWorkItems.TryGetValue(runId, out var currentWorkItemId) &&
+               currentWorkItemId == workItemId;
+    }
+
+    private void RemoveCurrent(long runId, Guid workItemId)
+    {
+        var pair = new KeyValuePair<long, Guid>(runId, workItemId);
+        ((ICollection<KeyValuePair<long, Guid>>)currentWorkItems).Remove(pair);
     }
 }

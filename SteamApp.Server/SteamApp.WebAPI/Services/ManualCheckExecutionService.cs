@@ -26,28 +26,53 @@ public sealed class ManualCheckExecutionService(
 {
     private static readonly TimeSpan SteamListingCacheDuration = TimeSpan.FromMinutes(20);
 
-    public async Task ExecuteAsync(long runId, CancellationToken cancellationToken)
+    public async Task ExecuteAsync(
+        long runId,
+        CancellationToken cancellationToken,
+        CancellationToken pauseToken)
     {
-        var setup = await dataService.MarkRunningAndGetSetupAsync(runId, cancellationToken);
-        if (setup is null)
+        var run = await dataService.MarkRunningAndGetRunAsync(runId, cancellationToken);
+        if (run is null)
         {
             return;
         }
 
-        var results = new ManualCheckRunResultsDto();
-        var successfulProducts = 0;
+        var setup = run.Setup;
+        var results = run.Results;
+        var successfulProducts = results.ProductTraces.Count(x => x.MatchEvaluated);
+        var startIndex = Math.Clamp(run.CheckedProducts, 0, setup.Products.Count);
         var delayBetweenChecks = GetDelayBetweenChecks(setup);
 
         try
         {
-            for (var index = 0; index < setup.Products.Count; index++)
+            for (var index = startIndex; index < setup.Products.Count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+
+                if (pauseToken.IsCancellationRequested)
+                {
+                    await dataService.MarkPausedAsync(runId, cancellationToken);
+                    return;
+                }
+
                 var product = setup.Products[index];
 
                 if (index > 0)
                 {
-                    await delay.DelayAsync(delayBetweenChecks, cancellationToken);
+                    using var delayCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                        cancellationToken,
+                        pauseToken);
+                    try
+                    {
+                        await delay.DelayAsync(delayBetweenChecks, delayCancellation.Token);
+                    }
+                    catch (OperationCanceledException) when (
+                        pauseToken.IsCancellationRequested &&
+                        !cancellationToken.IsCancellationRequested)
+                    {
+                        await dataService.MarkPausedAsync(runId, cancellationToken);
+                        return;
+                    }
                 }
 
                 var productTrace = CreateProductTrace(product);
@@ -112,13 +137,18 @@ public sealed class ManualCheckExecutionService(
                         (long)Math.Round(Stopwatch.GetElapsedTime(productStartedTimestamp).TotalMilliseconds));
                 }
 
-                await dataService.UpdateProgressAsync(
+                var progressStatus = await dataService.UpdateProgressAsync(
                     runId,
                     index + 1,
                     results.Matches.Count,
                     results.Errors.Count,
                     results,
                     cancellationToken);
+
+                if (progressStatus is ManualCheckRunStatusEnum.Paused or ManualCheckRunStatusEnum.Canceled)
+                {
+                    return;
+                }
             }
 
             if (successfulProducts == 0)

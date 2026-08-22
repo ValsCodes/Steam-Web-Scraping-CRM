@@ -109,13 +109,17 @@ export interface ManualCheckHistoryDialogData {
                   </td>
                   <td class="manual-check-history__actions">
                     <button mat-stroked-button type="button" (click)="openTrace(run)">View trace</button>
-                    <button
-                      mat-button
-                      type="button"
-                      (click)="rerun(run)"
-                      [disabled]="busyRunId !== null">
-                      {{ busyRunId === run.id ? 'Starting…' : 'Rerun' }}
-                    </button>
+                    @if (isActiveRun(run)) {
+                      <button mat-button type="button" (click)="manage(run)">Manage</button>
+                    } @else {
+                      <button
+                        mat-button
+                        type="button"
+                        (click)="rerun(run)"
+                        [disabled]="busyRunId !== null">
+                        {{ busyRunId === run.id ? 'Starting…' : 'Rerun' }}
+                      </button>
+                    }
                   </td>
                 </tr>
               }
@@ -147,6 +151,8 @@ export interface ManualCheckHistoryDialogData {
     .manual-check-history__status--completedwitherrors { background: #fef3c7; color: #92400e; }
     .manual-check-history__status--failed { background: #fee2e2; color: #991b1b; }
     .manual-check-history__status--running { background: #dbeafe; color: #1e40af; }
+    .manual-check-history__status--pauserequested { background: #e0e7ff; color: #3730a3; }
+    .manual-check-history__status--paused { background: #f1f5f9; color: #334155; }
     .manual-check-history__status--canceled { background: #fef3c7; color: #92400e; }
     .manual-check-history__outcome--match { color: #166534; }
     .manual-check-history__outcome--failed { color: #b91c1c; font-weight: 600; }
@@ -197,7 +203,21 @@ export class ManualCheckHistoryDialogComponent implements OnInit {
   }
 
   statusLabel(run: ManualCheckRunSummary): string {
-    return run.status === 'CompletedWithErrors' ? 'Completed with errors' : run.status;
+    if (run.status === 'CompletedWithErrors') {
+      return 'Completed with errors';
+    }
+    return run.status === 'PauseRequested' ? 'Pausing' : run.status;
+  }
+
+  isActiveRun(run: ManualCheckRunSummary): boolean {
+    return run.status === 'Queued' ||
+      run.status === 'Running' ||
+      run.status === 'PauseRequested' ||
+      run.status === 'Paused';
+  }
+
+  manage(run: ManualCheckRunSummary): void {
+    this.dialogRef.close(run.id);
   }
 
   openTrace(run: ManualCheckRunSummary): void {

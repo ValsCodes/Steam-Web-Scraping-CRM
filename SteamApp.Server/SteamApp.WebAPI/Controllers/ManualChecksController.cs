@@ -114,6 +114,7 @@ public sealed class ManualChecksController(
                 input.GameUrlId,
                 input.PresetId,
                 input.BypassCache,
+                input.ProductIds,
                 cancellationToken);
             await queue.EnqueueAsync(run.Id, cancellationToken);
             return AcceptedAtAction(nameof(GetRun), new { id = run.Id }, new ManualCheckRunAcceptedDto
@@ -195,6 +196,68 @@ public sealed class ManualChecksController(
         catch (ManualCheckRequestException exception)
         {
             logger.LogWarning(exception, "Manual-check run {RunId} cancellation failed.", id);
+            return Problem(
+                statusCode: exception.StatusCode,
+                title: "Manual check request failed",
+                detail: exception.Message);
+        }
+    }
+
+    [HttpPost("runs/{id:long}/pause")]
+    public async Task<IActionResult> PauseRun(
+        long id,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var run = await dataService.PauseAsync(id, cancellationToken);
+            queue.TryPause(id);
+            logger.LogInformation(
+                "Manual-check run {RunId} pause requested at {CheckedProducts}/{TotalProducts} products.",
+                id,
+                run.CheckedProducts,
+                run.TotalProducts);
+            return Ok(run);
+        }
+        catch (ManualCheckRequestException exception)
+        {
+            logger.LogWarning(exception, "Manual-check run {RunId} pause failed.", id);
+            return Problem(
+                statusCode: exception.StatusCode,
+                title: "Manual check request failed",
+                detail: exception.Message);
+        }
+    }
+
+    [HttpPost("runs/{id:long}/continue")]
+    [EnableRateLimiting(SecurityPolicies.ExpensiveApiRateLimit)]
+    public async Task<IActionResult> ContinueRun(
+        long id,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var run = await dataService.ContinueAsync(id, cancellationToken);
+            try
+            {
+                await queue.EnqueueAsync(run.Id, cancellationToken);
+            }
+            catch
+            {
+                await dataService.PauseAsync(id, CancellationToken.None);
+                queue.TryPause(id);
+                throw;
+            }
+
+            return AcceptedAtAction(nameof(GetRun), new { id = run.Id }, new ManualCheckRunAcceptedDto
+            {
+                RunId = run.Id,
+                Run = run
+            });
+        }
+        catch (ManualCheckRequestException exception)
+        {
+            logger.LogWarning(exception, "Manual-check run {RunId} continuation failed.", id);
             return Problem(
                 statusCode: exception.StatusCode,
                 title: "Manual check request failed",

@@ -52,7 +52,7 @@
                                 class="button button-small-success"
                                 (click)="automatedCheckButtonClicked()"
                                 [disabled]="!isAutomatedCheckEligible(selectedGameUrl) || automatedRunActive">
-                                Automated check
+                                Check all products
                             </button>
 
                             <button
@@ -233,10 +233,31 @@
                             <div class="flex items-center gap-2">
                                 <span class="text-sm text-slate-500">{{ automatedRun.presetName }}</span>
                                 @if (automatedRunActive) {
+                                    @if (canPauseAutomatedRun) {
+                                        <button
+                                            type="button"
+                                            class="button button-small-primary"
+                                            [disabled]="automatedPausePending || automatedCancelPending || automatedContinuePending"
+                                            (click)="pauseAutomatedRun()">
+                                            {{ automatedPausePending ? 'Pausing...' : 'Pause check' }}
+                                        </button>
+                                    } @else if (automatedRun.status === 'PauseRequested') {
+                                        <button type="button" class="button button-small-primary" disabled>
+                                            Pausing...
+                                        </button>
+                                    } @else if (canContinueAutomatedRun) {
+                                        <button
+                                            type="button"
+                                            class="button button-small-success"
+                                            [disabled]="automatedContinuePending || automatedCancelPending"
+                                            (click)="continueAutomatedRun()">
+                                            {{ automatedContinuePending ? 'Continuing...' : 'Continue check' }}
+                                        </button>
+                                    }
                                     <button
                                         type="button"
                                         class="button button-small-danger"
-                                        [disabled]="automatedCancelPending || automatedRunId === null"
+                                        [disabled]="automatedCancelPending || automatedPausePending || automatedContinuePending || automatedRunId === null"
                                         (click)="cancelAutomatedRun()">
                                         {{ automatedCancelPending ? 'Canceling...' : 'Cancel check' }}
                                     </button>
@@ -397,11 +418,31 @@
 
                 <!-- Results -->
                 <section class="rounded-lg border border-slate-300 bg-white shadow-sm">
-                    <div class="border-b border-slate-200 px-4 py-3">
-                        <h2 class="text-lg font-semibold text-slate-800">Products</h2>
-                        <p class="mt-1 text-sm text-slate-500">
-                            Browse all loaded products. Automated matches are highlighted on their product cards.
-                        </p>
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+                        <div>
+                            <h2 class="text-lg font-semibold text-slate-800">Products</h2>
+                            <p class="mt-1 text-sm text-slate-500">
+                                Select products for a scoped check or use a card menu to check one product.
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <label class="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
+                                <input
+                                    type="checkbox"
+                                    [checked]="areAllFilteredProductsSelected"
+                                    [indeterminate]="areSomeFilteredProductsSelected"
+                                    [disabled]="productsFiltered.length === 0"
+                                    (change)="setFilteredProductsSelected($any($event.target).checked)" />
+                                Select All
+                            </label>
+                            <button
+                                type="button"
+                                class="button button-small-success"
+                                [disabled]="selectedProductCount === 0 || automatedRunActive"
+                                (click)="automatedCheckSelectedProducts()">
+                                Check selected ({{ selectedProductCount }})
+                            </button>
+                        </div>
                     </div>
 
                     <div class="p-4">
@@ -415,12 +456,45 @@
                         } @else {
                             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                                 @for (product of productsFiltered; track product.productId; let i = $index) {
+                                    <div
+                                        class="relative flex min-h-[7rem] flex-col rounded-lg border border-slate-200 bg-slate-50 p-3 transition hover:border-slate-300 hover:bg-white">
+                                        <div class="mb-2 flex items-center justify-between gap-2">
+                                            <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600">
+                                                <input
+                                                    type="checkbox"
+                                                    [checked]="isProductSelected(product.productId)"
+                                                    (change)="setProductSelected(product.productId, $any($event.target).checked)" />
+                                                Select
+                                            </label>
+                                            <button
+                                                type="button"
+                                                mat-icon-button
+                                                [matMenuTriggerFor]="productAutomatedActionsMenu"
+                                                aria-label="Product automated-check actions">
+                                                <mat-icon>more_horiz</mat-icon>
+                                            </button>
+                                            <mat-menu #productAutomatedActionsMenu="matMenu" xPosition="before" panelClass="table-actions-menu">
+                                                <button
+                                                    type="button"
+                                                    mat-menu-item
+                                                    [disabled]="automatedRunActive"
+                                                    (click)="automatedCheckProduct(product)">
+                                                    Automated check
+                                                </button>
+                                                @if (getAutomatedSteamApiResult(product.productId)) {
+                                                    <button
+                                                        type="button"
+                                                        mat-menu-item
+                                                        (click)="openAutomatedSteamApiResult(product.productId)">
+                                                        View Steam API result
+                                                    </button>
+                                                }
+                                            </mat-menu>
+                                        </div>
 
-                                    <a
-                                        [steamExternalLink]="getProductOpenUrl(product.fullUrl)"
-                                        class="block">
-                                        <div
-                                            class="flex min-h-[5.5rem] flex-col justify-center rounded-lg border border-slate-200 bg-slate-50 p-3 transition hover:border-slate-300 hover:bg-white"
+                                        <a
+                                            [steamExternalLink]="getProductOpenUrl(product.fullUrl)"
+                                            class="flex flex-1 flex-col justify-center"
                                             [matTooltip]="getProductOpenTooltip(product.fullUrl)">
                                             <strong class="text-sm text-slate-800">
                                                 {{ i + 1 }}. {{ product.productName }}
@@ -432,7 +506,21 @@
                                                 </span>
                                             }
 
-                                            @if (getAutomatedMatch(product.productId); as match) {
+                                            @if (getAutomatedProductOutcome(product.productId); as outcome) {
+                                                <span
+                                                    class="mt-2 text-xs font-semibold"
+                                                    [class.text-emerald-700]="outcome === 'Matched'"
+                                                    [class.text-slate-600]="outcome === 'Pending' || outcome === 'No match'"
+                                                    [class.text-red-700]="outcome === 'Failed'">
+                                                    {{ outcome }}
+                                                </span>
+                                            }
+
+                                            @if (getAutomatedProductError(product.productId); as failure) {
+                                                <span class="mt-1 line-clamp-2 text-xs text-red-700">
+                                                    {{ failure.error }}
+                                                </span>
+                                            } @else if (getAutomatedMatch(product.productId); as match) {
                                                 <span class="mt-2 text-xs font-semibold text-emerald-700">
                                                     {{ match.matchedAssets.length }} matched asset{{ match.matchedAssets.length === 1 ? '' : 's' }}
                                                 </span>
@@ -444,8 +532,8 @@
                                                     }
                                                 }
                                             }
-                                        </div>
-                                    </a>
+                                        </a>
+                                    </div>
 
                                 }
                             </div>

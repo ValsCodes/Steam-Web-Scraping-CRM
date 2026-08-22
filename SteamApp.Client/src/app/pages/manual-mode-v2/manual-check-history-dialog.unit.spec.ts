@@ -15,6 +15,7 @@ describe('ManualCheckHistoryDialogComponent', () => {
   let component: ManualCheckHistoryDialogComponent;
   let service: jasmine.SpyObj<ManualCheckService>;
   let openDialog: jasmine.Spy;
+  let closeDialog: jasmine.Spy;
 
   const failedRun: ManualCheckRunSummary = {
     id: 42,
@@ -46,12 +47,13 @@ describe('ManualCheckHistoryDialogComponent', () => {
   beforeEach(async () => {
     service = jasmine.createSpyObj<ManualCheckService>('ManualCheckService', ['getRuns', 'rerun']);
     service.getRuns.and.returnValue(of([failedRun]));
+    closeDialog = jasmine.createSpy('close');
 
     await TestBed.configureTestingModule({
       imports: [ManualCheckHistoryDialogComponent],
       providers: [
         { provide: ManualCheckService, useValue: service },
-        { provide: MatDialogRef, useValue: jasmine.createSpyObj('MatDialogRef', ['close']) },
+        { provide: MatDialogRef, useValue: { close: closeDialog } },
         { provide: MAT_DIALOG_DATA, useValue: {} },
       ],
     }).compileComponents();
@@ -99,5 +101,20 @@ describe('ManualCheckHistoryDialogComponent', () => {
         data: { runId: 42, initialView: 'results' },
       }),
     );
+  });
+
+  it('reopens a paused run for management', () => {
+    const paused: ManualCheckRunSummary = {
+      ...failedRun,
+      status: 'Paused',
+      completedAtUtc: null,
+      errorText: null,
+    };
+
+    expect(component.isActiveRun(paused)).toBeTrue();
+
+    component.manage(paused);
+
+    expect(closeDialog).toHaveBeenCalledOnceWith(42);
   });
 });

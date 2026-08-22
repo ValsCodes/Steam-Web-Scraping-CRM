@@ -4,7 +4,9 @@ export type ManualCheckRunStatus =
   | 'Succeeded'
   | 'CompletedWithErrors'
   | 'Failed'
-  | 'Canceled';
+  | 'Canceled'
+  | 'PauseRequested'
+  | 'Paused';
 
 export interface ManualCheckCriterion {
   conditionOperatorId: number | null;
@@ -40,6 +42,7 @@ export interface ManualCheckRunRequest {
   gameUrlId: number;
   presetId: number;
   bypassCache: boolean;
+  productIds: number[] | null;
 }
 
 export interface ManualCheckProgress {
@@ -97,6 +100,7 @@ export interface ManualCheckSetup {
   cooldownMinutes: number | null;
   cooldownSeconds: number | null;
   bypassCache: boolean;
+  requestedProductIds: number[] | null;
   criteria: ManualCheckCriterion[];
   products: ManualCheckProductInput[];
   requestedAtUtc: string;

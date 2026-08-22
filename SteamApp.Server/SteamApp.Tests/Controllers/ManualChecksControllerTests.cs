@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SteamApp.Application.DTOs.ManualCheck;
@@ -34,14 +35,25 @@ public sealed class ManualChecksControllerTests
     {
         var data = new Mock<IManualCheckDataService>();
         var queue = new Mock<IManualCheckQueue>();
-        data.Setup(x => x.CreateRunAsync(8, 4, true, It.IsAny<CancellationToken>()))
+        data.Setup(x => x.CreateRunAsync(
+                8,
+                4,
+                true,
+                It.Is<IReadOnlyList<long>?>(ids => ids != null && ids.SequenceEqual(new long[] { 2, 3 })),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(Summary(55));
         queue.Setup(x => x.EnqueueAsync(55, It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask);
         var controller = Controller(data, queue);
 
         var result = await controller.CreateRun(
-            new ManualCheckRunRequestDto { GameUrlId = 8, PresetId = 4, BypassCache = true });
+            new ManualCheckRunRequestDto
+            {
+                GameUrlId = 8,
+                PresetId = 4,
+                BypassCache = true,
+                ProductIds = [2, 3]
+            });
 
         var accepted = result as AcceptedAtActionResult;
         Assert.Multiple(() =>
@@ -132,6 +144,54 @@ public sealed class ManualChecksControllerTests
 
         Assert.That((result as OkObjectResult)?.Value, Is.TypeOf<ManualCheckRunDetailDto>());
         queue.Verify(x => x.TryCancel(12), Times.Once);
+    }
+
+    [Test]
+    public async Task PauseAndContinue_UseTheSameRunAndSignalTheQueue()
+    {
+        var data = new Mock<IManualCheckDataService>();
+        var queue = new Mock<IManualCheckQueue>();
+        data.Setup(x => x.PauseAsync(12, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ManualCheckRunDetailDto
+            {
+                Id = 12,
+                PresetName = "Historical",
+                Status = ManualCheckRunStatusEnum.PauseRequested,
+                CheckedProducts = 2,
+                TotalProducts = 5
+            });
+        data.Setup(x => x.ContinueAsync(12, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Summary(12));
+        queue.Setup(x => x.TryPause(12)).Returns(true);
+        queue.Setup(x => x.EnqueueAsync(12, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+        var controller = Controller(data, queue);
+
+        var pauseResult = await controller.PauseRun(12);
+        var continueResult = await controller.ContinueRun(12);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(pauseResult, Is.TypeOf<OkObjectResult>());
+            Assert.That(continueResult, Is.TypeOf<AcceptedAtActionResult>());
+            Assert.That(
+                ((continueResult as AcceptedAtActionResult)!.Value as ManualCheckRunAcceptedDto)!.RunId,
+                Is.EqualTo(12));
+        });
+        queue.Verify(x => x.TryPause(12), Times.Once);
+        queue.Verify(x => x.EnqueueAsync(12, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public void ContinueRun_KeepsTheExpensiveApiRateLimit()
+    {
+        var rateLimit = typeof(ManualChecksController)
+            .GetMethod(nameof(ManualChecksController.ContinueRun))!
+            .GetCustomAttributes(typeof(EnableRateLimitingAttribute), inherit: true)
+            .Cast<EnableRateLimitingAttribute>()
+            .Single();
+
+        Assert.That(rateLimit.PolicyName, Is.EqualTo(SecurityPolicies.ExpensiveApiRateLimit));
     }
 
     [Test]

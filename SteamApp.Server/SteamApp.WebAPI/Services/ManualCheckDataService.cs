@@ -184,6 +184,7 @@ public sealed class ManualCheckDataService(
         long gameUrlId,
         long presetId,
         bool bypassCache,
+        IReadOnlyList<long>? productIds,
         CancellationToken cancellationToken)
     {
         await using var db = dbContextFactory.CreateDbContext();
@@ -204,6 +205,7 @@ public sealed class ManualCheckDataService(
             preset.CooldownMinutes,
             preset.CooldownSeconds,
             bypassCache,
+            productIds,
             ToCriterionDtos(preset.Criteria),
             cancellationToken);
     }
@@ -235,8 +237,108 @@ public sealed class ManualCheckDataService(
             setup.CooldownMinutes,
             setup.CooldownSeconds,
             false,
+            setup.RequestedProductIds,
             NormalizeCriteria(setup.Criteria),
             cancellationToken);
+    }
+
+    public async Task<ManualCheckRunDetailDto> PauseAsync(
+        long runId,
+        CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        if (!db.Database.IsRelational())
+        {
+            var inMemoryRow = await db.ManualCheckRuns
+                .FirstOrDefaultAsync(x => x.Id == runId, cancellationToken)
+                ?? throw RequestError(StatusCodes.Status404NotFound, "Run was not found.");
+            if (inMemoryRow.Status is not (
+                ManualCheckRunStatusEnum.PauseRequested or
+                ManualCheckRunStatusEnum.Paused))
+            {
+                inMemoryRow.Status = inMemoryRow.Status switch
+                {
+                    ManualCheckRunStatusEnum.Queued => ManualCheckRunStatusEnum.Paused,
+                    ManualCheckRunStatusEnum.Running => ManualCheckRunStatusEnum.PauseRequested,
+                    _ => throw RequestError(
+                        StatusCodes.Status409Conflict,
+                        $"Run #{runId} is already {inMemoryRow.Status} and cannot be paused.")
+                };
+                await db.SaveChangesAsync(cancellationToken);
+            }
+
+            return ToRunDetail(inMemoryRow);
+        }
+
+        var updated = await db.ManualCheckRuns
+            .Where(x => x.Id == runId && x.Status == ManualCheckRunStatusEnum.Queued)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(x => x.Status, ManualCheckRunStatusEnum.Paused),
+                cancellationToken);
+        if (updated == 0)
+        {
+            updated = await db.ManualCheckRuns
+                .Where(x => x.Id == runId && x.Status == ManualCheckRunStatusEnum.Running)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(x => x.Status, ManualCheckRunStatusEnum.PauseRequested),
+                    cancellationToken);
+        }
+
+        var row = await db.ManualCheckRuns
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == runId, cancellationToken)
+            ?? throw RequestError(StatusCodes.Status404NotFound, "Run was not found.");
+        if (updated == 0 && row.Status is not (
+            ManualCheckRunStatusEnum.PauseRequested or
+            ManualCheckRunStatusEnum.Paused))
+        {
+            throw RequestError(
+                StatusCodes.Status409Conflict,
+                $"Run #{runId} is already {row.Status} and cannot be paused.");
+        }
+
+        return ToRunDetail(row);
+    }
+
+    public async Task<ManualCheckRunSummaryDto> ContinueAsync(
+        long runId,
+        CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        if (!db.Database.IsRelational())
+        {
+            var inMemoryRow = await db.ManualCheckRuns
+                .FirstOrDefaultAsync(x => x.Id == runId, cancellationToken)
+                ?? throw RequestError(StatusCodes.Status404NotFound, "Run was not found.");
+            if (inMemoryRow.Status != ManualCheckRunStatusEnum.Paused)
+            {
+                throw RequestError(
+                    StatusCodes.Status409Conflict,
+                    $"Run #{runId} is {inMemoryRow.Status} and cannot be continued.");
+            }
+
+            inMemoryRow.Status = ManualCheckRunStatusEnum.Queued;
+            await db.SaveChangesAsync(cancellationToken);
+            return ToRunSummary(inMemoryRow);
+        }
+
+        var updated = await db.ManualCheckRuns
+            .Where(x => x.Id == runId && x.Status == ManualCheckRunStatusEnum.Paused)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(x => x.Status, ManualCheckRunStatusEnum.Queued),
+                cancellationToken);
+        var row = await db.ManualCheckRuns
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == runId, cancellationToken)
+            ?? throw RequestError(StatusCodes.Status404NotFound, "Run was not found.");
+        if (updated == 0)
+        {
+            throw RequestError(
+                StatusCodes.Status409Conflict,
+                $"Run #{runId} is {row.Status} and cannot be continued.");
+        }
+
+        return ToRunSummary(row);
     }
 
     public async Task<ManualCheckRunDetailDto> CancelAsync(
@@ -248,7 +350,11 @@ public sealed class ManualCheckDataService(
             .FirstOrDefaultAsync(x => x.Id == runId, cancellationToken)
             ?? throw RequestError(StatusCodes.Status404NotFound, "Run was not found.");
 
-        if (row.Status is not (ManualCheckRunStatusEnum.Queued or ManualCheckRunStatusEnum.Running))
+        if (row.Status is not (
+            ManualCheckRunStatusEnum.Queued or
+            ManualCheckRunStatusEnum.Running or
+            ManualCheckRunStatusEnum.PauseRequested or
+            ManualCheckRunStatusEnum.Paused))
         {
             throw RequestError(
                 StatusCodes.Status409Conflict,
@@ -302,24 +408,79 @@ public sealed class ManualCheckDataService(
         return ToRunDetail(row);
     }
 
-    public async Task<ManualCheckSetupDto?> MarkRunningAndGetSetupAsync(
+    public async Task<ManualCheckRunDetailDto?> MarkRunningAndGetRunAsync(
         long id,
         CancellationToken cancellationToken)
     {
         await using var db = dbContextFactory.CreateDbContext();
-        var row = await db.ManualCheckRuns.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-        if (row is null || row.Status != ManualCheckRunStatusEnum.Queued)
+        if (!db.Database.IsRelational())
+        {
+            var inMemoryRow = await db.ManualCheckRuns.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            if (inMemoryRow is null || inMemoryRow.Status != ManualCheckRunStatusEnum.Queued)
+            {
+                return null;
+            }
+
+            inMemoryRow.Status = ManualCheckRunStatusEnum.Running;
+            inMemoryRow.StartedAtUtc ??= DateTime.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+            return ToRunDetail(inMemoryRow);
+        }
+
+        var now = DateTime.UtcNow;
+        var updated = await db.ManualCheckRuns
+            .Where(x => x.Id == id && x.Status == ManualCheckRunStatusEnum.Queued)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(x => x.Status, ManualCheckRunStatusEnum.Running)
+                    .SetProperty(x => x.StartedAtUtc, x => x.StartedAtUtc ?? now),
+                cancellationToken);
+        if (updated == 0)
         {
             return null;
         }
 
-        row.Status = ManualCheckRunStatusEnum.Running;
-        row.StartedAtUtc = DateTime.UtcNow;
-        await db.SaveChangesAsync(cancellationToken);
-        return DeserializeSetup(row.SetupJson);
+        var row = await db.ManualCheckRuns
+            .AsNoTracking()
+            .FirstAsync(x => x.Id == id, cancellationToken);
+        return ToRunDetail(row);
     }
 
-    public async Task UpdateProgressAsync(
+    public async Task<ManualCheckRunStatusEnum?> MarkPausedAsync(
+        long id,
+        CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        if (!db.Database.IsRelational())
+        {
+            var inMemoryRow = await db.ManualCheckRuns.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            if (inMemoryRow is null)
+            {
+                return null;
+            }
+
+            if (inMemoryRow.Status == ManualCheckRunStatusEnum.PauseRequested)
+            {
+                inMemoryRow.Status = ManualCheckRunStatusEnum.Paused;
+                await db.SaveChangesAsync(cancellationToken);
+            }
+
+            return inMemoryRow.Status;
+        }
+
+        await db.ManualCheckRuns
+            .Where(x => x.Id == id && x.Status == ManualCheckRunStatusEnum.PauseRequested)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(x => x.Status, ManualCheckRunStatusEnum.Paused),
+                cancellationToken);
+        return await db.ManualCheckRuns
+            .AsNoTracking()
+            .Where(x => x.Id == id)
+            .Select(x => (ManualCheckRunStatusEnum?)x.Status)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<ManualCheckRunStatusEnum?> UpdateProgressAsync(
         long id,
         int checkedProducts,
         int matchedProducts,
@@ -328,17 +489,82 @@ public sealed class ManualCheckDataService(
         CancellationToken cancellationToken)
     {
         await using var db = dbContextFactory.CreateDbContext();
-        var row = await db.ManualCheckRuns.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-        if (row is null || row.Status != ManualCheckRunStatusEnum.Running)
+        var resultsJson = JsonConvert.SerializeObject(results);
+        if (!db.Database.IsRelational())
         {
-            return;
+            var inMemoryRow = await db.ManualCheckRuns.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            if (inMemoryRow is null)
+            {
+                return null;
+            }
+
+            if (inMemoryRow.Status is not (
+                ManualCheckRunStatusEnum.Running or
+                ManualCheckRunStatusEnum.PauseRequested))
+            {
+                return inMemoryRow.Status;
+            }
+
+            inMemoryRow.CheckedProducts = checkedProducts;
+            inMemoryRow.MatchedProducts = matchedProducts;
+            inMemoryRow.FailedProducts = failedProducts;
+            inMemoryRow.ResultsJson = resultsJson;
+            if (inMemoryRow.Status == ManualCheckRunStatusEnum.PauseRequested)
+            {
+                inMemoryRow.Status = checkedProducts < inMemoryRow.TotalProducts
+                    ? ManualCheckRunStatusEnum.Paused
+                    : ManualCheckRunStatusEnum.Running;
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
+            return inMemoryRow.Status;
         }
 
-        row.CheckedProducts = checkedProducts;
-        row.MatchedProducts = matchedProducts;
-        row.FailedProducts = failedProducts;
-        row.ResultsJson = JsonConvert.SerializeObject(results);
-        await db.SaveChangesAsync(cancellationToken);
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            var paused = await db.ManualCheckRuns
+                .Where(x =>
+                    x.Id == id &&
+                    x.Status == ManualCheckRunStatusEnum.PauseRequested &&
+                    x.TotalProducts > checkedProducts)
+                .ExecuteUpdateAsync(
+                    setters => setters
+                        .SetProperty(x => x.CheckedProducts, checkedProducts)
+                        .SetProperty(x => x.MatchedProducts, matchedProducts)
+                        .SetProperty(x => x.FailedProducts, failedProducts)
+                        .SetProperty(x => x.ResultsJson, resultsJson)
+                        .SetProperty(x => x.Status, ManualCheckRunStatusEnum.Paused),
+                    cancellationToken);
+            if (paused > 0)
+            {
+                return ManualCheckRunStatusEnum.Paused;
+            }
+
+            var running = await db.ManualCheckRuns
+                .Where(x =>
+                    x.Id == id &&
+                    (x.Status == ManualCheckRunStatusEnum.Running ||
+                     (x.Status == ManualCheckRunStatusEnum.PauseRequested &&
+                      x.TotalProducts <= checkedProducts)))
+                .ExecuteUpdateAsync(
+                    setters => setters
+                        .SetProperty(x => x.CheckedProducts, checkedProducts)
+                        .SetProperty(x => x.MatchedProducts, matchedProducts)
+                        .SetProperty(x => x.FailedProducts, failedProducts)
+                        .SetProperty(x => x.ResultsJson, resultsJson)
+                        .SetProperty(x => x.Status, ManualCheckRunStatusEnum.Running),
+                    cancellationToken);
+            if (running > 0)
+            {
+                return ManualCheckRunStatusEnum.Running;
+            }
+        }
+
+        return await db.ManualCheckRuns
+            .AsNoTracking()
+            .Where(x => x.Id == id)
+            .Select(x => (ManualCheckRunStatusEnum?)x.Status)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task CompleteAsync(
@@ -353,22 +579,47 @@ public sealed class ManualCheckDataService(
         }
 
         await using var db = dbContextFactory.CreateDbContext();
-        var row = await db.ManualCheckRuns.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-        if (row is null || row.Status != ManualCheckRunStatusEnum.Running)
+        var errorText = status == ManualCheckRunStatusEnum.CompletedWithErrors
+            ? $"{results.Errors.Count} product check(s) failed."
+            : null;
+        var resultsJson = JsonConvert.SerializeObject(results);
+        var completedAtUtc = DateTime.UtcNow;
+        if (!db.Database.IsRelational())
         {
+            var inMemoryRow = await db.ManualCheckRuns.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            if (inMemoryRow is null || inMemoryRow.Status is not (
+                ManualCheckRunStatusEnum.Running or
+                ManualCheckRunStatusEnum.PauseRequested))
+            {
+                return;
+            }
+
+            inMemoryRow.Status = status;
+            inMemoryRow.CheckedProducts = inMemoryRow.TotalProducts;
+            inMemoryRow.MatchedProducts = results.Matches.Count;
+            inMemoryRow.FailedProducts = results.Errors.Count;
+            inMemoryRow.ResultsJson = resultsJson;
+            inMemoryRow.ErrorText = errorText;
+            inMemoryRow.CompletedAtUtc = completedAtUtc;
+            await db.SaveChangesAsync(cancellationToken);
             return;
         }
 
-        row.Status = status;
-        row.CheckedProducts = row.TotalProducts;
-        row.MatchedProducts = results.Matches.Count;
-        row.FailedProducts = results.Errors.Count;
-        row.ResultsJson = JsonConvert.SerializeObject(results);
-        row.ErrorText = status == ManualCheckRunStatusEnum.CompletedWithErrors
-            ? $"{results.Errors.Count} product check(s) failed."
-            : null;
-        row.CompletedAtUtc = DateTime.UtcNow;
-        await db.SaveChangesAsync(cancellationToken);
+        await db.ManualCheckRuns
+            .Where(x =>
+                x.Id == id &&
+                (x.Status == ManualCheckRunStatusEnum.Running ||
+                 x.Status == ManualCheckRunStatusEnum.PauseRequested))
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(x => x.Status, status)
+                    .SetProperty(x => x.CheckedProducts, x => x.TotalProducts)
+                    .SetProperty(x => x.MatchedProducts, results.Matches.Count)
+                    .SetProperty(x => x.FailedProducts, results.Errors.Count)
+                    .SetProperty(x => x.ResultsJson, resultsJson)
+                    .SetProperty(x => x.ErrorText, errorText)
+                    .SetProperty(x => x.CompletedAtUtc, completedAtUtc),
+                cancellationToken);
     }
 
     public async Task FailAsync(
@@ -379,7 +630,10 @@ public sealed class ManualCheckDataService(
     {
         await using var db = dbContextFactory.CreateDbContext();
         var row = await db.ManualCheckRuns.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-        if (row is null || row.Status is not (ManualCheckRunStatusEnum.Queued or ManualCheckRunStatusEnum.Running))
+        if (row is null || row.Status is not (
+            ManualCheckRunStatusEnum.Queued or
+            ManualCheckRunStatusEnum.Running or
+            ManualCheckRunStatusEnum.PauseRequested))
         {
             return;
         }
@@ -398,7 +652,10 @@ public sealed class ManualCheckDataService(
     {
         await using var db = dbContextFactory.CreateDbContext();
         var interrupted = await db.ManualCheckRuns
-            .Where(x => x.Status == ManualCheckRunStatusEnum.Queued || x.Status == ManualCheckRunStatusEnum.Running)
+            .Where(x =>
+                x.Status == ManualCheckRunStatusEnum.Queued ||
+                x.Status == ManualCheckRunStatusEnum.Running ||
+                x.Status == ManualCheckRunStatusEnum.PauseRequested)
             .ToListAsync(cancellationToken);
 
         if (interrupted.Count == 0)
@@ -409,6 +666,12 @@ public sealed class ManualCheckDataService(
         var now = DateTime.UtcNow;
         foreach (var row in interrupted)
         {
+            if (row.Status == ManualCheckRunStatusEnum.PauseRequested)
+            {
+                row.Status = ManualCheckRunStatusEnum.Paused;
+                continue;
+            }
+
             row.Status = ManualCheckRunStatusEnum.Failed;
             row.ErrorText = "The manual check was interrupted by an API restart.";
             row.StartedAtUtc ??= now;
@@ -428,10 +691,12 @@ public sealed class ManualCheckDataService(
         int? cooldownMinutes,
         int? cooldownSeconds,
         bool bypassCache,
+        IReadOnlyList<long>? requestedProductIds,
         List<ManualCheckCriterionDto> criteria,
         CancellationToken cancellationToken)
     {
         var cooldown = NormalizeCooldown(cooldownMinutes, cooldownSeconds);
+        var normalizedProductIds = NormalizeProductIds(requestedProductIds);
         var gameUrl = await db.GameUrls
             .AsNoTracking()
             .Where(x => x.Id == gameUrlId)
@@ -463,9 +728,16 @@ public sealed class ManualCheckDataService(
             throw RequestError(StatusCodes.Status400BadRequest, "The selected Game URL has no listing base URL.");
         }
 
-        var products = await db.GameUrlsProducts
+        var productsQuery = db.GameUrlsProducts
             .AsNoTracking()
-            .Where(x => x.GameUrlId == gameUrlId && x.Product.IsActive)
+            .Where(x => x.GameUrlId == gameUrlId && x.Product.IsActive);
+
+        if (normalizedProductIds is not null)
+        {
+            productsQuery = productsQuery.Where(x => normalizedProductIds.Contains(x.ProductId));
+        }
+
+        var products = await productsQuery
             .Select(x => new
             {
                 x.ProductId,
@@ -474,6 +746,19 @@ public sealed class ManualCheckDataService(
                 x.Product.Rating
             })
             .ToListAsync(cancellationToken);
+
+        if (normalizedProductIds is not null)
+        {
+            if (products.Count != normalizedProductIds.Count)
+            {
+                throw RequestError(
+                    StatusCodes.Status400BadRequest,
+                    "Every selected product must be active and belong to the selected Game URL.");
+            }
+
+            var productsById = products.ToDictionary(x => x.ProductId);
+            products = normalizedProductIds.Select(x => productsById[x]).ToList();
+        }
 
         if (products.Count == 0)
         {
@@ -520,6 +805,7 @@ public sealed class ManualCheckDataService(
             CooldownMinutes = cooldown.Minutes,
             CooldownSeconds = cooldown.Seconds,
             BypassCache = bypassCache,
+            RequestedProductIds = normalizedProductIds,
             Criteria = criteria,
             Products = inputs,
             RequestedAtUtc = now
@@ -541,6 +827,26 @@ public sealed class ManualCheckDataService(
         db.ManualCheckRuns.Add(row);
         await db.SaveChangesAsync(cancellationToken);
         return ToRunSummary(row);
+    }
+
+    private static List<long>? NormalizeProductIds(IReadOnlyList<long>? productIds)
+    {
+        if (productIds is null)
+        {
+            return null;
+        }
+
+        if (productIds.Count == 0)
+        {
+            throw RequestError(StatusCodes.Status400BadRequest, "At least one product must be selected.");
+        }
+
+        if (productIds.Any(x => x <= 0))
+        {
+            throw RequestError(StatusCodes.Status400BadRequest, "Selected product identifiers must be positive.");
+        }
+
+        return productIds.Distinct().ToList();
     }
 
     private static ManualCheckPresetWriteDto NormalizePreset(ManualCheckPresetWriteDto input)
