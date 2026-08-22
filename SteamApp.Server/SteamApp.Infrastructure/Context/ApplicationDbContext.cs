@@ -201,6 +201,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         });
         modelBuilder.Entity<ManualCheckCriterion>(entity =>
         {
+            entity.ToTable("manual_check_criterion", table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_manual_check_criterion_open_group_count",
+                    "[open_group_count] >= 0 AND [open_group_count] <= 25");
+                table.HasCheckConstraint(
+                    "CK_manual_check_criterion_close_group_count",
+                    "[close_group_count] >= 0 AND [close_group_count] <= 25");
+            });
+
             entity.Property(x => x.NameContains)
                   .HasMaxLength(ManualCheckCriterion.TermMaxLength)
                   .HasColumnName("name_contains");
@@ -208,6 +218,14 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(x => x.ValueContains)
                   .HasMaxLength(ManualCheckCriterion.TermMaxLength)
                   .HasColumnName("value_contains");
+
+            entity.Property(x => x.OpenGroupCount)
+                  .HasDefaultValue(0)
+                  .HasColumnName("open_group_count");
+
+            entity.Property(x => x.CloseGroupCount)
+                  .HasDefaultValue(0)
+                  .HasColumnName("close_group_count");
 
             entity.HasOne(x => x.ManualCheckPreset)
                   .WithMany(x => x.Criteria)

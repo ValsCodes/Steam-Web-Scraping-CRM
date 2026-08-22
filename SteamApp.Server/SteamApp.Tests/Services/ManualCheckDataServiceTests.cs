@@ -67,6 +67,96 @@ public sealed class ManualCheckDataServiceTests
     }
 
     [Test]
+    public async Task GroupedPreset_CreateAndUpdate_PreservesMarkersAndOrder()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var service = new ManualCheckDataService(database.Factory);
+        var input = PresetInput("Grouped");
+        input.Criteria =
+        [
+            new ManualCheckCriterionDto { ValueContains = "A" },
+            new ManualCheckCriterionDto
+            {
+                ConditionOperatorId = (long)ManualCheckConditionOperatorEnum.And,
+                OpenGroupCount = 1,
+                ValueContains = "B"
+            },
+            new ManualCheckCriterionDto
+            {
+                ConditionOperatorId = (long)ManualCheckConditionOperatorEnum.Or,
+                CloseGroupCount = 1,
+                ValueContains = "C"
+            }
+        ];
+
+        var created = await service.CreatePresetAsync(input, CancellationToken.None);
+        created.Criteria[1].OpenGroupCount = 2;
+        created.Criteria[2].CloseGroupCount = 2;
+        created.Criteria[2].ValueContains = "Updated C";
+        var updated = await service.UpdatePresetAsync(created.Id, new ManualCheckPresetWriteDto
+        {
+            GameId = created.GameId,
+            Name = created.Name,
+            ListingLimit = created.ListingLimit,
+            Criteria = created.Criteria
+        }, CancellationToken.None);
+        var stored = database.Context.ManualCheckCriteria
+            .Where(x => x.ManualCheckPresetId == created.Id)
+            .OrderBy(x => x.SortOrder)
+            .ToList();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(updated.Criteria.Select(x => x.ValueContains), Is.EqualTo(new[] { "A", "B", "Updated C" }));
+            Assert.That(updated.Criteria.Select(x => x.OpenGroupCount), Is.EqualTo(new[] { 0, 2, 0 }));
+            Assert.That(updated.Criteria.Select(x => x.CloseGroupCount), Is.EqualTo(new[] { 0, 0, 2 }));
+            Assert.That(stored.Select(x => x.SortOrder), Is.EqualTo(new[] { 0, 1, 2 }));
+            Assert.That(stored[1].OpenGroupCount, Is.EqualTo(2));
+            Assert.That(stored[2].CloseGroupCount, Is.EqualTo(2));
+        });
+    }
+
+    [TestCase("negative")]
+    [TestCase("premature")]
+    [TestCase("excessive")]
+    [TestCase("unclosed")]
+    public void CreatePresetAsync_MalformedGrouping_RejectsRequest(string scenario)
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var service = new ManualCheckDataService(database.Factory);
+        var input = PresetInput($"Malformed {scenario}");
+        input.Criteria.Add(new ManualCheckCriterionDto
+        {
+            ConditionOperatorId = (long)ManualCheckConditionOperatorEnum.And,
+            ValueContains = "Second"
+        });
+
+        switch (scenario)
+        {
+            case "negative":
+                input.Criteria[0].OpenGroupCount = -1;
+                break;
+            case "premature":
+                input.Criteria[0].CloseGroupCount = 1;
+                break;
+            case "excessive":
+                input.Criteria[0].OpenGroupCount = 25;
+                input.Criteria[0].CloseGroupCount = 25;
+                input.Criteria[1].OpenGroupCount = 1;
+                input.Criteria[1].CloseGroupCount = 1;
+                break;
+            case "unclosed":
+                input.Criteria[0].OpenGroupCount = 1;
+                break;
+        }
+
+        var exception = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.CreatePresetAsync(input, CancellationToken.None));
+
+        Assert.That(exception!.StatusCode, Is.EqualTo(400));
+    }
+
+    [Test]
     public void CreatePresetAsync_MissingOperatorOrPartialCooldown_RejectsRequest()
     {
         using var database = TestDb.CreateSeededDatabase();
@@ -166,6 +256,18 @@ public sealed class ManualCheckDataServiceTests
         var service = new ManualCheckDataService(database.Factory);
         var presetInput = PresetInput("Snapshot");
         presetInput.ListingLimit = 37;
+        presetInput.Criteria.Add(new ManualCheckCriterionDto
+        {
+            ConditionOperatorId = (long)ManualCheckConditionOperatorEnum.And,
+            OpenGroupCount = 1,
+            ValueContains = "Tradable"
+        });
+        presetInput.Criteria.Add(new ManualCheckCriterionDto
+        {
+            ConditionOperatorId = (long)ManualCheckConditionOperatorEnum.Or,
+            CloseGroupCount = 1,
+            ValueContains = "Craftable"
+        });
         var preset = await service.CreatePresetAsync(presetInput, CancellationToken.None);
         var original = await service.CreateRunAsync(source.Id, preset.Id, true, CancellationToken.None);
 
@@ -194,6 +296,8 @@ public sealed class ManualCheckDataServiceTests
             Assert.That(rerunDetail.Setup.ListingLimit, Is.EqualTo(37));
             Assert.That(rerunDetail.Setup.BypassCache, Is.False);
             Assert.That(rerunDetail.Setup.Criteria[0].ValueContains, Is.EqualTo("Mean Green"));
+            Assert.That(rerunDetail.Setup.Criteria[1].OpenGroupCount, Is.EqualTo(1));
+            Assert.That(rerunDetail.Setup.Criteria[2].CloseGroupCount, Is.EqualTo(1));
             Assert.That(rerunDetail.Setup.Products.Select(x => x.ProductName), Does.Contain("New Item"));
         });
     }
@@ -248,6 +352,8 @@ public sealed class ManualCheckDataServiceTests
         {
             criterion.Remove(nameof(ManualCheckCriterionDto.ConditionOperatorId));
             criterion.Remove(nameof(ManualCheckCriterionDto.ConditionOperatorName));
+            criterion.Remove(nameof(ManualCheckCriterionDto.OpenGroupCount));
+            criterion.Remove(nameof(ManualCheckCriterionDto.CloseGroupCount));
         }
         originalRow.SetupJson = legacySetup.ToString();
         database.Context.SaveChanges();
@@ -260,7 +366,33 @@ public sealed class ManualCheckDataServiceTests
             Assert.That(detail!.Setup.Criteria[0].ConditionOperatorId, Is.Null);
             Assert.That(detail.Setup.Criteria[1].ConditionOperatorId, Is.EqualTo((long)ManualCheckConditionOperatorEnum.And));
             Assert.That(detail.Setup.Criteria[1].ConditionOperatorName, Is.EqualTo("AND"));
+            Assert.That(detail.Setup.Criteria.Select(x => x.OpenGroupCount), Is.All.EqualTo(0));
+            Assert.That(detail.Setup.Criteria.Select(x => x.CloseGroupCount), Is.All.EqualTo(0));
         });
+    }
+
+    [Test]
+    public async Task Rerun_MalformedHistoricalGrouping_RejectsRequest()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var source = database.Context.GameUrls.Single(x => x.Id == 1);
+        source.ScrapingModeId = (long)ScrapingModeEnum.ManualBatch;
+        source.PartialUrl = "https://steamcommunity.com/market/listings/440/";
+        database.Context.SaveChanges();
+        var service = new ManualCheckDataService(database.Factory);
+        var preset = await service.CreatePresetAsync(PresetInput("Malformed snapshot"), CancellationToken.None);
+        var original = await service.CreateRunAsync(source.Id, preset.Id, false, CancellationToken.None);
+        var row = database.Context.ManualCheckRuns.Single(x => x.Id == original.Id);
+        var setup = JObject.Parse(row.SetupJson);
+        var firstCriterion = setup[nameof(ManualCheckSetupDto.Criteria)]!.Children<JObject>().First();
+        firstCriterion[nameof(ManualCheckCriterionDto.CloseGroupCount)] = 1;
+        row.SetupJson = setup.ToString();
+        database.Context.SaveChanges();
+
+        var exception = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.RerunAsync(original.Id, CancellationToken.None));
+
+        Assert.That(exception!.StatusCode, Is.EqualTo(400));
     }
 
     [Test]

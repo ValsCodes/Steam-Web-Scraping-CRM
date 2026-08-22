@@ -142,6 +142,8 @@ public sealed class ManualCheckDataService(
                 : new ManualCheckCriterion { ManualCheckPreset = entity };
             criterion.ConditionOperatorId = normalized.Criteria[index].ConditionOperatorId;
             criterion.SortOrder = index;
+            criterion.OpenGroupCount = normalized.Criteria[index].OpenGroupCount;
+            criterion.CloseGroupCount = normalized.Criteria[index].CloseGroupCount;
             criterion.NameContains = normalized.Criteria[index].NameContains;
             criterion.ValueContains = normalized.Criteria[index].ValueContains;
             if (index >= existingCriteria.Count)
@@ -605,6 +607,8 @@ public sealed class ManualCheckDataService(
             {
                 ConditionOperatorId = x.ConditionOperatorId,
                 ConditionOperatorName = null,
+                OpenGroupCount = x.OpenGroupCount,
+                CloseGroupCount = x.CloseGroupCount,
                 NameContains = NormalizeTerm(x.NameContains),
                 ValueContains = NormalizeTerm(x.ValueContains)
             })
@@ -620,23 +624,16 @@ public sealed class ManualCheckDataService(
             throw RequestError(StatusCodes.Status400BadRequest, "Each criterion requires a name or value search term.");
         }
 
-        if (normalized[0].ConditionOperatorId.HasValue)
+        var expressionError = ManualCheckExpression.Validate(normalized);
+        if (expressionError is not null)
         {
-            throw RequestError(StatusCodes.Status400BadRequest, "The first criterion cannot have a condition operator.");
+            throw RequestError(StatusCodes.Status400BadRequest, expressionError);
         }
 
         for (var index = 1; index < normalized.Count; index++)
         {
-            var conditionOperatorId = normalized[index].ConditionOperatorId;
-            if (!conditionOperatorId.HasValue ||
-                !IsSupportedConditionOperator(conditionOperatorId.Value))
-            {
-                throw RequestError(
-                    StatusCodes.Status400BadRequest,
-                    $"Criterion #{index + 1} requires a supported condition operator.");
-            }
-
-            normalized[index].ConditionOperatorName = GetOperatorName(conditionOperatorId.Value);
+            var conditionOperatorId = normalized[index].ConditionOperatorId!.Value;
+            normalized[index].ConditionOperatorName = GetOperatorName(conditionOperatorId);
         }
 
         return normalized;
@@ -748,6 +745,8 @@ public sealed class ManualCheckDataService(
         {
             ConditionOperatorId = criterion.ConditionOperatorId,
             SortOrder = index,
+            OpenGroupCount = criterion.OpenGroupCount,
+            CloseGroupCount = criterion.CloseGroupCount,
             NameContains = criterion.NameContains,
             ValueContains = criterion.ValueContains
         }).ToList();
@@ -763,6 +762,8 @@ public sealed class ManualCheckDataService(
                 ConditionOperatorId = x.ConditionOperatorId,
                 ConditionOperatorName = x.ConditionOperator?.Name ??
                     (x.ConditionOperatorId.HasValue ? GetOperatorName(x.ConditionOperatorId.Value) : null),
+                OpenGroupCount = x.OpenGroupCount,
+                CloseGroupCount = x.CloseGroupCount,
                 NameContains = x.NameContains,
                 ValueContains = x.ValueContains
             })

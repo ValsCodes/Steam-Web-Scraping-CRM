@@ -18,11 +18,22 @@ import { finalize, forkJoin, timeout, TimeoutError } from 'rxjs';
 
 import {
   ManualCheckConditionOperator,
-  ManualCheckCriterion,
   ManualCheckPreset,
   ManualCheckPresetWrite,
 } from '../../models';
 import { ManualCheckService } from '../../services';
+import {
+  createManualCheckCriterionNode,
+  createManualCheckGroupNode,
+  flattenManualCheckExpression,
+  formatManualCheckExpression,
+  ManualCheckCriterionNode,
+  ManualCheckGroupNode,
+  normalizeManualCheckExpressionOperators,
+  parseManualCheckExpression,
+  validateManualCheckExpression,
+} from './manual-check-expression';
+import { ManualCheckExpressionEditorComponent } from './manual-check-expression-editor.component';
 
 export interface ManualCheckSetupDialogData {
   gameId: number;
@@ -40,7 +51,13 @@ export interface ManualCheckSetupDialogResult {
   selector: 'steam-manual-check-setup-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, MatDialogModule, MatButtonModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatDialogModule,
+    MatButtonModule,
+    ManualCheckExpressionEditorComponent,
+  ],
   template: `
     <h2 mat-dialog-title>Automated check</h2>
     <mat-dialog-content class="manual-check-dialog">
@@ -193,57 +210,22 @@ export interface ManualCheckSetupDialogResult {
           </label>
         </fieldset>
 
-        <div class="manual-check-dialog__criteria-heading">
-          <strong>Criteria</strong>
-          <button
-            mat-stroked-button
-            type="button"
-            (click)="addCriterion()"
-            [disabled]="criteria.length >= 25">
-            Add criterion
-          </button>
-        </div>
+        <steam-manual-check-expression-editor
+          [root]="expressionRoot"
+          [operators]="conditionOperators"
+          (expressionChange)="markDirty()">
+        </steam-manual-check-expression-editor>
 
-        @for (criterion of criteria; track $index; let i = $index) {
-          <div class="manual-check-dialog__criterion">
-            <span class="manual-check-dialog__criterion-number">{{ i + 1 }}</span>
-            @if (i === 0) {
-              <select [name]="'manualCheckOperator' + i" disabled aria-label="First criterion starts the expression">
-                <option>Start</option>
-              </select>
-            } @else {
-              <select
-                [name]="'manualCheckOperator' + i"
-                [(ngModel)]="criterion.conditionOperatorId"
-                (ngModelChange)="markDirty()"
-                [attr.aria-label]="'Condition operator for criterion ' + (i + 1)">
-                <option [ngValue]="null">Select operator</option>
-                @for (operator of conditionOperators; track operator.id) {
-                  <option [ngValue]="operator.id">{{ operator.name }}</option>
-                }
-              </select>
-            }
-            <input
-              [name]="'manualCheckName' + i"
-              maxlength="200"
-              [(ngModel)]="criterion.nameContains"
-              (ngModelChange)="markDirty()"
-              placeholder="Description name contains" />
-            <input
-              [name]="'manualCheckValue' + i"
-              maxlength="200"
-              [(ngModel)]="criterion.valueContains"
-              (ngModelChange)="markDirty()"
-              placeholder="Description value contains" />
-            <button
-              mat-button
-              type="button"
-              color="warn"
-              (click)="removeCriterion(i)"
-              [disabled]="criteria.length === 1">
-              Remove
-            </button>
-          </div>
+        <section class="manual-check-dialog__expression-preview" aria-live="polite">
+          <strong>Expression preview</strong>
+          <code>{{ expressionPreview }}</code>
+          <small>Parentheses define groups. Evaluation is strictly left-to-right inside each group.</small>
+        </section>
+
+        @if (!expressionValidation.isValid) {
+          <p class="manual-check-dialog__validation" role="alert">
+            Complete every criterion and operator, populate empty groups, and keep the expression within 25 criteria and 25 groups.
+          </p>
         }
 
         @if (errorMessage) {
@@ -298,7 +280,9 @@ export interface ManualCheckSetupDialogResult {
     </mat-dialog-actions>
   `,
   styles: [`
-    .manual-check-dialog { display: flex; flex-direction: column; gap: 1rem; min-width: min(46rem, 82vw); }
+    .manual-check-dialog { display: flex; min-width: 0; flex-direction: column; gap: 1rem; }
+    .manual-check-dialog.mat-mdc-dialog-content { min-height: 0; max-height: none; overflow-x: hidden; overflow-y: auto; }
+    .manual-check-dialog steam-manual-check-expression-editor { display: block; min-width: 0; }
     .manual-check-dialog__source { margin: 0; color: #475569; font-weight: 600; }
     .manual-check-dialog__intro { margin: -.5rem 0 0; color: #64748b; }
     .manual-check-dialog__loading { display: flex; min-height: 10rem; align-items: center; justify-content: center; gap: .75rem; color: #475569; }
@@ -319,13 +303,12 @@ export interface ManualCheckSetupDialogResult {
     .manual-check-dialog__cooldown-controls label { width: 8rem; }
     .manual-check-dialog__quick-option--active { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
     .manual-check-dialog__validation { color: #b91c1c !important; }
-    .manual-check-dialog__criteria-heading { display: flex; align-items: center; justify-content: space-between; }
-    .manual-check-dialog__criterion { display: grid; grid-template-columns: 2rem 8rem 1fr 1fr auto; gap: .5rem; align-items: center; }
-    .manual-check-dialog__criterion-number { color: #64748b; text-align: center; }
+    .manual-check-dialog__expression-preview { display: flex; flex-direction: column; gap: .35rem; border-left: 4px solid #60a5fa; border-radius: .25rem; background: #eff6ff; padding: .75rem; }
+    .manual-check-dialog__expression-preview code { overflow-wrap: anywhere; color: #1e3a8a; white-space: normal; }
+    .manual-check-dialog__expression-preview small { color: #475569; }
     .manual-check-dialog__hint { color: #92400e; margin: 0; }
     .manual-check-dialog__spacer { flex: 1; }
     @keyframes manual-check-spin { to { transform: rotate(360deg); } }
-    @media (max-width: 700px) { .manual-check-dialog__criterion { grid-template-columns: 2rem 1fr; } }
   `],
 })
 export class ManualCheckSetupDialogComponent implements OnInit {
@@ -343,7 +326,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   cooldownMinutes: number | null = 0;
   cooldownSeconds: number | null = 0;
   bypassCache = false;
-  criteria: ManualCheckCriterion[] = [this.emptyCriterion()];
+  expressionRoot = this.createEmptyExpression();
   loading = true;
   loadError = false;
   busy = false;
@@ -397,13 +380,22 @@ export class ManualCheckSetupDialogComponent implements OnInit {
       && this.name.trim().length <= 100
       && this.isListingLimitValid
       && this.isCooldownValid
-      && this.criteria.length >= 1
-      && this.criteria.length <= 25
-      && this.criteria.every((x, index) =>
-        (!!x.nameContains?.trim() || !!x.valueContains?.trim())
-        && (index === 0
-          ? x.conditionOperatorId === null
-          : this.conditionOperators.some((operator) => operator.id === x.conditionOperatorId)));
+      && this.expressionValidation.isValid;
+  }
+
+  get expressionValidation() {
+    return validateManualCheckExpression(
+      this.expressionRoot,
+      new Set(this.conditionOperators.map((operator) => operator.id)),
+    );
+  }
+
+  get expressionPreview(): string {
+    return formatManualCheckExpression(this.expressionRoot, this.conditionOperators);
+  }
+
+  get criteria(): ManualCheckCriterionNode[] {
+    return this.collectCriteria(this.expressionRoot);
   }
 
   get canStart(): boolean {
@@ -450,7 +442,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.customCooldown = preset.cooldownMinutes !== null && preset.cooldownSeconds !== null;
     this.cooldownMinutes = preset.cooldownMinutes ?? 0;
     this.cooldownSeconds = preset.cooldownSeconds ?? 0;
-    this.criteria = preset.criteria.map((x) => ({ ...x }));
+    this.expressionRoot = parseManualCheckExpression(preset.criteria).root;
     this.dirty = false;
     this.errorMessage = '';
     this.successMessage = '';
@@ -464,7 +456,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.customCooldown = false;
     this.cooldownMinutes = 0;
     this.cooldownSeconds = 0;
-    this.criteria = [this.emptyCriterion()];
+    this.expressionRoot = this.createEmptyExpression();
     this.dirty = true;
     this.errorMessage = '';
     this.successMessage = '';
@@ -489,16 +481,26 @@ export class ManualCheckSetupDialogComponent implements OnInit {
 
   addCriterion(): void {
     if (this.criteria.length < 25) {
-      this.criteria.push(this.emptyCriterion(false));
+      this.expressionRoot.children.push(this.emptyCriterion(false));
+      normalizeManualCheckExpressionOperators(
+        this.expressionRoot,
+        this.defaultOperatorId,
+        new Set(this.conditionOperators.map((operator) => operator.id)),
+      );
       this.markDirty();
     }
   }
 
   removeCriterion(index: number): void {
-    if (this.criteria.length > 1) {
-      this.criteria.splice(index, 1);
-      this.criteria[0].conditionOperatorId = null;
-      this.criteria[0].conditionOperatorName = null;
+    const criterion = this.criteria[index];
+    const location = criterion ? this.findCriterion(this.expressionRoot, criterion.id) : null;
+    if (this.criteria.length > 1 && location) {
+      location.parent.children.splice(location.index, 1);
+      normalizeManualCheckExpressionOperators(
+        this.expressionRoot,
+        this.defaultOperatorId,
+        new Set(this.conditionOperators.map((operator) => operator.id)),
+      );
       this.markDirty();
     }
   }
@@ -593,20 +595,51 @@ export class ManualCheckSetupDialogComponent implements OnInit {
       listingLimit: this.listingLimit!,
       cooldownMinutes: this.customCooldown ? this.cooldownMinutes! : null,
       cooldownSeconds: this.customCooldown ? this.cooldownSeconds! : null,
-      criteria: this.criteria.map((x) => ({
-        conditionOperatorId: x.conditionOperatorId,
-        nameContains: x.nameContains?.trim() || null,
-        valueContains: x.valueContains?.trim() || null,
+      criteria: flattenManualCheckExpression(this.expressionRoot).map((criterion) => ({
+        ...criterion,
+        nameContains: criterion.nameContains?.trim() || null,
+        valueContains: criterion.valueContains?.trim() || null,
       })),
     };
   }
 
-  private emptyCriterion(first = true): ManualCheckCriterion {
-    return {
-      conditionOperatorId: first ? null : (this.conditionOperators[0]?.id ?? null),
-      nameContains: null,
-      valueContains: null,
-    };
+  private emptyCriterion(first = true): ManualCheckCriterionNode {
+    return createManualCheckCriterionNode(first ? null : this.defaultOperatorId);
+  }
+
+  private createEmptyExpression(): ManualCheckGroupNode {
+    const root = createManualCheckGroupNode(null, true);
+    root.children.push(createManualCheckCriterionNode());
+    return root;
+  }
+
+  private get defaultOperatorId(): number | null {
+    return this.conditionOperators.find((operator) => operator.name.toUpperCase() === 'AND')?.id
+      ?? this.conditionOperators[0]?.id
+      ?? null;
+  }
+
+  private collectCriteria(group: ManualCheckGroupNode): ManualCheckCriterionNode[] {
+    return group.children.flatMap((child) =>
+      child.kind === 'criterion' ? [child] : this.collectCriteria(child));
+  }
+
+  private findCriterion(
+    group: ManualCheckGroupNode,
+    criterionId: string,
+  ): { parent: ManualCheckGroupNode; index: number } | null {
+    for (const [index, child] of group.children.entries()) {
+      if (child.kind === 'criterion' && child.id === criterionId) {
+        return { parent: group, index };
+      }
+      if (child.kind === 'group') {
+        const nested = this.findCriterion(child, criterionId);
+        if (nested) {
+          return nested;
+        }
+      }
+    }
+    return null;
   }
 
   private isCooldownPartValid(value: number | null): boolean {

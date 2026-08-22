@@ -52,6 +52,10 @@ input {
   border-color: black;
 }
 
+.manual-check-setup-dialog-panel .mat-mdc-dialog-surface {
+  overflow: hidden;
+}
+
 .table-container {
   overflow-x: auto;
   border: 1px solid #d7e1ee;

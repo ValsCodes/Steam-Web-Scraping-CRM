@@ -263,7 +263,14 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
     this.dialog.open<ManualCheckSetupDialogComponent, ManualCheckSetupDialogData, ManualCheckSetupDialogResult>(
       ManualCheckSetupDialogComponent,
-      { data, width: 'min(52rem, 94vw)', maxWidth: '94vw', disableClose: true },
+      {
+        data,
+        width: 'min(76rem, 96vw)',
+        maxWidth: '96vw',
+        maxHeight: '92vh',
+        panelClass: 'manual-check-setup-dialog-panel',
+        disableClose: true,
+      },
     ).afterClosed().pipe(takeUntil(this.destroy$)).subscribe((result) => {
       if (result === undefined) {
         return;

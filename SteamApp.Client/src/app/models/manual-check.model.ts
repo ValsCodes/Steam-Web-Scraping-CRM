@@ -9,6 +9,8 @@ export type ManualCheckRunStatus =
 export interface ManualCheckCriterion {
   conditionOperatorId: number | null;
   conditionOperatorName?: string | null;
+  openGroupCount?: number;
+  closeGroupCount?: number;
   nameContains: string | null;
   valueContains: string | null;
 }

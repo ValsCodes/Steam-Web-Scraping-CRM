@@ -9,6 +9,7 @@ import {
   ManualCheckService,
 } from '../../services';
 import { GameUrlProduct, ManualCheckRunDetail, ScrapingModeEnum } from '../../models';
+import { ManualCheckSetupDialogComponent } from './manual-check-setup-dialog.component';
 import { ManualCheckTraceDialogComponent } from './manual-check-trace-dialog.component';
 import { ManualModeV2 } from './manual-mode-v2';
 
@@ -470,6 +471,16 @@ describe('ManualModeV2 external link disclosure', () => {
     component.automatedCheckButtonClicked();
     tick(0);
 
+    expect(dialog.open).toHaveBeenCalledOnceWith(
+      ManualCheckSetupDialogComponent,
+      jasmine.objectContaining({
+        width: 'min(76rem, 96vw)',
+        maxWidth: '96vw',
+        maxHeight: '92vh',
+        panelClass: 'manual-check-setup-dialog-panel',
+        disableClose: true,
+      }),
+    );
     expect(manualCheckService.createRun).toHaveBeenCalledOnceWith({
       gameUrlId: 2,
       presetId: 3,

@@ -267,6 +267,100 @@ public sealed class ManualCheckMatcherTests
         Assert.That(result, Is.Null);
     }
 
+    [TestCase("cond-a cond-c cond-e cond-y", true)]
+    [TestCase("cond-a cond-c cond-e", false)]
+    [TestCase("cond-a cond-b cond-d", true)]
+    [TestCase("cond-b cond-d", false)]
+    public void MatchProduct_NestedRequestedExpression_EvaluatesGroups(
+        string descriptionValue,
+        bool expectedMatch)
+    {
+        var listing = ListingWithAssets(("440", "2", "a1", AssetWith(("attribute", descriptionValue))));
+        var criteria = new[]
+        {
+            Criterion("cond-a"),
+            Criterion("cond-b", ManualCheckConditionOperatorEnum.And, open: 1),
+            Criterion("cond-c", ManualCheckConditionOperatorEnum.Or, close: 1),
+            Criterion("cond-d", ManualCheckConditionOperatorEnum.And, open: 1),
+            Criterion("cond-e", ManualCheckConditionOperatorEnum.Or, open: 1),
+            Criterion("cond-y", ManualCheckConditionOperatorEnum.And, close: 2)
+        };
+
+        var result = ManualCheckMatcher.MatchProduct(Product(), listing, criteria, 10);
+
+        Assert.That(result is not null, Is.EqualTo(expectedMatch));
+    }
+
+    [TestCase(ManualCheckConditionOperatorEnum.And, "Present", "Present", true)]
+    [TestCase(ManualCheckConditionOperatorEnum.Or, "Missing", "Present", true)]
+    [TestCase(ManualCheckConditionOperatorEnum.AndNot, "Present", "Missing", true)]
+    [TestCase(ManualCheckConditionOperatorEnum.OrNot, "Missing", "Present", false)]
+    [TestCase(ManualCheckConditionOperatorEnum.Xor, "Present", "Missing", true)]
+    [TestCase(ManualCheckConditionOperatorEnum.Nand, "Present", "Present", false)]
+    [TestCase(ManualCheckConditionOperatorEnum.Nor, "Missing", "Missing", true)]
+    public void MatchProduct_ConditionOperator_CanCombineCompletedGroup(
+        ManualCheckConditionOperatorEnum conditionOperator,
+        string firstTerm,
+        string groupedTerm,
+        bool expectedMatch)
+    {
+        var listing = ListingWithAssets(("440", "2", "a1", AssetWith(("attribute", "Present"))));
+        var criteria = new[]
+        {
+            Criterion(firstTerm),
+            Criterion(groupedTerm, conditionOperator, open: 1, close: 1)
+        };
+
+        var result = ManualCheckMatcher.MatchProduct(Product(), listing, criteria, 10);
+
+        Assert.That(result is not null, Is.EqualTo(expectedMatch));
+    }
+
+    [Test]
+    public void MatchProduct_NestedGroup_RemainsWithinOneAssetAndPreservesCriterionIndexes()
+    {
+        var splitAcrossAssets = ListingWithAssets(
+            ("440", "2", "a1", AssetWith(("attribute", "cond-a"))),
+            ("440", "2", "a2", AssetWith(("attribute", "cond-c"))));
+        var sameAsset = ListingWithAssets(("440", "2", "a3", AssetWith(
+            ("attribute", "cond-a"),
+            ("attribute", "cond-c"))));
+        var criteria = new[]
+        {
+            Criterion("cond-a"),
+            Criterion("cond-b", ManualCheckConditionOperatorEnum.And, open: 1),
+            Criterion("cond-c", ManualCheckConditionOperatorEnum.Or, close: 1)
+        };
+
+        var splitResult = ManualCheckMatcher.MatchProduct(Product(), splitAcrossAssets, criteria, 10);
+        var sameAssetResult = ManualCheckMatcher.MatchProduct(Product(), sameAsset, criteria, 10);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(splitResult, Is.Null);
+            Assert.That(sameAssetResult, Is.Not.Null);
+            Assert.That(
+                sameAssetResult!.MatchedAssets[0].Descriptions.SelectMany(x => x.MatchedCriterionIndexes),
+                Is.EqualTo(new[] { 0, 2 }));
+        });
+    }
+
+    [Test]
+    public void MatchProduct_NestedGroup_UsesStrictLeftFoldWithinGroup()
+    {
+        var listing = ListingWithAssets(("440", "2", "a1", AssetWith(("attribute", "cond-a"))));
+        var criteria = new[]
+        {
+            Criterion("cond-a", open: 1),
+            Criterion("cond-b", ManualCheckConditionOperatorEnum.Or),
+            Criterion("cond-c", ManualCheckConditionOperatorEnum.And, close: 1)
+        };
+
+        var result = ManualCheckMatcher.MatchProduct(Product(), listing, criteria, 10);
+
+        Assert.That(result, Is.Null);
+    }
+
     private static ManualCheckProductInputDto Product()
     {
         return new ManualCheckProductInputDto
@@ -276,6 +370,21 @@ public sealed class ManualCheckMatcherTests
             GameUrlId = 5,
             GameUrlName = "Steam Market",
             FullUrl = "https://steamcommunity.com/market/listings/440/Scattergun"
+        };
+    }
+
+    private static ManualCheckCriterionDto Criterion(
+        string value,
+        ManualCheckConditionOperatorEnum? conditionOperator = null,
+        int open = 0,
+        int close = 0)
+    {
+        return new ManualCheckCriterionDto
+        {
+            ConditionOperatorId = conditionOperator.HasValue ? (long)conditionOperator.Value : null,
+            OpenGroupCount = open,
+            CloseGroupCount = close,
+            ValueContains = value
         };
     }
 

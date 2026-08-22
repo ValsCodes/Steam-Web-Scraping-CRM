@@ -24,6 +24,11 @@ import {
   ManualCheckRunDetail,
 } from '../../models';
 import { ManualCheckService } from '../../services';
+import {
+  formatManualCheckExpression,
+  ManualCheckGroupNode,
+  parseManualCheckExpression,
+} from './manual-check-expression';
 import { ManualCheckSteamResultDialogComponent } from './manual-check-steam-result-dialog.component';
 
 export type ManualCheckTraceView = 'setup' | 'results' | 'errors';
@@ -75,7 +80,7 @@ export interface ManualCheckTraceDialogData {
         @if (view === 'setup') {
           <div class="manual-check-trace__panel">
             <h3>Preset snapshot</h3>
-            <p><strong>{{ run.setup.presetName }}</strong> · Criteria are evaluated from top to bottom.</p>
+            <p><strong>{{ run.setup.presetName }}</strong> · Criteria are evaluated left-to-right inside each group.</p>
             <p>Top {{ run.setup.listingLimit }} cheapest available listing(s) checked per product.</p>
             <p>
               Cooldown between checks:
@@ -87,17 +92,17 @@ export interface ManualCheckTraceDialogData {
             </p>
             <p>Steam data: {{ run.setup.bypassCache ? 'fresh fetch requested; cache bypassed' : '20-minute cache allowed' }}.</p>
             <p>{{ run.setup.products.length }} product(s) captured from {{ run.setup.gameUrlName || ('Source #' + run.setup.gameUrlId) }}.</p>
-            <ol class="manual-check-trace__criteria">
-              @for (criterion of run.setup.criteria; track $index; let i = $index) {
-                <li>
-                  <strong>{{ i === 0 ? 'Start' : criterion.conditionOperatorName }}</strong>
-                  <span> · </span>
-                  @if (criterion.nameContains) { <span>Name contains “{{ criterion.nameContains }}”</span> }
-                  @if (criterion.nameContains && criterion.valueContains) { <span> and </span> }
-                  @if (criterion.valueContains) { <span>Value contains “{{ criterion.valueContains }}”</span> }
-                </li>
-              }
-            </ol>
+            @if (setupExpression) {
+              <div class="manual-check-trace__expression">
+                <strong>Saved expression</strong>
+                <code>{{ setupExpressionPreview }}</code>
+              </div>
+            }
+            @if (!setupExpressionValid) {
+              <div class="manual-check-trace__callout">
+                Historical grouping is malformed or incomplete. Criteria are shown as a flat list so the trace remains readable.
+              </div>
+            }
           </div>
         } @else if (view === 'results') {
           <div class="manual-check-trace__panel">
@@ -233,7 +238,8 @@ export interface ManualCheckTraceDialogData {
     .manual-check-trace__result-status--matched { background: #dcfce7; color: #166534; }
     .manual-check-trace__result-status--failed { background: #fee2e2; color: #991b1b; }
     .table-actions-cell { display: flex; justify-content: center; }
-    .manual-check-trace__criteria { margin: 0; padding-left: 1.5rem; }
+    .manual-check-trace__expression { display: flex; flex-direction: column; gap: .4rem; border-left: 4px solid #60a5fa; border-radius: .25rem; background: #eff6ff; padding: .75rem; }
+    .manual-check-trace__expression code { overflow-wrap: anywhere; color: #1e3a8a; white-space: normal; }
     .manual-check-trace__error-list { display: grid; gap: .75rem; }
     .manual-check-trace__record { border: 1px solid #e2e8f0; border-radius: .375rem; padding: .75rem; }
     .manual-check-trace__record p { margin: .35rem 0; }
@@ -259,6 +265,8 @@ export class ManualCheckTraceDialogComponent implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
 
   detail: ManualCheckRunDetail | null = null;
+  setupExpression: ManualCheckGroupNode | null = null;
+  setupExpressionValid = true;
   view: ManualCheckTraceView = 'results';
   loading = false;
   errorMessage = '';
@@ -273,7 +281,7 @@ export class ManualCheckTraceDialogComponent implements OnInit {
   ngOnInit(): void {
     this.view = this.data.initialView ?? 'results';
     if (this.data.detail) {
-      this.detail = this.data.detail;
+      this.setDetail(this.data.detail);
       return;
     }
 
@@ -295,7 +303,7 @@ export class ManualCheckTraceDialogComponent implements OnInit {
       }))
       .subscribe({
         next: (detail) => {
-          this.detail = detail;
+          this.setDetail(detail);
           this.cdr.markForCheck();
         },
         error: (error) => {
@@ -317,6 +325,19 @@ export class ManualCheckTraceDialogComponent implements OnInit {
   productDuration(detail: ManualCheckRunDetail, productId: number): number | null {
     return detail.results.productTraces.find((trace) => trace.productId === productId)
       ?.durationMilliseconds ?? null;
+  }
+
+  get setupExpressionPreview(): string {
+    return this.setupExpression
+      ? formatManualCheckExpression(this.setupExpression, [])
+      : '';
+  }
+
+  private setDetail(detail: ManualCheckRunDetail): void {
+    this.detail = detail;
+    const parsed = parseManualCheckExpression(detail.setup.criteria);
+    this.setupExpression = parsed.root;
+    this.setupExpressionValid = parsed.isValid;
   }
 
   private getError(error: unknown, fallback: string): string {

@@ -9,6 +9,7 @@ import {
   ManualCheckSetupDialogComponent,
   ManualCheckSetupDialogResult,
 } from './manual-check-setup-dialog.component';
+import { parseManualCheckExpression } from './manual-check-expression';
 
 describe('ManualCheckSetupDialogComponent', () => {
   let fixture: ComponentFixture<ManualCheckSetupDialogComponent>;
@@ -160,6 +161,33 @@ describe('ManualCheckSetupDialogComponent', () => {
 
     component.criteria[1].conditionOperatorId = null;
     expect(component.isDraftValid).toBeFalse();
+  });
+
+  it('renders, previews, and serializes nested groups', () => {
+    const criteria = [
+      { conditionOperatorId: null, nameContains: 'A', valueContains: 'A', openGroupCount: 0, closeGroupCount: 0 },
+      { conditionOperatorId: 1, nameContains: 'B', valueContains: 'B', openGroupCount: 1, closeGroupCount: 0 },
+      { conditionOperatorId: 2, nameContains: 'C', valueContains: 'C', openGroupCount: 0, closeGroupCount: 1 },
+    ];
+    component.expressionRoot = parseManualCheckExpression(criteria).root;
+    component.markDirty();
+    service.updatePreset.and.returnValue(of({ ...presets[1], criteria }));
+    fixture.detectChanges();
+
+    component.savePreset();
+
+    const write = service.updatePreset.calls.mostRecent().args[1];
+    expect(write.criteria.map((criterion) => ({
+      operator: criterion.conditionOperatorId,
+      opens: criterion.openGroupCount,
+      closes: criterion.closeGroupCount,
+    }))).toEqual([
+      { operator: null, opens: 0, closes: 0 },
+      { operator: 1, opens: 1, closes: 0 },
+      { operator: 2, opens: 0, closes: 1 },
+    ]);
+    expect(fixture.nativeElement.textContent).toContain('([B: B] OR [C: C])');
+    expect(fixture.nativeElement.querySelectorAll('.expression-group').length).toBeGreaterThan(1);
   });
 
   it('creates a new preset and starts it in one action', () => {

@@ -134,6 +134,44 @@ describe('ManualCheckTraceDialogComponent', () => {
     expect(text).toContain('Steam data: 20-minute cache allowed.');
   });
 
+  it('renders the saved nested setup expression', () => {
+    const groupedDetail: ManualCheckRunDetail = {
+      ...detail,
+      setup: {
+        ...detail.setup,
+        criteria: [
+          { conditionOperatorId: null, nameContains: 'A', valueContains: 'A', openGroupCount: 0, closeGroupCount: 0 },
+          { conditionOperatorId: 1, conditionOperatorName: 'AND', nameContains: 'B', valueContains: 'B', openGroupCount: 1, closeGroupCount: 0 },
+          { conditionOperatorId: 2, conditionOperatorName: 'OR', nameContains: 'C', valueContains: 'C', openGroupCount: 0, closeGroupCount: 1 },
+        ],
+      },
+    };
+    dialogData = { detail: groupedDetail, initialView: 'setup' };
+    createComponent();
+
+    expect(fixture.nativeElement.textContent).toContain('[A: A] AND ([B: B] OR [C: C])');
+    expect(component.setupExpressionValid).toBeTrue();
+  });
+
+  it('falls back to a flat setup list when historical grouping is malformed', () => {
+    const malformedDetail: ManualCheckRunDetail = {
+      ...detail,
+      setup: {
+        ...detail.setup,
+        criteria: [
+          { conditionOperatorId: null, nameContains: 'A', valueContains: 'A', closeGroupCount: 1 },
+          { conditionOperatorId: 1, conditionOperatorName: 'AND', nameContains: 'B', valueContains: 'B' },
+        ],
+      },
+    };
+    dialogData = { detail: malformedDetail, initialView: 'setup' };
+    createComponent();
+
+    expect(component.setupExpressionValid).toBeFalse();
+    expect(fixture.nativeElement.textContent).toContain('Criteria are shown as a flat list');
+    expect(fixture.nativeElement.textContent).toContain('[A: A] AND [B: B]');
+  });
+
   it('shows product checks, durations, and Steam-result actions', () => {
     dialogData = { detail, initialView: 'results' };
     createComponent();

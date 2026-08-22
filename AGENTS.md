@@ -38,13 +38,74 @@ Inspect the affected `.csproj` files before changing these boundaries.
 
 ## Code conventions
 
-- Use one new top-level C# type per file and name the file after that type unless an established local grouping is clearer.
+- Each C# class, record, struct, interface, enum, and delegate MUST have its own file named after the type. No local-grouping exception.
 - Do not add local functions inside methods; extract focused private members when extraction materially improves clarity.
 - Prefer primary constructors when they remain easy to read with validation, inheritance, and dependency injection.
 - Put domain entities and enums under `SteamApp.Models`, DTOs and mappings under `SteamApp.Application`, contracts under `SteamApp.Interfaces`, and infrastructure implementations under `SteamApp.Infrastructure`.
 - Put API-only orchestration, controllers, Minimal APIs, hosted workers, RabbitMQ messages/handlers/consumers, security policies, and API-specific services under `SteamApp.WebAPI`.
 - Extend existing services, endpoints, and message-broker infrastructure instead of creating parallel paths.
 - Follow the existing standalone Angular component/service style and existing import-barrel conventions in the touched area.
+
+## Architecture and structure enforcement
+
+The existing repository structure is authoritative. Do not introduce a different architectural organization, generic clean-architecture layout, or alternative domain structure.
+
+Before creating, moving, or substantially modifying code:
+
+- Inspect the affected project, neighboring folders, namespaces, and comparable existing implementations.
+- Determine which existing domain, project, folder, and layer owns the behavior.
+- Follow the nearest established implementation pattern unless the task explicitly requires an architectural change.
+- Place new code in the existing project and domain that already owns equivalent behavior.
+- Preserve the project-reference graph documented above.
+- Do not create new top-level folders, projects, layers, cross-domain abstractions, shared modules, or parallel service hierarchies merely for organizational preference.
+- Do not move responsibilities between Domain, Application, Interfaces, Infrastructure, WebAPI, or WebApiClient unless the requested change explicitly requires it.
+- Prefer extending an existing domain structure over inventing a new structure.
+- Namespace placement must follow the containing project's existing namespace and folder conventions.
+- If a proposed location conflicts with the repository's established structure, the repository structure wins.
+
+For repository-wide or structurally significant work, inspect comparable source files before implementation. Do not infer architecture from generic .NET conventions when this repository already establishes a pattern.
+
+## ENFORCE DIRECTIVE: One C# type per file
+
+Each C# class, record, struct, interface, enum, and delegate MUST be declared in its own source file.
+
+This directive is mandatory and has no local-grouping exception.
+
+- A `.cs` file MUST NOT contain multiple top-level types.
+- The filename MUST match the declared type name.
+- Do not place helper classes, DTOs, request/response models, options classes, configuration classes, message types, result types, interfaces, enums, or implementations in the same file as another type.
+- Do not add a second type to an existing source file for convenience.
+- When a task materially modifies an existing file containing multiple top-level types, split the touched types into correctly named files unless doing so would change generated code or violate an explicitly documented framework requirement.
+- Nested types are allowed only when they are genuinely implementation-private to the containing type and are already consistent with the local design. Do not use nesting to bypass this directive.
+- Generated source files are exempt unless the task explicitly modifies their generation strategy.
+
+Before completion, inspect every added or modified `.cs` file and verify that it contains no more than one top-level type.
+
+## Domain ownership
+
+Use these ownership boundaries when determining where code belongs:
+
+- `SteamApp.Models`: domain entities, enums, value objects, and domain constants.
+- `SteamApp.Application`: DTOs, mappings, operation results, cache keys, JSON models, and application-level utilities.
+- `SteamApp.Interfaces`: service and repository contracts.
+- `SteamApp.Infrastructure`: EF Core persistence, repository implementations, external integrations, email, Steam/Selenium, encryption, retry, and infrastructure services.
+- `SteamApp.WebAPI`: API composition, controllers, Minimal APIs, API-specific orchestration, hosted workers, RabbitMQ messages/handlers/consumers, security, jobs, and API-specific services.
+- `SteamApp.WebApiClient`: typed .NET API-client managers.
+- `SteamApp.Client`: Angular client code following the existing standalone Angular structure.
+
+Do not place code in a different layer because it is easier to reference from the current task. Respect ownership and dependency direction.
+
+## Structural completion checks
+
+Before reporting completion:
+
+- Verify each new type is in its own correctly named file.
+- Verify every new file is under the correct existing project, domain, and folder.
+- Verify namespaces match the surrounding source structure.
+- Verify the implementation follows the nearest comparable existing implementation.
+- Verify no unnecessary project, layer, folder, abstraction, or parallel architecture was introduced.
+- Verify project references still follow the documented dependency graph.
+- Inspect the final diff specifically for structural drift.
 
 ## Data access and dependency injection
 

@@ -25,6 +25,12 @@ public sealed class ManualCheckCriterion
     [Column("sort_order")]
     public int SortOrder { get; set; }
 
+    [Column("open_group_count")]
+    public int OpenGroupCount { get; set; }
+
+    [Column("close_group_count")]
+    public int CloseGroupCount { get; set; }
+
     [MaxLength(TermMaxLength)]
     [Column("name_contains")]
     public string? NameContains { get; set; }

@@ -625,6 +625,12 @@ namespace SteamApp.WebAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<int>("CloseGroupCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("close_group_count");
+
                     b.Property<long?>("ConditionOperatorId")
                         .HasColumnType("bigint")
                         .HasColumnName("condition_operator_id");
@@ -637,6 +643,12 @@ namespace SteamApp.WebAPI.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)")
                         .HasColumnName("name_contains");
+
+                    b.Property<int>("OpenGroupCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("open_group_count");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int")
@@ -654,7 +666,12 @@ namespace SteamApp.WebAPI.Migrations
                     b.HasIndex("ManualCheckPresetId", "SortOrder")
                         .IsUnique();
 
-                    b.ToTable("manual_check_criterion");
+                    b.ToTable("manual_check_criterion", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_manual_check_criterion_close_group_count", "[close_group_count] >= 0 AND [close_group_count] <= 25");
+
+                            t.HasCheckConstraint("CK_manual_check_criterion_open_group_count", "[open_group_count] >= 0 AND [open_group_count] <= 25");
+                        });
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckPreset", b =>

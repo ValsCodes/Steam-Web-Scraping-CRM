@@ -1,6 +1,5 @@
 using SteamApp.Application.DTOs.ManualCheck;
 using SteamApp.Application.JsonObjects;
-using SteamApp.Domain.Enums;
 
 namespace SteamApp.WebAPI.Services;
 
@@ -119,7 +118,7 @@ public static class ManualCheckMatcher
                 }
             }
 
-            var qualifies = EvaluateCriteria(criterionMatches, criteria);
+            var qualifies = ManualCheckExpression.Evaluate(criterionMatches, criteria);
 
             if (!qualifies)
             {
@@ -203,37 +202,6 @@ public static class ManualCheckMatcher
 
         return (string.IsNullOrEmpty(name) || (description.Name ?? string.Empty).Contains(name, StringComparison.OrdinalIgnoreCase)) &&
                (string.IsNullOrEmpty(value) || (description.Value ?? string.Empty).Contains(value, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static bool EvaluateCriteria(
-        IReadOnlyList<bool> criterionMatches,
-        IReadOnlyList<ManualCheckCriterionDto> criteria)
-    {
-        if (criterionMatches.Count == 0)
-        {
-            return false;
-        }
-
-        var result = criterionMatches[0];
-        for (var index = 1; index < criterionMatches.Count; index++)
-        {
-            var conditionOperator = (ManualCheckConditionOperatorEnum?)criteria[index].ConditionOperatorId
-                ?? throw new InvalidOperationException($"Criterion #{index + 1} has no condition operator.");
-            var criterionMatch = criterionMatches[index];
-            result = conditionOperator switch
-            {
-                ManualCheckConditionOperatorEnum.And => result && criterionMatch,
-                ManualCheckConditionOperatorEnum.Or => result || criterionMatch,
-                ManualCheckConditionOperatorEnum.AndNot => result && !criterionMatch,
-                ManualCheckConditionOperatorEnum.OrNot => result || !criterionMatch,
-                ManualCheckConditionOperatorEnum.Xor => result != criterionMatch,
-                ManualCheckConditionOperatorEnum.Nand => !(result && criterionMatch),
-                ManualCheckConditionOperatorEnum.Nor => !(result || criterionMatch),
-                _ => throw new InvalidOperationException($"Criterion #{index + 1} has an unsupported condition operator.")
-            };
-        }
-
-        return result;
     }
 
     private static bool IsSteamCommunityHost(string host)
