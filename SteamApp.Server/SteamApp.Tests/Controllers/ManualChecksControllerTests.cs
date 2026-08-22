@@ -4,9 +4,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SteamApp.Application.DTOs.ManualCheck;
 using SteamApp.Domain.Enums;
+using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI.Controllers;
+using SteamApp.WebAPI.Exceptions;
 using SteamApp.WebAPI.Security;
-using SteamApp.WebAPI.Services;
 
 namespace SteamApp.Tests.Controllers;
 

@@ -5,6 +5,7 @@ using SteamApp.Application.DTOs.WatchItem;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
 using SteamApp.Infrastructure.Context;
+using SteamApp.Interfaces.Services;
 
 namespace SteamApp.WebAPI.Services;
 

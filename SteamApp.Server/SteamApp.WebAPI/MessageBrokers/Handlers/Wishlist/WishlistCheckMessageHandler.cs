@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using SteamApp.Application.Caching;
-using SteamApp.Application.Services;
+using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI.Caching;
 using SteamApp.WebAPI.MessageBrokers.Abstractions;
 using SteamApp.WebAPI.MessageBrokers.Messages.Wishlist;

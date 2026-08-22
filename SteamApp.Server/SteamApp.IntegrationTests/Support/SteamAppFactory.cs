@@ -12,7 +12,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using SteamApp.Application.Services;
 using SteamApp.Infrastructure.Context;
 using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI;

@@ -255,26 +255,3 @@ public static class TestDb
         db.SaveChanges();
     }
 }
-
-public sealed class TestDbContextFactory(DbContextOptions<ApplicationDbContext> options)
-    : IDbContextFactory<ApplicationDbContext>
-{
-    public ApplicationDbContext CreateDbContext()
-    {
-        return new ApplicationDbContext(options);
-    }
-}
-
-public sealed class TestDatabase(
-    ApplicationDbContext context,
-    TestDbContextFactory factory)
-    : IDisposable
-{
-    public ApplicationDbContext Context { get; } = context;
-    public TestDbContextFactory Factory { get; } = factory;
-
-    public void Dispose()
-    {
-        Context.Dispose();
-    }
-}

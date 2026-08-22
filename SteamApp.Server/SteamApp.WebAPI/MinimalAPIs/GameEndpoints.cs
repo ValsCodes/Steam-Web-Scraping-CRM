@@ -243,9 +243,4 @@ namespace SteamApp.WebAPI.MinimalAPIs
             return app;
         }
     }
-
-    public sealed record GamesPageQuery : PagedQuery
-    {
-        public string? Name { get; init; }
-    }
 }

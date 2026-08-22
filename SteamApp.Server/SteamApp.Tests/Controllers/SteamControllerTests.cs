@@ -11,7 +11,6 @@ using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.ScrapeHistory;
 using SteamApp.Application.DTOs.WatchItem;
 using SteamApp.Application.DTOs.WishListItem;
-using SteamApp.Application.Services;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
 using SteamApp.Infrastructure.Context;

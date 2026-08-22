@@ -1,4 +1,4 @@
-﻿namespace SteamApp.Application.DTOs.WatchList
+namespace SteamApp.Application.DTOs.WatchListItem
 {
     public sealed class WatchListDto
     {

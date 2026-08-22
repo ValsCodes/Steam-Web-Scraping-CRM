@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SteamApp.Infrastructure.Identity;
+using SteamApp.WebAPI.Contracts.AdminUsers;
 using SteamApp.WebAPI.Security;
 
 namespace SteamApp.WebAPI.MinimalAPIs;
@@ -212,17 +213,3 @@ public static class AdminUserEndpoints
                     group => group.Select(error => error.Description).ToArray()));
     }
 }
-
-public sealed record AdminUserSummaryResponse(
-    string Id,
-    string DisplayName,
-    string? FirstName,
-    string? LastName,
-    string? UserName,
-    string? Email,
-    string? Phone,
-    string[] Roles,
-    string EffectiveRole,
-    bool IsCurrentUser);
-
-public sealed record UpdateUserRoleRequest(string? Role);

@@ -1,7 +1,7 @@
 using SteamApp.Application.DTOs.ManualCheck;
 using SteamApp.Application.JsonObjects;
 using SteamApp.Domain.Enums;
-using SteamApp.WebAPI.Services;
+using SteamApp.WebAPI.ManualChecks;
 
 namespace SteamApp.Tests.Services;
 

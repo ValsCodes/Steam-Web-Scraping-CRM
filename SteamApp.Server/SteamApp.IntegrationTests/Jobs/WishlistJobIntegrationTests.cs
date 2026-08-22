@@ -6,11 +6,11 @@ using Microsoft.Extensions.Options;
 using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.WishListItem;
 using SteamApp.IntegrationTests.Support;
+using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI.Jobs;
 using SteamApp.WebAPI.MessageBrokers.Handlers.Wishlist;
 using SteamApp.WebAPI.MessageBrokers.Messages.Wishlist;
 using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options;
-using SteamApp.WebAPI.Services;
 
 namespace SteamApp.IntegrationTests.Jobs;
 

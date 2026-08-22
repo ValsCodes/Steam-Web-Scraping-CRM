@@ -4,7 +4,7 @@ using OpenQA.Selenium;
 using SteamApp.Application.DTOs.WishListItem;
 using SteamApp.Domain.Entities;
 using SteamApp.Interfaces.Repositories;
-using SteamApp.WebAPI.Services;
+using SteamApp.Infrastructure.Services;
 
 namespace SteamApp.Tests.Services;
 

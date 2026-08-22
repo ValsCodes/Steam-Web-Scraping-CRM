@@ -9,7 +9,9 @@ using Newtonsoft.Json;
 using SteamApp.Application.DTOs.ManualCheck;
 using SteamApp.Application.JsonObjects;
 using SteamApp.Domain.Enums;
+using SteamApp.Interfaces.Services;
 using SteamApp.Tests.TestSupport;
+using SteamApp.WebAPI.ManualChecks;
 using SteamApp.WebAPI.Services;
 
 namespace SteamApp.Tests.Services;

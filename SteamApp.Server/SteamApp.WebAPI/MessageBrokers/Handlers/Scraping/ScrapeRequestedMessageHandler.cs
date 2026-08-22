@@ -1,9 +1,10 @@
 using Microsoft.Extensions.Caching.Distributed;
 using SteamApp.Application.DTOs.WatchItem;
 using SteamApp.Domain.Enums;
+using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI.Caching;
 using SteamApp.WebAPI.MessageBrokers.Messages.Scraping;
-using SteamApp.WebAPI.Services;
+using SteamApp.WebAPI.Scraping;
 
 namespace SteamApp.WebAPI.MessageBrokers.Handlers.Scraping;
 

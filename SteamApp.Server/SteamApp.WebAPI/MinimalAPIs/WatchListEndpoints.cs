@@ -1,7 +1,6 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using SteamApp.Application.DTOs.WatchList;
 using SteamApp.Application.DTOs.WatchListItem;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
@@ -213,10 +212,5 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
             return app;
         }
-    }
-
-    public sealed record WatchListPageQuery : PagedQuery
-    {
-        public string? Name { get; init; }
     }
 }

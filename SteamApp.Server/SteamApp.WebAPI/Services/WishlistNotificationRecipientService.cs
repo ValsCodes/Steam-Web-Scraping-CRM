@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using SteamApp.Application.DTOs.WishListItem;
 using SteamApp.Infrastructure.Context;
+using SteamApp.Interfaces.Services;
 
 namespace SteamApp.WebAPI.Services;
 

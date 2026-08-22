@@ -37,5 +37,3 @@ public sealed class CapturingMessagePublisher : IMessagePublisher
         }
     }
 }
-
-public sealed record PublishedMessage(string QueueName, object Message);

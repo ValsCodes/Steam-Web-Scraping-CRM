@@ -1,5 +1,6 @@
 using SteamApp.Application.DTOs.WatchItem;
 using SteamApp.Interfaces.Services;
+using SteamApp.WebAPI.Scraping;
 
 namespace SteamApp.WebAPI.Services;
 

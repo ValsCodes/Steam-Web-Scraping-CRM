@@ -15,9 +15,3 @@ public static class Validator
         return responce;
     }
 }
-
-public class ErrorResponce
-{
-    public bool Valid { get; set; }
-    public List<string> Errors { get; set; } = [];
-}

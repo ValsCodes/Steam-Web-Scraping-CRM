@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using SteamApp.Application.DTOs.WatchList;
 using SteamApp.Application.DTOs.WatchListItem;
 using SteamApp.Domain.Entities;
 

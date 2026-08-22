@@ -1,4 +1,3 @@
-using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -137,90 +136,6 @@ public class EmailService : IEmailService
         return new TransientRetryPolicyService(
             Options.Create(new TransientRetryPolicyOptions()),
             NullLogger<TransientRetryPolicyService>.Instance);
-    }
-}
-
-internal interface IEmailSmtpClientFactory
-{
-    IEmailSmtpClient Create();
-}
-
-internal interface IEmailSmtpClient : IAsyncDisposable
-{
-    void AllowInvalidServerCertificate();
-
-    Task ConnectAsync(
-        string host,
-        int port,
-        SecureSocketOptions options,
-        CancellationToken cancellationToken);
-
-    Task AuthenticateAsync(
-        string userName,
-        string password,
-        CancellationToken cancellationToken);
-
-    Task SendAsync(
-        MimeMessage message,
-        CancellationToken cancellationToken);
-
-    Task DisconnectAsync(
-        bool quit,
-        CancellationToken cancellationToken);
-}
-
-internal sealed class MailKitEmailSmtpClientFactory : IEmailSmtpClientFactory
-{
-    public IEmailSmtpClient Create()
-    {
-        return new MailKitEmailSmtpClient();
-    }
-}
-
-internal sealed class MailKitEmailSmtpClient : IEmailSmtpClient
-{
-    private readonly SmtpClient client = new();
-
-    public void AllowInvalidServerCertificate()
-    {
-        client.ServerCertificateValidationCallback = (_, _, _, _) => true;
-    }
-
-    public Task ConnectAsync(
-        string host,
-        int port,
-        SecureSocketOptions options,
-        CancellationToken cancellationToken)
-    {
-        return client.ConnectAsync(host, port, options, cancellationToken);
-    }
-
-    public Task AuthenticateAsync(
-        string userName,
-        string password,
-        CancellationToken cancellationToken)
-    {
-        return client.AuthenticateAsync(userName, password, cancellationToken);
-    }
-
-    public Task SendAsync(
-        MimeMessage message,
-        CancellationToken cancellationToken)
-    {
-        return client.SendAsync(message, cancellationToken);
-    }
-
-    public Task DisconnectAsync(
-        bool quit,
-        CancellationToken cancellationToken)
-    {
-        return client.DisconnectAsync(quit, cancellationToken);
-    }
-
-    public ValueTask DisposeAsync()
-    {
-        client.Dispose();
-        return ValueTask.CompletedTask;
     }
 }
 

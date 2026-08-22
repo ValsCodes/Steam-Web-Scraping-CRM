@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SteamApp.Infrastructure.Context;
 using SteamApp.Infrastructure.Identity;
 using SteamApp.Tests.TestSupport;
+using SteamApp.WebAPI.Contracts.AdminUsers;
 using SteamApp.WebAPI.MinimalAPIs;
 using SteamApp.WebAPI.Security;
 

@@ -1,4 +1,4 @@
-﻿namespace SteamApp.Models.OperationResults
+namespace SteamApp.Application.OperationResults
 {
     public class BaseOperationResult
     {

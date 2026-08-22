@@ -7,15 +7,14 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.ScrapeHistory;
-using SteamApp.Application.Services;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
 using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI.MessageBrokers.Abstractions;
 using SteamApp.WebAPI.MessageBrokers.Messages.Scraping;
 using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options;
+using SteamApp.WebAPI.Scraping;
 using SteamApp.WebAPI.Security;
-using SteamApp.WebAPI.Services;
 
 namespace SteamApp.WebAPI.Controllers;
 

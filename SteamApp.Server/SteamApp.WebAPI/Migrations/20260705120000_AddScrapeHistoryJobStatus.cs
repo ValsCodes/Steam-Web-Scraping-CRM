@@ -5,7 +5,7 @@ using SteamApp.Infrastructure.Context;
 
 #nullable disable
 
-namespace SteamApp.Migrations
+namespace SteamApp.WebAPI.Migrations
 {
     /// <inheritdoc />
     [DbContext(typeof(ApplicationDbContext))]

@@ -1,3 +1,5 @@
+using SteamApp.Interfaces.Services;
+
 namespace SteamApp.WebAPI.Services;
 
 public sealed class ManualCheckDelay : IManualCheckDelay

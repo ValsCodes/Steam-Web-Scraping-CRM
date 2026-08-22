@@ -2,6 +2,7 @@ using SteamApp.Application.DTOs.ManualCheck;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
 using SteamApp.Tests.TestSupport;
+using SteamApp.WebAPI.Exceptions;
 using SteamApp.WebAPI.Services;
 using Newtonsoft.Json.Linq;
 
