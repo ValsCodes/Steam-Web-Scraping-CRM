@@ -1,4 +1,5 @@
 using AutoMapper;
+using EFCore.BulkExtensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -238,23 +239,75 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 long id,
                 HttpContext httpContext,
                 ApplicationDbContext db,
-                IMemoryCache cache) =>
+                IMemoryCache cache,
+                CancellationToken ct) =>
             {
                 var userId = httpContext.User.GetUserId();
                 if (userId is null) { return Results.Unauthorized(); }
 
-                var entity = await db.GameUrls
-                .Include(x => x.GameUrlsProducts)
-                .Include(x => x.GameUrlsPixels)
-                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+                if (db.Database.IsRelational())
+                {
+                    await using var transaction = await db.Database.BeginTransactionAsync(ct);
+                    try
+                    {
+                        var entity = await db.GameUrls
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+                        if (entity is null) { return Results.NotFound(); }
 
-                if (entity is null) { return Results.NotFound(); }
+                        var gameUrlProducts = await db.GameUrlsProducts
+                            .AsNoTracking()
+                            .Where(x => x.GameUrlId == id && x.GameUrl.UserId == userId)
+                            .Select(x => new GameUrlProducts
+                            {
+                                GameUrlId = x.GameUrlId,
+                                ProductId = x.ProductId
+                            })
+                            .ToListAsync(ct);
 
-                db.GameUrlsProducts.RemoveRange(entity.GameUrlsProducts);
-                db.GameUrlsPixels.RemoveRange(entity.GameUrlsPixels);
-                db.GameUrls.Remove(entity);
+                        var gameUrlPixels = await db.GameUrlsPixels
+                            .AsNoTracking()
+                            .Where(x => x.GameUrlId == id && x.GameUrl.UserId == userId)
+                            .Select(x => new GameUrlPixels
+                            {
+                                GameUrlId = x.GameUrlId,
+                                PixelId = x.PixelId
+                            })
+                            .ToListAsync(ct);
 
-                await db.SaveChangesAsync();
+                        if (gameUrlProducts.Count > 0)
+                        {
+                            await db.BulkDeleteAsync(gameUrlProducts, cancellationToken: ct);
+                        }
+
+                        if (gameUrlPixels.Count > 0)
+                        {
+                            await db.BulkDeleteAsync(gameUrlPixels, cancellationToken: ct);
+                        }
+
+                        db.GameUrls.Remove(entity);
+                        await db.SaveChangesAsync(ct);
+                        await transaction.CommitAsync(ct);
+                    }
+                    catch
+                    {
+                        await transaction.RollbackAsync(CancellationToken.None);
+                        throw;
+                    }
+                }
+                else
+                {
+                    var entity = await db.GameUrls
+                        .Include(x => x.GameUrlsProducts)
+                        .Include(x => x.GameUrlsPixels)
+                        .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+                    if (entity is null) { return Results.NotFound(); }
+
+                    db.GameUrlsProducts.RemoveRange(entity.GameUrlsProducts);
+                    db.GameUrlsPixels.RemoveRange(entity.GameUrlsPixels);
+                    db.GameUrls.Remove(entity);
+                    await db.SaveChangesAsync(ct);
+                }
 
                 var cacheKey = string.Format(CacheKeys.GameUrl, id);
                 cache.Remove(cacheKey);

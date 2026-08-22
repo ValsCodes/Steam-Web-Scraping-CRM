@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using SteamApp.Infrastructure.Context;
 using SteamApp.Infrastructure.Identity;
 using SteamApp.WebAPI.Contracts.AdminUsers;
 using SteamApp.WebAPI.Security;
@@ -17,23 +18,35 @@ public static class AdminUserEndpoints
 
         group.MapGet("/", async (
             HttpContext httpContext,
-            UserManager<ApplicationUser> userManager,
+            ApplicationDbContext db,
             CancellationToken ct) =>
         {
             var currentUserId = httpContext.User.GetUserId();
             if (currentUserId is null) { return Results.Unauthorized(); }
 
-            var users = await userManager.Users
+            var users = await db.Users
                 .AsNoTracking()
                 .OrderBy(x => x.Email)
                 .ThenBy(x => x.UserName)
                 .ToListAsync(ct);
 
-            var summaries = new List<AdminUserSummaryResponse>(users.Count);
-            foreach (var user in users)
-            {
-                summaries.Add(await CreateSummaryAsync(userManager, user, currentUserId));
-            }
+            var roleAssignments = await db.UserRoles
+                .AsNoTracking()
+                .Join(
+                    db.Roles.AsNoTracking(),
+                    userRole => userRole.RoleId,
+                    role => role.Id,
+                    (userRole, role) => new { userRole.UserId, role.Name })
+                .Where(x => x.Name != null)
+                .ToListAsync(ct);
+
+            var rolesByUserId = roleAssignments.ToLookup(
+                x => x.UserId,
+                x => x.Name!);
+
+            var summaries = users
+                .Select(user => CreateSummary(user, rolesByUserId[user.Id], currentUserId))
+                .ToList();
 
             return Results.Ok(summaries);
         })
@@ -149,7 +162,15 @@ public static class AdminUserEndpoints
         ApplicationUser user,
         string currentUserId)
     {
-        var roles = OrderKnownRoles(await userManager.GetRolesAsync(user));
+        return CreateSummary(user, await userManager.GetRolesAsync(user), currentUserId);
+    }
+
+    private static AdminUserSummaryResponse CreateSummary(
+        ApplicationUser user,
+        IEnumerable<string> assignedRoles,
+        string currentUserId)
+    {
+        var roles = OrderKnownRoles(assignedRoles);
         var effectiveRole = roles.Contains(SecurityPolicies.AdminRole, StringComparer.OrdinalIgnoreCase)
             ? SecurityPolicies.AdminRole
             : SecurityPolicies.UserRole;

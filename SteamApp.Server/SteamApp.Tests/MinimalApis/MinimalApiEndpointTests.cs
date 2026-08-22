@@ -570,6 +570,74 @@ public sealed class MinimalApiEndpointTests
     }
 
     [Test]
+    public async Task DeleteGameUrl_RemovesRelatedLinksAndInvalidatesCache()
+    {
+        await using var app = await MinimalApiTestApp.CreateAsync(db =>
+        {
+            TestDb.SeedBaseline(db);
+            db.GameUrlsPixels.Add(new GameUrlPixels { GameUrlId = 1, PixelId = 2 });
+            db.SaveChanges();
+        });
+        using (var scope = app.App.Services.CreateScope())
+        {
+            scope.ServiceProvider
+                .GetRequiredService<IMemoryCache>()
+                .Set(string.Format(CacheKeys.GameUrl, 1), new GameUrl { Id = 1 });
+        }
+
+        var response = await app.Client.DeleteAsync("/api/game-urls/1");
+
+        using var verifyScope = app.App.Services.CreateScope();
+        var db = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var cache = verifyScope.ServiceProvider.GetRequiredService<IMemoryCache>();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(db.GameUrls.Find(1L), Is.Null);
+            Assert.That(db.GameUrlsProducts.Any(x => x.GameUrlId == 1), Is.False);
+            Assert.That(db.GameUrlsPixels.Any(x => x.GameUrlId == 1), Is.False);
+            Assert.That(db.GameUrlsPixels.Any(x => x.GameUrlId == 2), Is.True);
+            Assert.That(cache.TryGetValue(string.Format(CacheKeys.GameUrl, 1), out _), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task DeleteGameUrl_ReturnsNotFoundForAnotherUsersRecordAndPreservesLinks()
+    {
+        await using var app = await MinimalApiTestApp.CreateAsync(db =>
+        {
+            TestDb.SeedBaseline(db);
+            db.Games.Add(new Game { Id = 99, Name = "Other Game", UserId = "other-user" });
+            db.GameUrls.Add(new GameUrl
+            {
+                Id = 99,
+                GameId = 99,
+                PartialUrl = "https://steam.example/other/{0}",
+                UserId = "other-user"
+            });
+            db.Products.Add(new Product { Id = 99, GameId = 99, Name = "Other Product", UserId = "other-user" });
+            db.Pixels.Add(new Pixel { Id = 99, GameId = 99, Name = "Other Pixel", UserId = "other-user" });
+            db.GameUrlsProducts.Add(new GameUrlProducts { GameUrlId = 99, ProductId = 99 });
+            db.GameUrlsPixels.Add(new GameUrlPixels { GameUrlId = 99, PixelId = 99 });
+            db.SaveChanges();
+        });
+
+        var response = await app.Client.DeleteAsync("/api/game-urls/99");
+
+        using var verifyScope = app.App.Services.CreateScope();
+        var db = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(db.GameUrls.Find(99L), Is.Not.Null);
+            Assert.That(db.GameUrlsProducts.Any(x => x.GameUrlId == 99), Is.True);
+            Assert.That(db.GameUrlsPixels.Any(x => x.GameUrlId == 99), Is.True);
+        });
+    }
+
+    [Test]
     public async Task PatchStatus_UsesBodyIdAndTogglesStatus()
     {
         await using var app = await MinimalApiTestApp.CreateAsync(TestDb.SeedBaseline);

@@ -64,9 +64,18 @@ public sealed class AdminUserEndpointTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(users.Single(x => x.Id == "admin-id").EffectiveRole, Is.EqualTo(SecurityPolicies.AdminRole));
-            Assert.That(users.Single(x => x.Id == "admin-id").IsCurrentUser, Is.True);
-            Assert.That(users.Single(x => x.Id == "user-id").EffectiveRole, Is.EqualTo(SecurityPolicies.UserRole));
+            var listedAdmin = users.Single(x => x.Id == "admin-id");
+            var listedUser = users.Single(x => x.Id == "user-id");
+
+            Assert.That(listedAdmin.EffectiveRole, Is.EqualTo(SecurityPolicies.AdminRole));
+            Assert.That(listedAdmin.Roles, Is.EqualTo(new[]
+            {
+                SecurityPolicies.UserRole,
+                SecurityPolicies.AdminRole
+            }));
+            Assert.That(listedAdmin.IsCurrentUser, Is.True);
+            Assert.That(listedUser.EffectiveRole, Is.EqualTo(SecurityPolicies.UserRole));
+            Assert.That(listedUser.Roles, Is.EqualTo(new[] { SecurityPolicies.UserRole }));
             Assert.That(promoteResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(promoted.EffectiveRole, Is.EqualTo(SecurityPolicies.AdminRole));
             Assert.That(promoted.Roles, Contains.Item(SecurityPolicies.UserRole));
