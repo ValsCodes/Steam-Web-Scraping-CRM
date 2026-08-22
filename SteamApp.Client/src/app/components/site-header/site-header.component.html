@@ -1,7 +1,7 @@
 <div class="site-header">
   <nav class="site-header__nav" aria-label="Primary navigation">
     <a routerLink="/home" routerLinkActive="active">Home</a>
-    <a routerLink="/pricing" routerLinkActive="active">Pricing</a>
+    <!-- <a routerLink="/pricing" routerLinkActive="active">Pricing</a> -->
     <a routerLink="/about" routerLinkActive="active">About</a>
     <a routerLink="/faq" routerLinkActive="active">FAQ</a>
 
@@ -13,16 +13,17 @@
           { label: 'Manual Scraper', route: '/manual-mode-v2' }
         ]">
       </steam-dropdown>
+      <!-- <a routerLink="/manual-mode-v2" routerLinkActive="active">Manual Scraper</a> -->
       <a routerLink="/games" routerLinkActive="active">Games</a>
       <a routerLink="/game-urls" routerLinkActive="active">Game URLs</a>
       <a routerLink="/products" routerLinkActive="active">Products</a>
       <a routerLink="/tags" routerLinkActive="active">Tags</a>
       <a routerLink="/pixels" routerLinkActive="active">Pixels</a>
-      <a routerLink="/wishlist" routerLinkActive="active">Game Wish List</a>
-      <a routerLink="/watch-list" routerLinkActive="active">Custom Watch List</a>
-      <a routerLink="/feedback" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Feedback</a>
+      <a routerLink="/wishlist" routerLinkActive="active">Price Alerts</a>
+      <a routerLink="/watch-list" routerLinkActive="active">Custom Watch List</a>     
       <a routerLink="/feedback/send" routerLinkActive="active">Send Feedback</a>
       @if (currentUser?.isAdmin) {
+        <a routerLink="/feedback" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Feedback Requests</a>
         <a routerLink="/admin/users" routerLinkActive="active">Users</a>
       }
     }
