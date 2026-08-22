@@ -2,7 +2,8 @@
     <header class="mb-6">
         <h1 class="text-2xl font-semibold text-gray-700">Manual Mode</h1>
         <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-            Load configured products for a source and step through manual validation or batch workflows when operator control is needed.
+            Load configured products for a source and step through manual validation or batch workflows when operator
+            control is needed.
         </p>
     </header>
 
@@ -18,60 +19,60 @@
 
                     <div class="flex flex-col gap-4">
                         <div>
-                            <label for="manual-mode-game-id" class="mb-1 block text-sm font-medium text-slate-700">Game</label>
-                            <select id="manual-mode-game-id" name="manualModeGameId" class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="gameIdControl">
+                            <label for="manual-mode-game-id"
+                                class="mb-1 block text-sm font-medium text-slate-700">Game</label>
+                            <select id="manual-mode-game-id" name="manualModeGameId"
+                                class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="gameIdControl">
                                 <option [ngValue]="null">Select Game</option>
                                 @for (game of games$ | async; track game.id) {
-                                    <option [ngValue]="game.id">{{ game.name }}</option>
+                                <option [ngValue]="game.id">{{ game.name }}</option>
                                 }
                             </select>
                         </div>
 
                         <div>
-                            <label for="manual-mode-scraping-mode-id" class="mb-1 block text-sm font-medium text-slate-700">Scraping Mode</label>
-                            <select id="manual-mode-scraping-mode-id" name="manualModeScrapingModeId" class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="scrapingModeIdControl">
+                            <label for="manual-mode-scraping-mode-id"
+                                class="mb-1 block text-sm font-medium text-slate-700">Scraping Mode</label>
+                            <select id="manual-mode-scraping-mode-id" name="manualModeScrapingModeId"
+                                class="w-full rounded border border-slate-300 px-3 py-2"
+                                [formControl]="scrapingModeIdControl">
                                 <option [ngValue]="null">All Scraping Modes</option>
                                 @for (scrapingMode of scrapingModes$ | async; track scrapingMode.id) {
-                                    <option [ngValue]="scrapingMode.id">{{ scrapingMode.name }}</option>
+                                <option [ngValue]="scrapingMode.id">{{ scrapingMode.name }}</option>
                                 }
                             </select>
                         </div>
 
                         <div>
-                            <label for="manual-mode-game-url-id" class="mb-1 block text-sm font-medium text-slate-700">Game URL</label>
-                            <select id="manual-mode-game-url-id" name="manualModeGameUrlId" class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="gameUrlIdControl">
+                            <label for="manual-mode-game-url-id"
+                                class="mb-1 block text-sm font-medium text-slate-700">Game URL</label>
+                            <select id="manual-mode-game-url-id" name="manualModeGameUrlId"
+                                class="w-full rounded border border-slate-300 px-3 py-2"
+                                [formControl]="gameUrlIdControl">
                                 <option [ngValue]="null">Select Game URL</option>
                                 @for (url of gameUrlsFiltered$ | async; track url.id) {
-                                    <option [ngValue]="url.id">{{ url.name }}</option>
+                                <option [ngValue]="url.id">{{ url.name }}</option>
                                 }
                             </select>
                         </div>
 
                         <div class="flex flex-wrap justify-end gap-2">
-                            <button
-                                class="button button-small-success"
-                                (click)="automatedCheckButtonClicked()"
+                            <button class="button button-small-success" (click)="automatedCheckButtonClicked()"
                                 [disabled]="!isAutomatedCheckEligible(selectedGameUrl) || automatedRunActive">
                                 Check all products
                             </button>
 
-                            <button
-                                class="button button-small-primary"
-                                (click)="automatedCheckHistoryButtonClicked()">
+                            <button class="button button-small-primary" (click)="automatedCheckHistoryButtonClicked()">
                                 Check history
                             </button>
 
-                            <button
-                                class="button button-small-primary"
-                                (click)="showAllButtonClicked()"
+                            <button class="button button-small-primary" (click)="showAllButtonClicked()"
                                 [hidden]="isBatchMode(this.selectedGameUrl)"
                                 [disabled]="gameUrlIdControl.value === null">
                                 Load Products
                             </button>
 
-                            <button
-                                (click)="clearButtonClicked()"
-                                class="button button-small-danger">
+                            <button (click)="clearButtonClicked()" class="button button-small-danger">
                                 Reset Source
                             </button>
                         </div>
@@ -88,75 +89,54 @@
 
                     <div class="flex flex-col gap-4">
                         <div>
-                            <label for="manual-mode-current-item" class="mb-1 block text-sm font-medium text-slate-700">Current Item</label>
-                            <input
-                                id="manual-mode-current-item"
-                                name="manualModeCurrentItem"
-                                class="w-full rounded border border-slate-300 px-3 py-2"
-                                type="number"
-                                min="1"
-                                step="1"
-                                [value]="currentIndex"
-                                (input)="currentIndex = $any($event.target).valueAsNumber" />
+                            <label for="manual-mode-current-item"
+                                class="mb-1 block text-sm font-medium text-slate-700">Current Item</label>
+                            <input id="manual-mode-current-item" name="manualModeCurrentItem"
+                                class="w-full rounded border border-slate-300 px-3 py-2" type="number" min="1" step="1"
+                                [value]="currentIndex" (input)="currentIndex = $any($event.target).valueAsNumber" />
                         </div>
 
                         <div>
-                            <label for="manual-mode-batch-size" class="mb-1 block text-sm font-medium text-slate-700">Batch Size</label>
-                            <input
-                                id="manual-mode-batch-size"
-                                name="manualModeBatchSize"
-                                class="w-full rounded border border-slate-300 px-3 py-2"
-                                type="number"
-                                min="1"
-                                max="5"
-                                step="1"
-                                [value]="batchSize"
+                            <label for="manual-mode-batch-size"
+                                class="mb-1 block text-sm font-medium text-slate-700">Batch Size</label>
+                            <input id="manual-mode-batch-size" name="manualModeBatchSize"
+                                class="w-full rounded border border-slate-300 px-3 py-2" type="number" min="1" max="5"
+                                step="1" [value]="batchSize" [disabled]="openInSteamMode"
                                 (input)="batchSize = $any($event.target).valueAsNumber" />
                         </div>
 
-                        <label for="manual-mode-open-in-steam" class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-                            <input
-                                id="manual-mode-open-in-steam"
-                                name="manualModeOpenInSteam"
-                                type="checkbox"
-                                [checked]="openInSteamMode"
-                                (change)="openInSteamMode = $any($event.target).checked" />
+                        <label for="manual-mode-open-in-steam"
+                            class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                            <input id="manual-mode-open-in-steam" name="manualModeOpenInSteam" type="checkbox"
+                                [checked]="openInSteamMode" (change)="openInSteamMode = $any($event.target).checked" />
                             <span>Open in Steam</span>
                         </label>
 
                         <div class="flex flex-wrap gap-2">
-                            <button
-                                (click)="runPreviousBatchButtonClicked()"
-                                class="button button-small-primary"
+                            <button (click)="runPreviousBatchButtonClicked()" class="button button-small-primary"
                                 [disabled]="(currentIndex ?? 1) <= 1">
                                 Run Previous Batch
                             </button>
 
-                            <button
-                                (click)="startBatchButtonClicked()"
-                                class="button button-small-success">
+                            <button (click)="startBatchButtonClicked()" class="button button-small-success">
                                 Run Batch
                             </button>
 
-                            <button
-                                (click)="runNextBatchButtonClicked()"
-                                class="button button-small-primary">
+                            <button (click)="runNextBatchButtonClicked()" class="button button-small-primary">
                                 Run Next Batch
                             </button>
 
-                            <button
-                                (click)="clearBatchButtonClicked()"
-                                class="button button-small-danger">
+                            <button (click)="clearBatchButtonClicked()" class="button button-small-danger">
                                 Reset Batch
                             </button>
 
-                            <button
-                                (click)="openAllButtonClicked()"
-                                class="button button-small-primary"
-                                [hidden]="isBatchMode(this.selectedGameUrl)"
-                                [disabled]="true">
+                            @if(this.openInSteamMode !== true)
+                            {
+                            <button (click)="openAllButtonClicked()" class="button button-small-primary"
+                                [hidden]="isBatchMode(this.selectedGameUrl)" [disabled]="true">
                                 Open Loaded Items
                             </button>
+                            }
                         </div>
                     </div>
                 </div>
@@ -213,363 +193,333 @@
         <!-- Main Workspace -->
         <main class="flex min-w-0 flex-col gap-4">
             @if (automatedRunActive || automatedRun || automatedCheckWarning || automatedCheckError) {
-                <section class="rounded-lg border border-slate-300 bg-white p-4 shadow-sm" aria-live="polite">
-                    @if (automatedRun) {
-                        <div class="flex flex-wrap items-center justify-between gap-2">
-                            <div>
-                                <h2 class="font-semibold text-slate-800">Automated check: {{ automatedRun.status }}</h2>
-                                <p class="mt-1 text-sm text-slate-600">
-                                    Checked {{ automatedRun.checkedProducts }} / {{ automatedRun.totalProducts }} ·
-                                    Matched {{ automatedRun.matchedProducts }} ·
-                                    Failed {{ automatedRun.failedProducts }}
-                                </p>
-                                @if (automatedRun.durationMilliseconds !== null) {
-                                    <p class="mt-1 text-sm font-medium text-slate-700">
-                                        {{ automatedRunActive ? 'Elapsed' : 'Completed in' }}
-                                        {{ formatDuration(automatedRun.durationMilliseconds) }}
-                                    </p>
-                                }
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm text-slate-500">{{ automatedRun.presetName }}</span>
-                                @if (automatedRunActive) {
-                                    @if (canPauseAutomatedRun) {
-                                        <button
-                                            type="button"
-                                            class="button button-small-primary"
-                                            [disabled]="automatedPausePending || automatedCancelPending || automatedContinuePending"
-                                            (click)="pauseAutomatedRun()">
-                                            {{ automatedPausePending ? 'Pausing...' : 'Pause check' }}
-                                        </button>
-                                    } @else if (automatedRun.status === 'PauseRequested') {
-                                        <button type="button" class="button button-small-primary" disabled>
-                                            Pausing...
-                                        </button>
-                                    } @else if (canContinueAutomatedRun) {
-                                        <button
-                                            type="button"
-                                            class="button button-small-success"
-                                            [disabled]="automatedContinuePending || automatedCancelPending"
-                                            (click)="continueAutomatedRun()">
-                                            {{ automatedContinuePending ? 'Continuing...' : 'Continue check' }}
-                                        </button>
-                                    }
-                                    <button
-                                        type="button"
-                                        class="button button-small-danger"
-                                        [disabled]="automatedCancelPending || automatedPausePending || automatedContinuePending || automatedRunId === null"
-                                        (click)="cancelAutomatedRun()">
-                                        {{ automatedCancelPending ? 'Canceling...' : 'Cancel check' }}
-                                    </button>
-                                } @else if (canViewAutomatedResult) {
-                                    <button
-                                        type="button"
-                                        class="button button-small-primary"
-                                        (click)="openAutomatedResult()">
-                                        View result
-                                    </button>
-                                }
-                            </div>
-                        </div>
-                        <div class="mt-3 h-2 overflow-hidden rounded bg-slate-200">
-                            <div
-                                class="h-full bg-blue-600 transition-all"
-                                [style.width.%]="automatedRun.totalProducts ? (automatedRun.checkedProducts / automatedRun.totalProducts) * 100 : 0">
-                            </div>
-                        </div>
-                        @if (canViewAutomatedResult) {
-                            <label class="mt-3 inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
-                                <input
-                                    type="checkbox"
-                                    [checked]="showAutomatedMatchesOnly"
-                                    (change)="setAutomatedMatchesOnly($any($event.target).checked)" />
-                                Show matched products only
-                            </label>
+            <section class="rounded-lg border border-slate-300 bg-white p-4 shadow-sm" aria-live="polite">
+                @if (automatedRun) {
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h2 class="font-semibold text-slate-800">Automated check: {{ automatedRun.status }}</h2>
+                        <p class="mt-1 text-sm text-slate-600">
+                            Checked {{ automatedRun.checkedProducts }} / {{ automatedRun.totalProducts }} ·
+                            Matched {{ automatedRun.matchedProducts }} ·
+                            Failed {{ automatedRun.failedProducts }}
+                        </p>
+                        @if (automatedRun.durationMilliseconds !== null) {
+                        <p class="mt-1 text-sm font-medium text-slate-700">
+                            {{ automatedRunActive ? 'Elapsed' : 'Completed in' }}
+                            {{ formatDuration(automatedRun.durationMilliseconds) }}
+                        </p>
                         }
-                    } @else if (automatedRunActive) {
-                        <div class="flex flex-wrap items-center justify-between gap-2">
-                            <p class="text-sm text-slate-600">Queuing automated check...</p>
-                            <button
-                                type="button"
-                                class="button button-small-danger"
-                                [disabled]="automatedCancelPending || automatedRunId === null"
-                                (click)="cancelAutomatedRun()">
-                                {{ automatedCancelPending ? 'Canceling...' : 'Cancel check' }}
-                            </button>
-                        </div>
-                    }
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-slate-500">{{ automatedRun.presetName }}</span>
+                        @if (automatedRunActive) {
+                        @if (canPauseAutomatedRun) {
+                        <button type="button" class="button button-small-primary"
+                            [disabled]="automatedPausePending || automatedCancelPending || automatedContinuePending"
+                            (click)="pauseAutomatedRun()">
+                            {{ automatedPausePending ? 'Pausing...' : 'Pause check' }}
+                        </button>
+                        } @else if (automatedRun.status === 'PauseRequested') {
+                        <button type="button" class="button button-small-primary" disabled>
+                            Pausing...
+                        </button>
+                        } @else if (canContinueAutomatedRun) {
+                        <button type="button" class="button button-small-success"
+                            [disabled]="automatedContinuePending || automatedCancelPending"
+                            (click)="continueAutomatedRun()">
+                            {{ automatedContinuePending ? 'Continuing...' : 'Continue check' }}
+                        </button>
+                        }
+                        <button type="button" class="button button-small-danger"
+                            [disabled]="automatedCancelPending || automatedPausePending || automatedContinuePending || automatedRunId === null"
+                            (click)="cancelAutomatedRun()">
+                            {{ automatedCancelPending ? 'Canceling...' : 'Cancel check' }}
+                        </button>
+                        } @else if (canViewAutomatedResult) {
+                        <button type="button" class="button button-small-primary" (click)="openAutomatedResult()">
+                            View result
+                        </button>
+                        }
+                    </div>
+                </div>
+                <div class="mt-3 h-2 overflow-hidden rounded bg-slate-200">
+                    <div class="h-full bg-blue-600 transition-all"
+                        [style.width.%]="automatedRun.totalProducts ? (automatedRun.checkedProducts / automatedRun.totalProducts) * 100 : 0">
+                    </div>
+                </div>
+                @if (canViewAutomatedResult) {
+                <label class="mt-3 inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
+                    <input type="checkbox" [checked]="showAutomatedMatchesOnly"
+                        (change)="setAutomatedMatchesOnly($any($event.target).checked)" />
+                    Show matched products only
+                </label>
+                }
+                } @else if (automatedRunActive) {
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-sm text-slate-600">Queuing automated check...</p>
+                    <button type="button" class="button button-small-danger"
+                        [disabled]="automatedCancelPending || automatedRunId === null" (click)="cancelAutomatedRun()">
+                        {{ automatedCancelPending ? 'Canceling...' : 'Cancel check' }}
+                    </button>
+                </div>
+                }
 
-                    @if (automatedCheckWarning) {
-                        <p class="mt-2 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                            {{ automatedCheckWarning }}
-                        </p>
-                    }
-                    @if (automatedCheckError) {
-                        <p class="mt-2 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">
-                            {{ automatedCheckError }}
-                        </p>
-                    }
+                @if (automatedCheckWarning) {
+                <p class="mt-2 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                    {{ automatedCheckWarning }}
+                </p>
+                }
+                @if (automatedCheckError) {
+                <p class="mt-2 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+                    {{ automatedCheckError }}
+                </p>
+                }
 
-                    @if (automatedRun && automatedRun.results.errors.length > 0) {
-                        <div class="mt-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-950">
+                @if (automatedRun && automatedRun.results.errors.length > 0) {
+                <div class="mt-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-950">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <strong>Product failure trace</strong>
+                        <button type="button" class="button button-small-primary"
+                            (click)="automatedCheckHistoryButtonClicked()">
+                            Open full history
+                        </button>
+                    </div>
+                    <div class="mt-2 grid gap-2">
+                        @for (failure of automatedRun.results.errors.slice(0, 5); track failure.productId) {
+                        <div class="rounded border border-red-200 bg-white p-2">
                             <div class="flex flex-wrap items-center justify-between gap-2">
-                                <strong>Product failure trace</strong>
-                                <button
-                                    type="button"
-                                    class="button button-small-primary"
-                                    (click)="automatedCheckHistoryButtonClicked()">
-                                    Open full history
-                                </button>
-                            </div>
-                            <div class="mt-2 grid gap-2">
-                                @for (failure of automatedRun.results.errors.slice(0, 5); track failure.productId) {
-                                    <div class="rounded border border-red-200 bg-white p-2">
-                                        <div class="flex flex-wrap items-center justify-between gap-2">
-                                            <strong>{{ failure.productName || ('Product #' + failure.productId) }}</strong>
-                                            @if (failure.httpStatusCode) {
-                                                <span class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
-                                                    HTTP {{ failure.httpStatusCode }}
-                                                </span>
-                                            }
-                                        </div>
-                                        <p class="mt-1">{{ failure.error }}</p>
-                                    </div>
+                                <strong>{{ failure.productName || ('Product #' + failure.productId) }}</strong>
+                                @if (failure.httpStatusCode) {
+                                <span class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
+                                    HTTP {{ failure.httpStatusCode }}
+                                </span>
                                 }
                             </div>
-                            @if (automatedRun.results.errors.length > 5) {
-                                <p class="mt-2 text-xs text-red-800">
-                                    {{ automatedRun.results.errors.length - 5 }} more product error(s) are available in history.
-                                </p>
-                            }
+                            <p class="mt-1">{{ failure.error }}</p>
                         </div>
+                        }
+                    </div>
+                    @if (automatedRun.results.errors.length > 5) {
+                    <p class="mt-2 text-xs text-red-800">
+                        {{ automatedRun.results.errors.length - 5 }} more product error(s) are available in history.
+                    </p>
                     }
-                </section>
+                </div>
+                }
+            </section>
             }
 
             <!-- Filters / Actions -->
             @if (products.length > 0) {
-                <section class="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
-                    <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 flex-1">
-                            <div>
-                                <label for="manual-mode-filter-name" class="mb-1 block text-sm font-medium text-slate-700">Product Name</label>
-                                <input
-                                    id="manual-mode-filter-name"
-                                    name="manualModeFilterName"
-                                    class="w-full rounded border border-slate-300 px-3 py-2"
-                                    type="text"
-                                    placeholder="Filter by name"
-                                    [formControl]="searchByNameFilterControl" />
-                            </div>
-
-                            <div>
-                                <label for="manual-mode-filter-rating" class="mb-1 block text-sm font-medium text-slate-700">Rating</label>
-                                <select
-                                    id="manual-mode-filter-rating"
-                                    name="manualModeFilterRating"
-                                    class="w-full rounded border border-slate-300 px-3 py-2"
-                                    [formControl]="searchByRatingFilterControl">
-                                    <option [ngValue]="null">All</option>
-                                    @for (rating of ratingOptions; track rating) {
-                                        <option [ngValue]="rating">{{ rating }}</option>
-                                    }
-                                </select>
-                            </div>
-
-                            <div>
-                                <label for="manual-mode-filter-tag" class="mb-1 block text-sm font-medium text-slate-700">Tags</label>
-                                <select id="manual-mode-filter-tag" name="manualModeFilterTag" class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="tagSelectControl">
-                                    <option [ngValue]="null">Select Tag</option>
-                                    @for (tag of gameTagsFilter; track tag.id) {
-                                        <option [ngValue]="tag">{{ tag.name }}</option>
-                                    }
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-wrap gap-2">
-                            <button
-                                (click)="clearFiltersButtonClicked()"
-                                class="button button-small-danger">
-                                Clear Filters
-                            </button>
-
-                            <button
-                                (click)="exportButtonClicked()"
-                                class="button button-small-primary">
-                                Export
-                            </button>
-                        </div>
-                    </div>
-
-                    @if (this.tagsFilter.length > 0) {
-                        <div class="mt-4 flex flex-wrap gap-2">
-                            @for (filter of this.tagsFilter; track filter) {
-                                <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700">
-                                    <span>{{ filter }}</span>
-                                    <button type="button" (click)="removeFilter(filter)" class="font-semibold text-slate-500 hover:text-slate-800">
-                                        ×
-                                    </button>
-                                </div>
-                            }
-                        </div>
-                    }
-                </section>
-
-                <!-- Results -->
-                <section class="rounded-lg border border-slate-300 bg-white shadow-sm">
-                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+            <section class="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+                <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 flex-1">
                         <div>
-                            <h2 class="text-lg font-semibold text-slate-800">Products</h2>
-                            <p class="mt-1 text-sm text-slate-500">
-                                Select products for a scoped check or use a card menu to check one product.
-                            </p>
+                            <label for="manual-mode-filter-name"
+                                class="mb-1 block text-sm font-medium text-slate-700">Product Name</label>
+                            <input id="manual-mode-filter-name" name="manualModeFilterName"
+                                class="w-full rounded border border-slate-300 px-3 py-2" type="text"
+                                placeholder="Filter by name" [formControl]="searchByNameFilterControl" />
                         </div>
-                        <div class="flex flex-wrap items-center gap-3">
-                            <label class="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
-                                <input
-                                    type="checkbox"
-                                    [checked]="areAllFilteredProductsSelected"
-                                    [indeterminate]="areSomeFilteredProductsSelected"
-                                    [disabled]="productsFiltered.length === 0"
-                                    (change)="setFilteredProductsSelected($any($event.target).checked)" />
-                                Select All
-                            </label>
-                            <button
-                                type="button"
-                                class="button button-small-success"
-                                [disabled]="selectedProductCount === 0 || automatedRunActive"
-                                (click)="automatedCheckSelectedProducts()">
-                                Check selected ({{ selectedProductCount }})
-                            </button>
-                        </div>
-                    </div>
 
-                    <div class="p-4">
-                        @if (productsFiltered.length === 0) {
-                            <div class="flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-                                <strong class="text-slate-700">No products match the current filters</strong>
-                                <span class="mt-1 text-sm text-slate-500">
-                                    Clear or adjust the filters to show products again.
-                                </span>
-                            </div>
-                        } @else {
-                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                                @for (product of productsFiltered; track product.productId; let i = $index) {
-                                    <div
-                                        class="relative flex min-h-[7rem] flex-col rounded-lg border border-slate-200 bg-slate-50 p-3 transition hover:border-slate-300 hover:bg-white">
-                                        <div class="mb-2 flex items-center justify-between gap-2">
-                                            <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600">
-                                                <input
-                                                    type="checkbox"
-                                                    [checked]="isProductSelected(product.productId)"
-                                                    (change)="setProductSelected(product.productId, $any($event.target).checked)" />
-                                                Select
-                                            </label>
-                                            <button
-                                                type="button"
-                                                mat-icon-button
-                                                [matMenuTriggerFor]="productAutomatedActionsMenu"
-                                                aria-label="Product automated-check actions">
-                                                <mat-icon>more_horiz</mat-icon>
-                                            </button>
-                                            <mat-menu #productAutomatedActionsMenu="matMenu" xPosition="before" panelClass="table-actions-menu">
-                                                <button
-                                                    type="button"
-                                                    mat-menu-item
-                                                    [disabled]="automatedRunActive"
-                                                    (click)="automatedCheckProduct(product)">
-                                                    Automated check
-                                                </button>
-                                                @if (getAutomatedSteamApiResult(product.productId)) {
-                                                    <button
-                                                        type="button"
-                                                        mat-menu-item
-                                                        (click)="openAutomatedSteamApiResult(product.productId)">
-                                                        View Steam API result
-                                                    </button>
-                                                }
-                                            </mat-menu>
-                                        </div>
-
-                                        <a
-                                            [steamExternalLink]="getProductOpenUrl(product.fullUrl)"
-                                            class="flex flex-1 flex-col justify-center"
-                                            [matTooltip]="getProductOpenTooltip(product.fullUrl)">
-                                            <strong class="text-sm text-slate-800">
-                                                {{ i + 1 }}. {{ product.productName }}
-                                            </strong>
-
-                                            @if (product.rating !== null) {
-                                                <span class="mt-2 text-sm text-slate-600">
-                                                    Rating: {{ product.rating }} ⭐
-                                                </span>
-                                            }
-
-                                            @if (getAutomatedProductOutcome(product.productId); as outcome) {
-                                                <span
-                                                    class="mt-2 text-xs font-semibold"
-                                                    [class.text-emerald-700]="outcome === 'Matched'"
-                                                    [class.text-slate-600]="outcome === 'Pending' || outcome === 'No match'"
-                                                    [class.text-red-700]="outcome === 'Failed'">
-                                                    {{ outcome }}
-                                                </span>
-                                            }
-
-                                            @if (getAutomatedProductError(product.productId); as failure) {
-                                                <span class="mt-1 line-clamp-2 text-xs text-red-700">
-                                                    {{ failure.error }}
-                                                </span>
-                                            } @else if (getAutomatedMatch(product.productId); as match) {
-                                                <span class="mt-2 text-xs font-semibold text-emerald-700">
-                                                    {{ match.matchedAssets.length }} matched asset{{ match.matchedAssets.length === 1 ? '' : 's' }}
-                                                </span>
-                                                @for (asset of match.matchedAssets.slice(0, 2); track asset.assetId) {
-                                                    @for (description of asset.descriptions.slice(0, 2); track $index) {
-                                                        <span class="mt-1 truncate text-xs text-slate-600">
-                                                            {{ description.name || 'Description' }}: {{ description.value }}
-                                                        </span>
-                                                    }
-                                                }
-                                            }
-                                        </a>
-                                    </div>
-
+                        <div>
+                            <label for="manual-mode-filter-rating"
+                                class="mb-1 block text-sm font-medium text-slate-700">Rating</label>
+                            <select id="manual-mode-filter-rating" name="manualModeFilterRating"
+                                class="w-full rounded border border-slate-300 px-3 py-2"
+                                [formControl]="searchByRatingFilterControl">
+                                <option [ngValue]="null">All</option>
+                                @for (rating of ratingOptions; track rating) {
+                                <option [ngValue]="rating">{{ rating }}</option>
                                 }
-                            </div>
-                        }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="manual-mode-filter-tag"
+                                class="mb-1 block text-sm font-medium text-slate-700">Tags</label>
+                            <select id="manual-mode-filter-tag" name="manualModeFilterTag"
+                                class="w-full rounded border border-slate-300 px-3 py-2"
+                                [formControl]="tagSelectControl">
+                                <option [ngValue]="null">Select Tag</option>
+                                @for (tag of gameTagsFilter; track tag.id) {
+                                <option [ngValue]="tag">{{ tag.name }}</option>
+                                }
+                            </select>
+                        </div>
                     </div>
-                </section>
-            } @else if (hasAutomatedCheckResult) {
-                <section class="rounded-lg border border-slate-300 bg-white p-8 shadow-sm">
-                    <div class="flex min-h-[320px] flex-col items-center justify-center text-center">
-                        @if (automatedRun?.status === 'Failed') {
-                            <h2 class="text-lg font-semibold text-red-800">Automated check failed</h2>
-                            <p class="mt-2 max-w-md text-sm text-slate-600">
-                                No products could be checked successfully. The failure trace is shown above and retained in Automated Check History.
-                            </p>
-                        } @else if (automatedRun?.status === 'Canceled') {
-                            <h2 class="text-lg font-semibold text-amber-800">Automated check canceled</h2>
-                            <p class="mt-2 max-w-md text-sm text-slate-600">
-                                The check was stopped. Its progress and failure trace remain available in Automated Check History.
-                            </p>
-                        } @else {
-                            <h2 class="text-lg font-semibold text-slate-800">No automated matches</h2>
-                            <p class="mt-2 max-w-md text-sm text-slate-500">
-                                The run completed, but no product assets matched the selected preset criteria.
-                            </p>
-                        }
+
+                    <div class="flex flex-wrap gap-2">
+                        <button (click)="clearFiltersButtonClicked()" class="button button-small-danger">
+                            Clear Filters
+                        </button>
+
+                        <button (click)="exportButtonClicked()" class="button button-small-primary">
+                            Export
+                        </button>
                     </div>
-                </section>
-            } @else {
-                <section class="rounded-lg border border-slate-300 bg-white p-8 shadow-sm">
-                    <div class="flex min-h-[320px] flex-col items-center justify-center text-center">
-                        <h2 class="text-lg font-semibold text-slate-800">No Products Loaded</h2>
-                        <p class="mt-2 max-w-md text-sm text-slate-500">
-                            Select a game and game URL, then load products to start filtering and batching.
+                </div>
+
+                @if (this.tagsFilter.length > 0) {
+                <div class="mt-4 flex flex-wrap gap-2">
+                    @for (filter of this.tagsFilter; track filter) {
+                    <div
+                        class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700">
+                        <span>{{ filter }}</span>
+                        <button type="button" (click)="removeFilter(filter)"
+                            class="font-semibold text-slate-500 hover:text-slate-800">
+                            ×
+                        </button>
+                    </div>
+                    }
+                </div>
+                }
+            </section>
+
+            <!-- Results -->
+            <section class="rounded-lg border border-slate-300 bg-white shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-800">Products</h2>
+                        <p class="mt-1 text-sm text-slate-500">
+                            Select products for a scoped check or use a card menu to check one product.
                         </p>
                     </div>
-                </section>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <label class="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
+                            <input type="checkbox" [checked]="areAllFilteredProductsSelected"
+                                [indeterminate]="areSomeFilteredProductsSelected"
+                                [disabled]="productsFiltered.length === 0"
+                                (change)="setFilteredProductsSelected($any($event.target).checked)" />
+                            Select All
+                        </label>
+                        <button type="button" class="button button-small-success"
+                            [disabled]="selectedProductCount === 0 || automatedRunActive"
+                            (click)="automatedCheckSelectedProducts()">
+                            Check selected ({{ selectedProductCount }})
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-4">
+                    @if (productsFiltered.length === 0) {
+                    <div
+                        class="flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+                        <strong class="text-slate-700">No products match the current filters</strong>
+                        <span class="mt-1 text-sm text-slate-500">
+                            Clear or adjust the filters to show products again.
+                        </span>
+                    </div>
+                    } @else {
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                        @for (product of productsFiltered; track product.productId; let i = $index) {
+                        <div
+                            class="relative flex min-h-[7rem] flex-col rounded-lg border border-slate-200 bg-slate-50 p-3 transition hover:border-slate-300 hover:bg-white">
+                            <div class="mb-2 flex items-center justify-between gap-2">
+                                <label
+                                    class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600">
+                                    <input type="checkbox" [checked]="isProductSelected(product.productId)"
+                                        (change)="setProductSelected(product.productId, $any($event.target).checked)" />
+                                    Select
+                                </label>
+                                <button type="button" mat-icon-button [matMenuTriggerFor]="productAutomatedActionsMenu"
+                                    aria-label="Product automated-check actions">
+                                    <mat-icon>more_horiz</mat-icon>
+                                </button>
+                                <mat-menu #productAutomatedActionsMenu="matMenu" xPosition="before"
+                                    panelClass="table-actions-menu">
+                                    <button type="button" mat-menu-item [disabled]="automatedRunActive"
+                                        (click)="automatedCheckProduct(product)">
+                                        Automated check
+                                    </button>
+                                    @if (getAutomatedSteamApiResult(product.productId)) {
+                                    <button type="button" mat-menu-item
+                                        (click)="openAutomatedSteamApiResult(product.productId)">
+                                        View Steam API result
+                                    </button>
+                                    }
+                                </mat-menu>
+                            </div>
+
+                            <a [steamExternalLink]="getProductOpenUrl(product.fullUrl)"
+                                class="flex flex-1 flex-col justify-center"
+                                [matTooltip]="getProductOpenTooltip(product.fullUrl)">
+                                <strong class="text-sm text-slate-800">
+                                    {{ i + 1 }}. {{ product.productName }}
+                                </strong>
+
+                                @if (product.rating !== null) {
+                                <span class="mt-2 text-sm text-slate-600">
+                                    Rating: {{ product.rating }} ⭐
+                                </span>
+                                }
+
+                                @if (getAutomatedProductOutcome(product.productId); as outcome) {
+                                <span class="mt-2 text-xs font-semibold"
+                                    [class.text-emerald-700]="outcome === 'Matched'"
+                                    [class.text-slate-600]="outcome === 'Pending' || outcome === 'No match'"
+                                    [class.text-red-700]="outcome === 'Failed'">
+                                    {{ outcome }}
+                                </span>
+                                }
+
+                                @if (getAutomatedProductError(product.productId); as failure) {
+                                <span class="mt-1 line-clamp-2 text-xs text-red-700">
+                                    {{ failure.error }}
+                                </span>
+                                } @else if (getAutomatedMatch(product.productId); as match) {
+                                <span class="mt-2 text-xs font-semibold text-emerald-700">
+                                    {{ match.matchedAssets.length }} matched asset{{ match.matchedAssets.length === 1 ?
+                                    '' : 's' }}
+                                </span>
+                                @for (asset of match.matchedAssets.slice(0, 2); track asset.assetId) {
+                                @for (description of asset.descriptions.slice(0, 2); track $index) {
+                                <span class="mt-1 truncate text-xs text-slate-600">
+                                    {{ description.name || 'Description' }}: {{ description.value }}
+                                </span>
+                                }
+                                }
+                                }
+                            </a>
+                        </div>
+
+                        }
+                    </div>
+                    }
+                </div>
+            </section>
+            } @else if (hasAutomatedCheckResult) {
+            <section class="rounded-lg border border-slate-300 bg-white p-8 shadow-sm">
+                <div class="flex min-h-[320px] flex-col items-center justify-center text-center">
+                    @if (automatedRun?.status === 'Failed') {
+                    <h2 class="text-lg font-semibold text-red-800">Automated check failed</h2>
+                    <p class="mt-2 max-w-md text-sm text-slate-600">
+                        No products could be checked successfully. The failure trace is shown above and retained in
+                        Automated Check History.
+                    </p>
+                    } @else if (automatedRun?.status === 'Canceled') {
+                    <h2 class="text-lg font-semibold text-amber-800">Automated check canceled</h2>
+                    <p class="mt-2 max-w-md text-sm text-slate-600">
+                        The check was stopped. Its progress and failure trace remain available in Automated Check
+                        History.
+                    </p>
+                    } @else {
+                    <h2 class="text-lg font-semibold text-slate-800">No automated matches</h2>
+                    <p class="mt-2 max-w-md text-sm text-slate-500">
+                        The run completed, but no product assets matched the selected preset criteria.
+                    </p>
+                    }
+                </div>
+            </section>
+            } @else {
+            <section class="rounded-lg border border-slate-300 bg-white p-8 shadow-sm">
+                <div class="flex min-h-[320px] flex-col items-center justify-center text-center">
+                    <h2 class="text-lg font-semibold text-slate-800">No Products Loaded</h2>
+                    <p class="mt-2 max-w-md text-sm text-slate-500">
+                        Select a game and game URL, then load products to start filtering and batching.
+                    </p>
+                </div>
+            </section>
             }
         </main>
     </div>

@@ -92,7 +92,19 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
   currentIndex: number | null = 1;
   batchSize: number | null = 1;
-  openInSteamMode = false;
+  private openInSteamModeValue = false;
+
+  get openInSteamMode(): boolean {
+    return this.openInSteamModeValue;
+  }
+
+  set openInSteamMode(enabled: boolean) {
+    this.openInSteamModeValue = enabled;
+    if (enabled) {
+      this.batchSize = 1;
+    }
+  }
+
   readonly ratingOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
   readonly games$ = new BehaviorSubject<readonly Game[]>([]);

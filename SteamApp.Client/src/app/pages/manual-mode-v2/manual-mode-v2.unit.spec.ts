@@ -114,12 +114,9 @@ describe('ManualModeV2 external link disclosure', () => {
         'steam://openurl/https://steamcommunity.com/market/search?q=1',
         '/manual-mode-v2',
       ],
-      [
-        'steam://openurl/https://steamcommunity.com/market/search?q=2',
-        '/manual-mode-v2',
-      ],
     ]);
     expect(component.currentIndex).toBe(1);
+    expect(component.batchSize).toBe(1);
   });
 
   it('opens manual product batch URLs through Steam when Steam mode is checked', () => {
@@ -142,12 +139,24 @@ describe('ManualModeV2 external link disclosure', () => {
         'steam://openurl/https://backpack.tf/stats/Unique/Hat/Tradable/Craftable',
         '/manual-mode-v2',
       ],
-      [
-        'steam://openurl/https://steamcommunity.com/market/listings/440/Alpha%20Item',
-        '/manual-mode-v2',
-      ],
     ]);
     expect(component.currentIndex).toBe(1);
+    expect(component.batchSize).toBe(1);
+  });
+
+  it('forces a batch size of one until Steam mode is disabled', () => {
+    component.batchSize = 4;
+
+    component.openInSteamMode = true;
+
+    expect(component.openInSteamMode).toBeTrue();
+    expect(component.batchSize).toBe(1);
+
+    component.openInSteamMode = false;
+    component.batchSize = 3;
+
+    expect(component.openInSteamMode).toBeFalse();
+    expect(component.batchSize).toBe(3);
   });
 
   it('runs and selects the previous batch', () => {

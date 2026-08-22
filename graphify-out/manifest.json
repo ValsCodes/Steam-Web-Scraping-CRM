@@ -505,13 +505,13 @@
     "semantic_hash": "2ceeb328968b65919cd2d3fc0010ad77"
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-mode-v2.ts": {
-    "mtime": 1787407361.5007522,
-    "ast_hash": "65621f712c6f35a46da7b45c2b9a8d22",
+    "mtime": 1787408458.111892,
+    "ast_hash": "6d9a32de03e0ecf8f838950284b12757",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-mode-v2.unit.spec.ts": {
-    "mtime": 1787407368.5079195,
-    "ast_hash": "74364d177378c5786f9e33adf5b40651",
+    "mtime": 1787408477.2897933,
+    "ast_hash": "c6ec30d7378680e6efa03b78487b37de",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/not-found/not-found-page.ts": {
@@ -2575,8 +2575,8 @@
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-mode-v2.html": {
-    "mtime": 1787407364.89757,
-    "ast_hash": "639819688994aba2006b09890cf4c4cf",
+    "mtime": 1787408461.6656046,
+    "ast_hash": "3bcde9aeb56548185c0336208b749455",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/not-found/not-found-page.html": {
