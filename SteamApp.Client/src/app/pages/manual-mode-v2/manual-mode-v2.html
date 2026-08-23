@@ -342,8 +342,12 @@
                                 class="w-full rounded border border-slate-300 px-3 py-2"
                                 [formControl]="tagSelectControl">
                                 <option [ngValue]="null">Select Tag</option>
-                                @for (tag of gameTagsFilter; track tag.id) {
-                                <option [ngValue]="tag">{{ tag.name }}</option>
+                                @for (group of gameTagGroups; track group.itemGroupId) {
+                                <optgroup [label]="group.name">
+                                    @for (tag of group.items; track tag.id) {
+                                    <option [ngValue]="tag">{{ tag.name }}</option>
+                                    }
+                                </optgroup>
                                 }
                             </select>
                         </div>

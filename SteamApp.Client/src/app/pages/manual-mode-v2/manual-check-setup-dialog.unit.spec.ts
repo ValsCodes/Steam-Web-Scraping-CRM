@@ -4,7 +4,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { of, throwError } from 'rxjs';
 
 import { ManualCheckPreset } from '../../models';
-import { ManualCheckService } from '../../services';
+import { ItemGroupService, ManualCheckService } from '../../services';
 import {
   ManualCheckSetupDialogComponent,
   ManualCheckSetupDialogResult,
@@ -15,11 +15,12 @@ describe('ManualCheckSetupDialogComponent', () => {
   let fixture: ComponentFixture<ManualCheckSetupDialogComponent>;
   let component: ManualCheckSetupDialogComponent;
   let service: jasmine.SpyObj<ManualCheckService>;
+  let itemGroupService: jasmine.SpyObj<ItemGroupService>;
   let dialogRef: jasmine.SpyObj<MatDialogRef<ManualCheckSetupDialogComponent, ManualCheckSetupDialogResult>>;
 
   const presets: ManualCheckPreset[] = [
-    preset(1, 'First'),
-    preset(2, 'Preferred'),
+    preset(1, 'First', null, null),
+    preset(2, 'Preferred', 10, 'Priority'),
   ];
 
   beforeEach(async () => {
@@ -29,6 +30,10 @@ describe('ManualCheckSetupDialogComponent', () => {
       'createPreset',
       'updatePreset',
       'deletePreset',
+    ]);
+    itemGroupService = jasmine.createSpyObj<ItemGroupService>('ItemGroupService', [
+      'getByGame',
+      'create',
     ]);
     dialogRef = jasmine.createSpyObj('MatDialogRef', ['close']);
     service.getPresets.and.returnValue(of(presets.map((item) => ({
@@ -44,11 +49,16 @@ describe('ManualCheckSetupDialogComponent', () => {
       { id: 6, name: 'NAND' },
       { id: 7, name: 'NOR' },
     ]));
+    itemGroupService.getByGame.and.returnValue(of([
+      { id: 10, gameId: 440, name: 'Priority' },
+    ]));
+    itemGroupService.create.and.returnValue(of({ id: 11, gameId: 440, name: 'Category' }));
 
     await TestBed.configureTestingModule({
       imports: [ManualCheckSetupDialogComponent],
       providers: [
         { provide: ManualCheckService, useValue: service },
+        { provide: ItemGroupService, useValue: itemGroupService },
         { provide: MatDialogRef, useValue: dialogRef },
         {
           provide: MAT_DIALOG_DATA,
@@ -70,6 +80,7 @@ describe('ManualCheckSetupDialogComponent', () => {
   it('preselects and prefills the requested game preset', () => {
     expect(service.getPresets).toHaveBeenCalledWith(440);
     expect(component.selectedPresetId).toBe(2);
+    expect(component.itemGroupId).toBe(10);
     expect(component.name).toBe('Preferred');
     expect(component.listingLimit).toBe(10);
     expect(component.customCooldown).toBeFalse();
@@ -77,6 +88,23 @@ describe('ManualCheckSetupDialogComponent', () => {
     expect(component.criteria[0].valueContains).toBe('Mean Green');
     expect(component.canStart).toBeTrue();
     expect(component.loading).toBeFalse();
+  });
+
+  it('groups saved presets by item group and keeps ungrouped presets last', () => {
+    expect(component.presetGroups.map((group) => group.name)).toEqual(['Priority', 'Ungrouped']);
+    expect(component.presetGroups[0].items.map((item) => item.name)).toEqual(['Preferred']);
+    expect(component.presetGroups[1].items.map((item) => item.name)).toEqual(['First']);
+  });
+
+  it('creates and selects a shared item group for the preset', () => {
+    component.newItemGroupName = ' Category ';
+
+    component.createItemGroup();
+
+    expect(itemGroupService.create).toHaveBeenCalledWith({ gameId: 440, name: 'Category' });
+    expect(component.itemGroupId).toBe(11);
+    expect(component.itemGroups.map((itemGroup) => itemGroup.name)).toEqual(['Category', 'Priority']);
+    expect(component.dirty).toBeTrue();
   });
 
   it('requires edited presets to be saved before starting', () => {
@@ -93,6 +121,7 @@ describe('ManualCheckSetupDialogComponent', () => {
 
     expect(service.updatePreset).toHaveBeenCalledWith(2, jasmine.objectContaining({
       gameId: 440,
+      itemGroupId: 10,
       listingLimit: 10,
       cooldownMinutes: null,
       cooldownSeconds: null,
@@ -230,11 +259,15 @@ describe('ManualCheckSetupDialogComponent', () => {
   function preset(
     id: number,
     name: string,
+    itemGroupId: number | null = null,
+    itemGroupName: string | null = null,
   ): ManualCheckPreset {
     return {
       id,
       gameId: 440,
       gameName: 'Team Fortress 2',
+      itemGroupId,
+      itemGroupName,
       name,
       listingLimit: 10,
       cooldownMinutes: null,

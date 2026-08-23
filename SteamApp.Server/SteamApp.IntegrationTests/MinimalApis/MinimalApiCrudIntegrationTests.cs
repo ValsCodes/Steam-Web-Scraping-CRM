@@ -28,6 +28,7 @@ public sealed class MinimalApiCrudIntegrationTests
     [TestCase("/api/wish-list/")]
     [TestCase("/api/game-url-products/")]
     [TestCase("/api/tags/")]
+    [TestCase("/api/item-groups/game/1")]
     [TestCase("/api/product-tags/")]
     [TestCase("/api/game-url-pixels/")]
     public async Task GetAllEndpointsReturnSeededData(string path)

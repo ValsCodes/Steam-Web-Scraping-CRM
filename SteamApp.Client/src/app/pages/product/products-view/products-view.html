@@ -55,8 +55,12 @@
       <select id="products-filter-tag" name="productsFilterTag" class="px-2 py-1" [formControl]="tagIdControl"
         (change)="onTagSelectedFromSelect()">
         <option [ngValue]="null">Select a tag</option>
-        @for (tag of gameTagsFilter(); track tag.id) {
-        <option [ngValue]="tag.id">{{ tag.name }}</option>
+        @for (group of gameTagGroups(); track group.itemGroupId) {
+        <optgroup [label]="group.name">
+          @for (tag of group.items; track tag.id) {
+          <option [ngValue]="tag.id">{{ tag.name }}</option>
+          }
+        </optgroup>
         }
       </select>
     </div>

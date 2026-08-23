@@ -1,12 +1,12 @@
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, map, Observable } from 'rxjs';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 
-import { GameService, TagService } from '../../../services';
-import { Game, CreateTag, UpdateTag } from '../../../models';
+import { GameService, ItemGroupService, TagService } from '../../../services';
+import { Game, CreateTag, ItemGroup, UpdateTag } from '../../../models';
 
 @Component({
   selector: 'steam-tag-form',
@@ -21,12 +21,20 @@ export class TagForm implements OnInit {
   isEditMode = false;
   tagId?: number;
   isSubmitting = false;
+  isCreatingItemGroup = false;
+  readonly itemGroups = signal<readonly ItemGroup[]>([]);
 
   form = this.fb.nonNullable.group({
     gameId: [null as number | null, [Validators.required, Validators.min(1)]],
+    itemGroupId: [null as number | null],
     name: ['', Validators.required],
     isActive: [true],
   });
+
+  readonly newItemGroupName = this.fb.nonNullable.control(
+    { value: '', disabled: true },
+    [Validators.required, Validators.maxLength(255)],
+  );
 
   readonly games = toSignal(
     this.gameService.getAll().pipe(
@@ -40,10 +48,27 @@ export class TagForm implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private tagService: TagService,
+    private itemGroupService: ItemGroupService,
     private gameService: GameService,
   ) {}
 
   ngOnInit(): void {
+    this.form.controls.gameId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(gameId => {
+        this.form.controls.itemGroupId.setValue(null, { emitEvent: false });
+        this.itemGroups.set([]);
+        this.newItemGroupName.reset('', { emitEvent: false });
+
+        if (gameId === null) {
+          this.newItemGroupName.disable({ emitEvent: false });
+          return;
+        }
+
+        this.newItemGroupName.enable({ emitEvent: false });
+        this.loadItemGroups(gameId);
+      });
+
     const idParam = this.route.snapshot.paramMap.get('id');
 
     if (idParam) {
@@ -61,14 +86,55 @@ export class TagForm implements OnInit {
       .subscribe(tag => {
         this.form.patchValue({
           gameId: tag.gameId,
+          itemGroupId: tag.itemGroupId,
           name: tag.name ?? '',
           isActive: tag.isActive,
         });
       });
   }
 
+  private loadItemGroups(gameId: number): void {
+    this.itemGroupService
+      .getByGame(gameId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(itemGroups => this.itemGroups.set(itemGroups));
+  }
+
+  createItemGroup(): void {
+    const gameId = this.form.controls.gameId.value;
+    const name = this.newItemGroupName.value.trim();
+
+    if (gameId === null || !name || this.newItemGroupName.invalid || this.isCreatingItemGroup) {
+      this.newItemGroupName.markAsTouched();
+      return;
+    }
+
+    this.isCreatingItemGroup = true;
+    this.newItemGroupName.disable({ emitEvent: false });
+    this.itemGroupService
+      .create({ gameId, name })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.isCreatingItemGroup = false;
+          if (this.form.controls.gameId.value !== null) {
+            this.newItemGroupName.enable({ emitEvent: false });
+          }
+        }),
+      )
+      .subscribe(created => {
+        this.itemGroups.set(
+          [...this.itemGroups(), created].sort((left, right) =>
+            left.name.localeCompare(right.name) || left.id - right.id,
+          ),
+        );
+        this.form.controls.itemGroupId.setValue(created.id);
+        this.newItemGroupName.reset('');
+      });
+  }
+
   onSubmit(): void {
-    if (this.form.invalid || this.isSubmitting) {
+    if (this.form.invalid || this.isSubmitting || this.isCreatingItemGroup) {
       return;
     }
 
@@ -78,6 +144,7 @@ export class TagForm implements OnInit {
       ? this.tagService.update(this.tagId, {
           name: this.form.controls.name.value,
           isActive: this.form.controls.isActive.value,
+          itemGroupId: this.form.controls.itemGroupId.value,
         } as UpdateTag)
       : this.tagService.create(this.form.getRawValue() as CreateTag);
 

@@ -47,6 +47,17 @@
       <input id="tags-filter-name" name="tagsFilterName" class="px-2 py-1" type="text" placeholder="Filter by name" [formControl]="searchByNameFilterControl" />
     </div>
 
+    <div class="filter-group">
+      <label for="tags-filter-group">Group</label>
+      <select id="tags-filter-group" name="tagsFilterGroup" class="px-2 py-1" [formControl]="itemGroupIdControl">
+        <option [ngValue]="null">All groups</option>
+        @for (itemGroup of itemGroups(); track itemGroup.id) {
+        <option [ngValue]="itemGroup.id">{{ itemGroup.name }}</option>
+        }
+        <option [ngValue]="'ungrouped'">Ungrouped</option>
+      </select>
+    </div>
+
     <button (click)="clearFiltersButtonClicked()" class="button button-small-danger">
       Clear
     </button>
@@ -89,6 +100,13 @@
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Game</th>
         <td mat-cell *matCellDef="let row">
           {{ row.gameName || '—' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="itemGroupName">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Group</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.itemGroupName || 'Ungrouped' }}
         </td>
       </ng-container>
 

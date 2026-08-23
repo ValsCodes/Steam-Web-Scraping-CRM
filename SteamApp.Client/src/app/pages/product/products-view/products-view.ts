@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -17,6 +17,7 @@ import { Game, Product, Tag, UpdateProductStatus } from '../../../models';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import * as XLSX from 'xlsx';
 import { getListingUrl, safeExternalUrl } from '../../../common';
+import { groupByItemGroup } from '../../../common/item-grouping';
 
 @Component({
   selector: 'steam-products-grid',
@@ -57,6 +58,7 @@ export class ProductsView implements OnInit, OnDestroy {
   readonly products = signal<readonly Product[]>([]);
   readonly gameTagsAll = signal<readonly Tag[]>([]);
   readonly gameTagsFilter = signal<readonly Tag[]>([]);
+  readonly gameTagGroups = computed(() => groupByItemGroup(this.gameTagsFilter()));
   readonly tagsFilter = signal<readonly string[]>([]);
   private readonly deletingIds = new Set<number>();
   private readonly statusUpdatingIds = new Set<number>();
@@ -356,18 +358,13 @@ export class ProductsView implements OnInit, OnDestroy {
   removeFilter(value: string): void {
     this.tagsFilter.set(this.tagsFilter().filter(f => f !== value));
 
-    const restored = this.gameTagsAll().find(
-      t =>
-        t.gameId === this.gameIdControl.value &&
-        t.name !== null &&
-        t.name.toLowerCase() === value,
+    const filters = new Set(this.tagsFilter());
+    this.gameTagsFilter.set(
+      this.gameTagsAll().filter(tag =>
+        tag.gameId === this.gameIdControl.value &&
+        (tag.name === null || !filters.has(tag.name.toLowerCase())),
+      ),
     );
-
-    if (restored && !this.gameTagsFilter().some(t => t.id === restored.id)) {
-      this.gameTagsFilter.set(
-        [...this.gameTagsFilter(), restored].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')),
-      );
-    }
 
     this.syncTagControlState();
     this.loadFilteredProducts();

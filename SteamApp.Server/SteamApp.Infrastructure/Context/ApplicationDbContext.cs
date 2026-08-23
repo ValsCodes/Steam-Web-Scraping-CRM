@@ -22,6 +22,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<GameAddOn> GameAddOns { get; set; }
     public DbSet<ScrapingMode> ScrapingModes { get; set; }
     public DbSet<Tag> Tags { get; set; }
+    public DbSet<ItemGroup> ItemGroups { get; set; }
     public DbSet<ProductTags> ProductTags { get; set; }
     public DbSet<AutomatedScrapeHistory> AutomatedScrapeHistories { get; set; }
     public DbSet<ManualCheckPreset> ManualCheckPresets { get; set; }
@@ -194,6 +195,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasOne(x => x.Game)
                   .WithMany()
                   .HasForeignKey(x => x.GameId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ItemGroup)
+                  .WithMany(x => x.ManualCheckPresets)
+                  .HasForeignKey(x => x.ItemGroupId)
                   .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => new { x.GameId, x.Name })
@@ -397,6 +403,28 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   .WithMany(g => g.Tags)
                   .HasForeignKey(p => p.GameId)
                   .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(t => t.ItemGroup)
+                  .WithMany(t => t.Tags)
+                  .HasForeignKey(t => t.ItemGroupId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ItemGroup>(entity =>
+        {
+            ConfigureUserOwnedEntity(entity);
+
+            entity.Property(t => t.Name)
+                  .HasMaxLength(ItemGroup.NameMaxLength)
+                  .IsRequired();
+
+            entity.HasOne(t => t.Game)
+                  .WithMany(g => g.ItemGroups)
+                  .HasForeignKey(t => t.GameId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(t => new { t.UserId, t.GameId, t.Name })
+                  .IsUnique();
         });
     }
 

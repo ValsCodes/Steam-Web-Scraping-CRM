@@ -9,6 +9,7 @@ import { GameService, ProductService } from '../../../services';
 import { CreateProduct, Game, Tag, UpdateProduct } from '../../../models';
 import { TagService } from '../../../services/tag/tag.service';
 import { ProductTagService } from '../../../services/product-tag/product-tag.service';
+import { groupByItemGroup, ItemGroupSection } from '../../../common/item-grouping';
 
 @Component({
   selector: 'steam-product-form',
@@ -70,6 +71,10 @@ export class ProductForm implements OnInit {
   get filteredTags(): readonly Tag[] {
     const gameId = this.form.controls.gameId.value;
     return this.tags().filter(x => x.gameId === gameId);
+  }
+
+  get filteredTagGroups(): readonly ItemGroupSection<Tag>[] {
+    return groupByItemGroup(this.filteredTags);
   }
 
   get areAllFilteredTagsSelected(): boolean {

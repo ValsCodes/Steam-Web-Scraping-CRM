@@ -444,6 +444,7 @@ public class Program
         app.MapFeedbackRequestEndpoints();
         app.MapGameUrlProductsEndpoints();
         app.MapTagsEndpoints();
+        app.MapItemGroupsEndpoints();
         app.MapProductTagsEndpoints();
         app.MapGameUrlPixelsEndpoints();
         app.MapAdminUserEndpoints();

@@ -176,8 +176,12 @@ public static class TestDb
                 UserId = TestUserId
             });
 
+        db.ItemGroups.AddRange(
+            new ItemGroup { Id = 1, GameId = 1, Name = "Priority", UserId = TestUserId },
+            new ItemGroup { Id = 2, GameId = 2, Name = "Role", UserId = TestUserId });
+
         db.Tags.AddRange(
-            new Tag { Id = 1, GameId = 1, Name = "Primary", IsActive = true, UserId = TestUserId },
+            new Tag { Id = 1, GameId = 1, ItemGroupId = 1, Name = "Primary", IsActive = true, UserId = TestUserId },
             new Tag { Id = 2, GameId = 2, Name = "Support", IsActive = false, UserId = TestUserId });
 
         db.WishLists.AddRange(

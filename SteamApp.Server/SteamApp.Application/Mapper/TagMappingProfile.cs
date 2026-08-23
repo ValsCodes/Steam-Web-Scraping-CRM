@@ -12,6 +12,10 @@ namespace SteamApp.Application.Mapper
                 .ForMember(
                     dest => dest.GameName,
                     opt => opt.MapFrom(src => src.Game.Name)
+                )
+                .ForMember(
+                    dest => dest.ItemGroupName,
+                    opt => opt.MapFrom(src => src.ItemGroup == null ? null : src.ItemGroup.Name)
                 );
 
             CreateMap<TagCreateDto, Tag>()

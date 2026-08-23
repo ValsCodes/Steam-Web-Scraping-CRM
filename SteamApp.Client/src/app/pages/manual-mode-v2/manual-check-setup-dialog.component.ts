@@ -17,11 +17,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { finalize, forkJoin, timeout, TimeoutError } from 'rxjs';
 
 import {
+  ItemGroup,
   ManualCheckConditionOperator,
   ManualCheckPreset,
   ManualCheckPresetWrite,
 } from '../../models';
-import { ManualCheckService } from '../../services';
+import { ItemGroupService, ManualCheckService } from '../../services';
+import { groupByItemGroup, ItemGroupSection } from '../../common/item-grouping';
 import {
   createManualCheckCriterionNode,
   createManualCheckGroupNode,
@@ -94,8 +96,12 @@ export interface ManualCheckSetupDialogResult {
             [(ngModel)]="selectedPresetId"
             (ngModelChange)="selectPreset($event)">
             <option [ngValue]="null">Create new preset</option>
-            @for (preset of presets; track preset.id) {
-              <option [ngValue]="preset.id">{{ preset.name }}</option>
+            @for (group of presetGroups; track group.itemGroupId) {
+              <optgroup [label]="group.name">
+                @for (preset of group.items; track preset.id) {
+                  <option [ngValue]="preset.id">{{ preset.name }}</option>
+                }
+              </optgroup>
             }
           </select>
         </label>
@@ -109,6 +115,37 @@ export interface ManualCheckSetupDialogResult {
             (ngModelChange)="markDirty()"
             placeholder="Preset name" />
         </label>
+
+        <label>
+          <span>Preset group</span>
+          <select
+            name="manualCheckPresetItemGroup"
+            [(ngModel)]="itemGroupId"
+            (ngModelChange)="markDirty()">
+            <option [ngValue]="null">No group</option>
+            @for (itemGroup of itemGroups; track itemGroup.id) {
+              <option [ngValue]="itemGroup.id">{{ itemGroup.name }}</option>
+            }
+          </select>
+        </label>
+
+        <section class="manual-check-dialog__item-group-create">
+          <label>
+            <span>Create a new group</span>
+            <input
+              name="manualCheckNewItemGroupName"
+              maxlength="255"
+              [(ngModel)]="newItemGroupName"
+              placeholder="Group name" />
+          </label>
+          <button
+            mat-stroked-button
+            type="button"
+            (click)="createItemGroup()"
+            [disabled]="!newItemGroupName.trim() || creatingItemGroup || busy">
+            {{ creatingItemGroup ? 'Creating...' : 'Create group' }}
+          </button>
+        </section>
 
         <section class="manual-check-dialog__listing-limit" aria-labelledby="manualCheckListingLimitLabel">
           <div>
@@ -252,17 +289,17 @@ export interface ManualCheckSetupDialogResult {
           type="button"
           color="warn"
           (click)="deletePreset()"
-          [disabled]="selectedPresetId === null || busy">
+          [disabled]="selectedPresetId === null || busy || creatingItemGroup">
           Delete
         </button>
-        <button mat-stroked-button type="button" (click)="newPreset()" [disabled]="busy">
+        <button mat-stroked-button type="button" (click)="newPreset()" [disabled]="busy || creatingItemGroup">
           Create new
         </button>
         <button
           mat-stroked-button
           type="button"
           (click)="savePreset()"
-          [disabled]="!isDraftValid || !dirty || busy">
+          [disabled]="!isDraftValid || !dirty || busy || creatingItemGroup">
           Save only
         </button>
       }
@@ -273,7 +310,7 @@ export interface ManualCheckSetupDialogResult {
           mat-flat-button
           type="button"
           (click)="startOrSave()"
-          [disabled]="!isDraftValid || busy">
+          [disabled]="!isDraftValid || busy || creatingItemGroup">
           {{ primaryActionLabel }}
         </button>
       }
@@ -294,6 +331,8 @@ export interface ManualCheckSetupDialogResult {
     .manual-check-dialog select, .manual-check-dialog input { border: 1px solid #cbd5e1; border-radius: .25rem; padding: .55rem .7rem; }
     .manual-check-dialog fieldset { display: flex; gap: 1.25rem; border: 1px solid #e2e8f0; border-radius: .375rem; padding: .75rem; }
     .manual-check-dialog__radio { display: inline-flex; align-items: center; gap: .4rem; }
+    .manual-check-dialog__item-group-create { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; }
+    .manual-check-dialog__item-group-create label { flex: 1; min-width: 12rem; }
     .manual-check-dialog__listing-limit { display: flex; flex-direction: column; gap: .65rem; border: 1px solid #e2e8f0; border-radius: .375rem; padding: .75rem; }
     .manual-check-dialog__listing-limit p { margin: .2rem 0 0; color: #64748b; }
     .manual-check-dialog__listing-limit-controls { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; }
@@ -315,11 +354,16 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   readonly data = inject<ManualCheckSetupDialogData>(MAT_DIALOG_DATA);
   readonly dialogRef = inject<MatDialogRef<ManualCheckSetupDialogComponent, ManualCheckSetupDialogResult>>(MatDialogRef);
   private readonly manualCheckService = inject(ManualCheckService);
+  private readonly itemGroupService = inject(ItemGroupService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   presets: ManualCheckPreset[] = [];
+  itemGroups: ItemGroup[] = [];
   conditionOperators: ManualCheckConditionOperator[] = [];
   selectedPresetId: number | null = null;
+  itemGroupId: number | null = null;
+  newItemGroupName = '';
+  creatingItemGroup = false;
   name = '';
   listingLimit: number | null = 10;
   customCooldown = false;
@@ -338,6 +382,10 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.loadPresets();
   }
 
+  get presetGroups(): readonly ItemGroupSection<ManualCheckPreset>[] {
+    return groupByItemGroup(this.presets);
+  }
+
   loadPresets(): void {
     this.loading = true;
     this.loadError = false;
@@ -346,6 +394,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
 
     forkJoin({
       presets: this.manualCheckService.getPresets(this.data.gameId),
+      itemGroups: this.itemGroupService.getByGame(this.data.gameId),
       conditionOperators: this.manualCheckService.getConditionOperators(),
     }).pipe(
       timeout({ first: 15000 }),
@@ -354,8 +403,9 @@ export class ManualCheckSetupDialogComponent implements OnInit {
         this.cdr.markForCheck();
       }),
     ).subscribe({
-      next: ({ presets, conditionOperators }) => {
+      next: ({ presets, itemGroups, conditionOperators }) => {
         this.presets = presets;
+        this.itemGroups = itemGroups;
         this.conditionOperators = conditionOperators;
         const preferred = presets.find((x) => x.id === this.data.preselectedPresetId)
           ?? presets[0];
@@ -437,6 +487,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     }
 
     this.selectedPresetId = preset.id;
+    this.itemGroupId = preset.itemGroupId;
     this.name = preset.name;
     this.listingLimit = preset.listingLimit;
     this.customCooldown = preset.cooldownMinutes !== null && preset.cooldownSeconds !== null;
@@ -451,6 +502,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
 
   newPreset(): void {
     this.selectedPresetId = null;
+    this.itemGroupId = null;
     this.name = '';
     this.listingLimit = 10;
     this.customCooldown = false;
@@ -467,6 +519,36 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.dirty = true;
     this.errorMessage = '';
     this.successMessage = '';
+  }
+
+  createItemGroup(): void {
+    const name = this.newItemGroupName.trim();
+    if (!name || name.length > 255 || this.creatingItemGroup || this.busy) {
+      return;
+    }
+
+    this.creatingItemGroup = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.itemGroupService.create({ gameId: this.data.gameId, name })
+      .pipe(finalize(() => {
+        this.creatingItemGroup = false;
+        this.cdr.markForCheck();
+      }))
+      .subscribe({
+        next: (created) => {
+          this.itemGroups = [...this.itemGroups, created].sort((left, right) =>
+            left.name.localeCompare(right.name) || left.id - right.id);
+          this.itemGroupId = created.id;
+          this.newItemGroupName = '';
+          this.markDirty();
+          this.cdr.markForCheck();
+        },
+        error: (error) => {
+          this.errorMessage = this.getError(error, 'Unable to create the group.');
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   setListingLimit(listingLimit: number): void {
@@ -506,7 +588,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   }
 
   savePreset(startAfterSave = false): void {
-    if (!this.isDraftValid || this.busy) {
+    if (!this.isDraftValid || this.busy || this.creatingItemGroup) {
       return;
     }
 
@@ -525,9 +607,9 @@ export class ManualCheckSetupDialogComponent implements OnInit {
       next: (saved) => {
         const index = this.presets.findIndex((x) => x.id === saved.id);
         if (index >= 0) {
-          this.presets[index] = saved;
+          this.presets = this.presets.map((preset) => preset.id === saved.id ? saved : preset);
         } else {
-          this.presets = [...this.presets, saved].sort((a, b) => a.name.localeCompare(b.name));
+          this.presets = [...this.presets, saved];
         }
         this.selectedPresetId = saved.id;
         this.selectPreset(saved.id);
@@ -547,7 +629,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
 
   deletePreset(): void {
     const id = this.selectedPresetId;
-    if (id === null || this.busy || !confirm(`Delete preset “${this.name}”? Historical runs will be retained.`)) {
+    if (id === null || this.busy || this.creatingItemGroup || !confirm(`Delete preset “${this.name}”? Historical runs will be retained.`)) {
       return;
     }
 
@@ -572,7 +654,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   }
 
   startOrSave(): void {
-    if (!this.isDraftValid || this.busy) {
+    if (!this.isDraftValid || this.busy || this.creatingItemGroup) {
       return;
     }
 
@@ -591,6 +673,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   private toWriteModel(): ManualCheckPresetWrite {
     return {
       gameId: this.data.gameId,
+      itemGroupId: this.itemGroupId,
       name: this.name.trim(),
       listingLimit: this.listingLimit!,
       cooldownMinutes: this.customCooldown ? this.cooldownMinutes! : null,

@@ -35,5 +35,6 @@ namespace SteamApp.Domain.Entities
         public ICollection<Pixel> Pixels { get; set; } = [];
         public ICollection<GameAddOn> GameAddOns { get; set; } = [];
         public ICollection<Tag> Tags { get; set; } = [];
+        public ICollection<ItemGroup> ItemGroups { get; set; } = [];
     }
 }

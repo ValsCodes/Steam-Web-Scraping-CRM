@@ -168,8 +168,12 @@ public static class IntegrationSeed
                 UserId = UserId
             });
 
+        db.ItemGroups.AddRange(
+            new ItemGroup { Id = 1, GameId = 1, Name = "Priority", UserId = UserId },
+            new ItemGroup { Id = 2, GameId = 2, Name = "Role", UserId = UserId });
+
         db.Tags.AddRange(
-            new Tag { Id = 1, GameId = 1, Name = "Primary", IsActive = true, UserId = UserId },
+            new Tag { Id = 1, GameId = 1, ItemGroupId = 1, Name = "Primary", IsActive = true, UserId = UserId },
             new Tag { Id = 2, GameId = 2, Name = "Support", IsActive = false, UserId = UserId });
 
         db.WishLists.AddRange(

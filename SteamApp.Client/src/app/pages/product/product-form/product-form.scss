@@ -1,1 +1,21 @@
 /* Shared form relation styles live in src/scss/main.scss. */
+
+.item-group-sections {
+  display: grid;
+  gap: 1rem;
+}
+
+.item-group-section {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+
+  legend {
+    margin-bottom: 0.55rem;
+    color: #475569;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+}

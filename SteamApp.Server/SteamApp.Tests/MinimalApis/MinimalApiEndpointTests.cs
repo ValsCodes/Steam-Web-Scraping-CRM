@@ -31,6 +31,7 @@ public sealed class MinimalApiEndpointTests
     [TestCase("/api/feedback-requests/1/history")]
     [TestCase("/api/game-url-products/")]
     [TestCase("/api/tags/")]
+    [TestCase("/api/item-groups/game/1")]
     [TestCase("/api/product-tags/")]
     [TestCase("/api/game-url-pixels/")]
     public async Task GetAllEndpoints_ReturnOk(string path)

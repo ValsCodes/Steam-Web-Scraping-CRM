@@ -1,16 +1,16 @@
-# Graph Report - SteamApp  (2026-08-22)
+# Graph Report - SteamApp  (2026-08-23)
 
 ## Corpus Check
-- 628 files · ~177,968 words
+- 643 files · ~182,731 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4196 nodes · 8517 edges · 273 communities (205 shown, 68 thin omitted)
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 427 edges (avg confidence: 0.8)
+- 4260 nodes · 8668 edges · 278 communities (208 shown, 70 thin omitted)
+- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 433 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d7dbfeca`
+- Built from commit: `858e18fc`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -173,12 +173,16 @@
 - AddScrapingModeToGameUrl
 - SeedScrapingModes
 - AutomatedScrapeHistory
+- DropLegacyGameUrlScrapingFlags
 - AddUserProfileFields
+- 20260210190556_CustomWatchlistRework.Designer.cs
 - IdentitySchemaInitializer
 - ClaimsPrincipalExtensions.cs
 - ItemNotFoundException.cs
 - SecurityHeadersMiddlewareExtensions.cs
+- 20260510101756_SyncModelChanges.Designer.cs
 - Architecture Overview
+- 20260515081736_AddUserProfileFields.Designer.cs
 - .BackgroundWishlistWorkflowSendsEmailOnceAndUsesCacheOnSecondRun
 - ITransientRetryPolicyService
 - .MaterializeResultsIfNeeded
@@ -192,12 +196,16 @@
 - local-release
 - CheckboxesFilterComponent
 - TextFilterComponent
+- RabbitMqOptions
+- @angular/material
+- file-saver
 - CacheKeys.cs
 - SteamControllerTests.cs
-- HttpMessageHandlerStub
+- .TagTypeConstraints_DuplicateNameAndMissingForeignKey_AreRejected
 - graphify reference: query, path, explain
 - GameEndpoints
 - GameUrlPixelsEndpoints
+- IntegrationJwt
 - ProductEndpoints
 - ProductTagsEndpoints
 - ScrapingModeEndpoints
@@ -227,13 +235,14 @@
 - env/README.md
 - jasmine-core
 - Q: did you allow the two the to communicate as I am getting Invalid user credentials. from the server
+- 20260515171509_AddUserOwnership.Designer.cs
 - karma-jasmine-html-reporter
 - rxjs
 - home-page.ts
-- AddManualCheckListingLimit
+- 20260516144656_AddAutomatedScrapeHistory.Designer.cs
 - environment.local-release.ts
 - OneShotHttpServer
-- Game
+- 20260627135352_AddFeedbackRequests.Designer.cs
 - AddFeedbackRequests
 - .SwaggerIsExposedInDevelopmentAndHiddenBehindProductionApiSecurity
 - SteamApp.Application.DTOs.ScrapingMode
@@ -241,56 +250,52 @@
 - .CreateTokenResponse
 - Q: I still get Invalid user credentials. and the client doesn't open upon clicking the bat
 - .attachTableControls
-- Pixel
-- .DelayAsync
+- 20260814162547_AddManualChecks.Designer.cs
+- 20260816145011_AddManualCheckListingLimit.Designer.cs
+- 20260819092817_ExtendAutomatedManualChecks.Designer.cs
 - AddUserOwnership
 - ControllerSecurityMetadataTests
+- 20260823090118_TagTypes.Designer.cs
 - AddManualCheckCriterionGroups
 - DeleteUserRequest.cs
-- 20260515171509_AddUserOwnership.Designer.cs
+- CacheKeys.cs
 - .UrlEncode
 - 20260627144144_AddFeedbackRequestHistory.Designer.cs
 - ScrapingMode
+- GameEndpoints
 - 20260506092153_SeedScrapingModes.Designer.cs
 - 20260821050347_AddManualCheckCriterionGroups.Designer.cs
 - ManualCheckProductErrorDto
 - .PagedCatalogEndpointsFilterSortAndClampForAUserJourney
 - CustomWatchlistUrl
 - CheckboxesFilterComponent
-- ManualCheckConditionOperator
+- PixelEndpoints
+- ProductEndpoints
+- ProductTagsEndpoints
 - ScrapeHistorySetupDto
 - SecurityPolicies.cs
+- ScrapingModeEndpoints
 - @angular/forms
-- copy-link.component.unit.spec.ts
+- WatchListEndpoints
 - IsProductActive
-- AddManualChecks
-- jest-environment-jsdom
+- LoginRequest.cs
 - GameUrlPixelsEndpoints
 - 20260120212257_game-url-name.Designer.cs
 - 20260201104921_ProductTags.Designer.cs
-- PixelEndpoints
-- ProductEndpoints
-- karma
-- ProductTagsEndpoints
-- ScrapingModeEndpoints
 - TagsEndpoints
-- karma-jasmine-html-reporter
 - WishListEndpoints
-- rxjs
-- tailwindcss
-- zone.js
 
 ## God Nodes (most connected - your core abstractions)
-1. `handleError()` - 114 edges
-2. `ManualModeV2` - 71 edges
-3. `SteamApp.Infrastructure.Context` - 63 edges
-4. `SteamApp.Domain.Entities` - 63 edges
+1. `handleError()` - 117 edges
+2. `ManualModeV2` - 72 edges
+3. `SteamApp.Infrastructure.Context` - 67 edges
+4. `SteamApp.Domain.Entities` - 67 edges
 5. `AuthService` - 54 edges
-6. `SteamApp.Domain.Enums` - 47 edges
-7. `SteamApp.Interfaces.Services` - 45 edges
-8. `GameService` - 44 edges
-9. `WebScraperComponent` - 42 edges
-10. `SteamApp.WebAPI.Migrations` - 41 edges
+6. `GameService` - 47 edges
+7. `SteamApp.Domain.Enums` - 47 edges
+8. `SteamApp.Interfaces.Services` - 45 edges
+9. `SteamApp.WebAPI.Migrations` - 44 edges
+10. `WebScraperComponent` - 42 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `mockSteamApi()` --indirect_call--> `route()`  [INFERRED]
@@ -301,49 +306,49 @@
   SteamApp.Client/src/app/pages/feedback/feedback-request-form/feedback-request-form.unit.spec.ts → SteamApp.Client/src/app/pages/feedback/feedback-request-form/feedback-request-form.ts
 - `createComponent()` --indirect_call--> `ManualCheckTraceDialogComponent`  [INFERRED]
   SteamApp.Client/src/app/pages/manual-mode-v2/manual-check-trace-dialog.unit.spec.ts → SteamApp.Client/src/app/pages/manual-mode-v2/manual-check-trace-dialog.component.ts
-- `setup()` --indirect_call--> `WishListService`  [INFERRED]
-  SteamApp.Client/src/app/pages/wish-list/wish-list-form/wish-list-form.unit.spec.ts → SteamApp.Client/src/app/services/wish-list/wish-list.service.ts
+- `setup()` --indirect_call--> `GameService`  [INFERRED]
+  SteamApp.Client/src/app/pages/wish-list/wish-list-form/wish-list-form.unit.spec.ts → SteamApp.Client/src/app/services/game/game.service.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (273 total, 68 thin omitted)
+## Communities (278 total, 70 thin omitted)
 
 ### Community 0 - "feedback-request.model.ts"
 Cohesion: 0.06
 Nodes (26): CreateFeedbackRequest, FEEDBACK_REQUEST_HISTORY_ACTION_OPTIONS, FEEDBACK_REQUEST_STATUS_OPTIONS, FEEDBACK_REQUEST_TYPE_OPTIONS, FeedbackRequest, FeedbackRequestHistory, FeedbackRequestHistoryAction, feedbackRequestHistoryActionLabel() (+18 more)
 
 ### Community 1 - "web-scraper.component.ts"
-Cohesion: 0.06
-Nodes (28): Directive, HostBinding, Status, CONSTANTS, formatMs(), ExternalLinkDirective, HostListener, Input (+20 more)
+Cohesion: 0.07
+Nodes (25): Directive, HostBinding, Status, formatMs(), ExternalLinkDirective, HostListener, Input, ExternalLinkHostComponent (+17 more)
 
 ### Community 2 - "ManualModeV2"
-Cohesion: 0.15
-Nodes (20): ManualCheckConditionOperator, ManualCheckCriterion, createFlatFallback(), createManualCheckCriterionNode(), createManualCheckGroupNode(), createNodeId(), flattenChildren(), flattenManualCheckExpression() (+12 more)
+Cohesion: 0.06
+Nodes (26): ManualCheckCriterion, containsManualCheckGroup(), createFlatFallback(), createManualCheckCriterionNode(), createManualCheckGroupNode(), createNodeId(), ManualCheckExpressionEditorComponent, Component (+18 more)
 
 ### Community 3 - "handleError"
-Cohesion: 0.07
-Nodes (11): CreateTag, Tag, UpdateTag, UpdateTagStatus, TagForm, Component, TagsView, Component (+3 more)
+Cohesion: 0.05
+Nodes (22): groupTagsByType(), sortTags(), TagGroup, CreateTag, Tag, UpdateTag, UpdateTagStatus, CreateTagType (+14 more)
 
 ### Community 4 - "ScrapeHistoryDataService"
-Cohesion: 0.07
+Cohesion: 0.08
 Nodes (14): StatusDialogComponent, StatusDialogData, StatusDialogVariant, Component, CreateWishList, UpdateWishList, UpdateWishListStatus, WishList (+6 more)
 
 ### Community 5 - ".CreateAsync"
-Cohesion: 0.10
-Nodes (17): PageJson, Task, Test, AdminUserEndpointTests, HttpResponseMessage, Task, Test, TestCase (+9 more)
+Cohesion: 0.09
+Nodes (20): PageJson, Task, Test, AdminUserEndpointTests, HttpResponseMessage, Task, Test, TestCase (+12 more)
 
 ### Community 6 - "pages/index.ts"
-Cohesion: 0.10
-Nodes (11): CreateGame, Game, UpdateGame, UpdateGameStatus, GameForm, Component, Component, setup() (+3 more)
+Cohesion: 0.07
+Nodes (13): ConfirmDialogComponent, ConfirmDialogData, Component, CreateGame, Game, UpdateGame, UpdateGameStatus, GameForm (+5 more)
 
 ### Community 7 - "WebScraperComponent"
-Cohesion: 0.08
-Nodes (15): SteamApp.Infrastructure.Services, SteamApp.WebAPI.Jobs, SteamApp.IntegrationTests.External, SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.DependencyInjection, SteamApp.Application.DTOs.WishListItem, SteamApp.Application.DTOs.WatchItem, SteamApp.Interfaces.Repositories, SteamApp.Interfaces.Services (+7 more)
+Cohesion: 0.09
+Nodes (12): SteamApp.Infrastructure.Services, SteamApp.IntegrationTests.External, SteamApp.WebAPI.Scraping, SteamApp.Application.DTOs.WishListItem, SteamApp.Application.DTOs.WatchItem, SteamApp.Interfaces.Repositories, SteamApp.Interfaces.Services, SteamApp.Tests.Services (+4 more)
 
 ### Community 8 - "SteamApp.Infrastructure.Context"
-Cohesion: 0.16
-Nodes (11): WishlistRepository, CancellationToken, IEnumerable, IWebElement, Task, WishlistService, CancellationToken, IEnumerable (+3 more)
+Cohesion: 0.13
+Nodes (3): Component, ViewChild, WishListsView
 
 ### Community 9 - "ApplicationDbContext"
 Cohesion: 0.07
@@ -354,24 +359,32 @@ Cohesion: 0.27
 Nodes (5): IWebElement, Mock, Task, Test, WishlistServiceTests
 
 ### Community 11 - "devDependencies"
-Cohesion: 0.07
-Nodes (27): @angular/cli, @angular/compiler-cli, @angular-devkit/build-angular, jest, jest-preset-angular, karma-chrome-launcher, karma-coverage, karma-jasmine (+19 more)
+Cohesion: 0.06
+Nodes (35): @angular/cli, @angular/compiler-cli, @angular-devkit/build-angular, jasmine-core, jest, jest-environment-jsdom, jest-preset-angular, karma (+27 more)
 
 ### Community 12 - "PixelService"
-Cohesion: 0.08
+Cohesion: 0.07
 Nodes (12): CreatePixel, Pixel, PixelListItem, UpdatePixel, UpdatePixelStatus, PixelForm, Component, PixelsView (+4 more)
 
 ### Community 13 - "ProductForm"
-Cohesion: 0.11
-Nodes (25): DistributedCacheEntryOptions, List, ManualCheckProductInputDto, DateTime, List, ManualCheckSetupDto, Action, CancellationToken (+17 more)
+Cohesion: 0.13
+Nodes (22): DistributedCacheEntryOptions, DateTime, List, ManualCheckSetupDto, CancellationToken, Task, TimeSpan, IManualCheckDelay (+14 more)
 
 ### Community 14 - "SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options"
-Cohesion: 0.11
-Nodes (18): SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Consumers, SteamApp.WebAPI.Caching, SteamApp.WebAPI.MessageBrokers.Handlers.Wishlist, SteamApp.WebAPI.MessageBrokers.Abstractions, SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Publishing, SteamApp.Tests.Repositories, SteamApp.Application.Caching, SteamApp.WebAPI.MessageBrokers.Handlers.Scraping (+10 more)
+Cohesion: 0.14
+Nodes (16): SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Consumers, SteamApp.WebAPI.Caching, SteamApp.WebAPI.MessageBrokers.Handlers.Wishlist, SteamApp.WebAPI.MessageBrokers.Abstractions, SteamApp.WebAPI.Jobs, SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Publishing, SteamApp.WebAPI.MessageBrokers.Handlers.Scraping, SteamApp.E2ETests.Services (+8 more)
+
+### Community 15 - "SteamApp.Domain.Enums"
+Cohesion: 0.06
+Nodes (11): CreateGameUrl, GameUrl, UpdateGameUrl, UpdateGameUrlStatus, GameUrlForm, Component, GameUrlsView, Component (+3 more)
+
+### Community 16 - "SteamApp.Application.Mapper"
+Cohesion: 0.20
+Nodes (7): CancellationToken, Task, CancellationToken, Task, CancellationToken, Task, WishlistCheckMessageHandler
 
 ### Community 17 - "wish-lists-view.ts"
-Cohesion: 0.06
-Nodes (8): xlsx, GamesView, Component, ViewChild, ProductsView, Component, ViewChild, xlsx
+Cohesion: 0.14
+Nodes (3): ProductsView, Component, ViewChild
 
 ### Community 18 - "AuthController"
 Cohesion: 0.09
@@ -390,20 +403,20 @@ Cohesion: 0.09
 Nodes (10): ParsedHash, string, EncryptionHashingOptions, int, string, EncryptionHashingService, ParsedHash, IEncryptionHashingService (+2 more)
 
 ### Community 22 - ".CreateController"
-Cohesion: 0.17
+Cohesion: 0.18
 Nodes (10): LogLevel, MemoryCache, IDistributedCache, ILogger, IMemoryCache, Mock, Task, Test (+2 more)
 
 ### Community 23 - "SteamController"
-Cohesion: 0.18
-Nodes (12): IReadOnlyList, Task, CancellationToken, Exception, HttpGet, HttpPost, IActionResult, IReadOnlyList (+4 more)
+Cohesion: 0.21
+Nodes (10): IReadOnlyList, Task, CancellationToken, Exception, HttpGet, HttpPost, IActionResult, IReadOnlyList (+2 more)
 
 ### Community 24 - "RadioButtonsFilterComponent"
 Cohesion: 0.09
 Nodes (21): Architecture and placement, Async, workers, brokers, and client state, Behavioral Contract, Blocking findings, Blocking Findings, Code Refactoring Validation Report, Data, DI, and resource ownership, Decision (+13 more)
 
 ### Community 25 - "dependencies"
-Cohesion: 0.07
-Nodes (27): @angular/animations, @angular/cdk, @angular/common, @angular/compiler, @angular/core, @angular/material, @angular/platform-browser, @angular/platform-browser-dynamic (+19 more)
+Cohesion: 0.06
+Nodes (35): @angular/animations, @angular/cdk, @angular/common, @angular/compiler, @angular/core, @angular/forms, @angular/material, @angular/platform-browser (+27 more)
 
 ### Community 26 - ".CreateController"
 Cohesion: 0.21
@@ -414,24 +427,24 @@ Cohesion: 0.11
 Nodes (4): SessionExpiredPage, Component, AuthService, Injectable
 
 ### Community 28 - "WishListsView"
-Cohesion: 0.08
-Nodes (26): bool, IDictionary, JObject, ManualCheckCriterionDto, AppData, IList, AssetDetail, Description (+18 more)
+Cohesion: 0.06
+Nodes (32): bool, IDictionary, JObject, ManualCheckCriterionDto, List, ManualCheckProductInputDto, Action, AppData (+24 more)
 
 ### Community 29 - "GameUrlsView"
 Cohesion: 0.12
 Nodes (16): API and browser controls, Authentication and authorization, External URLs and scraping, Findings, Findings, Mandatory rules, Merge gate, RabbitMQ, workers, and Redis (+8 more)
 
 ### Community 30 - "SteamApp.Application.JsonObjects"
-Cohesion: 0.04
-Nodes (29): SteamApp.WebAPI.Services, SteamApp.WebAPI.ManualChecks, SteamApp.Application.DTOs.ScrapeHistory, SteamApp.Domain.Enums, SteamApp.Application.JsonObjects, SteamApp.Application.DTOs.ManualCheck, List, ManualCheckAssetMatchDto (+21 more)
+Cohesion: 0.05
+Nodes (26): SteamApp.WebAPI.Exceptions, SteamApp.Application.Utilities, SteamApp.WebAPI.Services, SteamApp.Tests.Controllers, SteamApp.WebAPI.ManualChecks, SteamApp.Application.JsonObjects, SteamApp.Application.DTOs.ManualCheck, Exception (+18 more)
 
 ### Community 31 - "Подробно описание на проекта"
 Cohesion: 0.06
 Nodes (35): 10) Нефункционални изисквания, 11) Какво трябва да включва „детайлната документация“ (препоръка), 12) Кратко резюме, 1) Какво представлява проектът, 2) Бизнес цел и проблем, който решава, 3.1 Каталог и конфигурация, 3.2 Релации (M2M), 3.3 Оперативно следене (+27 more)
 
 ### Community 32 - "EmailService"
-Cohesion: 0.10
-Nodes (16): IOptions, string, EmailOptions, CancellationToken, ILogger, MimeMessage, SecureSocketOptions, Task (+8 more)
+Cohesion: 0.11
+Nodes (14): IOptions, string, EmailOptions, CancellationToken, ILogger, MimeMessage, SecureSocketOptions, Task (+6 more)
 
 ### Community 33 - "What You Must Do When Invoked"
 Cohesion: 0.08
@@ -442,8 +455,8 @@ Cohesion: 0.13
 Nodes (14): AuthorizationPolicy, HttpContext, JwtSettings, CancellationToken, IConfiguration, IHostEnvironment, ILogger, int (+6 more)
 
 ### Community 35 - ".CreateMemoryCache"
-Cohesion: 0.23
-Nodes (4): ManualCheckRunDetail, ManualCheckTraceDialogComponent, Component, createComponent()
+Cohesion: 0.18
+Nodes (9): IAsyncDisposable, IConnection, CancellationToken, SemaphoreSlim, Task, ValueTask, RabbitMqConnection, CancellationToken (+1 more)
 
 ### Community 36 - "enums/index.ts"
 Cohesion: 0.12
@@ -458,24 +471,20 @@ Cohesion: 0.11
 Nodes (12): CancelAfter, IWebElement, Mock, Task, Test, TestCase, SteamServiceTests, Task (+4 more)
 
 ### Community 39 - "WatchItemDto"
-Cohesion: 0.08
-Nodes (22): WatchItemDto, CancellationToken, Task, HttpUtilities, JsonUtilities, IEnumerable, IWebElement, Task (+14 more)
-
-### Community 40 - "SteamApp.Interfaces.Services"
-Cohesion: 0.33
-Nodes (3): ManualCheckRunSummary, ManualCheckHistoryDialogComponent, Component
+Cohesion: 0.07
+Nodes (24): IEnumerable, ScrapeHistoryRerunResponseDto, WatchItemDto, CancellationToken, Task, HttpUtilities, JsonUtilities, IEnumerable (+16 more)
 
 ### Community 41 - "app.component.ts"
-Cohesion: 0.05
-Nodes (39): SteamApp.WebAPI.Security, SteamApp.WebAPI.MinimalAPIs, SteamApp.Application.DTOs.Product, SteamApp.WebAPI.Contracts.AdminUsers, SteamApp.Application.DTOs.WatchListItem, SteamApp.Tests.TestSupport, SteamApp.E2ETests.Repositories, SteamApp.WebAPI.Contracts.Pagination (+31 more)
+Cohesion: 0.08
+Nodes (14): SteamApp.Application.DTOs.Product, SteamApp.WebApiClient.Managers, SteamApp.Application.DTOs.GameUrl, SteamApp.Application.DTOs.Pixel, SteamApp.Application.DTOs.Game, SteamApp.IntegrationTests.MinimalApis, GameUpdateDto, GameUpdateStatusDto (+6 more)
 
 ### Community 42 - "RabbitMqOptions"
-Cohesion: 0.30
-Nodes (6): CancellationToken, IEnumerable, Task, Task, Test, WishlistRepositoryTests
+Cohesion: 0.17
+Nodes (12): CancellationToken, IEnumerable, Task, WishlistRepository, CancellationToken, IEnumerable, Task, IWishlistRepository (+4 more)
 
 ### Community 43 - "ProductsView"
-Cohesion: 0.20
-Nodes (5): RadioButtonsFilterComponent, RadioOption, Component, Input, Output
+Cohesion: 0.16
+Nodes (10): HomePage, HomeSectionCard, Component, Workflow, NotFoundPage, Component, PricingAccent, PricingPage (+2 more)
 
 ### Community 44 - "WishlistJobIntegrationTests"
 Cohesion: 0.25
@@ -486,24 +495,24 @@ Cohesion: 0.09
 Nodes (22): dependencies, mssql1, rabbitmq1, redis1, connectionId, dynamicId, secretStore, type (+14 more)
 
 ### Community 46 - "SteamApp.Migrations"
-Cohesion: 0.07
-Nodes (15): SteamApp.Migrations, ModelBuilder, AddAutomatedScrapeHistory, MigrationBuilder, ModelBuilder, AddFeedbackRequests, AddFeedbackRequests, ModelBuilder (+7 more)
+Cohesion: 0.08
+Nodes (14): SteamApp.Migrations, Migration, MigrationBuilder, AddAutomatedScrapeHistory, MigrationBuilder, AddFeedbackRequests, MigrationBuilder, AddFeedbackRequestHistory (+6 more)
 
 ### Community 47 - "ApplicationDbContextModelSnapshot.cs"
 Cohesion: 0.07
-Nodes (16): SteamApp.WebAPI.Migrations, ModelSnapshot, ModelBuilder, EntitiesRework, ModelBuilder, WacthListIsActive, ModelBuilder, FixProductsTag (+8 more)
+Nodes (16): SteamApp.WebAPI.Migrations, ModelSnapshot, ModelBuilder, EntitiesRework, ModelBuilder, ProductRating, ModelBuilder, FixProductsTag (+8 more)
 
 ### Community 48 - ".GetAsync"
 Cohesion: 0.07
 Nodes (12): CreateProduct, Product, UpdateProduct, UpdateProductStatus, CreateProductTag, ProductTag, ProductForm, Component (+4 more)
 
 ### Community 49 - "FeedbackRequestEndpoints"
-Cohesion: 0.25
-Nodes (5): ICollection, GameUrl, GameUrlPixels, ICollection, ScrapingMode
+Cohesion: 0.33
+Nodes (3): CountdownTimerComponent, Component, Input
 
 ### Community 50 - "GameUrlForm"
 Cohesion: 0.06
-Nodes (19): CreateGameUrlPixel, GameUrlPixel, Listing, WhishListResponse, ScrapeHistoryRerunResponse, ScrapeJobAccepted, CreateScrapingMode, ScrapingMode (+11 more)
+Nodes (25): CreateGameUrlPixel, GameUrlPixel, CreateGameUrlProduct, GameUrlProduct, Listing, WhishListResponse, ScrapeHistoryRerunResponse, ScrapeJobAccepted (+17 more)
 
 ### Community 51 - "LoginComponent"
 Cohesion: 0.15
@@ -530,12 +539,12 @@ Cohesion: 0.19
 Nodes (9): IResult, AdminUserSummaryResponse, CancellationToken, IdentityResult, IEnumerable, Task, UserManager, WebApplication (+1 more)
 
 ### Community 57 - "GameUrlProductService"
-Cohesion: 0.06
-Nodes (11): CreateGameUrl, GameUrl, UpdateGameUrl, UpdateGameUrlStatus, GameUrlForm, Component, GameUrlsView, Component (+3 more)
+Cohesion: 0.36
+Nodes (4): Mock, Task, Test, ManualChecksControllerTests
 
 ### Community 58 - "TestDb"
-Cohesion: 0.50
-Nodes (3): Task, Test, TransientRetryPolicyServiceTests
+Cohesion: 0.24
+Nodes (4): SeoMetaService, SeoRouteData, Injectable, environment
 
 ### Community 59 - "SteamApp.Domain.Common"
 Cohesion: 0.12
@@ -550,16 +559,16 @@ Cohesion: 0.21
 Nodes (7): SmtpClient, CancellationToken, MimeMessage, SecureSocketOptions, Task, ValueTask, MailKitEmailSmtpClient
 
 ### Community 62 - ".CreateAnonymousClient"
-Cohesion: 0.35
-Nodes (3): Task, Test, SecurityPipelineIntegrationTests
+Cohesion: 0.33
+Nodes (4): Task, Test, SecurityPipelineIntegrationTests, Task
 
 ### Community 63 - "CopyLinkComponent"
 Cohesion: 0.17
 Nodes (5): CopyLinkComponent, Component, Input, CopyLinkHostComponent, Component
 
 ### Community 64 - "RecordingEmailSmtpClient"
-Cohesion: 0.29
-Nodes (6): CancellationToken, MimeMessage, SecureSocketOptions, Task, ValueTask, RecordingEmailSmtpClient
+Cohesion: 0.18
+Nodes (9): CancellationToken, MimeMessage, SecureSocketOptions, Task, Test, ValueTask, EmailServiceIntegrationTests, RecordingEmailSmtpClient (+1 more)
 
 ### Community 65 - "IWishlistNotificationRecipientService"
 Cohesion: 0.14
@@ -578,8 +587,8 @@ Cohesion: 0.17
 Nodes (15): @angular/material/prebuilt-themes/azure-blue.css, node_modules/@angular/material/prebuilt-themes/indigo-pink.css, src/scss/main.scss, zone.js, zone.js/testing, options, browser, index (+7 more)
 
 ### Community 69 - "WishlistCheckJob"
-Cohesion: 0.05
-Nodes (33): BackgroundService, IAsyncDisposable, IConnection, CancellationToken, Task, IMessagePublisher, CancellationToken, Task (+25 more)
+Cohesion: 0.13
+Nodes (11): BackgroundService, ScrapeRequested, WishlistCheckRequested, CancellationToken, JsonSerializerOptions, Task, ScrapeRequestedConsumer, CancellationToken (+3 more)
 
 ### Community 70 - "IdentityRoleInitializer"
 Cohesion: 0.25
@@ -598,24 +607,24 @@ Cohesion: 0.21
 Nodes (8): DateOnly, WatchListCreateDto, DateOnly, WatchListDto, CancellationToken, List, Task, WatchListManager
 
 ### Community 74 - ".GetHttpResposeAsync"
-Cohesion: 0.12
-Nodes (3): ManualCheckCriterionNode, ManualCheckSetupDialogComponent, Component
+Cohesion: 0.15
+Nodes (9): ICollection, Game, GameAddOn, ProductTags, ICollection, Tag, ICollection, int (+1 more)
 
 ### Community 75 - "Required Review"
 Cohesion: 0.12
 Nodes (16): 1. Architecture Alignment, 2. Required Change Logic, 3. Error Handling, 4. Maintainability, SOLID, Resource Ownership, and Lifetime Safety, 5. Asynchronous Execution, Cancellation, and Concurrency, 6. Tests and Verification Evidence, Blocking, Context Environment (+8 more)
 
 ### Community 76 - "StartupIntegrationTests"
-Cohesion: 0.24
-Nodes (5): SteamApp.IntegrationTests.Startup, IReadOnlyDictionary, Task, Test, StartupIntegrationTests
+Cohesion: 0.17
+Nodes (9): SteamApp.IntegrationTests.Startup, IReadOnlyDictionary, Task, Test, StartupConfigurationE2ETests, Task, Test, StartupIntegrationTests (+1 more)
 
 ### Community 77 - ".ResetDatabaseAsync"
-Cohesion: 0.35
-Nodes (5): SteamApp.IntegrationTests.Controllers, Task, Test, SteamControllerIntegrationTests, Task
+Cohesion: 0.38
+Nodes (4): SteamApp.IntegrationTests.Controllers, Task, Test, SteamControllerIntegrationTests
 
 ### Community 78 - "RabbitMqConnection"
-Cohesion: 0.24
-Nodes (4): SeoMetaService, SeoRouteData, Injectable, environment
+Cohesion: 0.15
+Nodes (9): ICollection, GameUrl, GameUrlProducts, ICollection, Product, ICollection, ScrapingMode, DateOnly (+1 more)
 
 ### Community 79 - "SteamApp.Infrastructure"
 Cohesion: 0.17
@@ -630,24 +639,24 @@ Cohesion: 0.17
 Nodes (12): Microsoft.AspNetCore.Mvc.Testing (9.0.15), Microsoft.EntityFrameworkCore.Sqlite (9.0.15), SteamApp.IntegrationTests, net9.0, coverlet.collector (10.0.0), Microsoft.EntityFrameworkCore.InMemory (9.0.15), Microsoft.NET.Test.Sdk (18.5.1), Moq (4.20.72) (+4 more)
 
 ### Community 82 - "IEmailSmtpClient"
-Cohesion: 0.13
-Nodes (10): Queue, CancellationToken, MimeMessage, SecureSocketOptions, Task, IEmailSmtpClient, IEmailSmtpClientFactory, MailKitEmailSmtpClientFactory (+2 more)
+Cohesion: 0.14
+Nodes (9): Queue, CancellationToken, MimeMessage, SecureSocketOptions, Task, IEmailSmtpClient, IEmailSmtpClientFactory, MailKitEmailSmtpClientFactory (+1 more)
 
 ### Community 83 - "AuthGuard"
 Cohesion: 0.24
 Nodes (3): AuthGuard, Injectable, route()
 
 ### Community 84 - "ExtraPixelManager"
-Cohesion: 0.26
-Nodes (6): PixelCreateDto, PixelDto, CancellationToken, List, Task, ExtraPixelManager
+Cohesion: 0.23
+Nodes (7): PixelCreateDto, PixelDto, CancellationToken, List, Task, ExtraPixelManager, SteamApiClient
 
 ### Community 85 - ".CreateAuthenticatedClient"
-Cohesion: 0.36
-Nodes (5): Task, Test, EfRepositoryIntegrationTests, DateTime, HttpClient
+Cohesion: 0.47
+Nodes (3): Task, Test, EfRepositoryIntegrationTests
 
 ### Community 86 - "TagsView"
-Cohesion: 0.29
-Nodes (4): SteamApp.Application.DTOs.ScrapingMode, ScrapingModeCreateDto, ScrapingModeDto, ScrapingModeUpdateDto
+Cohesion: 0.07
+Nodes (20): SteamApp.Application.DTOs.WatchListItem, SteamApp.Application.DTOs.ScrapingMode, SteamApp.Application.Mapper, Profile, ScrapingModeCreateDto, ScrapingModeDto, ScrapingModeUpdateDto, DateOnly (+12 more)
 
 ### Community 87 - "SteamAppFactory"
 Cohesion: 0.24
@@ -658,28 +667,28 @@ Cohesion: 0.18
 Nodes (11): Microsoft.AspNetCore.TestHost (9.0.15), SteamApp.Tests, net9.0, coverlet.collector (10.0.0), Microsoft.EntityFrameworkCore.InMemory (9.0.15), Microsoft.NET.Test.Sdk (18.5.1), Moq (4.20.72), NUnit (4.6.0) (+3 more)
 
 ### Community 89 - "GamesView"
-Cohesion: 0.13
-Nodes (17): OwnedGameUrlSnapshot, DateTime, ScrapeHistoryDetailDto, DateTime, ScrapeHistorySummaryDto, ScrapeJobAcceptedDto, CancellationToken, IReadOnlyList (+9 more)
+Cohesion: 0.12
+Nodes (18): DateTime, ScrapeHistoryDetailDto, ScrapeHistoryJob, ScrapeHistoryRerunSource, DateTime, ScrapeHistorySummaryDto, ScrapeJobAcceptedDto, CancellationToken (+10 more)
 
 ### Community 91 - "GameUrlDto"
-Cohesion: 0.26
+Cohesion: 0.29
 Nodes (6): GameUrlCreateDto, GameUrlDto, CancellationToken, List, Task, GameUrlManager
 
 ### Community 92 - "ProductDto"
-Cohesion: 0.17
-Nodes (9): SteamApp.Application.OperationResults, ProductCreateDto, ProductDto, BaseOperationResult, ItemCreateResult, CancellationToken, List, Task (+1 more)
+Cohesion: 0.26
+Nodes (6): ProductCreateDto, ProductDto, CancellationToken, List, Task, ProductManager
 
 ### Community 93 - "MinimalApiCrudIntegrationTests"
-Cohesion: 0.38
-Nodes (4): Task, Test, TestCase, MinimalApiCrudIntegrationTests
+Cohesion: 0.37
+Nodes (5): Task, Test, TestCase, MinimalApiCrudIntegrationTests, DateTime
 
 ### Community 94 - "DistributedCacheExtensions"
 Cohesion: 0.36
 Nodes (6): CancellationToken, IDistributedCache, JsonSerializerOptions, Task, TimeSpan, DistributedCacheExtensions
 
 ### Community 95 - "PageWindow"
-Cohesion: 0.17
-Nodes (6): containsManualCheckGroup(), ManualCheckExpressionEditorComponent, Component, Input, Output, ManualCheckGroupNode
+Cohesion: 0.15
+Nodes (12): name, private, scripts, build, ng, start, test, test:e2e (+4 more)
 
 ### Community 96 - "SteamApp.Application.csproj"
 Cohesion: 0.20
@@ -694,36 +703,36 @@ Cohesion: 0.36
 Nodes (6): corsHeaders, createJwt(), fulfillJson(), MockApiState, mockSteamApi(), signIn()
 
 ### Community 99 - "WishlistNotificationConsumer"
-Cohesion: 0.33
-Nodes (4): CancellationToken, Task, WishlistNotificationMessageHandler, WishlistNotificationRequested
+Cohesion: 0.25
+Nodes (5): SteamApp.WebApiClient, CancellationToken, Task, AuthApiClient, TokenResponse
 
 ### Community 100 - "CountdownTimerComponent"
-Cohesion: 0.08
-Nodes (13): CountdownTimerComponent, Component, Input, CheckboxesFilterComponent, Component, Input, Output, TextFilterComponent (+5 more)
+Cohesion: 0.07
+Nodes (15): CheckboxesFilterComponent, Component, Input, Output, RadioButtonsFilterComponent, RadioOption, Component, Input (+7 more)
 
 ### Community 101 - "DropdownComponent"
 Cohesion: 0.10
 Nodes (11): DropdownComponent, Component, HostListener, Input, SiteHeaderComponent, Component, ChangePasswordRequest, CurrentUser (+3 more)
 
 ### Community 102 - "GameDto"
-Cohesion: 0.15
+Cohesion: 0.16
 Nodes (10): SteamApp.Application.DTOs, BaseDto, BaseUpdateDto, GameCreateDto, GameDto, ProductTagCreateDto, CancellationToken, List (+2 more)
 
 ### Community 103 - "CapturingMessagePublisher"
-Cohesion: 0.20
+Cohesion: 0.22
 Nodes (6): CancellationToken, ConcurrentQueue, IReadOnlyCollection, Task, CapturingMessagePublisher, PublishedMessage
 
 ### Community 104 - "xlsx"
-Cohesion: 0.20
-Nodes (13): ControllerBase, EnableRateLimiting, List, ManualCheckRunRequestDto, ValueTask, CancellationToken, HttpDelete, HttpGet (+5 more)
+Cohesion: 0.15
+Nodes (16): ControllerBase, EnableRateLimiting, List, ManualCheckRunRequestDto, CancellationToken, IAsyncEnumerable, ValueTask, IManualCheckQueue (+8 more)
 
 ### Community 105 - "SteamApp.Application.DTOs.Tag"
-Cohesion: 0.22
-Nodes (5): SteamApp.Application.DTOs.Tag, TagCreateDto, TagDto, TagUpdateDto, TagUpdateStatusDto
+Cohesion: 0.13
+Nodes (8): SteamApp.Application.DTOs.TagType, SteamApp.Application.DTOs.Tag, TagCreateDto, TagDto, TagUpdateDto, TagUpdateStatusDto, TagTypeCreateDto, TagTypeDto
 
 ### Community 106 - "SteamService"
-Cohesion: 0.13
-Nodes (14): Minutes, Seconds, ManualCheckRunDetailDto, List, ManualCheckRunResultsDto, DateTime, ManualCheckRun, CancellationToken (+6 more)
+Cohesion: 0.12
+Nodes (14): Minutes, Seconds, List, ManualCheckRunResultsDto, DateTime, ManualCheckRun, CancellationToken, ICollection (+6 more)
 
 ### Community 107 - "IdentityRoleInitializerTests"
 Cohesion: 0.42
@@ -766,8 +775,16 @@ Cohesion: 0.25
 Nodes (8): SteamApp.E2ETests, net9.0, coverlet.collector (10.0.0), Microsoft.NET.Test.Sdk (18.5.1), NUnit (4.6.0), NUnit3TestAdapter (6.2.0), NUnit.Analyzers (4.13.0), Microsoft.NET.Sdk
 
 ### Community 119 - "MinimalApiCrudIntegrationTests.cs"
-Cohesion: 0.11
-Nodes (14): ConfirmDialogComponent, ConfirmDialogData, Component, HomePage, HomeSectionCard, Component, Workflow, NotFoundPage (+6 more)
+Cohesion: 0.26
+Nodes (6): WishListCreateDto, WishListDto, CancellationToken, List, Task, WishListManager
+
+### Community 120 - "ScrapeRequestedConsumer"
+Cohesion: 0.25
+Nodes (7): HttpMessageHandler, HttpRequestMessage, CancellationToken, Func, HttpResponseMessage, Task, HttpMessageHandlerStub
+
+### Community 121 - "WishListForm"
+Cohesion: 0.33
+Nodes (5): CancellationToken, IEnumerable, IWebElement, Task, WishlistService
 
 ### Community 122 - "API Reference (Quick)"
 Cohesion: 0.15
@@ -789,6 +806,10 @@ Nodes (7): extract-i18n, test, builder, options, buildTarget, architect, builder
 Cohesion: 0.29
 Nodes (4): NamedTag, TagFilterSelectComponent, Component, Output
 
+### Community 127 - ".ReadRequiredJsonAsync"
+Cohesion: 0.39
+Nodes (5): Guid, CancellationToken, Exception, Task, ManualCheckWorker
+
 ### Community 128 - "UpdateUserProfileRequest.cs"
 Cohesion: 0.25
 Nodes (7): Angular tests, Commands, Completion report, Coverage, .NET tests, Objective, SteamApp Testing Directive
@@ -798,8 +819,8 @@ Cohesion: 0.12
 Nodes (8): AllowAnonymous, Claim, DateTime, AuthResponse, ClientDefinition, TokenRequest, HttpPost, IEnumerable
 
 ### Community 130 - "WatchListsView"
-Cohesion: 0.15
-Nodes (9): CancellationToken, ConcurrentQueue, IReadOnlyCollection, Task, CapturingEmailService, EmailMessage, CancellationToken, Task (+1 more)
+Cohesion: 0.12
+Nodes (12): CancellationToken, ConcurrentQueue, IReadOnlyCollection, Task, CapturingEmailService, EmailMessage, CancellationToken, Task (+4 more)
 
 ### Community 131 - "assets"
 Cohesion: 0.33
@@ -823,59 +844,67 @@ Nodes (13): 1) Clone, 2) Start backend, 3) Start frontend, Backend, Core feature
 
 ### Community 136 - "scripts"
 Cohesion: 0.15
-Nodes (10): ManualCheckConditionOperatorDto, ManualCheckProgressDto, ManualCheckRunAcceptedDto, DateTime, ManualCheckRunSummaryDto, CancellationToken, IReadOnlyList, Task (+2 more)
+Nodes (11): ManualCheckConditionOperatorDto, ManualCheckProgressDto, ManualCheckRunAcceptedDto, ManualCheckRunDetailDto, DateTime, ManualCheckRunSummaryDto, CancellationToken, IReadOnlyList (+3 more)
+
+### Community 137 - "SteamApp.Application.DTOs.GameUrlProduct"
+Cohesion: 0.50
+Nodes (3): Task, Test, TransientRetryPolicyServiceTests
 
 ### Community 138 - "SteamApp.Application.DTOs.GameUrlPixel"
-Cohesion: 0.31
+Cohesion: 0.30
 Nodes (4): Task, Test, TestCase, ManualCheckDataServiceTests
 
 ### Community 139 - ".PagedCatalogEndpointsFilterSortAndClampForAUserJourney"
-Cohesion: 0.13
-Nodes (12): ManualCheckAssetMatch, ManualCheckDescriptionMatch, ManualCheckPreset, ManualCheckPresetWrite, ManualCheckProductError, ManualCheckProductInput, ManualCheckProductResult, ManualCheckProgress (+4 more)
+Cohesion: 0.50
+Nodes (3): SteamApp.Application.OperationResults, BaseOperationResult, ItemCreateResult
 
 ### Community 140 - ".ClientCredentialsTokenUnlocksProtectedApiSession"
 Cohesion: 0.60
 Nodes (3): Task, Test, SecurityE2ETests
 
 ### Community 141 - ".AddRabbitMqMessageBroker"
-Cohesion: 0.14
-Nodes (10): SteamApp.WebApiClient.Managers, SteamApp.WebApiClient, CancellationToken, Task, AuthApiClient, TokenResponse, CancellationToken, Task (+2 more)
+Cohesion: 0.29
+Nodes (5): WishlistNotificationRequested, CancellationToken, JsonSerializerOptions, Task, WishlistNotificationConsumer
 
-### Community 143 - "SteamApp.WebAPI.Migrations"
-Cohesion: 0.15
-Nodes (7): Migration, MigrationBuilder, db_v2, MigrationBuilder, WacthListIsActive, MigrationBuilder, AddAutomatedScrapeHistory
+### Community 144 - "db_v21"
+Cohesion: 0.22
+Nodes (4): MigrationBuilder, WacthListIsActive, MigrationBuilder, ProductTags
 
 ### Community 147 - "WacthListIsActive"
-Cohesion: 0.15
-Nodes (12): name, private, scripts, build, ng, start, test, test:e2e (+4 more)
+Cohesion: 0.43
+Nodes (4): CancellationToken, IEnumerable, Task, IWishlistService
 
 ### Community 148 - "IsProductActive"
-Cohesion: 0.14
-Nodes (12): WhishListResponse, WishListDto, CancellationToken, ConcurrentDictionary, IEnumerable, IReadOnlyCollection, Task, FakeWishlistService (+4 more)
+Cohesion: 0.15
+Nodes (10): WhishListResponse, CancellationToken, ConcurrentDictionary, IEnumerable, IReadOnlyCollection, Task, FakeWishlistService, CancellationToken (+2 more)
+
+### Community 150 - "ProductTags"
+Cohesion: 0.40
+Nodes (3): GameUrlPixels, ICollection, Pixel
 
 ### Community 153 - "CustomWatchlistUrl"
-Cohesion: 0.29
-Nodes (5): WishListCreateDto, CancellationToken, List, Task, WishListManager
+Cohesion: 0.60
+Nodes (3): IConfiguration, IServiceCollection, RabbitMqServiceCollectionExtensions
 
 ### Community 157 - "AutomatedScrapeHistory"
 Cohesion: 0.16
 Nodes (8): ErrorDialogComponent, ErrorDialogData, Component, SiteFooter, Component, ErrorDialogBridge, ErrorDialogService, Injectable
 
 ### Community 161 - "IdentitySchemaInitializer"
-Cohesion: 0.18
-Nodes (9): DbSet, EntityTypeBuilder, IdentityDbContext, IdentityRole, ModelBuilder, ApplicationDbContext, ProductTags, ICollection (+1 more)
+Cohesion: 0.13
+Nodes (14): DbContextOptions, DbSet, EntityTypeBuilder, IDbContextFactory, IdentityDbContext, IdentityRole, IDisposable, InMemoryDatabaseRoot (+6 more)
 
 ### Community 162 - "ClaimsPrincipalExtensions.cs"
-Cohesion: 0.15
-Nodes (12): DbContextOptions, IDbContextFactory, InMemoryDatabaseRoot, Task, SteamRepository, Task, Test, SteamRepositoryTests (+4 more)
+Cohesion: 0.33
+Nodes (5): Task, SteamRepository, Task, Test, SteamRepositoryTests
 
 ### Community 163 - "ItemNotFoundException.cs"
-Cohesion: 0.12
-Nodes (11): SteamApp.Interfaces, SteamApp.WebAPI.Jobs.Base, CancellationToken, Task, IJobService, TimeSpan, WorkerOptions, CancellationToken (+3 more)
+Cohesion: 0.15
+Nodes (9): SteamApp.Interfaces, SteamApp.WebAPI.Jobs.Base, CancellationToken, Task, IJobService, TimeSpan, WorkerOptions, TimeSpan (+1 more)
 
 ### Community 164 - "SecurityHeadersMiddlewareExtensions.cs"
-Cohesion: 0.40
-Nodes (3): IMemoryCache, string, ScrapeEndpointDefinitions
+Cohesion: 0.22
+Nodes (5): Exception, IMemoryCache, string, ScrapeEndpointDefinitions, ScrapeErrorResult
 
 ### Community 166 - "Architecture Overview"
 Cohesion: 0.20
@@ -890,8 +919,8 @@ Cohesion: 0.29
 Nodes (6): Bind the review, Locate affected paths, Output, Resolve directives, Review and validate, SteamApp PR Review
 
 ### Community 170 - ".MaterializeResultsIfNeeded"
-Cohesion: 0.09
-Nodes (18): SteamApp.Application.DTOs.FeedbackRequest, FeedbackRequestCreateDto, DateTime, FeedbackRequestDto, DateTime, FeedbackRequestHistoryDto, FeedbackRequestUpdateDto, FeedbackRequestUpdateStatusDto (+10 more)
+Cohesion: 0.06
+Nodes (26): SteamApp.Application.DTOs.ScrapeHistory, SteamApp.Domain.Enums, SteamApp.Application.DTOs.FeedbackRequest, FeedbackRequestCreateDto, DateTime, FeedbackRequestDto, DateTime, FeedbackRequestHistoryDto (+18 more)
 
 ### Community 171 - "SeoMetaService"
 Cohesion: 0.29
@@ -926,16 +955,16 @@ Cohesion: 0.25
 Nodes (8): local-release, budgets, buildTarget, extractLicenses, fileReplacements, optimization, outputHashing, sourceMap
 
 ### Community 184 - "CacheKeys.cs"
-Cohesion: 0.25
-Nodes (5): ICollection, Game, GameAddOn, ICollection, Pixel
+Cohesion: 0.50
+Nodes (3): Task, Test, RepositoryE2ETests
 
 ### Community 185 - "SteamControllerTests.cs"
-Cohesion: 0.60
-Nodes (3): IConfiguration, IServiceCollection, RabbitMqServiceCollectionExtensions
+Cohesion: 0.33
+Nodes (4): HttpResponseMessage, JsonElement, Task, JsonTestExtensions
 
-### Community 186 - "HttpMessageHandlerStub"
-Cohesion: 0.25
-Nodes (7): HttpMessageHandler, HttpRequestMessage, CancellationToken, Func, HttpResponseMessage, Task, HttpMessageHandlerStub
+### Community 186 - ".TagTypeConstraints_DuplicateNameAndMissingForeignKey_AreRejected"
+Cohesion: 0.50
+Nodes (3): Task, Test, TagTypesRelationalIntegrationTests
 
 ### Community 187 - "graphify reference: query, path, explain"
 Cohesion: 0.33
@@ -946,16 +975,20 @@ Cohesion: 0.33
 Nodes (5): Choose the smallest inspection, Fallback, Procedure, SteamApp Codebase Discovery, SteamApp orientation
 
 ### Community 189 - "GameUrlPixelsEndpoints"
-Cohesion: 0.10
-Nodes (16): formatDuration(), CreateGameUrlProduct, GameUrlProduct, ManualCheckProductTrace, ManualCheckRunAccepted, ManualCheckHistoryDialogData, ManualCheckSteamResultDialogComponent, Component (+8 more)
+Cohesion: 0.06
+Nodes (34): CONSTANTS, formatDuration(), openableSteamUrl(), ManualCheckAssetMatch, ManualCheckConditionOperator, ManualCheckDescriptionMatch, ManualCheckPreset, ManualCheckPresetWrite (+26 more)
+
+### Community 190 - "IntegrationJwt"
+Cohesion: 0.50
+Nodes (3): DateTime, string, IntegrationJwt
 
 ### Community 191 - "ProductEndpoints"
-Cohesion: 0.12
-Nodes (10): SteamApp.WebAPI.Exceptions, SteamApp.Domain.ValueObjects.Authentication, SteamApp.Tests.Security, SteamApp.Tests.Controllers, SteamApp.WebAPI.Controllers, Exception, Test, ControllerSecurityMetadataTests (+2 more)
+Cohesion: 0.09
+Nodes (20): SteamApp.WebAPI.Security, SteamApp.Domain.ValueObjects.Authentication, SteamApp.WebAPI.MinimalAPIs, SteamApp.Tests.Security, SteamApp.IntegrationTests.Data, SteamApp.WebAPI.Contracts.AdminUsers, SteamApp.Tests.TestSupport, SteamApp.E2ETests.Repositories (+12 more)
 
 ### Community 192 - "ProductTagsEndpoints"
-Cohesion: 0.06
-Nodes (27): CancellationTokenSource, Channel, IDisposable, ManualCheckQueueItem, CancellationToken, Guid, IAsyncEnumerable, IManualCheckQueue (+19 more)
+Cohesion: 0.12
+Nodes (14): CancellationTokenSource, Channel, ManualCheckQueueItem, Task, Test, ManualCheckQueueTests, CancellationToken, ConcurrentDictionary (+6 more)
 
 ### Community 193 - "ScrapingModeEndpoints"
 Cohesion: 0.40
@@ -965,6 +998,10 @@ Nodes (4): Answer, Outcome, Q: Inside Automated Check presets remain on Loading 
 Cohesion: 0.40
 Nodes (4): Answer, Outcome, Q: Fix the frontend problems from the attached Angular diagnostics., Source Nodes
 
+### Community 195 - "Product"
+Cohesion: 0.50
+Nodes (3): ICollection, int, ManualCheckConditionOperator
+
 ### Community 196 - "WishListEndpoints"
 Cohesion: 0.33
 Nodes (5): Establish behavior first, Resolve directives, Review, SteamApp Refactoring PR Review, Validation and output
@@ -972,10 +1009,6 @@ Nodes (5): Establish behavior first, Resolve directives, Review, SteamApp Refact
 ### Community 198 - "error-dialog.service.ts"
 Cohesion: 0.48
 Nodes (4): IServiceProvider, string, Task, IntegrationSeed
-
-### Community 208 - ".SwaggerIsExposedInDevelopmentAndHiddenBehindProductionApiSecurity"
-Cohesion: 0.33
-Nodes (4): SteamApp.E2ETests.Security, Task, Test, StartupConfigurationE2ETests
 
 ### Community 210 - "ScrapeHistorySummaryDto"
 Cohesion: 0.07
@@ -1026,20 +1059,16 @@ Cohesion: 0.40
 Nodes (4): Answer, Outcome, Q: did you allow the two the to communicate as I am getting Invalid user credentials. from the server, Source Nodes
 
 ### Community 228 - "karma-jasmine-html-reporter"
-Cohesion: 0.09
-Nodes (14): SteamApp.IntegrationTests.Data, SteamApp.E2ETests.MinimalApis, SteamApp.E2ETests.Support, SteamApp.IntegrationTests.Support, SteamApp.WebAPI, HttpClient, HttpResponseMessage, JsonElement (+6 more)
+Cohesion: 0.14
+Nodes (9): SteamApp.E2ETests.Security, SteamApp.E2ETests.MinimalApis, SteamApp.E2ETests.Support, SteamApp.IntegrationTests.Support, HttpClient, HttpResponseMessage, JsonElement, Task (+1 more)
 
 ### Community 229 - "rxjs"
-Cohesion: 0.15
-Nodes (11): DateTime, ManualCheckPresetDto, List, ManualCheckPresetWriteDto, int, ManualCheckCriterion, DateTime, ICollection (+3 more)
+Cohesion: 0.16
+Nodes (10): DateTime, ManualCheckPresetDto, List, ManualCheckPresetWriteDto, int, ManualCheckCriterion, DateTime, ICollection (+2 more)
 
 ### Community 230 - "home-page.ts"
 Cohesion: 0.38
 Nodes (4): IQueryable, Task, WebApplication, GameUrlEndpoints
-
-### Community 236 - "Game"
-Cohesion: 0.25
-Nodes (5): GameUrlProducts, ICollection, Product, DateOnly, WatchList
 
 ### Community 238 - ".SwaggerIsExposedInDevelopmentAndHiddenBehindProductionApiSecurity"
 Cohesion: 0.40
@@ -1061,21 +1090,13 @@ Nodes (17): Authorize, IdentityUser, ModelStateDictionary, ApplicationUser, Chan
 Cohesion: 0.40
 Nodes (4): Answer, Outcome, Q: I still get Invalid user credentials. and the client doesn't open upon clicking the bat, Source Nodes
 
-### Community 244 - "Pixel"
-Cohesion: 0.50
-Nodes (3): Task, Test, RepositoryE2ETests
-
-### Community 245 - ".DelayAsync"
-Cohesion: 0.50
-Nodes (3): DateTime, string, IntegrationJwt
-
 ### Community 251 - "DeleteUserRequest.cs"
 Cohesion: 0.40
 Nodes (3): SteamApp.Application.DTOs.GameUrlProduct, GameUrlProductCreateDto, GameUrlProductDto
 
 ### Community 253 - ".UrlEncode"
-Cohesion: 0.15
-Nodes (7): SteamApp.Application.Utilities, string, FeedbackRequestReference, UrlUtilities, IEnumerable, WebApplication, GameUrlProductsEndpoints
+Cohesion: 0.29
+Nodes (4): UrlUtilities, IEnumerable, WebApplication, GameUrlProductsEndpoints
 
 ### Community 259 - "ManualCheckProductErrorDto"
 Cohesion: 0.11
@@ -1085,18 +1106,14 @@ Nodes (14): RetryConditionHeaderValue, DateTime, ManualCheckProductErrorDto, Man
 Cohesion: 0.60
 Nodes (3): Task, Test, CatalogManagementE2ETests
 
-### Community 263 - "ManualCheckConditionOperator"
-Cohesion: 0.50
-Nodes (3): ICollection, int, ManualCheckConditionOperator
-
 ### Community 266 - "ScrapeHistorySetupDto"
-Cohesion: 0.18
-Nodes (9): ScrapeHistoryJob, ScrapeHistoryRerunSource, DateTime, ScrapeHistorySetupDto, CancellationToken, DateTime, IReadOnlyList, Task (+1 more)
+Cohesion: 0.20
+Nodes (8): OwnedGameUrlSnapshot, DateTime, ScrapeHistorySetupDto, CancellationToken, DateTime, IReadOnlyList, Task, ScrapeHistoryDataService
 
 ## Knowledge Gaps
-- **603 isolated node(s):** `$schema`, `version`, `newProjectRoot`, `projectType`, `style` (+598 more)
+- **605 isolated node(s):** `$schema`, `version`, `newProjectRoot`, `projectType`, `style` (+600 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **68 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **70 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Work-memory lessons
 
@@ -1112,17 +1129,17 @@ Nodes (9): ScrapeHistoryJob, ScrapeHistoryRerunSource, DateTime, ScrapeHistorySe
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `SteamApp.Interfaces.Services` connect `WebScraperComponent` to `ProductTagsEndpoints`, `EmailService`, `WatchListsView`, `ManualCheckProductErrorDto`, `karma-jasmine-html-reporter`, `WatchItemDto`, `ProductForm`, `SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options`, `EncryptionHashingService`, `SteamApp.Application.JsonObjects`, `ProductEndpoints`?**
-  _High betweenness centrality (0.059) - this node is a cross-community bridge._
-- **Why does `SteamApp.Infrastructure.Context` connect `app.component.ts` to `20260506092153_SeedScrapingModes.Designer.cs`, `20260821050347_AddManualCheckCriterionGroups.Designer.cs`, `WebScraperComponent`, `SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options`, `Migration`, `20260120212257_game-url-name.Designer.cs`, `20260201104921_ProductTags.Designer.cs`, `SteamApp.Application.JsonObjects`, `SteamApp.Migrations`, `ApplicationDbContextModelSnapshot.cs`, `Product`, `SecurityPolicies.cs`, `ScrapeRequestedConsumer`, `karma-jasmine-html-reporter`, `OneShotHttpServer`, `AddFeedbackRequests`, `SteamApp.Application.DTOs.ScrapingMode`, `.attachTableControls`, `ControllerSecurityMetadataTests`, `20260515171509_AddUserOwnership.Designer.cs`, `20260627144144_AddFeedbackRequestHistory.Designer.cs`, `ScrapingMode`?**
-  _High betweenness centrality (0.059) - this node is a cross-community bridge._
-- **Why does `SteamApp.WebAPI.Security` connect `app.component.ts` to `jasmine-core`, `karma-jasmine-html-reporter`, `CheckboxesFilterComponent`, `WebScraperComponent`, `SecurityPolicies.cs`, `SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options`, `ProductEndpoints`?**
-  _High betweenness centrality (0.028) - this node is a cross-community bridge._
-- **Are the 96 inferred relationships involving `handleError()` (e.g. with `.getUsers()` and `.updateRole()`) actually correct?**
-  _`handleError()` has 96 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `SteamApp.Infrastructure.Context` connect `ProductEndpoints` to `20260506092153_SeedScrapingModes.Designer.cs`, `20260821050347_AddManualCheckCriterionGroups.Designer.cs`, `SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options`, `Migration`, `20260120212257_game-url-name.Designer.cs`, `20260201104921_ProductTags.Designer.cs`, `DropLegacyGameUrlScrapingFlags`, `SteamApp.Application.JsonObjects`, `20260210190556_CustomWatchlistRework.Designer.cs`, `20260515081736_AddUserProfileFields.Designer.cs`, `app.component.ts`, `.MaterializeResultsIfNeeded`, `ApplicationDbContextModelSnapshot.cs`, `SecurityPolicies.cs`, `.SwaggerIsExposedInDevelopmentAndHiddenBehindProductionApiSecurity`, `20260515171509_AddUserOwnership.Designer.cs`, `20260516144656_AddAutomatedScrapeHistory.Designer.cs`, `OneShotHttpServer`, `20260627135352_AddFeedbackRequests.Designer.cs`, `AddFeedbackRequests`, `SteamApp.Application.DTOs.ScrapingMode`, `.attachTableControls`, `20260814162547_AddManualChecks.Designer.cs`, `20260816145011_AddManualCheckListingLimit.Designer.cs`, `20260819092817_ExtendAutomatedManualChecks.Designer.cs`, `ControllerSecurityMetadataTests`, `20260823090118_TagTypes.Designer.cs`, `20260627144144_AddFeedbackRequestHistory.Designer.cs`, `ScrapingMode`?**
+  _High betweenness centrality (0.070) - this node is a cross-community bridge._
+- **Why does `SteamApp.Interfaces.Services` connect `WebScraperComponent` to `EmailService`, `WatchListsView`, `ManualCheckProductErrorDto`, `karma-jasmine-html-reporter`, `xlsx`, `.MaterializeResultsIfNeeded`, `ProductForm`, `SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options`, `EncryptionHashingService`, `SteamApp.Application.JsonObjects`, `ProductEndpoints`?**
+  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+- **Why does `ApplicationDbContext` connect `IdentitySchemaInitializer` to `Product`, `rxjs`, `error-dialog.service.ts`, `.CreateAsync`, `home-page.ts`, `.MaterializeResultsIfNeeded`, `.GetHttpResposeAsync`, `SteamService`, `RabbitMqOptions`, `RabbitMqConnection`, `.CreateTokenResponse`, `ProductTags`, `GamesView`, `ProductEndpoints`?**
+  _High betweenness centrality (0.031) - this node is a cross-community bridge._
+- **Are the 98 inferred relationships involving `handleError()` (e.g. with `.getUsers()` and `.updateRole()`) actually correct?**
+  _`handleError()` has 98 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `$schema`, `version`, `newProjectRoot` to the rest of the system?**
-  _603 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _605 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `feedback-request.model.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.0636030636030636 - nodes in this community are weakly interconnected._
 - **Should `web-scraper.component.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.06327683615819209 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07372549019607844 - nodes in this community are weakly interconnected._

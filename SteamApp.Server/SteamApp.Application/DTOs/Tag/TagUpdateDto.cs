@@ -9,5 +9,7 @@ namespace SteamApp.Application.DTOs.Tag
         public string Name { get; set; } = null!;
 
         public bool? IsActive { get; set; }
+
+        public long? ItemGroupId { get; set; }
     }
 }

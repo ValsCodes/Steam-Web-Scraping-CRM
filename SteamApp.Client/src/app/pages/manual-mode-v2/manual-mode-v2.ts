@@ -67,6 +67,7 @@ import {
   ManualCheckTraceView,
 } from './manual-check-trace-dialog.component';
 import { ManualCheckSteamResultDialogComponent } from './manual-check-steam-result-dialog.component';
+import { groupByItemGroup, ItemGroupSection } from '../../common/item-grouping';
 
 @Component({
   selector: 'steam-manual-mode-v2',
@@ -168,6 +169,10 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     private readonly cdr: ChangeDetectorRef,
     private readonly externalLinkDisclosure: ExternalLinkDisclosureService,
   ) {}
+
+  get gameTagGroups(): readonly ItemGroupSection<Tag>[] {
+    return groupByItemGroup(this.gameTagsFilter);
+  }
 
   ngOnInit(): void {
     this.loadGames();
@@ -696,19 +701,12 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   removeFilter(value: string): void {
     this.tagsFilter = this.tagsFilter.filter((f) => f !== value);
 
-    const restored = this.gameTagsAll.find(
-      (t) =>
-        t.gameId === this.gameIdControl.value &&
-        t.name !== null &&
-        t.name.toLowerCase() === value,
+    const filters = new Set(this.tagsFilter);
+    this.gameTagsFilter = this.gameTagsAll.filter(
+      (tag) =>
+        tag.gameId === this.gameIdControl.value &&
+        (tag.name === null || !filters.has(tag.name.toLowerCase())),
     );
-
-    if (restored && !this.gameTagsFilter.some((t) => t.id === restored.id)) {
-      this.gameTagsFilter.push(restored);
-      this.gameTagsFilter.sort((a, b) =>
-        (a.name ?? '').localeCompare(b.name ?? ''),
-      );
-    }
 
     if (this.gameTagsFilter.length) {
       this.tagSelectControl.enable({ emitEvent: false });

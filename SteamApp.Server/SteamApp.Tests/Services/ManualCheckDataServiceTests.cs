@@ -68,6 +68,51 @@ public sealed class ManualCheckDataServiceTests
     }
 
     [Test]
+    public async Task PresetItemGroup_CreateListUpdateAndClear_ValidatesGameAndOrdersUngroupedLast()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var service = new ManualCheckDataService(database.Factory);
+        database.Context.ItemGroups.Add(new ItemGroup
+        {
+            Id = 3,
+            GameId = 1,
+            Name = "Other owner",
+            UserId = "other-user"
+        });
+        database.Context.SaveChanges();
+        var groupedInput = PresetInput("Zeta grouped");
+        groupedInput.ItemGroupId = 1;
+        var ungroupedInput = PresetInput("Alpha ungrouped");
+
+        var grouped = await service.CreatePresetAsync(groupedInput, CancellationToken.None);
+        var ungrouped = await service.CreatePresetAsync(ungroupedInput, CancellationToken.None);
+        var invalidInput = PresetInput("Wrong game group");
+        invalidInput.ItemGroupId = 2;
+        var invalid = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.CreatePresetAsync(invalidInput, CancellationToken.None));
+        var wrongOwnerInput = PresetInput("Wrong owner group");
+        wrongOwnerInput.ItemGroupId = 3;
+        var wrongOwner = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.CreatePresetAsync(wrongOwnerInput, CancellationToken.None));
+        var visible = await service.GetPresetsAsync(gameId: 1, CancellationToken.None);
+        var clearInput = PresetInput(grouped.Name);
+        var cleared = await service.UpdatePresetAsync(grouped.Id, clearInput, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(grouped.ItemGroupId, Is.EqualTo(1));
+            Assert.That(grouped.ItemGroupName, Is.EqualTo("Priority"));
+            Assert.That(ungrouped.ItemGroupId, Is.Null);
+            Assert.That(visible.Select(x => x.Id), Is.EqualTo(new[] { grouped.Id, ungrouped.Id }));
+            Assert.That(visible[^1].ItemGroupId, Is.Null);
+            Assert.That(invalid!.StatusCode, Is.EqualTo(400));
+            Assert.That(wrongOwner!.StatusCode, Is.EqualTo(400));
+            Assert.That(cleared.ItemGroupId, Is.Null);
+            Assert.That(database.Context.ManualCheckPresets.Single(x => x.Id == grouped.Id).ItemGroupId, Is.Null);
+        });
+    }
+
+    [Test]
     public async Task GroupedPreset_CreateAndUpdate_PreservesMarkersAndOrder()
     {
         using var database = TestDb.CreateSeededDatabase();

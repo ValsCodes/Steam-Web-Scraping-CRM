@@ -9,6 +9,7 @@ export * from './watch-list/watch-list.service';
 export * from './wish-list/wish-list.service';
 export * from './game-url-product/game-url-product.service';
 export * from './tag/tag.service';
+export * from './item-group/item-group.service';
 export * from './product-tag/product-tag.service';
 export * from './game-url-pixel/game-url-pixel.service';
 export * from './scraping-mode/scraping-mode.service';

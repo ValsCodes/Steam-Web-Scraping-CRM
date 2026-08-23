@@ -41,6 +41,7 @@ public sealed class ManualCheckDataService(
         IQueryable<ManualCheckPreset> query = db.ManualCheckPresets
             .AsNoTracking()
             .Include(x => x.Game)
+            .Include(x => x.ItemGroup)
             .Include(x => x.Criteria)
             .ThenInclude(x => x.ConditionOperator);
         if (gameId.HasValue)
@@ -50,10 +51,13 @@ public sealed class ManualCheckDataService(
 
         var presets = await query
             .OrderBy(x => x.Game.Name)
+            .ThenBy(x => x.ItemGroupId == null)
+            .ThenBy(x => x.ItemGroup!.Name)
             .ThenBy(x => x.Name)
+            .ThenBy(x => x.Id)
             .ToListAsync(cancellationToken);
 
-        return presets.Select(x => ToPresetDto(x, x.Game.Name)).ToList();
+        return presets.Select(x => ToPresetDto(x, x.Game.Name, x.ItemGroup?.Name)).ToList();
     }
 
     public async Task<ManualCheckPresetDto> CreatePresetAsync(
@@ -74,6 +78,12 @@ public sealed class ManualCheckDataService(
             throw RequestError(StatusCodes.Status400BadRequest, "Game was not found.");
         }
 
+        var itemGroupName = await GetItemGroupNameAsync(
+            db,
+            normalized.GameId,
+            normalized.ItemGroupId,
+            cancellationToken);
+
         var duplicate = await db.ManualCheckPresets.AnyAsync(
             x => x.GameId == normalized.GameId && x.Name == normalized.Name,
             cancellationToken);
@@ -86,6 +96,7 @@ public sealed class ManualCheckDataService(
         var entity = new ManualCheckPreset
         {
             GameId = normalized.GameId,
+            ItemGroupId = normalized.ItemGroupId,
             Name = normalized.Name,
             ListingLimit = normalized.ListingLimit,
             CooldownMinutes = normalized.CooldownMinutes,
@@ -98,7 +109,7 @@ public sealed class ManualCheckDataService(
         db.ManualCheckPresets.Add(entity);
         await db.SaveChangesAsync(cancellationToken);
 
-        return ToPresetDto(entity, gameName);
+        return ToPresetDto(entity, gameName, itemGroupName);
     }
 
     public async Task<ManualCheckPresetDto> UpdatePresetAsync(
@@ -124,6 +135,12 @@ public sealed class ManualCheckDataService(
             throw RequestError(StatusCodes.Status400BadRequest, "Game was not found.");
         }
 
+        var itemGroupName = await GetItemGroupNameAsync(
+            db,
+            normalized.GameId,
+            normalized.ItemGroupId,
+            cancellationToken);
+
         var duplicate = await db.ManualCheckPresets.AnyAsync(
             x => x.Id != id && x.GameId == normalized.GameId && x.Name == normalized.Name,
             cancellationToken);
@@ -133,6 +150,7 @@ public sealed class ManualCheckDataService(
         }
 
         entity.GameId = normalized.GameId;
+        entity.ItemGroupId = normalized.ItemGroupId;
         entity.Name = normalized.Name;
         entity.ListingLimit = normalized.ListingLimit;
         entity.CooldownMinutes = normalized.CooldownMinutes;
@@ -166,7 +184,7 @@ public sealed class ManualCheckDataService(
         entity.UpdatedAtUtc = DateTime.UtcNow;
 
         await db.SaveChangesAsync(cancellationToken);
-        return ToPresetDto(entity, gameName);
+        return ToPresetDto(entity, gameName, itemGroupName);
     }
 
     public async Task DeletePresetAsync(long id, CancellationToken cancellationToken)
@@ -867,6 +885,7 @@ public sealed class ManualCheckDataService(
         return new ManualCheckPresetWriteDto
         {
             GameId = input.GameId,
+            ItemGroupId = input.ItemGroupId,
             Name = name,
             ListingLimit = NormalizeListingLimit(input.ListingLimit),
             CooldownMinutes = cooldown.Minutes,
@@ -966,15 +985,42 @@ public sealed class ManualCheckDataService(
         return normalized;
     }
 
+    private static async Task<string?> GetItemGroupNameAsync(
+        ApplicationDbContext db,
+        long gameId,
+        long? itemGroupId,
+        CancellationToken cancellationToken)
+    {
+        if (!itemGroupId.HasValue)
+        {
+            return null;
+        }
+
+        var itemGroupName = await db.ItemGroups
+            .AsNoTracking()
+            .Where(x =>
+                x.Id == itemGroupId.Value &&
+                x.GameId == gameId &&
+                x.UserId == x.Game.UserId)
+            .Select(x => x.Name)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return itemGroupName
+            ?? throw RequestError(StatusCodes.Status400BadRequest, "Item group was not found for the selected game.");
+    }
+
     private static ManualCheckPresetDto ToPresetDto(
         ManualCheckPreset entity,
-        string? gameName)
+        string? gameName,
+        string? itemGroupName)
     {
         return new ManualCheckPresetDto
         {
             Id = entity.Id,
             GameId = entity.GameId,
             GameName = gameName,
+            ItemGroupId = entity.ItemGroupId,
+            ItemGroupName = itemGroupName,
             Name = entity.Name,
             ListingLimit = entity.ListingLimit,
             CooldownMinutes = entity.CooldownMinutes,

@@ -559,6 +559,43 @@ namespace SteamApp.WebAPI.Migrations
                     b.ToTable("game_url_products");
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.ItemGroup", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("GameId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("game_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "GameId", "Name")
+                        .IsUnique()
+                        .HasFilter("[user_id] IS NOT NULL");
+
+                    b.ToTable("item_group");
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckConditionOperator", b =>
                 {
                     b.Property<long>("Id")
@@ -699,6 +736,10 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("game_id");
 
+                    b.Property<long?>("ItemGroupId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("item_group_id");
+
                     b.Property<int>("ListingLimit")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -716,6 +757,8 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnName("updated_at_utc");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ItemGroupId");
 
                     b.HasIndex("GameId", "Name")
                         .IsUnique();
@@ -978,6 +1021,10 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("bit")
                         .HasColumnName("is_active");
 
+                    b.Property<long?>("ItemGroupId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("item_group_id");
+
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("name");
@@ -990,6 +1037,8 @@ namespace SteamApp.WebAPI.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("GameId");
+
+                    b.HasIndex("ItemGroupId");
 
                     b.HasIndex("UserId");
 
@@ -1312,6 +1361,22 @@ namespace SteamApp.WebAPI.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.ItemGroup", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.Game", "Game")
+                        .WithMany("ItemGroups")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Game");
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckCriterion", b =>
                 {
                     b.HasOne("SteamApp.Domain.Entities.ManualCheckConditionOperator", "ConditionOperator")
@@ -1338,7 +1403,14 @@ namespace SteamApp.WebAPI.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("SteamApp.Domain.Entities.ItemGroup", "ItemGroup")
+                        .WithMany("ManualCheckPresets")
+                        .HasForeignKey("ItemGroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Game");
+
+                    b.Navigation("ItemGroup");
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckRun", b =>
@@ -1426,12 +1498,19 @@ namespace SteamApp.WebAPI.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("SteamApp.Domain.Entities.ItemGroup", "ItemGroup")
+                        .WithMany("Tags")
+                        .HasForeignKey("ItemGroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Game");
+
+                    b.Navigation("ItemGroup");
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.WatchList", b =>
@@ -1476,6 +1555,8 @@ namespace SteamApp.WebAPI.Migrations
 
                     b.Navigation("GameUrls");
 
+                    b.Navigation("ItemGroups");
+
                     b.Navigation("Pixels");
 
                     b.Navigation("Products");
@@ -1492,6 +1573,13 @@ namespace SteamApp.WebAPI.Migrations
                     b.Navigation("GameUrlsProducts");
 
                     b.Navigation("WatchLists");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.ItemGroup", b =>
+                {
+                    b.Navigation("ManualCheckPresets");
+
+                    b.Navigation("Tags");
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckConditionOperator", b =>

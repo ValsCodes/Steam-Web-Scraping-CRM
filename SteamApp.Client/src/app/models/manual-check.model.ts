@@ -24,6 +24,7 @@ export interface ManualCheckConditionOperator {
 
 export interface ManualCheckPresetWrite {
   gameId: number;
+  itemGroupId: number | null;
   name: string;
   listingLimit: number;
   cooldownMinutes: number | null;
@@ -34,6 +35,7 @@ export interface ManualCheckPresetWrite {
 export interface ManualCheckPreset extends ManualCheckPresetWrite {
   id: number;
   gameName: string | null;
+  itemGroupName: string | null;
   createdAtUtc: string;
   updatedAtUtc: string;
 }

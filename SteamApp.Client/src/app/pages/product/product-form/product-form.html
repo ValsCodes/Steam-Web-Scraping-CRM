@@ -57,17 +57,24 @@
           Select all tags
         </label>
 
-        <div class="relation-grid">
-          @for (tag of filteredTags; track tag.id) {
-            <label>
-              <input
-                [attr.id]="'product-tag-' + tag.id"
-                [attr.name]="'productTag' + tag.id"
-                type="checkbox"
-                [checked]="isTagSelected(tag.id)"
-                (change)="toggleTag(tag.id, $any($event.target).checked)" />
-              {{ tag.name || 'Unnamed tag' }}
-            </label>
+        <div class="item-group-sections">
+          @for (group of filteredTagGroups; track group.itemGroupId) {
+            <fieldset class="item-group-section">
+              <legend>{{ group.name }}</legend>
+              <div class="relation-grid">
+                @for (tag of group.items; track tag.id) {
+                  <label>
+                    <input
+                      [attr.id]="'product-tag-' + tag.id"
+                      [attr.name]="'productTag' + tag.id"
+                      type="checkbox"
+                      [checked]="isTagSelected(tag.id)"
+                      (change)="toggleTag(tag.id, $any($event.target).checked)" />
+                    {{ tag.name || 'Unnamed tag' }}
+                  </label>
+                }
+              </div>
+            </fieldset>
           }
         </div>
       }

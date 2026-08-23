@@ -7,6 +7,7 @@ export * from './watch-list.model';
 export * from './wish-list.model';
 export * from './game-url-product.model';
 export * from './tag.model';
+export * from './item-group.model';
 export * from './product-tag.model';
 export * from './game-url-pixel.model';
 export * from './scraping-mode.model';

@@ -22,7 +22,8 @@ public static class TagsEndpoints
         group.MapGet("/", async (
             HttpContext httpContext,
             ApplicationDbContext db,
-            IMapper mapper) =>
+            IMapper mapper,
+            CancellationToken ct) =>
         {
             var userId = httpContext.User.GetUserId();
             if (userId is null) { return Results.Unauthorized(); }
@@ -31,7 +32,12 @@ public static class TagsEndpoints
                 .AsNoTracking()
                 .Where(x => x.UserId == userId)
                 .Include(x => x.Game)
-                .ToListAsync();
+                .Include(x => x.ItemGroup)
+                .OrderBy(x => x.ItemGroupId == null)
+                .ThenBy(x => x.ItemGroup!.Name)
+                .ThenBy(x => x.Name)
+                .ThenBy(x => x.Id)
+                .ToListAsync(ct);
 
             var dto = mapper.Map<IEnumerable<TagDto>>(tags);
             return Results.Ok(dto);
@@ -73,6 +79,15 @@ public static class TagsEndpoints
                 "isActive" => request.IsDescending
                     ? query.OrderByDescending(x => x.IsActive).ThenByDescending(x => x.Id)
                     : query.OrderBy(x => x.IsActive).ThenBy(x => x.Id),
+                "itemGroupName" => request.IsDescending
+                    ? query.OrderBy(x => x.ItemGroupId == null)
+                        .ThenByDescending(x => x.ItemGroup!.Name)
+                        .ThenByDescending(x => x.Name)
+                        .ThenByDescending(x => x.Id)
+                    : query.OrderBy(x => x.ItemGroupId == null)
+                        .ThenBy(x => x.ItemGroup!.Name)
+                        .ThenBy(x => x.Name)
+                        .ThenBy(x => x.Id),
                 _ => query.OrderBy(x => x.Id),
             };
 
@@ -88,6 +103,8 @@ public static class TagsEndpoints
                     GameName = x.Game.Name ?? string.Empty,
                     Name = x.Name,
                     IsActive = x.IsActive,
+                    ItemGroupId = x.ItemGroupId,
+                    ItemGroupName = x.ItemGroup == null ? null : x.ItemGroup.Name,
                 })
                 .ToListAsync(ct);
 
@@ -99,7 +116,8 @@ public static class TagsEndpoints
             long id,
             HttpContext httpContext,
             ApplicationDbContext db,
-            IMapper mapper) =>
+            IMapper mapper,
+            CancellationToken ct) =>
         {
             var userId = httpContext.User.GetUserId();
             if (userId is null) { return Results.Unauthorized(); }
@@ -107,7 +125,8 @@ public static class TagsEndpoints
             var tag = await db.Tags
                 .AsNoTracking()
                 .Include(x => x.Game)
-                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+                .Include(x => x.ItemGroup)
+                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
 
             if (tag is null)
             {
@@ -122,7 +141,8 @@ public static class TagsEndpoints
             long gameId,
             HttpContext httpContext,
             ApplicationDbContext db,
-            IMapper mapper) =>
+            IMapper mapper,
+            CancellationToken ct) =>
         {
             var userId = httpContext.User.GetUserId();
             if (userId is null) { return Results.Unauthorized(); }
@@ -131,7 +151,12 @@ public static class TagsEndpoints
                 .AsNoTracking()
                 .Where(x => x.GameId == gameId && x.UserId == userId)
                 .Include(x => x.Game)
-                .ToListAsync();
+                .Include(x => x.ItemGroup)
+                .OrderBy(x => x.ItemGroupId == null)
+                .ThenBy(x => x.ItemGroup!.Name)
+                .ThenBy(x => x.Name)
+                .ThenBy(x => x.Id)
+                .ToListAsync(ct);
 
             return Results.Ok(mapper.Map<IEnumerable<TagDto>>(tags));
         });
@@ -141,26 +166,54 @@ public static class TagsEndpoints
             TagCreateDto input,
             HttpContext httpContext,
             ApplicationDbContext db,
-            IMapper mapper) =>
+            IMapper mapper,
+            CancellationToken ct) =>
         {
             var userId = httpContext.User.GetUserId();
             if (userId is null) { return Results.Unauthorized(); }
 
-            var gameExists = await db.Games
-                .AnyAsync(x => x.Id == input.GameId && x.UserId == userId);
+            var game = await db.Games
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == input.GameId && x.UserId == userId, ct);
 
-            if (!gameExists)
+            if (game is null)
             {
-                return Results.BadRequest("Invalid GameId");
+                return Results.BadRequest(new { message = "Invalid GameId" });
+            }
+
+            ItemGroup? itemGroup = null;
+            if (input.ItemGroupId.HasValue)
+            {
+                itemGroup = await db.ItemGroups
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(
+                        x => x.Id == input.ItemGroupId.Value &&
+                             x.GameId == input.GameId &&
+                             x.UserId == userId,
+                        ct);
+
+                if (itemGroup is null)
+                {
+                    return Results.BadRequest(new { message = "Invalid ItemGroupId" });
+                }
             }
 
             var entity = mapper.Map<Tag>(input);
             entity.UserId = userId;
 
             db.Tags.Add(entity);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(ct);
 
-            var dto = mapper.Map<TagDto>(entity);
+            var dto = new TagDto
+            {
+                Id = entity.Id,
+                GameId = entity.GameId,
+                GameName = game.Name ?? string.Empty,
+                Name = entity.Name,
+                IsActive = entity.IsActive,
+                ItemGroupId = entity.ItemGroupId,
+                ItemGroupName = itemGroup?.Name,
+            };
 
             return Results.Created($"/api/tags/{entity.Id}", dto);
         });
@@ -171,20 +224,35 @@ public static class TagsEndpoints
             TagUpdateDto input,
             HttpContext httpContext,
             ApplicationDbContext db,
-            IMapper mapper) =>
+            IMapper mapper,
+            CancellationToken ct) =>
         {
             var userId = httpContext.User.GetUserId();
             if (userId is null) { return Results.Unauthorized(); }
 
-            var entity = await db.Tags.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+            var entity = await db.Tags.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
 
             if (entity is null)
             {
                 return Results.NotFound();
             }
 
+            if (input.ItemGroupId.HasValue)
+            {
+                var itemGroupExists = await db.ItemGroups.AnyAsync(
+                    x => x.Id == input.ItemGroupId.Value &&
+                         x.GameId == entity.GameId &&
+                         x.UserId == userId,
+                    ct);
+
+                if (!itemGroupExists)
+                {
+                    return Results.BadRequest(new { message = "Invalid ItemGroupId" });
+                }
+            }
+
             mapper.Map(input, entity);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(ct);
 
             return Results.NoContent();
         });

@@ -19,6 +19,13 @@ public sealed class ManualCheckPreset
 
     public Game Game { get; set; } = null!;
 
+    [Column("item_group_id")]
+    [ForeignKey(nameof(ItemGroup))]
+    public long? ItemGroupId { get; set; }
+
+    [InverseProperty(nameof(ItemGroup.ManualCheckPresets))]
+    public ItemGroup? ItemGroup { get; set; }
+
     [Required]
     [MaxLength(NameMaxLength)]
     [Column("name")]

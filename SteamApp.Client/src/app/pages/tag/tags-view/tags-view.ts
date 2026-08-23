@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -10,13 +10,15 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 
-import { GameService, TagService } from '../../../services';
-import { Game, Tag, UpdateTagStatus } from '../../../models';
-import { BehaviorSubject, combineLatest, finalize, startWith, Subject, takeUntil } from 'rxjs';
+import { GameService, ItemGroupService, TagService } from '../../../services';
+import { Game, ItemGroup, Tag, UpdateTagStatus } from '../../../models';
+import { BehaviorSubject, combineLatest, finalize, of, startWith, Subject, switchMap, takeUntil } from 'rxjs';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 
 import * as XLSX from 'xlsx';
+
+type ItemGroupFilterValue = number | 'ungrouped' | null;
 
 @Component({
   selector: 'steam-tags-grid',
@@ -35,13 +37,15 @@ import * as XLSX from 'xlsx';
   styleUrl: './tags-view.scss',
 })
 export class TagsView implements OnInit, OnDestroy {
-  displayedColumns: string[] = ['gameName', 'name', 'isActive', 'actions'];
+  displayedColumns: string[] = ['gameName', 'itemGroupName', 'name', 'isActive', 'actions'];
 
   readonly games$ = new BehaviorSubject<readonly Game[]>([]);
   private readonly destroy$ = new Subject<void>();
 
   readonly gameIdControl = new FormControl<number | null>(null);
+  readonly itemGroupIdControl = new FormControl<ItemGroupFilterValue>({ value: null, disabled: true });
   readonly searchByNameFilterControl = new FormControl<string>('', { nonNullable: true });
+  readonly itemGroups = signal<readonly ItemGroup[]>([]);
 
   dataSource = new MatTableDataSource<Tag>([]);
   isGridLoading = false;
@@ -56,6 +60,7 @@ export class TagsView implements OnInit, OnDestroy {
 
   constructor(
     private readonly tagService: TagService,
+    private readonly itemGroupService: ItemGroupService,
     private readonly router: Router,
     private readonly gameService: GameService,
     private readonly cdr: ChangeDetectorRef,
@@ -66,13 +71,32 @@ export class TagsView implements OnInit, OnDestroy {
     this.loadGames();
     this.fetchTags();
 
+    this.gameIdControl.valueChanges
+      .pipe(
+        startWith(this.gameIdControl.value),
+        switchMap(gameId => {
+          this.itemGroupIdControl.setValue(null);
+
+          if (gameId === null) {
+            this.itemGroupIdControl.disable({ emitEvent: false });
+            return of([] as ItemGroup[]);
+          }
+
+          this.itemGroupIdControl.enable({ emitEvent: false });
+          return this.itemGroupService.getByGame(gameId);
+        }),
+        takeUntil(this.destroy$),
+      )
+      .subscribe(itemGroups => this.itemGroups.set(itemGroups));
+
     combineLatest([
       this.gameIdControl.valueChanges.pipe(startWith(this.gameIdControl.value)),
+      this.itemGroupIdControl.valueChanges.pipe(startWith(this.itemGroupIdControl.value)),
       this.searchByNameFilterControl.valueChanges.pipe(startWith(this.searchByNameFilterControl.value)),
     ])
       .pipe(takeUntil(this.destroy$))
-      .subscribe(([gameId, name]) => {
-        this.applyFilters(gameId, name);
+      .subscribe(([gameId, itemGroupId, name]) => {
+        this.applyFilters(gameId, itemGroupId, name);
       });
   }
 
@@ -81,11 +105,13 @@ export class TagsView implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private applyFilters(gameId: number | null, name: string): void {
+  private applyFilters(gameId: number | null, itemGroupId: ItemGroupFilterValue, name: string): void {
     const nameFilter = (name ?? '').trim().toLowerCase();
 
     const filtered = this.tags.filter(t => {
       if (gameId !== null && t.gameId !== gameId) { return false; }
+      if (itemGroupId === 'ungrouped' && t.itemGroupId !== null) { return false; }
+      if (typeof itemGroupId === 'number' && t.itemGroupId !== itemGroupId) { return false; }
       if (nameFilter && !(t.name ?? '').toLowerCase().includes(nameFilter)) { return false; }
       return true;
     });
@@ -114,7 +140,11 @@ export class TagsView implements OnInit, OnDestroy {
         this.paginator.pageSize = this.pageSize;
         this.dataSource.sort = this.sort;
 
-        this.applyFilters(this.gameIdControl.value, this.searchByNameFilterControl.value);
+        this.applyFilters(
+          this.gameIdControl.value,
+          this.itemGroupIdControl.value,
+          this.searchByNameFilterControl.value,
+        );
       });
   }
 
@@ -184,7 +214,11 @@ export class TagsView implements OnInit, OnDestroy {
           x.id === tag.id ? { ...x, isActive: nextIsActive } : x,
         );
 
-        this.applyFilters(this.gameIdControl.value, this.searchByNameFilterControl.value);
+        this.applyFilters(
+          this.gameIdControl.value,
+          this.itemGroupIdControl.value,
+          this.searchByNameFilterControl.value,
+        );
       });
   }
 
@@ -238,6 +272,7 @@ export class TagsView implements OnInit, OnDestroy {
 
   clearFiltersButtonClicked(): void {
     this.gameIdControl.setValue(null);
+    this.itemGroupIdControl.setValue(null);
     this.searchByNameFilterControl.setValue('');
 
   }
@@ -246,6 +281,7 @@ export class TagsView implements OnInit, OnDestroy {
 {
   const dataToExport = this.dataSource.data.map(x => ({
     Game: x.gameName,
+    Group: x.itemGroupName ?? 'Ungrouped',
     Name: x.name ?? '',
     IsActive: x.isActive,
   }));

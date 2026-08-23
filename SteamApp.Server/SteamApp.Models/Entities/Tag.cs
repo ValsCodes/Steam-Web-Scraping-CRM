@@ -16,6 +16,13 @@ public sealed class Tag
     [InverseProperty(nameof(Game.Tags))]
     public Game Game { get; set; } = null!;
 
+    [Column("item_group_id")]
+    [ForeignKey(nameof(ItemGroup))]
+    public long? ItemGroupId { get; set; }
+
+    [InverseProperty(nameof(ItemGroup.Tags))]
+    public ItemGroup? ItemGroup { get; set; }
+
     [Column("name")]
     public string? Name { get; set; }
 

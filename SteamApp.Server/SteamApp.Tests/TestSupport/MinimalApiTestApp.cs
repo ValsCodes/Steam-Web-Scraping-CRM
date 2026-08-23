@@ -114,6 +114,7 @@ public sealed class MinimalApiTestApp : IAsyncDisposable
         app.MapFeedbackRequestEndpoints();
         app.MapGameUrlProductsEndpoints();
         app.MapTagsEndpoints();
+        app.MapItemGroupsEndpoints();
         app.MapProductTagsEndpoints();
         app.MapGameUrlPixelsEndpoints();
         app.MapAdminUserEndpoints();
