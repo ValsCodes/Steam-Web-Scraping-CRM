@@ -3518,5 +3518,15 @@
     "mtime": 1789215965.0998676,
     "ast_hash": "1bbf7cd5f7ffc22055b8fb755943bd01",
     "semantic_hash": ""
+  },
+  "docs/add-tf2-taunt-products.sql": {
+    "mtime": 1789220578.1871755,
+    "ast_hash": "29558d5e7fd1d335000673c4c769c68d",
+    "semantic_hash": ""
+  },
+  "docs/add-tf2-hat-products.sql": {
+    "mtime": 1789223165.512364,
+    "ast_hash": "3b18c4df31cdf1150fe31bcb27677ec7",
+    "semantic_hash": ""
   }
 }
