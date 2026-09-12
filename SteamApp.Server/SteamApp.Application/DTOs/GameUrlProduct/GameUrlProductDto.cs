@@ -15,5 +15,7 @@
         public string? ScrapingModeName { get; set; }
 
         public string FullUrl { get; set; } = null!;
+
+        public int CurrentStock { get; set; }
     }
 }

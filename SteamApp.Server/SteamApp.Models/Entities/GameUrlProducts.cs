@@ -18,5 +18,8 @@ namespace SteamApp.Domain.Entities
         public long ProductId { get; set; }
         [InverseProperty(nameof(Product.GameUrlsProducts))]
         public Product Product { get; set; } = null!;
+
+        [Column("current_stock")]
+        public int CurrentStock { get; set; }
     }
 }

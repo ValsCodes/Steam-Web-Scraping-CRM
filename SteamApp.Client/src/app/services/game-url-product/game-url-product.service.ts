@@ -6,7 +6,12 @@ import { catchError } from 'rxjs/operators';
 
 import { handleError } from '../error-handler';
 import * as g from '../general-data';
-import { CreateGameUrlProduct, GameUrlProduct } from '../../models';
+import {
+  CreateGameUrlProduct,
+  GameUrlProduct,
+  GameUrlProductCurrentStock,
+  GameUrlProductStockHistoryPage,
+} from '../../models';
 
 @Injectable({
   providedIn: 'root'
@@ -49,6 +54,57 @@ export class GameUrlProductService {
   delete(productId: number, gameUrlId: number): Observable<void> {
     return this.http
       .delete<void>(`${this.baseUrl}/${productId}/${gameUrlId}`)
+      .pipe(catchError(handleError));
+  }
+
+  assignCurrentStock(
+    productId: number,
+    gameUrlId: number,
+    currentStock: number,
+  ): Observable<GameUrlProductCurrentStock> {
+    return this.http
+      .put<GameUrlProductCurrentStock>(
+        `${this.baseUrl}/${productId}/${gameUrlId}/current-stock`,
+        { currentStock },
+      )
+      .pipe(catchError(handleError));
+  }
+
+  incrementCurrentStock(
+    productId: number,
+    gameUrlId: number,
+  ): Observable<GameUrlProductCurrentStock> {
+    return this.http
+      .patch<GameUrlProductCurrentStock>(
+        `${this.baseUrl}/${productId}/${gameUrlId}/current-stock/increment`,
+        {},
+      )
+      .pipe(catchError(handleError));
+  }
+
+  decrementCurrentStock(
+    productId: number,
+    gameUrlId: number,
+  ): Observable<GameUrlProductCurrentStock> {
+    return this.http
+      .patch<GameUrlProductCurrentStock>(
+        `${this.baseUrl}/${productId}/${gameUrlId}/current-stock/decrement`,
+        {},
+      )
+      .pipe(catchError(handleError));
+  }
+
+  getCurrentStockHistory(
+    productId: number,
+    gameUrlId: number,
+    page = 1,
+    pageSize = 25,
+  ): Observable<GameUrlProductStockHistoryPage> {
+    return this.http
+      .get<GameUrlProductStockHistoryPage>(
+        `${this.baseUrl}/${productId}/${gameUrlId}/current-stock/history`,
+        { params: { page, pageSize } },
+      )
       .pipe(catchError(handleError));
   }
 }

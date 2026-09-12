@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using SteamApp.Infrastructure.Context;
 using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI;
+using SteamApp.WebAPI.Jobs;
 using SteamApp.WebAPI.MessageBrokers.Abstractions;
 using SteamApp.WebAPI.Security;
 
@@ -97,6 +98,14 @@ public sealed class SteamAppFactory : WebApplicationFactory<Program>
         builder.ConfigureLogging(logging => logging.ClearProviders());
         builder.ConfigureServices(services =>
         {
+            var manualCheckWorker = services.SingleOrDefault(descriptor =>
+                descriptor.ServiceType == typeof(IHostedService) &&
+                descriptor.ImplementationType == typeof(ManualCheckWorker));
+            if (manualCheckWorker is not null)
+            {
+                services.Remove(manualCheckWorker);
+            }
+
             services.RemoveAll<IDatabaseProvider>();
             services.RemoveAll<IDbContextOptionsConfiguration<ApplicationDbContext>>();
             services.RemoveAll<DbContextOptions>();

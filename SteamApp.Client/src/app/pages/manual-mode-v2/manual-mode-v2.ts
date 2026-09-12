@@ -11,6 +11,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import {
   BehaviorSubject,
   finalize,
+  Observable,
   startWith,
   Subject,
   switchMap,
@@ -24,6 +25,7 @@ import {
   Game,
   GameUrl,
   GameUrlProduct,
+  GameUrlProductCurrentStock,
   ManualCheckProductError,
   ManualCheckProductResult,
   ManualCheckProductTrace,
@@ -68,6 +70,13 @@ import {
 } from './manual-check-trace-dialog.component';
 import { ManualCheckSteamResultDialogComponent } from './manual-check-steam-result-dialog.component';
 import { groupByItemGroup, ItemGroupSection } from '../../common/item-grouping';
+import {
+  AdvancedStockDialogComponent,
+  AdvancedStockDialogData,
+} from './advanced-stock-dialog.component';
+
+type StockStateFilter = 'all' | 'negative' | 'zero' | 'positive';
+type StockSort = 'default' | 'ascending' | 'descending';
 
 @Component({
   selector: 'steam-manual-mode-v2',
@@ -137,6 +146,9 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   });
 
   readonly searchByRatingFilterControl = new FormControl<number | null>(null);
+  readonly searchByStockFilterControl = new FormControl<number | null>(null);
+  readonly stockStateFilterControl = new FormControl<StockStateFilter>('all', { nonNullable: true });
+  readonly stockSortControl = new FormControl<StockSort>('default', { nonNullable: true });
 
   readonly tagSelectControl = new FormControl<Tag | null>({
     value: null,
@@ -157,6 +169,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   private readonly automatedProductErrors = new Map<number, ManualCheckProductError>();
   private readonly automatedTargetProductIds = new Set<number>();
   private readonly lastPresetByGame = new Map<number, number>();
+  readonly stockUpdatingProductIds = new Set<number>();
 
   constructor(
     private readonly gameService: GameService,
@@ -229,6 +242,33 @@ export class ManualModeV2 implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       });
 
+    this.searchByStockFilterControl.valueChanges
+      .pipe(startWith(this.searchByStockFilterControl.value), takeUntil(this.destroy$))
+      .subscribe((stock) => {
+        if (stock !== null) {
+          this.stockStateFilterControl.setValue('all', { emitEvent: false });
+        }
+        this.loadFilteredProducts();
+        this.cdr.markForCheck();
+      });
+
+    this.stockStateFilterControl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((state) => {
+        if (state !== 'all') {
+          this.searchByStockFilterControl.setValue(null, { emitEvent: false });
+        }
+        this.loadFilteredProducts();
+        this.cdr.markForCheck();
+      });
+
+    this.stockSortControl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.loadFilteredProducts();
+        this.cdr.markForCheck();
+      });
+
     this.tagSelectControl.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe((tag) => {
@@ -296,6 +336,43 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
   automatedCheckProduct(product: GameUrlProduct): void {
     this.openAutomatedCheckSetup([product.productId]);
+  }
+
+  incrementCurrentStock(product: GameUrlProduct): void {
+    if (this.isStockUpdating(product.productId)) { return; }
+    this.updateProductStock(
+      product.productId,
+      this.gameUrlProductService.incrementCurrentStock(product.productId, product.gameUrlId),
+    );
+  }
+
+  decrementCurrentStock(product: GameUrlProduct): void {
+    if (this.isStockUpdating(product.productId)) { return; }
+    this.updateProductStock(
+      product.productId,
+      this.gameUrlProductService.decrementCurrentStock(product.productId, product.gameUrlId),
+    );
+  }
+
+  isStockUpdating(productId: number): boolean {
+    return this.stockUpdatingProductIds.has(productId);
+  }
+
+  openAdvancedStock(product: GameUrlProduct): void {
+    const data: AdvancedStockDialogData = {
+      productId: product.productId,
+      gameUrlId: product.gameUrlId,
+      productName: product.productName,
+      currentStock: product.currentStock,
+    };
+    this.dialog.open<AdvancedStockDialogComponent, AdvancedStockDialogData, number>(
+      AdvancedStockDialogComponent,
+      { data, width: 'min(38rem, 96vw)', maxWidth: '96vw', maxHeight: '92vh' },
+    ).afterClosed().pipe(takeUntil(this.destroy$)).subscribe((currentStock) => {
+      if (currentStock !== undefined) {
+        this.applyCurrentStock(product.productId, currentStock);
+      }
+    });
   }
 
   private openAutomatedCheckSetup(productIds: number[] | null): void {
@@ -679,6 +756,9 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   clearFiltersButtonClicked(): void {
     this.searchByNameFilterControl.setValue('', { emitEvent: false });
     this.searchByRatingFilterControl.setValue(null, { emitEvent: false });
+    this.searchByStockFilterControl.setValue(null, { emitEvent: false });
+    this.stockStateFilterControl.setValue('all', { emitEvent: false });
+    this.stockSortControl.setValue('default', { emitEvent: false });
     this.showAutomatedMatchesOnly = false;
 
     this.tagsFilter = [];
@@ -883,8 +963,10 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     const nameFilter = (this.searchByNameFilterControl.value ?? '').toLowerCase();
     const tagFilters = this.tagsFilter.map((t) => t.toLowerCase());
     const ratingFilter = this.searchByRatingFilterControl.value;
+    const exactStockFilter = this.searchByStockFilterControl.value;
+    const stockStateFilter = this.stockStateFilterControl.value;
 
-    this.productsFiltered = this.products.filter((product) => {
+    const filtered = this.products.filter((product) => {
       const productName = (product.productName ?? '').toLowerCase();
       const productRating = product.rating ?? null;
 
@@ -904,8 +986,54 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       const matchesAutomatedResult =
         !this.showAutomatedMatchesOnly || this.automatedMatches.has(product.productId);
 
-      return matchesName && matchesRating && matchesTags && matchesAutomatedResult;
+      const matchesExactStock = exactStockFilter === null || product.currentStock === exactStockFilter;
+      const matchesStockState = stockStateFilter === 'all' ||
+        (stockStateFilter === 'negative' && product.currentStock < 0) ||
+        (stockStateFilter === 'zero' && product.currentStock === 0) ||
+        (stockStateFilter === 'positive' && product.currentStock > 0);
+
+      return matchesName && matchesRating && matchesTags && matchesAutomatedResult &&
+        matchesExactStock && matchesStockState;
     });
+
+    const stockSort = this.stockSortControl.value;
+    this.productsFiltered = stockSort === 'default'
+      ? filtered
+      : [...filtered].sort((left, right) => {
+          const stockComparison = stockSort === 'ascending'
+            ? left.currentStock - right.currentStock
+            : right.currentStock - left.currentStock;
+          if (stockComparison !== 0) { return stockComparison; }
+
+          const nameComparison = (left.productName ?? '').localeCompare(right.productName ?? '');
+          return nameComparison !== 0 ? nameComparison : left.productId - right.productId;
+        });
+  }
+
+  private updateProductStock(
+    productId: number,
+    operation: Observable<GameUrlProductCurrentStock>,
+  ): void {
+    this.stockUpdatingProductIds.add(productId);
+    this.cdr.markForCheck();
+    operation.pipe(
+      takeUntil(this.destroy$),
+      finalize(() => {
+        this.stockUpdatingProductIds.delete(productId);
+        this.cdr.markForCheck();
+      }),
+    ).subscribe({
+      next: (result) => this.applyCurrentStock(productId, result.currentStock),
+    });
+  }
+
+  private applyCurrentStock(productId: number, currentStock: number): void {
+    const product = this.products.find((candidate) => candidate.productId === productId);
+    if (!product) { return; }
+
+    product.currentStock = currentStock;
+    this.loadFilteredProducts();
+    this.cdr.markForCheck();
   }
 
   private loadProductsGrid(gameUrlId: number): void {
@@ -999,6 +1127,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       this.products = run.setup.products.map((product) => ({
         ...product,
         isActive: true,
+        currentStock: 0,
       }));
       this.clearProductSelection();
     }

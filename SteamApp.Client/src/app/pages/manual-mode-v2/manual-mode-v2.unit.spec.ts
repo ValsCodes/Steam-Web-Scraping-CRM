@@ -12,6 +12,7 @@ import { GameUrlProduct, ManualCheckRunDetail, ScrapingModeEnum } from '../../mo
 import { ManualCheckSetupDialogComponent } from './manual-check-setup-dialog.component';
 import { ManualCheckSteamResultDialogComponent } from './manual-check-steam-result-dialog.component';
 import { ManualCheckTraceDialogComponent } from './manual-check-trace-dialog.component';
+import { AdvancedStockDialogComponent } from './advanced-stock-dialog.component';
 import { ManualModeV2 } from './manual-mode-v2';
 
 describe('ManualModeV2 external link disclosure', () => {
@@ -38,7 +39,7 @@ describe('ManualModeV2 external link disclosure', () => {
     );
     gameUrlProductService = jasmine.createSpyObj<GameUrlProductService>(
       'GameUrlProductService',
-      ['existsByGameUrl'],
+      ['existsByGameUrl', 'incrementCurrentStock', 'decrementCurrentStock'],
     );
     gameUrlProductService.existsByGameUrl.and.returnValue(of([]));
     manualCheckService = jasmine.createSpyObj<ManualCheckService>('ManualCheckService', [
@@ -567,6 +568,79 @@ describe('ManualModeV2 external link disclosure', () => {
       productIds: [6],
     });
   }));
+
+  it('filters stock presets and exact values mutually exclusively', () => {
+    component.ngOnInit();
+    component.products = [
+      { productId: 1, productName: 'Negative', currentStock: -1 },
+      { productId: 2, productName: 'Zero', currentStock: 0 },
+      { productId: 3, productName: 'Positive', currentStock: 2 },
+    ] as GameUrlProduct[];
+    component.stockStateFilterControl.setValue('negative');
+    expect(component.productsFiltered.map((product) => product.productId)).toEqual([1]);
+    expect(component.searchByStockFilterControl.value).toBeNull();
+
+    component.searchByStockFilterControl.setValue(0);
+    expect(component.stockStateFilterControl.value).toBe('all');
+    expect(component.productsFiltered.map((product) => product.productId)).toEqual([2]);
+  });
+
+  it('sorts equal stock values by name and product ID', () => {
+    component.ngOnInit();
+    component.products = [
+      { productId: 3, productName: 'Zulu', currentStock: 5 },
+      { productId: 2, productName: 'Alpha', currentStock: -1 },
+      { productId: 1, productName: 'Alpha', currentStock: -1 },
+    ] as GameUrlProduct[];
+    component.stockSortControl.setValue('ascending');
+
+    expect(component.productsFiltered.map((product) => product.productId)).toEqual([1, 2, 3]);
+  });
+
+  it('updates one card from the authoritative increment response', () => {
+    const product = {
+      productId: 6,
+      gameUrlId: 2,
+      productName: 'Second',
+      currentStock: 4,
+    } as GameUrlProduct;
+    component.products = [product];
+    component.productsFiltered = [product];
+    gameUrlProductService.incrementCurrentStock.and.returnValue(of({ currentStock: 5 }));
+
+    component.incrementCurrentStock(product);
+
+    expect(gameUrlProductService.incrementCurrentStock).toHaveBeenCalledOnceWith(6, 2);
+    expect(product.currentStock).toBe(5);
+    expect(component.isStockUpdating(6)).toBeFalse();
+  });
+
+  it('opens Advanced Stock and applies the returned final value', () => {
+    const product = {
+      productId: 6,
+      gameUrlId: 2,
+      productName: 'Second',
+      currentStock: 4,
+    } as GameUrlProduct;
+    component.products = [product];
+    component.productsFiltered = [product];
+    dialog.open.and.returnValue({ afterClosed: () => of(-10) });
+
+    component.openAdvancedStock(product);
+
+    expect(dialog.open).toHaveBeenCalledOnceWith(
+      AdvancedStockDialogComponent,
+      jasmine.objectContaining({
+        data: {
+          productId: 6,
+          gameUrlId: 2,
+          productName: 'Second',
+          currentStock: 4,
+        },
+      }),
+    );
+    expect(product.currentStock).toBe(-10);
+  });
 
   it('preserves selection across filters and selects only currently shown products', () => {
     component.products = [

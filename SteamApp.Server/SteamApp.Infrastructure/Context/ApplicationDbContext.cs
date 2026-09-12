@@ -31,6 +31,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<ManualCheckRun> ManualCheckRuns { get; set; }
     public DbSet<FeedbackRequest> FeedbackRequests { get; set; }
     public DbSet<FeedbackRequestHistory> FeedbackRequestHistories { get; set; }
+    public DbSet<GameUrlProductStockHistory> GameUrlProductStockHistories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -369,6 +370,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             entity.HasKey(e => new { e.ProductId, e.GameUrlId });
 
+            entity.Property(e => e.CurrentStock)
+                  .HasDefaultValue(0);
+
             entity.HasOne(e => e.Product)
                   .WithMany(p => p.GameUrlsProducts)
                   .HasForeignKey(e => e.ProductId)
@@ -408,6 +412,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   .WithMany(t => t.Tags)
                   .HasForeignKey(t => t.ItemGroupId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<GameUrlProductStockHistory>(entity =>
+        {
+            entity.HasIndex(e => new { e.UserId, e.ProductId, e.GameUrlId, e.CreatedAtUtc });
         });
 
         modelBuilder.Entity<ItemGroup>(entity =>

@@ -305,9 +305,9 @@
     "semantic_hash": "458f3010b03271081809e4af37620e23"
   },
   "SteamApp.Client/src/app/models/game-url-product.model.ts": {
-    "mtime": 1789215515.564391,
-    "ast_hash": "fd252dcd71ea9a86b21ec4a7391c6860",
-    "semantic_hash": ""
+    "mtime": 1778848978.674706,
+    "ast_hash": "9edebde8abd134ccc9d22d447e6bad80",
+    "semantic_hash": "9edebde8abd134ccc9d22d447e6bad80"
   },
   "SteamApp.Client/src/app/models/game-url.model.ts": {
     "mtime": 1778848978.674706,
@@ -505,13 +505,13 @@
     "semantic_hash": "2ceeb328968b65919cd2d3fc0010ad77"
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-mode-v2.ts": {
-    "mtime": 1789215877.35901,
-    "ast_hash": "92b6920bf74f632e5b9b8c3ab2f7c3d6",
+    "mtime": 1787481685.8385444,
+    "ast_hash": "db3755ddbf2f98439047ad6a6a406f99",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-mode-v2.unit.spec.ts": {
-    "mtime": 1789216470.8027802,
-    "ast_hash": "6de712516cc9feec7d23f513428c1d34",
+    "mtime": 1787408477.2897933,
+    "ast_hash": "c6ec30d7378680e6efa03b78487b37de",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/not-found/not-found-page.ts": {
@@ -750,14 +750,14 @@
     "semantic_hash": "bed5f6cab0196b61d807143357c840db"
   },
   "SteamApp.Client/src/app/services/game-url-product/game-url-product.service.spec.ts": {
-    "mtime": 1789216088.3270845,
-    "ast_hash": "588ed50ccbabff010d29c106387dab9f",
-    "semantic_hash": ""
+    "mtime": 1771765815.2903335,
+    "ast_hash": "72adc8cf5a411980bc9638ce47ec15f0",
+    "semantic_hash": "72adc8cf5a411980bc9638ce47ec15f0"
   },
   "SteamApp.Client/src/app/services/game-url-product/game-url-product.service.ts": {
-    "mtime": 1789215520.2044466,
-    "ast_hash": "af34b209f86c0e88feacb229329560ec",
-    "semantic_hash": ""
+    "mtime": 1771765815.2903335,
+    "ast_hash": "9a4e4212491049588a204da820741baf",
+    "semantic_hash": "9a4e4212491049588a204da820741baf"
   },
   "SteamApp.Client/src/app/services/game-url/game-url.service.spec.ts": {
     "mtime": 1771765815.3073678,
@@ -990,9 +990,9 @@
     "semantic_hash": "429d148413d320e960dbaf589943d46a"
   },
   "SteamApp.Server/SteamApp.Application/DTOs/GameUrlProduct/GameUrlProductDto.cs": {
-    "mtime": 1789216647.1801624,
-    "ast_hash": "12ac3525141294acf524bb6179c1220b",
-    "semantic_hash": ""
+    "mtime": 1778848979.59014,
+    "ast_hash": "acbfd84539322f97ac04289df68afad1",
+    "semantic_hash": "acbfd84539322f97ac04289df68afad1"
   },
   "SteamApp.Server/SteamApp.Application/DTOs/GameUrl/GameUrlCreateDto.cs": {
     "mtime": 1778848979.5399,
@@ -1375,8 +1375,8 @@
     "semantic_hash": "3a94404955e941cc957dfd71502a07d3"
   },
   "SteamApp.Server/SteamApp.Infrastructure/Context/ApplicationDbContext.cs": {
-    "mtime": 1789215261.6751225,
-    "ast_hash": "ea61e5f8ac490106539477f14dd43ca5",
+    "mtime": 1787481101.6315756,
+    "ast_hash": "027ae481d76e0781bf33ddffdf2ba21a",
     "semantic_hash": ""
   },
   "SteamApp.Server/SteamApp.Infrastructure/Identity/ApplicationUser.cs": {
@@ -1515,8 +1515,8 @@
     "semantic_hash": "d48d4d3dd9e7100d760aa12618e381a5"
   },
   "SteamApp.Server/SteamApp.IntegrationTests/Support/SteamAppFactory.cs": {
-    "mtime": 1789216272.2490735,
-    "ast_hash": "121af268233fade26d1e179f154809de",
+    "mtime": 1787395761.6265466,
+    "ast_hash": "9a85ac2a346435d822ba4909c3f505d6",
     "semantic_hash": ""
   },
   "SteamApp.Server/SteamApp.Interfaces/IJobService.cs": {
@@ -1615,9 +1615,9 @@
     "semantic_hash": "70f4c2b42ac7558ba83dd825fc587fc7"
   },
   "SteamApp.Server/SteamApp.Models/Entities/GameUrlProducts.cs": {
-    "mtime": 1789215220.17494,
-    "ast_hash": "350bda00c5670dc101997339971c47a1",
-    "semantic_hash": ""
+    "mtime": 1778848980.4460435,
+    "ast_hash": "b6afbe6a12a105b8900060decd2e92e8",
+    "semantic_hash": "b6afbe6a12a105b8900060decd2e92e8"
   },
   "SteamApp.Server/SteamApp.Models/Entities/Pixel.cs": {
     "mtime": 1782565460.2226794,
@@ -2205,8 +2205,8 @@
     "semantic_hash": ""
   },
   "SteamApp.Server/SteamApp.WebAPI/Migrations/ApplicationDbContextModelSnapshot.cs": {
-    "mtime": 1789215965.1124282,
-    "ast_hash": "29346e272d89474c660e2a899463d5ff",
+    "mtime": 1787481887.585351,
+    "ast_hash": "758faa1a5f70d3e09a214ebd15fa7818",
     "semantic_hash": ""
   },
   "SteamApp.Server/SteamApp.WebAPI/MinimalAPIs/AdminUserEndpoints.cs": {
@@ -2235,9 +2235,9 @@
     "semantic_hash": "0f61a22ba1bfbc7b3ebf7031c584e0e4"
   },
   "SteamApp.Server/SteamApp.WebAPI/MinimalAPIs/GameUrlProductsEndpoints.cs": {
-    "mtime": 1789216686.544426,
-    "ast_hash": "1a1401508f318c26a2b56b9140c82ab0",
-    "semantic_hash": ""
+    "mtime": 1782565460.538682,
+    "ast_hash": "3294311f7bd9c4c0a1afb8a40d095fe5",
+    "semantic_hash": "3294311f7bd9c4c0a1afb8a40d095fe5"
   },
   "SteamApp.Server/SteamApp.WebAPI/MinimalAPIs/PixelEndpoints.cs": {
     "mtime": 1787395143.326816,
@@ -2480,8 +2480,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1788102853.0879962,
-    "ast_hash": "2bb189ca13295669a14a202d1f04d3aa",
+    "mtime": 1787209754.7054348,
+    "ast_hash": "7839fb1bb5ec4b497f82284558aa1b05",
     "semantic_hash": ""
   },
   "SteamApp.Client/README.md": {
@@ -2575,8 +2575,8 @@
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-mode-v2.html": {
-    "mtime": 1789215791.1321902,
-    "ast_hash": "4ca6e45182da41e9fca58d9414a5989f",
+    "mtime": 1787481690.5333464,
+    "ast_hash": "5e817ed535106c7648aef6e0b698baa6",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/not-found/not-found-page.html": {
@@ -2720,8 +2720,8 @@
     "semantic_hash": ""
   },
   "docs/PROJECT_DESCRIPTION_ENG.md": {
-    "mtime": 1788102901.5715516,
-    "ast_hash": "1e0ad12b81243a4c0ad725ff4ed6b94c",
+    "mtime": 1778848981.465388,
+    "ast_hash": "daad2b90cfca29492a5c620793bad2d4",
     "semantic_hash": ""
   },
   "env/README.md": {
@@ -3290,7 +3290,7 @@
     "semantic_hash": ""
   },
   "SteamApp.Server/SteamApp.Interfaces/Services/IManualCheckDataService.cs": {
-    "mtime": 1787483116.4464025,
+    "mtime": 1787404673.0541415,
     "ast_hash": "cf158293031b7a7a0df7a55c147f2be5",
     "semantic_hash": ""
   },
@@ -3462,61 +3462,6 @@
   "SteamApp.Server/SteamApp.WebAPI/MinimalAPIs/ItemGroupsEndpoints.cs": {
     "mtime": 1787481105.166967,
     "ast_hash": "413087e7bb59dad409fce8d0052cf4b6",
-    "semantic_hash": ""
-  },
-  "SteamApp.Client/src/app/pages/manual-mode-v2/advanced-stock-dialog.component.ts": {
-    "mtime": 1789215871.5468574,
-    "ast_hash": "dd351399f26c06cd20af11c511728bb7",
-    "semantic_hash": ""
-  },
-  "SteamApp.Client/src/app/pages/manual-mode-v2/advanced-stock-dialog.component.unit.spec.ts": {
-    "mtime": 1789216165.0818782,
-    "ast_hash": "f01ce96c51de92e77254bb85148e8036",
-    "semantic_hash": ""
-  },
-  "SteamApp.Server/SteamApp.Application/DTOs/GameUrlProduct/GameUrlProductCurrentStockDto.cs": {
-    "mtime": 1789215242.0702837,
-    "ast_hash": "464ae2c677a848b9f8d37bf7cbbacba8",
-    "semantic_hash": ""
-  },
-  "SteamApp.Server/SteamApp.Application/DTOs/GameUrlProduct/GameUrlProductCurrentStockUpdateDto.cs": {
-    "mtime": 1789215236.561979,
-    "ast_hash": "adb02aab4172e5b1411c3ace2ef643c6",
-    "semantic_hash": ""
-  },
-  "SteamApp.Server/SteamApp.Application/DTOs/GameUrlProduct/GameUrlProductStockHistoryDto.cs": {
-    "mtime": 1789215247.1526003,
-    "ast_hash": "62adf6b605ff5f8f9ec5b6953c9c53cb",
-    "semantic_hash": ""
-  },
-  "SteamApp.Server/SteamApp.IntegrationTests/MinimalApis/GameUrlProductStockIntegrationTests.cs": {
-    "mtime": 1789216353.187151,
-    "ast_hash": "612e310d5ff6fd6ddb3950c2d20d2179",
-    "semantic_hash": ""
-  },
-  "SteamApp.Server/SteamApp.Models/Entities/GameUrlProductStockHistory.cs": {
-    "mtime": 1789215230.7617571,
-    "ast_hash": "d0fc618482641736dce3bf793eb2fabb",
-    "semantic_hash": ""
-  },
-  "SteamApp.Server/SteamApp.Models/Enums/GameUrlProductStockOperationEnum.cs": {
-    "mtime": 1789215225.436457,
-    "ast_hash": "f787df1e7b1bf6150dfc96a2f0f81a26",
-    "semantic_hash": ""
-  },
-  "SteamApp.Server/SteamApp.WebAPI/Contracts/GameUrlProduct/GameUrlProductStockHistoryQuery.cs": {
-    "mtime": 1789215255.973048,
-    "ast_hash": "90733ebab2093c7ee2726de11dc7c38d",
-    "semantic_hash": ""
-  },
-  "SteamApp.Server/SteamApp.WebAPI/Migrations/20260912122604_AddGameUrlProductCurrentStock.Designer.cs": {
-    "mtime": 1789215965.1013963,
-    "ast_hash": "1d5f40b943f2a0d5725f29d893d84021",
-    "semantic_hash": ""
-  },
-  "SteamApp.Server/SteamApp.WebAPI/Migrations/20260912122604_AddGameUrlProductCurrentStock.cs": {
-    "mtime": 1789215965.0998676,
-    "ast_hash": "1bbf7cd5f7ffc22055b8fb755943bd01",
     "semantic_hash": ""
   }
 }
