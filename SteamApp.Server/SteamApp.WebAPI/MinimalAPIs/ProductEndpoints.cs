@@ -22,7 +22,8 @@ public static class ProductEndpoints
         group.MapGet("/", async (
             HttpContext httpContext,
             ApplicationDbContext db,
-            IMapper mapper) =>
+            IMapper mapper,
+            CancellationToken ct) =>
         {
             var userId = httpContext.User.GetUserId();
             if (userId is null) { return Results.Unauthorized(); }
@@ -31,9 +32,10 @@ public static class ProductEndpoints
                 .Include(x => x.Game)
                 .Include(x => x.ProductTags)
                 .ThenInclude(x => x.Tag)
+                .ThenInclude(x => x.ItemGroup)
                 .AsNoTracking()
                 .Where(x => x.UserId == userId)
-                .ToListAsync();
+                .ToListAsync(ct);
 
             return Results.Ok(mapper.Map<List<ProductDto>>(entities));
         })
@@ -114,6 +116,7 @@ public static class ProductEndpoints
                 .Include(x => x.Game)
                 .Include(x => x.ProductTags)
                 .ThenInclude(x => x.Tag)
+                .ThenInclude(x => x.ItemGroup)
                 .ApplyPage(pageWindow)
                 .ToListAsync(ct);
 

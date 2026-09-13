@@ -1,6 +1,6 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, EMPTY, finalize, forkJoin, of, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -11,6 +11,7 @@ import {
   ItemGroup,
   PixelListItem,
   Product,
+  ProductTagDetail,
   ScrapingMode,
   ScrapingModeEnum,
   UpdateGameUrl,
@@ -25,6 +26,8 @@ import {
   ProductService,
   ScrapingModeService,
 } from '../../../services';
+
+import { groupByItemGroup } from '../../../common/item-grouping';
 
 const DEFAULT_PIXEL_X = 450;
 const DEFAULT_PIXEL_Y = 50;
@@ -44,6 +47,7 @@ export class GameUrlForm implements OnInit {
   isEditMode = false;
   gameUrlId?: number;
   isSubmitting = false;
+  submitError = '';
   isCreatingItemGroup = false;
   isLoadingItemGroups = false;
 
@@ -66,6 +70,11 @@ export class GameUrlForm implements OnInit {
 
   private initialProductIds: number[] = [];
   private initialPixelIds: number[] = [];
+  private productSelectionAnchor: number | null = null;
+
+  readonly productNameFilterControl = new FormControl('', { nonNullable: true });
+  readonly productTagSelectControl = new FormControl<ProductTagDetail | null>({ value: null, disabled: true });
+  readonly productTagFilters = signal<readonly string[]>([]);
 
   form = this.fb.nonNullable.group({
     gameId: [null as number | null, [Validators.required, Validators.min(1)]],
@@ -104,6 +113,25 @@ export class GameUrlForm implements OnInit {
   ngOnInit(): void {
     this.syncSelectedScrapingMode();
 
+    this.productNameFilterControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => { this.productSelectionAnchor = null; });
+
+    this.productTagSelectControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(tag => {
+        if (!tag?.name) {
+          return;
+        }
+        const name = tag.name.toLowerCase();
+        if (!this.productTagFilters().includes(name)) {
+          this.productTagFilters.set([...this.productTagFilters(), name]);
+        }
+        this.productSelectionAnchor = null;
+        this.productTagSelectControl.setValue(null, { emitEvent: false });
+        this.syncProductTagControlState();
+      });
+
     this.form.controls.scrapingModeId.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
@@ -114,6 +142,7 @@ export class GameUrlForm implements OnInit {
       .pipe(
         switchMap(gameId => {
           this.isLoadingItemGroups = gameId !== null;
+          this.clearProductFilters();
           this.pruneSelectedRelations();
           this.form.controls.itemGroupId.setValue(null, { emitEvent: false });
           this.itemGroups.set([]);
@@ -147,9 +176,49 @@ export class GameUrlForm implements OnInit {
     }
   }
 
-  get filteredProducts(): readonly Product[] {
+  get availableProducts(): readonly Product[] {
     const gameId = this.form.controls.gameId.value;
     return this.products().filter((x) => x.gameId === gameId);
+  }
+
+  get filteredProducts(): readonly Product[] {
+    const name = this.productNameFilterControl.value.toLowerCase();
+    return this.availableProducts.filter(product =>
+      (!name || (product.name ?? '').toLowerCase().includes(name)) &&
+      this.productTagFilters().every(filter =>
+        product.tags.some(tag => tag.toLowerCase().includes(filter)),
+      ),
+    );
+  }
+
+  get productTagGroups() {
+    const tags = new Map<number, ProductTagDetail>();
+    for (const product of this.availableProducts) {
+      for (const tag of product.tagDetails ?? []) {
+        if (tag.isActive && tag.name && !this.productTagFilters().includes(tag.name.toLowerCase())) {
+          tags.set(tag.id, tag);
+        }
+      }
+    }
+    return groupByItemGroup([...tags.values()]);
+  }
+
+  getProductTagsTooltip(product: Product): string {
+    return (product.tagDetails ?? []).map(tag => tag.name).filter(Boolean).join(', ');
+  }
+
+  clearProductFilters(): void {
+    this.productNameFilterControl.setValue('', { emitEvent: false });
+    this.productTagFilters.set([]);
+    this.productTagSelectControl.setValue(null, { emitEvent: false });
+    this.productSelectionAnchor = null;
+    this.syncProductTagControlState();
+  }
+
+  removeProductTagFilter(name: string): void {
+    this.productTagFilters.set(this.productTagFilters().filter(tag => tag !== name));
+    this.productSelectionAnchor = null;
+    this.syncProductTagControlState();
   }
 
   get filteredPixels(): readonly PixelListItem[] {
@@ -210,6 +279,7 @@ export class GameUrlForm implements OnInit {
   }
 
   toggleAllProducts(checked: boolean): void {
+    this.productSelectionAnchor = null;
     const selected = new Set(this.selectedProductIds());
 
     for (const product of this.filteredProducts) {
@@ -237,13 +307,30 @@ export class GameUrlForm implements OnInit {
     this.selectedPixelIds.set([...selected]);
   }
 
-  toggleProduct(productId: number, checked: boolean): void {
-    const selected = new Set(this.selectedProductIds());
+  onProductCardClicked(productId: number, event: MouseEvent): void {
+    event.preventDefault();
+    this.toggleProduct(productId, !this.isProductSelected(productId), event.shiftKey);
+  }
 
-    if (checked) {
-      selected.add(productId);
-    } else {
-      selected.delete(productId);
+  toggleProduct(productId: number, checked: boolean, shiftKey = false): void {
+    const selected = new Set(this.selectedProductIds());
+    const visible = this.filteredProducts;
+    const anchorIndex = visible.findIndex(product => product.id === this.productSelectionAnchor);
+    const endpointIndex = visible.findIndex(product => product.id === productId);
+    const hasRange = shiftKey && anchorIndex >= 0 && endpointIndex >= 0;
+    const productIds = hasRange
+      ? visible.slice(Math.min(anchorIndex, endpointIndex), Math.max(anchorIndex, endpointIndex) + 1).map(product => product.id)
+      : [productId];
+
+    for (const id of productIds) {
+      if (checked) {
+        selected.add(id);
+      } else {
+        selected.delete(id);
+      }
+    }
+    if (!hasRange) {
+      this.productSelectionAnchor = productId;
     }
 
     this.selectedProductIds.set([...selected]);
@@ -267,6 +354,7 @@ export class GameUrlForm implements OnInit {
     }
 
     this.isSubmitting = true;
+    this.submitError = '';
 
     const createPayload = this.buildCreatePayload();
 
@@ -276,7 +364,13 @@ export class GameUrlForm implements OnInit {
           .pipe(switchMap(() => this.syncRelations(this.gameUrlId!)))
       : this.gameUrlService
           .create(createPayload)
-          .pipe(switchMap((created) => this.syncRelations(created.id)));
+          .pipe(switchMap((created) => {
+            // A relation failure must not create a second URL when the user retries.
+            this.gameUrlId = created.id;
+            this.isEditMode = true;
+            this.form.controls.gameId.disable({ emitEvent: false });
+            return this.syncRelations(created.id);
+          }));
 
     request$
       .pipe(
@@ -285,8 +379,11 @@ export class GameUrlForm implements OnInit {
           this.isSubmitting = false;
         }),
       )
-      .subscribe(() => {
-        this.router.navigate(['/game-urls']);
+      .subscribe({
+        next: () => { this.router.navigate(['/game-urls']); },
+        error: () => {
+          this.submitError = 'Could not save the relations. Product changes are all-or-nothing. Please try again.';
+        },
       });
   }
 
@@ -333,11 +430,19 @@ export class GameUrlForm implements OnInit {
   }
 
   private pruneSelectedRelations(): void {
-    const allowedProductIds = new Set(this.filteredProducts.map((x) => x.id));
+    const allowedProductIds = new Set(this.availableProducts.map((x) => x.id));
     const allowedPixelIds = new Set(this.filteredPixels.map((x) => x.id));
 
     this.selectedProductIds.set(this.selectedProductIds().filter((x) => allowedProductIds.has(x)));
     this.selectedPixelIds.set(this.selectedPixelIds().filter((x) => allowedPixelIds.has(x)));
+  }
+
+  private syncProductTagControlState(): void {
+    if (this.productTagGroups.length === 0) {
+      this.productTagSelectControl.disable({ emitEvent: false });
+    } else {
+      this.productTagSelectControl.enable({ emitEvent: false });
+    }
   }
 
   private syncSelectedScrapingMode(): void {
@@ -388,7 +493,11 @@ export class GameUrlForm implements OnInit {
     this.productService
       .getAll()
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((products) => this.products.set(products.filter((product) => product.isActive)));
+      .subscribe((products) => {
+        this.products.set(products.filter((product) => product.isActive));
+        this.productSelectionAnchor = null;
+        this.syncProductTagControlState();
+      });
 
     this.pixelService
       .getAll()
@@ -482,13 +591,8 @@ export class GameUrlForm implements OnInit {
     const selectedProducts = this.selectedProductIds();
     const selectedPixels = this.selectedPixelIds();
 
-    const productAdds = selectedProducts
-      .filter((x) => !this.initialProductIds.includes(x))
-      .map((productId) => this.gameUrlProductService.create({ productId, gameUrlId }));
-
-    const productDeletes = this.initialProductIds
-      .filter((x) => !selectedProducts.includes(x))
-      .map((productId) => this.gameUrlProductService.delete(productId, gameUrlId));
+    const productsChanged = selectedProducts.some(id => !this.initialProductIds.includes(id)) ||
+      this.initialProductIds.some(id => !selectedProducts.includes(id));
 
     const pixelAdds = selectedPixels
       .filter((x) => !this.initialPixelIds.includes(x))
@@ -498,7 +602,11 @@ export class GameUrlForm implements OnInit {
       .filter((x) => !selectedPixels.includes(x))
       .map((pixelId) => this.gameUrlPixelService.delete(pixelId, gameUrlId));
 
-    const requests = [...productAdds, ...productDeletes, ...pixelAdds, ...pixelDeletes];
+    const requests = [
+      ...(productsChanged ? [this.gameUrlProductService.bulkSync(gameUrlId, selectedProducts)] : []),
+      ...pixelAdds,
+      ...pixelDeletes,
+    ];
 
     if (requests.length === 0) {
       return of(void 0);

@@ -6,8 +6,17 @@ export interface Product {
   name?: string | null;
   isActive: boolean;
   tags: string[];
+  tagDetails?: ProductTagDetail[];
   rating?: number | null;
   gameInternalId?: number | null;
+}
+
+export interface ProductTagDetail {
+  id: number;
+  name: string | null;
+  isActive: boolean;
+  itemGroupId: number | null;
+  itemGroupName: string | null;
 }
 
 export interface CreateProduct {

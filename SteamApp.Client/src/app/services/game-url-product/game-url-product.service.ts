@@ -50,6 +50,13 @@ export class GameUrlProductService {
       .pipe(catchError(handleError));
   }
 
+  // PUT: /api/game-url-products/{gameUrlId}/bulk (complete desired product selection)
+  bulkSync(gameUrlId: number, productIds: readonly number[]): Observable<void> {
+    return this.http
+      .put<void>(`${this.baseUrl}/${gameUrlId}/bulk`, { productIds })
+      .pipe(catchError(handleError));
+  }
+
   // DELETE: /api/game-url-products/{productId}/{gameUrlId}
   delete(productId: number, gameUrlId: number): Observable<void> {
     return this.http

@@ -12,6 +12,7 @@
         public long? GameInternalId { get; set; }
 
         public string[] Tags { get; set; } = [];
+        public ProductTagDetailDto[] TagDetails { get; set; } = [];
         public int? Rating { get; set; }
     }
 }

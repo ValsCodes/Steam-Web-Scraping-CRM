@@ -1,3 +1,5 @@
+using System.Data;
+using EFCore.BulkExtensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SteamApp.Application.DTOs.GameUrlProduct;
@@ -89,6 +91,41 @@ public static class GameUrlProductsEndpoints
             await db.SaveChangesAsync(ct);
             return Results.Created($"/api/game-url-products/{input.ProductId}/{input.GameUrlId}", null);
         });
+
+        // The IDs are the complete desired selection, including relations that already exist.
+        group.MapPut("/{gameUrlId:long}/bulk", async (
+            long gameUrlId, GameUrlProductBulkSyncDto input, HttpContext httpContext,
+            ApplicationDbContext db, ILoggerFactory loggerFactory, CancellationToken ct) =>
+        {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+            if (gameUrlId <= 0 || input.ProductIds is null || input.ProductIds.Length > 10_000 ||
+                input.ProductIds.Any(id => id <= 0))
+            {
+                return Results.BadRequest("Provide valid ProductIds (at most 10000).");
+            }
+
+            var productIds = input.ProductIds.Distinct().Order().ToArray();
+            var strategy = db.Database.CreateExecutionStrategy();
+            try
+            {
+                return await strategy.ExecuteAsync(() => BulkSyncProductsAsync(gameUrlId, productIds, userId, db, ct));
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                loggerFactory.CreateLogger(nameof(GameUrlProductsEndpoints))
+                    .LogError(exception, "Bulk product relation sync failed for Game URL {GameUrlId}", gameUrlId);
+                return Results.Problem("Could not save product relations.", statusCode: StatusCodes.Status500InternalServerError);
+            }
+        })
+        .WithName("BulkSyncGameUrlProducts")
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status404NotFound);
 
         group.MapPut("/{productId:long}/{gameUrlId:long}/current-stock", async (
             long productId, long gameUrlId, GameUrlProductCurrentStockUpdateDto input,
@@ -199,6 +236,56 @@ public static class GameUrlProductsEndpoints
         });
 
         return app;
+    }
+
+    private static async Task<IResult> BulkSyncProductsAsync(
+        long gameUrlId, long[] productIds, string userId, ApplicationDbContext db, CancellationToken ct)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        try
+        {
+            var gameId = await db.GameUrls.AsNoTracking()
+                .Where(url => url.Id == gameUrlId && url.UserId == userId)
+                .Select(url => (long?)url.GameId)
+                .FirstOrDefaultAsync(ct);
+            if (gameId is null) { return Results.NotFound(); }
+
+            var validCount = await db.Products.AsNoTracking().CountAsync(product =>
+                productIds.Contains(product.Id) && product.UserId == userId && product.GameId == gameId.Value, ct);
+            if (validCount != productIds.Length)
+            {
+                return Results.BadRequest("Every product must belong to you and to the Game URL's game.");
+            }
+
+            var existing = await db.GameUrlsProducts.AsNoTracking()
+                .Where(relation => relation.GameUrlId == gameUrlId)
+                .ToListAsync(ct);
+            var desiredIds = productIds.ToHashSet();
+            var existingIds = existing.Select(relation => relation.ProductId).ToHashSet();
+            var deletes = existing.Where(relation => !desiredIds.Contains(relation.ProductId)).ToList();
+            var inserts = productIds.Where(id => !existingIds.Contains(id))
+                .Select(id => new GameUrlProducts { GameUrlId = gameUrlId, ProductId = id })
+                .ToList();
+
+            if (deletes.Count > 0)
+            {
+                await db.BulkDeleteAsync(deletes, cancellationToken: ct);
+            }
+            if (inserts.Count > 0)
+            {
+                await db.BulkInsertAsync(inserts, new BulkConfig
+                {
+                    SqlBulkCopyOptions = SqlBulkCopyOptions.CheckConstraints | SqlBulkCopyOptions.FireTriggers,
+                }, cancellationToken: ct);
+            }
+            await transaction.CommitAsync(ct);
+            return Results.NoContent();
+        }
+        catch
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
     }
 
     private static IQueryable<object> ProjectProducts(IQueryable<GameUrlProducts> query)

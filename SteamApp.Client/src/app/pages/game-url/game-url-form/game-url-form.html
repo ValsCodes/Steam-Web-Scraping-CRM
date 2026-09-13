@@ -120,8 +120,43 @@
     @if (isManualMode()) {
       <div class="relation-section">
         <h3>Products for this Game URL</h3>
-        @if (filteredProducts.length === 0) {
+        <div class="product-filter-toolbar">
+          <div class="form-group">
+            <label for="game-url-product-filter-name">Product Name</label>
+            <input id="game-url-product-filter-name" name="gameUrlProductFilterName" type="text"
+              placeholder="Filter by name" [formControl]="productNameFilterControl" />
+          </div>
+          <div class="form-group">
+            <label for="game-url-product-filter-tag">Tags</label>
+            <select id="game-url-product-filter-tag" name="gameUrlProductFilterTag" [formControl]="productTagSelectControl">
+              <option [ngValue]="null">Select Tag</option>
+              @for (group of productTagGroups; track group.itemGroupId) {
+                <optgroup [label]="group.name">
+                  @for (tag of group.items; track tag.id) {
+                    <option [ngValue]="tag">{{ tag.name }}</option>
+                  }
+                </optgroup>
+              }
+            </select>
+          </div>
+          <button type="button" class="button button-small-danger" (click)="clearProductFilters()">Clear Filters</button>
+        </div>
+        @if (productTagFilters().length > 0) {
+          <div class="product-filter-chips">
+            @for (filter of productTagFilters(); track filter) {
+              <span class="product-filter-chip">
+                {{ filter }}
+                <button type="button" [attr.aria-label]="'Remove tag filter ' + filter"
+                  (click)="removeProductTagFilter(filter)">×</button>
+              </span>
+            }
+          </div>
+        }
+        @if (availableProducts.length === 0) {
           <p class="relation-empty">No products available for this game.</p>
+        }
+        @else if (filteredProducts.length === 0) {
+          <p class="relation-empty">No products match the current filters. Clear or adjust the filters to show products again.</p>
         }
         @else {
           <label class="relation-select-all">
@@ -132,19 +167,24 @@
               [checked]="areAllFilteredProductsSelected"
               [indeterminate]="areSomeFilteredProductsSelected"
               (change)="toggleAllProducts($any($event.target).checked)" />
-            Select all products
+            Select all visible products
           </label>
+          <p class="product-selection-hint">Click a product, then Shift-click another to select or deselect the range.</p>
 
           <div class="relation-grid">
             @for (product of filteredProducts; track product.id) {
-              <label>
+              <label (click)="onProductCardClicked(product.id, $event)">
                 <input
                   [attr.id]="'game-url-product-' + product.id"
                   [attr.name]="'gameUrlProduct' + product.id"
                   type="checkbox"
-                  [checked]="isProductSelected(product.id)"
-                  (change)="toggleProduct(product.id, $any($event.target).checked)" />
-                {{ product.name || 'Unnamed product' }}
+                  [checked]="isProductSelected(product.id)" />
+                <span>
+                  {{ product.name || 'Unnamed product' }}
+                  @if (product.tagDetails?.[0]?.name; as firstTag) {
+                    <span class="product-first-tag" [attr.title]="getProductTagsTooltip(product)">{{ '{' + firstTag + '}' }}</span>
+                  }
+                </span>
               </label>
             }
           </div>
@@ -189,6 +229,9 @@
   </div>
 
   <div class="form-actions">
+    @if (submitError) {
+      <p role="alert">{{ submitError }}</p>
+    }
     <button type="submit" [disabled]="form.invalid || isSubmitting || isCreatingItemGroup" [class.busy-cursor]="isSubmitting || isCreatingItemGroup">
       {{ isSubmitting ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save changes' : 'Create game URL') }}
     </button>

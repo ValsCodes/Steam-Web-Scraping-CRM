@@ -3,7 +3,7 @@ import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
 
 import { GameUrlForm } from './game-url-form';
-import { ItemGroup } from '../../../models';
+import { GameUrlProduct, ItemGroup, Product, ProductTagDetail } from '../../../models';
 import {
   GameService,
   GameUrlPixelService,
@@ -16,12 +16,16 @@ import {
 } from '../../../services';
 
 describe('GameUrlForm item groups', () => {
-  async function setup(id?: string) {
+  async function setup(id?: string, products: Product[] = [], initialRelations: GameUrlProduct[] = []) {
     const gameUrlService = jasmine.createSpyObj<GameUrlService>('GameUrlService', ['create', 'getById', 'update']);
     const itemGroupService = jasmine.createSpyObj<ItemGroupService>('ItemGroupService', ['create', 'getByGame']);
     const router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     const lookupService = { getAll: () => of([]) };
     const relationService = { existsByGameUrl: () => of([]) };
+    const productRelationService = jasmine.createSpyObj<GameUrlProductService>(
+      'GameUrlProductService', ['existsByGameUrl', 'bulkSync', 'create', 'delete']);
+    productRelationService.existsByGameUrl.and.returnValue(of(initialRelations));
+    productRelationService.bulkSync.and.returnValue(of(void 0));
 
     itemGroupService.getByGame.and.returnValue(of([{ id: 10, gameId: 1, name: 'Category' }]));
     itemGroupService.create.and.returnValue(of({ id: 11, gameId: 1, name: 'Priority' }));
@@ -52,10 +56,10 @@ describe('GameUrlForm item groups', () => {
         { provide: GameUrlService, useValue: gameUrlService },
         { provide: ItemGroupService, useValue: itemGroupService },
         { provide: GameService, useValue: lookupService },
-        { provide: ProductService, useValue: lookupService },
+        { provide: ProductService, useValue: { getAll: () => of(products) } },
         { provide: PixelService, useValue: lookupService },
         { provide: ScrapingModeService, useValue: lookupService },
-        { provide: GameUrlProductService, useValue: relationService },
+        { provide: GameUrlProductService, useValue: productRelationService },
         { provide: GameUrlPixelService, useValue: relationService },
         { provide: Router, useValue: router },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap(id ? { id } : {}) } } },
@@ -65,8 +69,201 @@ describe('GameUrlForm item groups', () => {
     const fixture = TestBed.createComponent(GameUrlForm);
     const component = fixture.componentInstance;
     fixture.detectChanges();
-    return { component, fixture, gameUrlService, itemGroupService, router };
+    return { component, fixture, gameUrlService, itemGroupService, router, productRelationService };
   }
+
+  it('saves 700 selected products in one bulk call instead of individual relation requests', async () => {
+    const { component, productRelationService, router } = await setup();
+    component.form.controls.gameId.setValue(1);
+    const productIds = Array.from({ length: 700 }, (_, index) => index + 1);
+    component.selectedProductIds.set(productIds);
+    component.onSubmit();
+
+    expect(productRelationService.bulkSync).toHaveBeenCalledOnceWith(20, productIds);
+    expect(productRelationService.create).not.toHaveBeenCalled();
+    expect(productRelationService.delete).not.toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/game-urls']);
+  });
+
+  it('keeps the selection after a bulk failure and retries against the already-created URL', async () => {
+    const { component, fixture, gameUrlService, productRelationService, router } = await setup();
+    component.form.controls.gameId.setValue(1);
+    component.selectedProductIds.set([1, 2]);
+    productRelationService.bulkSync.and.returnValue(throwError(() => new Error('Batch failed')));
+    component.onSubmit();
+    fixture.detectChanges();
+
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(component.isSubmitting).toBeFalse();
+    expect(component.selectedProductIds()).toEqual([1, 2]);
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('all-or-nothing');
+    productRelationService.bulkSync.and.returnValue(of(void 0));
+    component.onSubmit();
+
+    expect(gameUrlService.create).toHaveBeenCalledTimes(1);
+    expect(gameUrlService.update).toHaveBeenCalledWith(20, jasmine.anything());
+    expect(productRelationService.bulkSync).toHaveBeenCalledTimes(2);
+    expect(component.submitError).toBe('');
+  });
+
+  it('bulk-syncs an edit selection including deselections and unchanged hidden products', async () => {
+    const { component, productRelationService } = await setup('7', [], [
+      { productId: 1, productName: 'One', gameUrlId: 7, gameUrlName: 'Market', fullUrl: '', tags: [], isActive: true, rating: null, currentStock: 4 },
+      { productId: 2, productName: 'Two', gameUrlId: 7, gameUrlName: 'Market', fullUrl: '', tags: [], isActive: true, rating: null, currentStock: 0 },
+    ]);
+    component.selectedProductIds.set([2, 3]);
+    component.productNameFilterControl.setValue('hidden');
+    component.onSubmit();
+    expect(productRelationService.bulkSync).toHaveBeenCalledOnceWith(7, [2, 3]);
+    expect(productRelationService.delete).not.toHaveBeenCalled();
+  });
+
+  function tag(id: number, name: string, itemGroupId: number | null = null, isActive = true): ProductTagDetail {
+    return { id, name, isActive, itemGroupId, itemGroupName: itemGroupId === null ? null : 'Category' };
+  }
+
+  function product(id: number, name: string | null, tags: ProductTagDetail[] = [], gameId = 1, isActive = true): Product {
+    return { id, name, gameId, gameName: 'Portal', isActive, tags: tags.map(tag => tag.name!), tagDetails: tags };
+  }
+
+  it('filters names and tags case-insensitively with AND matching and removable chips', async () => {
+    const primary = tag(1, 'Primary', 10);
+    const rare = tag(2, 'Rare');
+    const { component, fixture } = await setup(undefined, [
+      product(1, 'Rocket Launcher', [primary, rare]),
+      product(2, 'Rocket', [primary]),
+      product(3, null),
+    ]);
+    component.form.controls.gameId.setValue(1);
+    component.productNameFilterControl.setValue('ROCKET');
+    expect(component.filteredProducts.map(product => product.id)).toEqual([1, 2]);
+    component.productTagSelectControl.setValue(primary);
+    component.productTagSelectControl.setValue(rare);
+    fixture.detectChanges();
+
+    expect(component.filteredProducts.map(product => product.id)).toEqual([1]);
+    expect(component.productTagFilters()).toEqual(['primary', 'rare']);
+    expect(component.productTagSelectControl.value).toBeNull();
+    expect(component.productTagSelectControl.disabled).toBeTrue();
+    expect(fixture.nativeElement.querySelectorAll('.product-filter-chip').length).toBe(2);
+
+    component.removeProductTagFilter('rare');
+    expect(component.filteredProducts.map(product => product.id)).toEqual([1, 2]);
+    expect(component.productTagSelectControl.enabled).toBeTrue();
+    component.clearProductFilters();
+    expect(component.filteredProducts.map(product => product.id)).toEqual([1, 2, 3]);
+  });
+
+  it('groups and deduplicates only active tags on selectable products for the chosen game', async () => {
+    const primary = tag(1, 'Primary', 10);
+    const { component, fixture } = await setup(undefined, [
+      product(1, 'One', [primary, tag(2, 'Archived', null, false)]),
+      product(2, 'Two', [primary, tag(3, 'Rare')]),
+      product(3, 'Other game', [tag(4, 'Other')], 2),
+      product(4, 'Inactive product', [tag(5, 'Hidden')], 1, false),
+    ]);
+    expect(component.productTagSelectControl.disabled).toBeTrue();
+    component.form.controls.gameId.setValue(1);
+    fixture.detectChanges();
+    expect(component.productTagGroups.map(group => group.name)).toEqual(['Category', 'Ungrouped']);
+    expect(component.productTagGroups.flatMap(group => group.items.map(tag => tag.id))).toEqual([1, 3]);
+    expect(Array.from(fixture.nativeElement.querySelectorAll('optgroup')).map(group => (group as HTMLOptGroupElement).label))
+      .toEqual(['Category', 'Ungrouped']);
+    component.productNameFilterControl.setValue('One');
+    component.productTagSelectControl.setValue(primary);
+    component.form.controls.gameId.setValue(2);
+    expect(component.productNameFilterControl.value).toBe('');
+    expect(component.productTagFilters()).toEqual([]);
+    expect(component.productTagGroups[0].items[0].id).toBe(4);
+    component.form.controls.gameId.setValue(null);
+    expect(component.productTagSelectControl.disabled).toBeTrue();
+  });
+
+  it('renders the first tag in braces and every tag in its hover text without reordering', async () => {
+    const { component, fixture } = await setup(undefined, [
+      product(1, 'Rocket', [tag(1, 'Primary'), tag(2, 'Archived', null, false)]),
+      product(2, 'Untagged'),
+    ]);
+    component.form.controls.gameId.setValue(1);
+    fixture.detectChanges();
+    const preview: HTMLElement = fixture.nativeElement.querySelector('.product-first-tag');
+    expect(preview.textContent).toBe('{Primary}');
+    expect(preview.title).toBe('Primary, Archived');
+    expect(fixture.nativeElement.querySelectorAll('.product-first-tag').length).toBe(1);
+    component.productNameFilterControl.setValue('missing');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.relation-empty').textContent).toContain('No products match');
+    component.form.controls.gameId.setValue(null);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.relation-empty').textContent).toContain('No products available');
+  });
+
+  it('selects and deselects inclusive Shift ranges in either direction while preserving outside selections', async () => {
+    const { component } = await setup(undefined, [1, 2, 3, 4, 5].map(id => product(id, 'Product ' + id)));
+    component.form.controls.gameId.setValue(1);
+    component.selectedProductIds.set([5]);
+    component.toggleProduct(2, true);
+    component.toggleProduct(4, true, true);
+    expect(component.selectedProductIds()).toEqual([5, 2, 3, 4]);
+    component.toggleProduct(1, true, true);
+    expect(component.selectedProductIds()).toContain(1);
+    component.toggleProduct(3, false, true);
+    expect(component.selectedProductIds()).toEqual([5, 4, 1]);
+    component.toggleProduct(4, false);
+    component.toggleProduct(1, false, true);
+    expect(component.selectedProductIds()).toEqual([5]);
+  });
+
+  it('uses visible display order for ranges and select-all without changing hidden selections', async () => {
+    const { component } = await setup(undefined, [product(3, 'Match'), product(2, 'Hidden'), product(1, 'Match'), product(4, 'Match')]);
+    component.form.controls.gameId.setValue(1);
+    component.selectedProductIds.set([2]);
+    component.productNameFilterControl.setValue('match');
+    component.toggleProduct(3, true);
+    component.toggleProduct(4, true, true);
+    expect(component.selectedProductIds()).toEqual([2, 3, 1, 4]);
+    expect(component.areAllFilteredProductsSelected).toBeTrue();
+    component.toggleAllProducts(false);
+    expect(component.selectedProductIds()).toEqual([2]);
+    component.toggleProduct(4, true, true);
+    expect(component.selectedProductIds()).toEqual([2, 4]);
+    expect(component.areSomeFilteredProductsSelected).toBeTrue();
+    component.toggleAllProducts(true);
+    component.clearProductFilters();
+    expect(component.selectedProductIds()).toEqual([2, 4, 3, 1]);
+  });
+
+  it('resets the range anchor on filter changes and falls back when an anchor disappears', async () => {
+    const { component } = await setup(undefined, [1, 2, 3].map(id => product(id, 'Product ' + id)));
+    component.form.controls.gameId.setValue(1);
+    component.toggleProduct(1, true);
+    component.productNameFilterControl.setValue('Product');
+    component.toggleProduct(3, true, true);
+    expect(component.selectedProductIds()).toEqual([1, 3]);
+    component.products.set([product(1, 'Product 1'), product(2, 'Product 2')]);
+    component.toggleProduct(2, true, true);
+    expect(component.selectedProductIds()).toEqual([1, 3, 2]);
+    component.form.controls.gameId.setValue(2);
+    expect(component.selectedProductIds()).toEqual([]);
+  });
+
+  it('handles checkbox and card clicks once and applies the endpoint state to Shift ranges', async () => {
+    const { component, fixture } = await setup(undefined, [1, 2, 3].map(id => product(id, 'Product ' + id)));
+    component.form.controls.gameId.setValue(1);
+    fixture.detectChanges();
+    const first: HTMLInputElement = fixture.nativeElement.querySelector('#game-url-product-1');
+    first.click();
+    fixture.detectChanges();
+    expect(first.checked).toBeTrue();
+    const endpoint: HTMLInputElement = fixture.nativeElement.querySelector('#game-url-product-3');
+    endpoint.parentElement!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, shiftKey: true }));
+    fixture.detectChanges();
+    expect(component.selectedProductIds()).toEqual([1, 2, 3]);
+    endpoint.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, shiftKey: true }));
+    fixture.detectChanges();
+    expect(component.selectedProductIds()).toEqual([]);
+    expect(endpoint.checked).toBeFalse();
+  });
 
   it('loads groups for the selected game and clears them when no game is selected', async () => {
     const { component, itemGroupService } = await setup();
