@@ -234,8 +234,6 @@
   "232": "environment.local-release.ts",
   "233": "PROJECT_DESCRIPTION_ENG.md",
   "234": "copilot-instructions.md",
-  "235": "ManualCheckExpressionEditorComponent",
-  "236": "20260627135352_AddFeedbackRequests.Designer.cs",
   "237": "openableExternalUrl",
   "238": ".SwaggerIsExposedInDevelopmentAndHiddenBehindProductionApiSecurity",
   "239": "SteamApp.Application.DTOs.ScrapingMode",
@@ -244,7 +242,6 @@
   "242": "Q: I still get Invalid user credentials. and the client doesn't open upon clicking the bat",
   "243": ".attachTableControls",
   "244": "20260814162547_AddManualChecks.Designer.cs",
-  "245": "WatchListsView",
   "246": "20260819092817_ExtendAutomatedManualChecks.Designer.cs",
   "247": "AddUserOwnership",
   "248": "ControllerSecurityMetadataTests",
@@ -255,7 +252,6 @@
   "253": ".UrlEncode",
   "254": "20260627144144_AddFeedbackRequestHistory.Designer.cs",
   "255": "ScrapingMode",
-  "256": ".CreateScrapeHandler",
   "257": "20260506092153_SeedScrapingModes.Designer.cs",
   "258": "groupByItemGroup",
   "259": "ManualCheckHistoryDialogComponent",
@@ -267,7 +263,6 @@
   "265": "ScrapeRequestedConsumer",
   "266": "ScrapeHistorySetupDto",
   "267": "WatchListForm",
-  "268": "ExternalLinkDirective",
   "270": "WatchListEndpoints",
   "271": "IsProductActive",
   "272": "WishlistNotificationConsumer",
@@ -293,6 +288,5 @@
   "304": "ProductEndpoints",
   "305": "ProductTagsEndpoints",
   "306": "TagsEndpoints",
-  "307": "WishListEndpoints",
-  "309": "LoginRequest.cs"
+  "307": "WishListEndpoints"
 }

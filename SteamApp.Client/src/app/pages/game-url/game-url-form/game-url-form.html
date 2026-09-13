@@ -171,9 +171,11 @@
           </label>
           <p class="product-selection-hint">Click a product, then Shift-click another to select or deselect the range.</p>
 
-          <div class="relation-grid">
+          <div class="relation-grid" (mouseleave)="clearProductPreview()">
             @for (product of filteredProducts; track product.id) {
-              <label (click)="onProductCardClicked(product.id, $event)">
+              <label (click)="onProductCardClicked(product.id, $event)"
+                (mouseenter)="onProductHover(product.id, $event)"
+                [class.product-range-preview]="productPreviewIds.has(product.id)">
                 <input
                   [attr.id]="'game-url-product-' + product.id"
                   [attr.name]="'gameUrlProduct' + product.id"

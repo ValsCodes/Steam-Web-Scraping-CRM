@@ -453,9 +453,12 @@
                         </span>
                     </div>
                     } @else {
-                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+                        (mouseleave)="clearProductPreview()">
                         @for (product of productsFiltered; track product.productId; let i = $index) {
                         <div
+                            (mouseenter)="onProductHover(product.productId, $event)"
+                            [class.product-range-preview]="productPreviewIds.has(product.productId)"
                             class="relative flex min-h-[7rem] flex-col rounded-lg border border-slate-200 bg-slate-50 p-3 transition hover:border-slate-300 hover:bg-white">
                             <div class="mb-2 flex items-center justify-between gap-2">
                                 <label

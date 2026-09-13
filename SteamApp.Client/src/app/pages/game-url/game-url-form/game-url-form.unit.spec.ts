@@ -198,7 +198,80 @@ describe('GameUrlForm item groups', () => {
     expect(fixture.nativeElement.querySelector('.relation-empty').textContent).toContain('No products available');
   });
 
-  it('selects and deselects inclusive Shift ranges in either direction while preserving outside selections', async () => {
+
+  it('previews forward and reverse ranges without selecting, then applies the previewed range', async () => {
+    const { component } = await setup(undefined, [3, 1, 4, 2].map(id => product(id, 'Product ' + id)));
+    component.form.controls.gameId.setValue(1);
+    component.toggleProduct(1, true);
+    component.onProductHover(2, new MouseEvent('mouseenter', { shiftKey: true }));
+    expect([...component.productPreviewIds]).toEqual([1, 4, 2]);
+    expect(component.selectedProductIds()).toEqual([1]);
+    component.onProductHover(3, new MouseEvent('mouseenter', { shiftKey: true }));
+    expect([...component.productPreviewIds]).toEqual([3, 1]);
+    component.toggleProduct(3, true, true);
+    expect(component.productPreviewIds.size).toBe(0);
+    expect(new Set(component.selectedProductIds())).toEqual(new Set([1, 3]));
+    component.onProductHover(2, new MouseEvent('mouseenter', { shiftKey: true }));
+    const pending = [...component.productPreviewIds];
+    component.toggleProduct(2, false, true);
+    expect(pending.every(id => !new Set(component.selectedProductIds()).has(id))).toBeTrue();
+  });
+
+  it('updates a stationary hover on Shift changes and clears previews on exit, blur and filters', async () => {
+    const { component } = await setup(undefined, [3, 1, 4, 2].map(id => product(id, 'Product ' + id)));
+    component.form.controls.gameId.setValue(1);
+    component.toggleProduct(3, true);
+    component.onProductHover(2, new MouseEvent('mouseenter'));
+    expect(component.productPreviewIds.size).toBe(0);
+    component.onProductPreviewKey(new KeyboardEvent('keydown', { key: 'Shift', shiftKey: true }));
+    expect(component.productPreviewIds.size).toBe(4);
+    component.onProductPreviewKey(new KeyboardEvent('keyup', { key: 'Shift' }));
+    expect(component.productPreviewIds.size).toBe(0);
+    component.onProductPreviewKey(new KeyboardEvent('keydown', { key: 'Shift', shiftKey: true }));
+    expect(component.productPreviewIds.size).toBe(4);
+    component.clearProductPreview();
+    expect(component.productPreviewIds.size).toBe(0);
+    component.onProductHover(2, new MouseEvent('mouseenter', { shiftKey: true }));
+    component.onProductPreviewBlur();
+    expect(component.productPreviewIds.size).toBe(0);
+    component.onProductHover(2, new MouseEvent('mouseenter', { shiftKey: true }));
+    component.productNameFilterControl.setValue('Product');
+    expect(component.productPreviewIds.size).toBe(0);
+  });
+
+  it('renders Shift-hover preview classes only on visible cards and clears them on grid exit', async () => {
+    const { component, fixture } = await setup(undefined, [product(3, 'Match'), product(99, 'Hidden'), product(1, 'Match'), product(2, 'Match')]);
+    component.form.controls.gameId.setValue(1);
+    component.productNameFilterControl.setValue('Match');
+    component.toggleProduct(3, true);
+    fixture.detectChanges();
+    const endpoint: HTMLInputElement = fixture.nativeElement.querySelector('#game-url-product-2');
+    endpoint.parentElement!.dispatchEvent(new MouseEvent('mouseenter'));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift', shiftKey: true }));
+    fixture.detectChanges();
+    expect([...component.productPreviewIds]).toEqual([3, 1, 2]);
+    expect(fixture.nativeElement.querySelectorAll('.product-range-preview').length).toBe(3);
+    endpoint.closest('.relation-grid')!.dispatchEvent(new MouseEvent('mouseleave'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.product-range-preview').length).toBe(0);
+  });
+
+  it('does not preview without a visible anchor and clears the range on Select All', async () => {
+    const { component } = await setup(undefined, [3, 1, 4, 2].map(id => product(id, 'Product ' + id)));
+    component.form.controls.gameId.setValue(1);
+    component.onProductHover(2, new MouseEvent('mouseenter', { shiftKey: true }));
+    expect(component.productPreviewIds.size).toBe(0);
+    component.toggleProduct(99, true);
+    component.onProductHover(2, new MouseEvent('mouseenter', { shiftKey: true }));
+    expect(component.productPreviewIds.size).toBe(0);
+    component.toggleProduct(3, true);
+    component.onProductHover(2, new MouseEvent('mouseenter', { shiftKey: true }));
+    component.toggleAllProducts(true);
+    expect(component.productPreviewIds.size).toBe(0);
+  });
+
+
+ it('selects and deselects inclusive Shift ranges in either direction while preserving outside selections', async () => {
     const { component } = await setup(undefined, [1, 2, 3, 4, 5].map(id => product(id, 'Product ' + id)));
     component.form.controls.gameId.setValue(1);
     component.selectedProductIds.set([5]);

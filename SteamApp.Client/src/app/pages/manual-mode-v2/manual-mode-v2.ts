@@ -94,6 +94,11 @@ type StockSort = 'default' | 'ascending' | 'descending';
 ],
   templateUrl: './manual-mode-v2.html',
   styleUrl: './manual-mode-v2.scss',
+  host: {
+    '(document:keydown)': 'onProductPreviewKey($event)',
+    '(document:keyup)': 'onProductPreviewKey($event)',
+    '(window:blur)': 'onProductPreviewBlur()',
+  },
 })
 export class ManualModeV2 implements OnInit, OnDestroy {
   readonly formatDuration = formatDuration;
@@ -137,6 +142,48 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   automatedCheckError = '';
   readonly selectedProductIds = new Set<number>();
   private productSelectionAnchor: number | null = null;
+
+  readonly productPreviewIds = new Set<number>();
+  private hoveredProductId: number | null = null;
+  private productPreviewShiftHeld = false;
+
+  onProductHover(productId: number, event: MouseEvent): void {
+    this.hoveredProductId = productId;
+    this.productPreviewShiftHeld = event.shiftKey;
+    this.updateProductPreview();
+  }
+
+  onProductPreviewKey(event: KeyboardEvent): void {
+    this.productPreviewShiftHeld = event.shiftKey;
+    this.updateProductPreview();
+  }
+
+  clearProductPreview(): void {
+    this.hoveredProductId = null;
+    this.productPreviewIds.clear();
+    this.cdr.markForCheck();
+  }
+
+  onProductPreviewBlur(): void {
+    this.productPreviewShiftHeld = false;
+    this.clearProductPreview();
+  }
+
+  private updateProductPreview(): void {
+    this.productPreviewIds.clear();
+    if (this.productPreviewShiftHeld && this.hoveredProductId !== null && this.productSelectionAnchor !== null) {
+      const visible = this.productsFiltered;
+      const anchorIndex = visible.findIndex(product => product.productId === this.productSelectionAnchor);
+      const endpointIndex = visible.findIndex(product => product.productId === this.hoveredProductId);
+      if (anchorIndex >= 0 && endpointIndex >= 0) {
+        for (const product of visible.slice(Math.min(anchorIndex, endpointIndex), Math.max(anchorIndex, endpointIndex) + 1)) {
+          this.productPreviewIds.add(product.productId);
+        }
+      }
+    }
+    this.cdr.markForCheck();
+  }
+
 
   readonly gameIdControl = new FormControl<number | null>(null);
   readonly scrapingModeIdControl = new FormControl<number | null>(null);
@@ -537,6 +584,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   }
 
   setProductSelected(productId: number, selected: boolean, shiftKey = false): void {
+    this.clearProductPreview();
     const anchorIndex = this.productsFiltered.findIndex(product => product.productId === this.productSelectionAnchor);
     const endpointIndex = this.productsFiltered.findIndex(product => product.productId === productId);
     const hasRange = shiftKey && anchorIndex >= 0 && endpointIndex >= 0;
@@ -559,6 +607,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   }
 
   setFilteredProductsSelected(selected: boolean): void {
+    this.clearProductPreview();
     this.productSelectionAnchor = null;
     for (const product of this.productsFiltered) {
       if (selected) {
@@ -979,6 +1028,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   }
 
   private loadFilteredProducts(): void {
+    this.clearProductPreview();
     this.productSelectionAnchor = null;
     const nameFilter = (this.searchByNameFilterControl.value ?? '').toLowerCase();
     const tagFilters = this.tagsFilter.map((t) => t.toLowerCase());
@@ -1215,6 +1265,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   }
 
   private clearProductSelection(): void {
+    this.clearProductPreview();
     this.selectedProductIds.clear();
     this.productSelectionAnchor = null;
   }

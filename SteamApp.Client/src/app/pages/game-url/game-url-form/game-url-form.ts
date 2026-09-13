@@ -40,6 +40,11 @@ const DEFAULT_PIXEL_IMAGE_HEIGHT = 62;
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './game-url-form.html',
   styleUrl: './game-url-form.scss',
+  host: {
+    '(document:keydown)': 'onProductPreviewKey($event)',
+    '(document:keyup)': 'onProductPreviewKey($event)',
+    '(window:blur)': 'onProductPreviewBlur()',
+  },
 })
 export class GameUrlForm implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
@@ -71,6 +76,46 @@ export class GameUrlForm implements OnInit {
   private initialProductIds: number[] = [];
   private initialPixelIds: number[] = [];
   private productSelectionAnchor: number | null = null;
+
+  readonly productPreviewIds = new Set<number>();
+  private hoveredProductId: number | null = null;
+  private productPreviewShiftHeld = false;
+
+  onProductHover(productId: number, event: MouseEvent): void {
+    this.hoveredProductId = productId;
+    this.productPreviewShiftHeld = event.shiftKey;
+    this.updateProductPreview();
+  }
+
+  onProductPreviewKey(event: KeyboardEvent): void {
+    this.productPreviewShiftHeld = event.shiftKey;
+    this.updateProductPreview();
+  }
+
+  clearProductPreview(): void {
+    this.hoveredProductId = null;
+    this.productPreviewIds.clear();
+  }
+
+  onProductPreviewBlur(): void {
+    this.productPreviewShiftHeld = false;
+    this.clearProductPreview();
+  }
+
+  private updateProductPreview(): void {
+    this.productPreviewIds.clear();
+    if (this.productPreviewShiftHeld && this.hoveredProductId !== null && this.productSelectionAnchor !== null) {
+      const visible = this.filteredProducts;
+      const anchorIndex = visible.findIndex(product => product.id === this.productSelectionAnchor);
+      const endpointIndex = visible.findIndex(product => product.id === this.hoveredProductId);
+      if (anchorIndex >= 0 && endpointIndex >= 0) {
+        for (const product of visible.slice(Math.min(anchorIndex, endpointIndex), Math.max(anchorIndex, endpointIndex) + 1)) {
+          this.productPreviewIds.add(product.id);
+        }
+      }
+    }
+  }
+
 
   readonly productNameFilterControl = new FormControl('', { nonNullable: true });
   readonly productTagSelectControl = new FormControl<ProductTagDetail | null>({ value: null, disabled: true });
@@ -115,7 +160,10 @@ export class GameUrlForm implements OnInit {
 
     this.productNameFilterControl.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => { this.productSelectionAnchor = null; });
+      .subscribe(() => {
+        this.productSelectionAnchor = null;
+        this.clearProductPreview();
+      });
 
     this.productTagSelectControl.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -128,6 +176,7 @@ export class GameUrlForm implements OnInit {
           this.productTagFilters.set([...this.productTagFilters(), name]);
         }
         this.productSelectionAnchor = null;
+        this.clearProductPreview();
         this.productTagSelectControl.setValue(null, { emitEvent: false });
         this.syncProductTagControlState();
       });
@@ -208,6 +257,7 @@ export class GameUrlForm implements OnInit {
   }
 
   clearProductFilters(): void {
+    this.clearProductPreview();
     this.productNameFilterControl.setValue('', { emitEvent: false });
     this.productTagFilters.set([]);
     this.productTagSelectControl.setValue(null, { emitEvent: false });
@@ -216,6 +266,7 @@ export class GameUrlForm implements OnInit {
   }
 
   removeProductTagFilter(name: string): void {
+    this.clearProductPreview();
     this.productTagFilters.set(this.productTagFilters().filter(tag => tag !== name));
     this.productSelectionAnchor = null;
     this.syncProductTagControlState();
@@ -279,6 +330,7 @@ export class GameUrlForm implements OnInit {
   }
 
   toggleAllProducts(checked: boolean): void {
+    this.clearProductPreview();
     this.productSelectionAnchor = null;
     const selected = new Set(this.selectedProductIds());
 
@@ -313,6 +365,7 @@ export class GameUrlForm implements OnInit {
   }
 
   toggleProduct(productId: number, checked: boolean, shiftKey = false): void {
+    this.clearProductPreview();
     const selected = new Set(this.selectedProductIds());
     const visible = this.filteredProducts;
     const anchorIndex = visible.findIndex(product => product.id === this.productSelectionAnchor);
@@ -495,6 +548,7 @@ export class GameUrlForm implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((products) => {
         this.products.set(products.filter((product) => product.isActive));
+        this.clearProductPreview();
         this.productSelectionAnchor = null;
         this.syncProductTagControlState();
       });

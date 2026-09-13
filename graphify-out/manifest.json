@@ -445,8 +445,8 @@
     "semantic_hash": "58818c48130d97957e0cbfeee11e2cc6"
   },
   "SteamApp.Client/src/app/pages/game-url/game-url-form/game-url-form.ts": {
-    "mtime": 1789281585.5305195,
-    "ast_hash": "3618a74b16d8c43eec55436eb33b979a",
+    "mtime": 1789320060.4801683,
+    "ast_hash": "9ca7c3b43150479cfb7a743f3098ecca",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/game-url/game-urls-view/game-urls-view.spec.ts": {
@@ -505,13 +505,13 @@
     "semantic_hash": "2ceeb328968b65919cd2d3fc0010ad77"
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-mode-v2.ts": {
-    "mtime": 1789283497.0462754,
-    "ast_hash": "a5310b9011f74c599b0382227446641f",
+    "mtime": 1789320065.0126064,
+    "ast_hash": "b05f9c0b7d50050c973683a45a42f7d1",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-mode-v2.unit.spec.ts": {
-    "mtime": 1789283511.1653094,
-    "ast_hash": "95669c5fb813fabaa0c482a2c1d92cef",
+    "mtime": 1789320175.9116063,
+    "ast_hash": "c376684acf4383f7d7e09d810649be1a",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/not-found/not-found-page.ts": {
@@ -2545,8 +2545,8 @@
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/game-url/game-url-form/game-url-form.html": {
-    "mtime": 1789281585.5386212,
-    "ast_hash": "a5c1d1c46aac2c66db298db55b7a6838",
+    "mtime": 1789320069.602697,
+    "ast_hash": "55a364a0857329b4ad3eaed22c6e39df",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/game-url/game-urls-view/game-urls-view.html": {
@@ -2575,8 +2575,8 @@
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-mode-v2.html": {
-    "mtime": 1789283504.7034876,
-    "ast_hash": "254c70254d7a495b0b19f4684419d0e3",
+    "mtime": 1789320074.187337,
+    "ast_hash": "d84dbba4b800cca2c32e120364c7635b",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/not-found/not-found-page.html": {
@@ -3530,8 +3530,8 @@
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/game-url/game-url-form/game-url-form.unit.spec.ts": {
-    "mtime": 1789281791.7281353,
-    "ast_hash": "79e4a5c3632628bb83ea9bedb80758ba",
+    "mtime": 1789320171.2680776,
+    "ast_hash": "bf41bcd8c24d1b289dbaf78eb389992a",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/game-url/game-urls-view/game-urls-view.unit.spec.ts": {

@@ -654,7 +654,78 @@ describe('ManualModeV2 external link disclosure', () => {
     expect(product.currentStock).toBe(-10);
   });
 
-  it('selects inclusive forward and reverse Shift ranges in visible grid order', () => {
+
+  it('previews forward and reverse ranges without selecting, then applies the previewed range', () => {
+    component.productsFiltered = [3, 1, 4, 2].map(productId => ({ productId })) as GameUrlProduct[];
+    component.setProductSelected(1, true);
+    component.onProductHover(2, new MouseEvent('mouseenter', { shiftKey: true }));
+    expect([...component.productPreviewIds]).toEqual([1, 4, 2]);
+    expect([...component.selectedProductIds]).toEqual([1]);
+    component.onProductHover(3, new MouseEvent('mouseenter', { shiftKey: true }));
+    expect([...component.productPreviewIds]).toEqual([3, 1]);
+    component.setProductSelected(3, true, true);
+    expect(component.productPreviewIds.size).toBe(0);
+    expect(new Set([...component.selectedProductIds])).toEqual(new Set([1, 3]));
+    component.onProductHover(2, new MouseEvent('mouseenter', { shiftKey: true }));
+    const pending = [...component.productPreviewIds];
+    component.setProductSelected(2, false, true);
+    expect(pending.every(id => !new Set([...component.selectedProductIds]).has(id))).toBeTrue();
+  });
+
+  it('updates a stationary hover on Shift changes and clears previews on exit, blur and filters', () => {
+    component.productsFiltered = [3, 1, 4, 2].map(productId => ({ productId })) as GameUrlProduct[];
+    component.setProductSelected(3, true);
+    component.onProductHover(2, new MouseEvent('mouseenter'));
+    expect(component.productPreviewIds.size).toBe(0);
+    component.onProductPreviewKey(new KeyboardEvent('keydown', { key: 'Shift', shiftKey: true }));
+    expect(component.productPreviewIds.size).toBe(4);
+    component.onProductPreviewKey(new KeyboardEvent('keyup', { key: 'Shift' }));
+    expect(component.productPreviewIds.size).toBe(0);
+    component.onProductPreviewKey(new KeyboardEvent('keydown', { key: 'Shift', shiftKey: true }));
+    expect(component.productPreviewIds.size).toBe(4);
+    component.clearProductPreview();
+    expect(component.productPreviewIds.size).toBe(0);
+    component.onProductHover(2, new MouseEvent('mouseenter', { shiftKey: true }));
+    component.onProductPreviewBlur();
+    expect(component.productPreviewIds.size).toBe(0);
+    component.onProductHover(2, new MouseEvent('mouseenter', { shiftKey: true }));
+    component.clearFiltersButtonClicked();
+    expect(component.productPreviewIds.size).toBe(0);
+  });
+
+  it('previews only visible cards after filtering and clears the preview on sorting', () => {
+    component.ngOnInit();
+    component.products = [
+      { productId: 3, productName: 'Match', currentStock: 0 },
+      { productId: 99, productName: 'Hidden', currentStock: 0 },
+      { productId: 1, productName: 'Match', currentStock: 1 },
+      { productId: 2, productName: 'Match', currentStock: 2 },
+    ] as GameUrlProduct[];
+    component.searchByNameFilterControl.setValue('Match');
+    component.setProductSelected(3, true);
+    component.onProductHover(2, new MouseEvent('mouseenter', { shiftKey: true }));
+    expect([...component.productPreviewIds]).toEqual([3, 1, 2]);
+    expect(component.isProductSelected(99)).toBeFalse();
+    component.stockSortControl.setValue('descending');
+    expect(component.productPreviewIds.size).toBe(0);
+    component.ngOnDestroy();
+  });
+
+  it('does not preview without a visible anchor and clears the range on Select All', () => {
+    component.productsFiltered = [3, 1, 4, 2].map(productId => ({ productId })) as GameUrlProduct[];
+    component.onProductHover(2, new MouseEvent('mouseenter', { shiftKey: true }));
+    expect(component.productPreviewIds.size).toBe(0);
+    component.setProductSelected(99, true);
+    component.onProductHover(2, new MouseEvent('mouseenter', { shiftKey: true }));
+    expect(component.productPreviewIds.size).toBe(0);
+    component.setProductSelected(3, true);
+    component.onProductHover(2, new MouseEvent('mouseenter', { shiftKey: true }));
+    component.setFilteredProductsSelected(true);
+    expect(component.productPreviewIds.size).toBe(0);
+  });
+
+
+ it('selects inclusive forward and reverse Shift ranges in visible grid order', () => {
     component.productsFiltered = [5, 3, 7, 1].map(productId => ({ productId })) as GameUrlProduct[];
     component.setProductSelected(3, true);
     component.setProductSelected(1, true, true);
