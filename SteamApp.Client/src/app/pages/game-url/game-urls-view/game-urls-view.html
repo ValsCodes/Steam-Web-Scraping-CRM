@@ -110,6 +110,13 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="itemGroupName">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Group</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.itemGroupName || 'Ungrouped' }}
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="partialUrl">
         <th mat-header-cell *matHeaderCellDef>Partial URL</th>
         <td mat-cell *matCellDef="let row">

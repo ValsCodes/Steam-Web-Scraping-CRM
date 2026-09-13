@@ -4,6 +4,7 @@
     {
         public string? Name { get; set; }
         public long GameId { get; set; }
+        public long? ItemGroupId { get; set; }
         public long? ScrapingModeId { get; set; }
         public string PartialUrl { get; set; } = string.Empty;
         public int? StartPage { get; set; }

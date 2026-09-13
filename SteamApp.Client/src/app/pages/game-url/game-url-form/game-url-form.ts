@@ -2,12 +2,13 @@ import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angula
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { finalize, forkJoin, of, switchMap } from 'rxjs';
+import { catchError, EMPTY, finalize, forkJoin, of, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import {
   CreateGameUrl,
   Game,
+  ItemGroup,
   PixelListItem,
   Product,
   ScrapingMode,
@@ -19,6 +20,7 @@ import {
   GameUrlPixelService,
   GameUrlProductService,
   GameUrlService,
+  ItemGroupService,
   PixelService,
   ProductService,
   ScrapingModeService,
@@ -42,8 +44,11 @@ export class GameUrlForm implements OnInit {
   isEditMode = false;
   gameUrlId?: number;
   isSubmitting = false;
+  isCreatingItemGroup = false;
+  isLoadingItemGroups = false;
 
   readonly games = signal<readonly Game[]>([]);
+  readonly itemGroups = signal<readonly ItemGroup[]>([]);
   readonly products = signal<readonly Product[]>([]);
   readonly pixels = signal<readonly PixelListItem[]>([]);
   readonly scrapingModes = signal<readonly ScrapingMode[]>([]);
@@ -64,6 +69,7 @@ export class GameUrlForm implements OnInit {
 
   form = this.fb.nonNullable.group({
     gameId: [null as number | null, [Validators.required, Validators.min(1)]],
+    itemGroupId: [null as number | null],
     name: [''],
     partialUrl: [''],
     scrapingModeId: [1, Validators.required],
@@ -76,6 +82,11 @@ export class GameUrlForm implements OnInit {
     pixelImageHeight: [DEFAULT_PIXEL_IMAGE_HEIGHT as number | null],
   });
 
+  readonly newItemGroupName = this.fb.nonNullable.control(
+    { value: '', disabled: true },
+    [Validators.required, Validators.maxLength(255)],
+  );
+
   constructor(
     private readonly fb: FormBuilder,
     private readonly route: ActivatedRoute,
@@ -86,7 +97,8 @@ export class GameUrlForm implements OnInit {
     private readonly pixelService: PixelService,
     private readonly gameUrlProductService: GameUrlProductService,
     private readonly gameUrlPixelService: GameUrlPixelService,
-    private readonly scrapingModeService: ScrapingModeService
+    private readonly scrapingModeService: ScrapingModeService,
+    private readonly itemGroupService: ItemGroupService,
   ) {}
 
   ngOnInit(): void {
@@ -99,10 +111,30 @@ export class GameUrlForm implements OnInit {
       });
 
     this.form.controls.gameId.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        this.pruneSelectedRelations();
-      });
+      .pipe(
+        switchMap(gameId => {
+          this.isLoadingItemGroups = gameId !== null;
+          this.pruneSelectedRelations();
+          this.form.controls.itemGroupId.setValue(null, { emitEvent: false });
+          this.itemGroups.set([]);
+          this.newItemGroupName.reset('', { emitEvent: false });
+
+          if (gameId === null) {
+            this.newItemGroupName.disable({ emitEvent: false });
+            return of([] as ItemGroup[]);
+          }
+
+          if (!this.isCreatingItemGroup) {
+            this.newItemGroupName.enable({ emitEvent: false });
+          }
+          return this.itemGroupService.getByGame(gameId).pipe(
+            catchError(() => of([] as ItemGroup[])),
+            finalize(() => { this.isLoadingItemGroups = false; }),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(itemGroups => this.itemGroups.set(itemGroups));
 
     this.loadLookupData();
 
@@ -230,7 +262,7 @@ export class GameUrlForm implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.form.invalid || this.isSubmitting) {
+    if (this.form.invalid || this.isSubmitting || this.isCreatingItemGroup) {
       return;
     }
 
@@ -260,6 +292,44 @@ export class GameUrlForm implements OnInit {
 
   cancel(): void {
     this.router.navigate(['/game-urls']);
+  }
+
+  createItemGroup(): void {
+    const gameId = this.form.controls.gameId.value;
+    const name = this.newItemGroupName.value.trim();
+
+    if (gameId === null || !name || this.newItemGroupName.invalid || this.isCreatingItemGroup || this.isLoadingItemGroups) {
+      this.newItemGroupName.markAsTouched();
+      return;
+    }
+
+    this.isCreatingItemGroup = true;
+    this.newItemGroupName.disable({ emitEvent: false });
+    this.itemGroupService
+      .create({ gameId, name })
+      .pipe(
+        catchError(() => EMPTY),
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.isCreatingItemGroup = false;
+          if (this.form.controls.gameId.value !== null) {
+            this.newItemGroupName.enable({ emitEvent: false });
+          }
+        }),
+      )
+      .subscribe(created => {
+        if (this.form.controls.gameId.value !== gameId) {
+          return;
+        }
+
+        this.itemGroups.set(
+          [...this.itemGroups(), created].sort((left, right) =>
+            left.name.localeCompare(right.name) || left.id - right.id,
+          ),
+        );
+        this.form.controls.itemGroupId.setValue(created.id);
+        this.newItemGroupName.reset('');
+      });
   }
 
   private pruneSelectedRelations(): void {
@@ -340,6 +410,7 @@ export class GameUrlForm implements OnInit {
         switchMap((gameUrl) => {
           this.form.patchValue({
             gameId: Number(gameUrl.gameId),
+            itemGroupId: gameUrl.itemGroupId,
             name: gameUrl.name ?? '',
             partialUrl: gameUrl.partialUrl ?? '',
             scrapingModeId: gameUrl.scrapingModeId ?? 1,
@@ -379,6 +450,7 @@ export class GameUrlForm implements OnInit {
 
     return {
       gameId,
+      itemGroupId: raw.itemGroupId,
       name: raw.name,
       scrapingModeId,
       partialUrl: raw.partialUrl,

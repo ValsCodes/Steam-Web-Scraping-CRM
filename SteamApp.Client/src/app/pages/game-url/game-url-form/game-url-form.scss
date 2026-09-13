@@ -1,1 +1,12 @@
 /* Shared form relation styles live in src/scss/main.scss. */
+
+.item-group-create-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+
+  input {
+    flex: 1 1 16rem;
+  }
+}

@@ -40,6 +40,7 @@ export class GameUrlsView implements OnInit, OnDestroy {
 
   displayedColumns: string[] = [
     'gameName',
+    'itemGroupName',
     'name',
     'partialUrl',
     'scrapingModeName',
@@ -110,6 +111,7 @@ export class GameUrlsView implements OnInit, OnDestroy {
   {
     const dataToExport = this.dataSource.data.map(x => ({
       gameName: x.gameName,
+      group: x.itemGroupName ?? 'Ungrouped',
       name: x.name ?? '',
       partialUrl: x.partialUrl ?? '',
       scrapingMode: x.scrapingModeName ?? '',

@@ -40,6 +40,8 @@ describe('WebScraperComponent integration tests', () => {
       id: 10,
       name: 'Batch URL',
       gameId: 1,
+      itemGroupId: null,
+      itemGroupName: null,
       gameName: 'Alpha Game',
       scrapingModeId: ScrapingModeEnum.Batch,
       scrapingModeName: 'Batch',

@@ -10,6 +10,9 @@ namespace SteamApp.Application.Mapper
         {
             CreateMap<GameUrl, GameUrlDto>()
                 .ForMember(
+                    d => d.ItemGroupName,
+                    o => o.MapFrom(s => s.ItemGroup != null ? s.ItemGroup.Name : null))
+                .ForMember(
                     d => d.ScrapingModeName,
                     o => o.MapFrom(s => s.ScrapingMode != null ? s.ScrapingMode.Name : null));
 

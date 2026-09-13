@@ -46,6 +46,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   .WithMany(s => s.GameUrls)
                   .HasForeignKey(g => g.ScrapingModeId)
                   .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(g => g.ItemGroup)
+                  .WithMany(g => g.GameUrls)
+                  .HasForeignKey(g => g.ItemGroupId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<WishList>(ConfigureUserOwnedEntity);
         modelBuilder.Entity<FeedbackRequest>(entity =>

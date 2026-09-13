@@ -4,6 +4,7 @@
     {
         public long Id { get; set; }
         public string? Name { get; set; }
+        public long? ItemGroupId { get; set; }
         public long? ScrapingModeId { get; set; }
         public string? PartialUrl { get; set; }
         public int? StartPage { get; set; }

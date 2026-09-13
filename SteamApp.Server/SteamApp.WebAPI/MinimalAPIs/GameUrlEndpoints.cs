@@ -38,6 +38,8 @@ namespace SteamApp.WebAPI.MinimalAPIs
                         Name = x.Name,
                         GameId = x.GameId,
                         GameName = x.Game.Name,
+                        ItemGroupId = x.ItemGroupId,
+                        ItemGroupName = x.ItemGroup != null ? x.ItemGroup.Name : null,
                         ScrapingModeId = x.ScrapingModeId,
                         ScrapingModeName = x.ScrapingMode != null ? x.ScrapingMode.Name : null,
                         PartialUrl = x.PartialUrl,
@@ -115,6 +117,8 @@ namespace SteamApp.WebAPI.MinimalAPIs
                         Name = x.Name,
                         GameId = x.GameId,
                         GameName = x.Game.Name,
+                        ItemGroupId = x.ItemGroupId,
+                        ItemGroupName = x.ItemGroup != null ? x.ItemGroup.Name : null,
                         ScrapingModeId = x.ScrapingModeId,
                         ScrapingModeName = x.ScrapingMode != null ? x.ScrapingMode.Name : null,
                         PartialUrl = x.PartialUrl,
@@ -160,36 +164,51 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 GameUrlCreateDto input,
                 HttpContext httpContext,
                 ApplicationDbContext db,
-                IMapper mapper) =>
+                IMapper mapper,
+                CancellationToken ct) =>
             {
                 var userId = httpContext.User.GetUserId();
                 if (userId is null) { return Results.Unauthorized(); }
 
                 var gameExists = await db.Games
                     .AsNoTracking()
-                    .AnyAsync(g => g.Id == input.GameId && g.UserId == userId);
+                    .AnyAsync(g => g.Id == input.GameId && g.UserId == userId, ct);
 
                 if (!gameExists)
                 {
                     return Results.BadRequest("Invalid GameId");
                 }
 
-                var scrapingModeExists = await ScrapingModeExistsAsync(db, input.ScrapingModeId);
+                var scrapingModeExists = await ScrapingModeExistsAsync(db, input.ScrapingModeId, ct);
                 if (!scrapingModeExists)
                 {
                     return Results.BadRequest("Invalid ScrapingModeId");
+                }
+
+                if (input.ItemGroupId.HasValue)
+                {
+                    var itemGroupExists = await db.ItemGroups.AsNoTracking().AnyAsync(
+                        x => x.Id == input.ItemGroupId.Value &&
+                             x.GameId == input.GameId &&
+                             x.UserId == userId,
+                        ct);
+
+                    if (!itemGroupExists)
+                    {
+                        return Results.BadRequest(new { message = "Invalid ItemGroupId" });
+                    }
                 }
 
                 var entity = mapper.Map<GameUrl>(input);
                 entity.UserId = userId;
 
                 db.GameUrls.Add(entity);
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(ct);
 
                 var dto = await ProjectGameUrlDtos(db.GameUrls
                     .AsNoTracking()
-                    .Where(x => x.Id == entity.Id))
-                    .FirstAsync();
+                    .Where(x => x.Id == entity.Id && x.UserId == userId))
+                    .FirstAsync(ct);
 
                 return Results.Created($"/api/game-urls/{entity.Id}", dto);
             })
@@ -205,23 +224,38 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 HttpContext httpContext,
                 ApplicationDbContext db,
                 IMapper mapper,
-                IMemoryCache cache) =>
+                IMemoryCache cache,
+                CancellationToken ct) =>
             {
                 var userId = httpContext.User.GetUserId();
                 if (userId is null) { return Results.Unauthorized(); }
 
-                var entity = await db.GameUrls.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+                var entity = await db.GameUrls.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
                 if (entity is null) { return Results.NotFound(); }
 
-                var scrapingModeExists = await ScrapingModeExistsAsync(db, input.ScrapingModeId);
+                var scrapingModeExists = await ScrapingModeExistsAsync(db, input.ScrapingModeId, ct);
                 if (!scrapingModeExists)
                 {
                     return Results.BadRequest("Invalid ScrapingModeId");
                 }
 
+                if (input.ItemGroupId.HasValue)
+                {
+                    var itemGroupExists = await db.ItemGroups.AsNoTracking().AnyAsync(
+                        x => x.Id == input.ItemGroupId.Value &&
+                             x.GameId == entity.GameId &&
+                             x.UserId == userId,
+                        ct);
+
+                    if (!itemGroupExists)
+                    {
+                        return Results.BadRequest(new { message = "Invalid ItemGroupId" });
+                    }
+                }
+
                 mapper.Map(input, entity);
 
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(ct);
 
                 var cacheKey = string.Format(CacheKeys.GameUrl, id);
                 cache.Remove(cacheKey);
@@ -356,6 +390,8 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 Id = x.Id,
                 Name = x.Name ?? string.Empty,
                 GameId = x.GameId,
+                ItemGroupId = x.ItemGroupId,
+                ItemGroupName = x.ItemGroup != null ? x.ItemGroup.Name : null,
                 ScrapingModeId = x.ScrapingModeId,
                 ScrapingModeName = x.ScrapingMode != null ? x.ScrapingMode.Name : null,
                 PartialUrl = x.PartialUrl ?? string.Empty,
@@ -369,10 +405,10 @@ namespace SteamApp.WebAPI.MinimalAPIs
             });
         }
 
-        private static Task<bool> ScrapingModeExistsAsync(ApplicationDbContext db, long? scrapingModeId)
+        private static Task<bool> ScrapingModeExistsAsync(ApplicationDbContext db, long? scrapingModeId, CancellationToken ct)
         {
             return scrapingModeId.HasValue
-                ? db.ScrapingModes.AsNoTracking().AnyAsync(x => x.Id == scrapingModeId.Value)
+                ? db.ScrapingModes.AsNoTracking().AnyAsync(x => x.Id == scrapingModeId.Value, ct)
                 : Task.FromResult(true);
         }
     }

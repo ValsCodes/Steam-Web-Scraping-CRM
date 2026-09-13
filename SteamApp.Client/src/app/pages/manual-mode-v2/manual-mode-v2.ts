@@ -187,6 +187,10 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     return groupByItemGroup(this.gameTagsFilter);
   }
 
+  get gameUrlGroups(): readonly ItemGroupSection<GameUrl>[] {
+    return groupByItemGroup(this.gameUrlsFiltered$.value);
+  }
+
   ngOnInit(): void {
     this.loadGames();
     this.loadScrapingModes();

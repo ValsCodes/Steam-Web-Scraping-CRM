@@ -19,6 +19,12 @@ namespace SteamApp.Domain.Entities
         [InverseProperty(nameof(Game.GameUrls))]
         public Game Game { get; set; } = null!;
 
+        [Column("item_group_id")]
+        [ForeignKey(nameof(ItemGroup))]
+        public long? ItemGroupId { get; set; }
+        [InverseProperty(nameof(ItemGroup.GameUrls))]
+        public ItemGroup? ItemGroup { get; set; }
+
         [Column("scraping_mode_id")]
         [ForeignKey(nameof(ScrapingMode))]
         public long? ScrapingModeId { get; set; }

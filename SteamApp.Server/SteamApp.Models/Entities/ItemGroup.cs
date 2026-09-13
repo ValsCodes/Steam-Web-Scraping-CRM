@@ -29,5 +29,6 @@ public sealed class ItemGroup
     public string? UserId { get; set; }
 
     public ICollection<Tag> Tags { get; set; } = [];
+    public ICollection<GameUrl> GameUrls { get; set; } = [];
     public ICollection<ManualCheckPreset> ManualCheckPresets { get; set; } = [];
 }

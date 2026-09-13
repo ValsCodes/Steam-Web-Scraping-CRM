@@ -50,8 +50,12 @@
                                 class="w-full rounded border border-slate-300 px-3 py-2"
                                 [formControl]="gameUrlIdControl">
                                 <option [ngValue]="null">Select Game URL</option>
-                                @for (url of gameUrlsFiltered$ | async; track url.id) {
-                                <option [ngValue]="url.id">{{ url.name }}</option>
+                                @for (group of gameUrlGroups; track group.itemGroupId) {
+                                <optgroup [label]="group.name">
+                                    @for (url of group.items; track url.id) {
+                                    <option [ngValue]="url.id">{{ url.name }}</option>
+                                    }
+                                </optgroup>
                                 }
                             </select>
                         </div>

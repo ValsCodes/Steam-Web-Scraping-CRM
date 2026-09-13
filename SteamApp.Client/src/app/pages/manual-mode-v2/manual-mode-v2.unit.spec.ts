@@ -8,7 +8,7 @@ import {
   GameUrlProductService,
   ManualCheckService,
 } from '../../services';
-import { GameUrlProduct, ManualCheckRunDetail, ScrapingModeEnum } from '../../models';
+import { GameUrl, GameUrlProduct, ManualCheckRunDetail, ScrapingModeEnum } from '../../models';
 import { ManualCheckSetupDialogComponent } from './manual-check-setup-dialog.component';
 import { ManualCheckSteamResultDialogComponent } from './manual-check-steam-result-dialog.component';
 import { ManualCheckTraceDialogComponent } from './manual-check-trace-dialog.component';
@@ -62,6 +62,18 @@ describe('ManualModeV2 external link disclosure', () => {
       cdr,
       disclosure,
     );
+  });
+
+  it('groups URL options by name with alphabetized URLs and Ungrouped last', () => {
+    component.gameUrlsFiltered$.next([
+      { id: 1, name: 'Zulu', itemGroupId: 10, itemGroupName: 'Priority' },
+      { id: 2, name: 'Legacy', itemGroupId: null, itemGroupName: null },
+      { id: 3, name: 'Beta', itemGroupId: 11, itemGroupName: 'Category' },
+      { id: 4, name: 'Alpha', itemGroupId: 10, itemGroupName: 'Priority' },
+    ] as GameUrl[]);
+
+    expect(component.gameUrlGroups.map(group => group.name)).toEqual(['Category', 'Priority', 'Ungrouped']);
+    expect(component.gameUrlGroups.map(group => group.items.map(url => url.id))).toEqual([[3], [4, 1], [2]]);
   });
 
   it('routes open-all through disclosure and stops when acceptance is needed', () => {

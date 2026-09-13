@@ -21,6 +21,38 @@
     </div>
 
     <div class="form-group">
+      <label for="game-url-item-group-id">Group</label>
+      <select id="game-url-item-group-id" name="itemGroupId" formControlName="itemGroupId" class="px-2 py-1">
+        <option [ngValue]="null">No group</option>
+        @for (itemGroup of itemGroups(); track itemGroup.id) {
+          <option [ngValue]="itemGroup.id">{{ itemGroup.name }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="form-group form-group--full">
+      <label for="new-item-group-name">Create a new group</label>
+      <div class="item-group-create-row">
+        <input
+          id="new-item-group-name"
+          name="newItemGroupName"
+          [formControl]="newItemGroupName"
+          maxlength="255"
+          class="px-2 py-1"
+          placeholder="Group name" />
+        <button
+          type="button"
+          class="button button-small-secondary"
+          [disabled]="form.controls.gameId.value === null || newItemGroupName.invalid || isCreatingItemGroup || isLoadingItemGroups"
+          [class.busy-cursor]="isCreatingItemGroup"
+          (click)="createItemGroup()">
+          {{ isCreatingItemGroup ? 'Creating...' : 'Create group' }}
+        </button>
+      </div>
+      <small>The new group is saved immediately and selected for this game URL.</small>
+    </div>
+
+    <div class="form-group">
       <label for="game-url-name">Name *</label>
       <input id="game-url-name" name="name" formControlName="name" class="px-2 py-1 w-1/2" placeholder="Special item" />
     </div>
@@ -157,7 +189,7 @@
   </div>
 
   <div class="form-actions">
-    <button type="submit" [disabled]="form.invalid || isSubmitting" [class.busy-cursor]="isSubmitting">
+    <button type="submit" [disabled]="form.invalid || isSubmitting || isCreatingItemGroup" [class.busy-cursor]="isSubmitting || isCreatingItemGroup">
       {{ isSubmitting ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save changes' : 'Create game URL') }}
     </button>
 
