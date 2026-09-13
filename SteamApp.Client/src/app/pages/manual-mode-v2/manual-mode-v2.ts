@@ -136,6 +136,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   automatedCheckWarning = '';
   automatedCheckError = '';
   readonly selectedProductIds = new Set<number>();
+  private productSelectionAnchor: number | null = null;
 
   readonly gameIdControl = new FormControl<number | null>(null);
   readonly scrapingModeIdControl = new FormControl<number | null>(null);
@@ -535,16 +536,30 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     return this.selectedProductIds.has(productId);
   }
 
-  setProductSelected(productId: number, selected: boolean): void {
-    if (selected) {
-      this.selectedProductIds.add(productId);
-    } else {
-      this.selectedProductIds.delete(productId);
+  setProductSelected(productId: number, selected: boolean, shiftKey = false): void {
+    const anchorIndex = this.productsFiltered.findIndex(product => product.productId === this.productSelectionAnchor);
+    const endpointIndex = this.productsFiltered.findIndex(product => product.productId === productId);
+    const hasRange = shiftKey && anchorIndex >= 0 && endpointIndex >= 0;
+    const productIds = hasRange
+      ? this.productsFiltered.slice(Math.min(anchorIndex, endpointIndex), Math.max(anchorIndex, endpointIndex) + 1)
+          .map(product => product.productId)
+      : [productId];
+
+    for (const id of productIds) {
+      if (selected) {
+        this.selectedProductIds.add(id);
+      } else {
+        this.selectedProductIds.delete(id);
+      }
+    }
+    if (!hasRange) {
+      this.productSelectionAnchor = productId;
     }
     this.cdr.markForCheck();
   }
 
   setFilteredProductsSelected(selected: boolean): void {
+    this.productSelectionAnchor = null;
     for (const product of this.productsFiltered) {
       if (selected) {
         this.selectedProductIds.add(product.productId);
@@ -964,6 +979,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   }
 
   private loadFilteredProducts(): void {
+    this.productSelectionAnchor = null;
     const nameFilter = (this.searchByNameFilterControl.value ?? '').toLowerCase();
     const tagFilters = this.tagsFilter.map((t) => t.toLowerCase());
     const ratingFilter = this.searchByRatingFilterControl.value;
@@ -1200,6 +1216,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
   private clearProductSelection(): void {
     this.selectedProductIds.clear();
+    this.productSelectionAnchor = null;
   }
 
   private getRequestError(error: unknown, fallback: string): string {

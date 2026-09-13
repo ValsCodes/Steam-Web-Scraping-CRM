@@ -654,6 +654,40 @@ describe('ManualModeV2 external link disclosure', () => {
     expect(product.currentStock).toBe(-10);
   });
 
+  it('selects inclusive forward and reverse Shift ranges in visible grid order', () => {
+    component.productsFiltered = [5, 3, 7, 1].map(productId => ({ productId })) as GameUrlProduct[];
+    component.setProductSelected(3, true);
+    component.setProductSelected(1, true, true);
+    expect([...component.selectedProductIds]).toEqual([3, 7, 1]);
+
+    component.setProductSelected(5, true, true);
+    expect(component.areAllFilteredProductsSelected).toBeTrue();
+  });
+
+  it('deselects a Shift range without changing hidden or outside selections', () => {
+    component.productsFiltered = [5, 3, 7, 1].map(productId => ({ productId })) as GameUrlProduct[];
+    component.setFilteredProductsSelected(true);
+    component.setProductSelected(99, true);
+    component.setProductSelected(3, false);
+    component.setProductSelected(1, false, true);
+
+    expect([...component.selectedProductIds]).toEqual([5, 99]);
+  });
+
+  it('uses a single endpoint when Shift has no visible anchor or after Select All', () => {
+    component.productsFiltered = [5, 3, 7].map(productId => ({ productId })) as GameUrlProduct[];
+    component.setProductSelected(7, true, true);
+    expect([...component.selectedProductIds]).toEqual([7]);
+    component.productsFiltered = [component.productsFiltered[0]];
+    component.setProductSelected(5, true, true);
+    expect([...component.selectedProductIds]).toEqual([7, 5]);
+
+    component.productsFiltered = [5, 3, 7].map(productId => ({ productId })) as GameUrlProduct[];
+    component.setFilteredProductsSelected(false);
+    component.setProductSelected(7, true, true);
+    expect([...component.selectedProductIds]).toEqual([7]);
+  });
+
   it('preserves selection across filters and selects only currently shown products', () => {
     component.products = [
       { productId: 5, productName: 'First', isActive: true },

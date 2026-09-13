@@ -424,7 +424,7 @@
                     <div>
                         <h2 class="text-lg font-semibold text-slate-800">Products</h2>
                         <p class="mt-1 text-sm text-slate-500">
-                            Select products for a scoped check or use a card menu to check one product.
+                            Select products for a scoped check. Hold Shift and click a selection checkbox to select a range.
                         </p>
                     </div>
                     <div class="flex flex-wrap items-center gap-3">
@@ -461,7 +461,7 @@
                                 <label
                                     class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600">
                                     <input type="checkbox" [checked]="isProductSelected(product.productId)"
-                                        (change)="setProductSelected(product.productId, $any($event.target).checked)" />
+                                        (click)="setProductSelected(product.productId, $any($event.target).checked, $event.shiftKey)" />
                                     Select
                                 </label>
                                 <button type="button" mat-icon-button [matMenuTriggerFor]="productAutomatedActionsMenu"

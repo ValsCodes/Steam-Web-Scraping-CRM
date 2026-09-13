@@ -60,7 +60,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
 <div class="container">
 
 <h1>SteamApp — Complete Call Flow &amp; Architecture Documentation</h1>
-<p class="subtitle">Generated from graphify knowledge graph: 4449 nodes, 9102 edges, 296 communities. Commit: a5b89aa</p>
+<p class="subtitle">Generated from graphify knowledge graph: 4449 nodes, 9102 edges, 290 communities. Commit: abcd6ae</p>
 
 <div class="nav">
     <a href="#overview">Architecture Overview</a>
@@ -74,10 +74,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
     <a href="#tests-fixtures">Tests &amp; Fixtures</a>
     <a href="#manualmodev2">ManualModeV2</a>
     <a href="#pixelsview">PixelsView</a>
+    <a href="#materializeresultsifneeded">.MaterializeResultsIfNeeded</a>
     <a href="#watchitemdto">WatchItemDto</a>
     <a href="#steamservice">SteamService</a>
     <a href="#pixelservice">PixelService</a>
-    <a href="#createtokenresponse">.CreateTokenResponse</a>
     <a href="#other">Other</a>
 </div>
 
@@ -94,41 +94,41 @@ flowchart LR
     class ANALYSIS_CLUSTERING_C79796DA module;
     OUTPUTS_DOCS_ED82387C("Outputs &amp; Docs<br/><small>60 nodes</small>")
     class OUTPUTS_DOCS_ED82387C module;
-    CLI_SKILLS_9964CBB8("CLI &amp; Skill Installers<br/><small>98 nodes</small>")
+    CLI_SKILLS_9964CBB8("CLI &amp; Skill Installers<br/><small>93 nodes</small>")
     class CLI_SKILLS_9964CBB8 module;
     INGEST_CACHE_UPDATE_FF457338("Ingestion &amp; Updates<br/><small>564 nodes</small>")
     class INGEST_CACHE_UPDATE_FF457338 module;
     SERVE_API_35EC8E86("Serving API<br/><small>111 nodes</small>")
     class SERVE_API_35EC8E86 module;
-    SECURITY_GLOBAL_5B9C6A04("Security &amp; Global Graph<br/><small>126 nodes</small>")
+    SECURITY_GLOBAL_5B9C6A04("Security &amp; Global Graph<br/><small>129 nodes</small>")
     class SECURITY_GLOBAL_5B9C6A04 module;
-    TESTS_FIXTURES_B84B1DCC("Tests &amp; Fixtures<br/><small>1005 nodes</small>")
+    TESTS_FIXTURES_B84B1DCC("Tests &amp; Fixtures<br/><small>1024 nodes</small>")
     class TESTS_FIXTURES_B84B1DCC module;
     MANUALMODEV2_AFCD55D3("ManualModeV2<br/><small>84 nodes</small>")
     class MANUALMODEV2_AFCD55D3 module;
     PIXELSVIEW_D9D5CE1D("PixelsView<br/><small>62 nodes</small>")
     class PIXELSVIEW_D9D5CE1D module;
+    MATERIALIZERESULTSIFNEEDED_0B94713C(".MaterializeResultsIfNeeded<br/><small>61 nodes</small>")
+    class MATERIALIZERESULTSIFNEEDED_0B94713C module;
     WATCHITEMDTO_319FAAD0("WatchItemDto<br/><small>51 nodes</small>")
     class WATCHITEMDTO_319FAAD0 module;
     STEAMSERVICE_BED0F157("SteamService<br/><small>47 nodes</small>")
     class STEAMSERVICE_BED0F157 module;
     PIXELSERVICE_7527B4A8("PixelService<br/><small>47 nodes</small>")
     class PIXELSERVICE_7527B4A8 module;
-    CREATETOKENRESPONSE_602AA761(".CreateTokenResponse<br/><small>46 nodes</small>")
-    class CREATETOKENRESPONSE_602AA761 module;
-    OTHER_D0941E68("Other<br/><small>1855 nodes</small>")
+    OTHER_D0941E68("Other<br/><small>1823 nodes</small>")
     class OTHER_D0941E68 module;
-    TESTS_FIXTURES_B84B1DCC -->|contains x253| OTHER_D0941E68
-    OTHER_D0941E68 -->|imports x110| TESTS_FIXTURES_B84B1DCC
+    TESTS_FIXTURES_B84B1DCC -->|contains x225| OTHER_D0941E68
+    OTHER_D0941E68 -->|references x90| TESTS_FIXTURES_B84B1DCC
     TESTS_FIXTURES_B84B1DCC -->|imports x59| INGEST_CACHE_UPDATE_FF457338
-    TESTS_FIXTURES_B84B1DCC -->|imports x43| SECURITY_GLOBAL_5B9C6A04
-    OTHER_D0941E68 -->|imports x37| INGEST_CACHE_UPDATE_FF457338
+    TESTS_FIXTURES_B84B1DCC -->|imports x51| SECURITY_GLOBAL_5B9C6A04
+    OTHER_D0941E68 -->|imports x39| INGEST_CACHE_UPDATE_FF457338
     INGEST_CACHE_UPDATE_FF457338 -->|imports x34| TESTS_FIXTURES_B84B1DCC
+    SECURITY_GLOBAL_5B9C6A04 -->|contains x34| TESTS_FIXTURES_B84B1DCC
     OTHER_D0941E68 -->|references x33| STEAMSERVICE_BED0F157
-    INGEST_CACHE_UPDATE_FF457338 -->|imports x28| OTHER_D0941E68
-    SECURITY_GLOBAL_5B9C6A04 -->|imports x25| TESTS_FIXTURES_B84B1DCC
+    INGEST_CACHE_UPDATE_FF457338 -->|imports x30| OTHER_D0941E68
+    SECURITY_GLOBAL_5B9C6A04 -->|contains x26| OTHER_D0941E68
     PIXELSVIEW_D9D5CE1D -->|calls x24| INGEST_CACHE_UPDATE_FF457338
-    SECURITY_GLOBAL_5B9C6A04 -->|contains x24| OTHER_D0941E68
     MANUALMODEV2_AFCD55D3 -->|imports x22| INGEST_CACHE_UPDATE_FF457338
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
@@ -146,7 +146,7 @@ flowchart LR
     <h4>Architecture Layers</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>Layer</th><th>Nodes</th><th>Communities</th></tr>
-      <tr><td>Graph Build</td><td>242</td><td><code>20, 11, 25, 45, 68, 71, 72, 95, 97, 108, 115, 178, 124, 125, 131, 219, 268, 280, 283, 285, 287, 288, 289</code></td></tr><tr><td>Analysis &amp; Clustering</td><td>51</td><td><code>187, 175, 176, 177, 193, 194, 222, 226, 238, 242</code></td></tr><tr><td>Outputs &amp; Docs</td><td>60</td><td><code>18, 24, 172, 240, 286</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>98</td><td><code>113, 33, 169, 188, 196, 211, 214, 223, 267, 234</code></td></tr><tr><td>Ingestion &amp; Updates</td><td>564</td><td><code>189, 15, 48, 40, 17, 237, 16, 37, 183, 258, 4, 180, 213, 215, 275, 220</code></td></tr><tr><td>Serving API</td><td>111</td><td><code>0, 122, 98, 209</code></td></tr><tr><td>Security &amp; Global Graph</td><td>126</td><td><code>147, 76, 62, 29, 171, 140</code></td></tr><tr><td>Tests &amp; Fixtures</td><td>1005</td><td><code>191, 5, 28, 30, 104, 9, 13, 19, 21, 3, 22, 162, 26, 192, 47, 138, 7, 38, 51, 53, 82, 10, 80, 43, 88, 107, 110, 128, 137, 274, 212, 158, 160</code></td></tr><tr><td>ManualModeV2</td><td>84</td><td><code>2</code></td></tr><tr><td>PixelsView</td><td>62</td><td><code>111</code></td></tr><tr><td>WatchItemDto</td><td>51</td><td><code>39</code></td></tr><tr><td>SteamService</td><td>47</td><td><code>106</code></td></tr><tr><td>PixelService</td><td>47</td><td><code>12</code></td></tr><tr><td>.CreateTokenResponse</td><td>46</td><td><code>241</code></td></tr><tr><td>Other</td><td>1855</td><td><code>14, 8, 136, 170, 27, 31, 46, 23, 210, 34, 36, 228, 89, 266, 6, 44, 32, 121, 101, 109, 52, 56, 102, 55, 1, 50, 59, 64, 134, 221, 253, 60, 66, 75, 262, 65, 67, 69, 130, 132, 61, 70, 73, 92, 135, 250, 81, 229, 251, 252, 272, 42, 79, 83, 163, 63, 84, 87, 90, 91, 93, 94, 100, 103, 114, 120, 164, 166, 35, 49, 57, 58, 74, 77, 96, 173, 174, 264, 265, 78, 85, 105, 112, 116, 117, 118, 141, 146, 159, 165, 230, 54, 99, 123, 126, 144, 198, 86, 185, 239, 277, 278, 119, 127, 129, 133, 139, 142, 143, 145, 149, 150, 151, 152, 153, 154, 155, 156, 157, 179, 182, 184, 218, 231, 243, 247, 248, 249, 260, 261, 271, 41, 148, 161, 168, 181, 186, 190, 195, 197, 208, 216, 217, 225, 227, 233, 235, 236, 244, 245, 246, 254, 255, 256, 257, 273, 276, 294, 298, 167, 259, 263, 270, 300, 301, 302, 303, 304, 305, 306, 307, 199, 200, 201, 224, 232, 309, 202, 203, 204, 205, 206, 207</code></td></tr>
+      <tr><td>Graph Build</td><td>242</td><td><code>20, 11, 25, 45, 68, 71, 72, 95, 97, 108, 115, 178, 124, 125, 131, 219, 233, 280, 283, 285, 287, 288, 289</code></td></tr><tr><td>Analysis &amp; Clustering</td><td>51</td><td><code>187, 175, 176, 177, 193, 194, 222, 226, 238, 242</code></td></tr><tr><td>Outputs &amp; Docs</td><td>60</td><td><code>18, 24, 172, 240, 286</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>93</td><td><code>113, 33, 169, 188, 196, 211, 214, 223, 267, 234</code></td></tr><tr><td>Ingestion &amp; Updates</td><td>564</td><td><code>189, 15, 40, 48, 17, 237, 16, 37, 183, 258, 4, 180, 213, 215, 275, 220</code></td></tr><tr><td>Serving API</td><td>111</td><td><code>0, 122, 98, 209</code></td></tr><tr><td>Security &amp; Global Graph</td><td>129</td><td><code>147, 76, 62, 29, 171, 140, 158, 161</code></td></tr><tr><td>Tests &amp; Fixtures</td><td>1024</td><td><code>191, 5, 28, 104, 9, 13, 7, 30, 14, 19, 21, 3, 22, 26, 47, 162, 192, 138, 38, 51, 53, 82, 10, 80, 88, 107, 110, 128, 137, 274, 212, 160</code></td></tr><tr><td>ManualModeV2</td><td>84</td><td><code>2</code></td></tr><tr><td>PixelsView</td><td>62</td><td><code>111</code></td></tr><tr><td>.MaterializeResultsIfNeeded</td><td>61</td><td><code>170</code></td></tr><tr><td>WatchItemDto</td><td>51</td><td><code>39</code></td></tr><tr><td>SteamService</td><td>47</td><td><code>106</code></td></tr><tr><td>PixelService</td><td>47</td><td><code>12</code></td></tr><tr><td>Other</td><td>1823</td><td><code>241, 8, 136, 27, 31, 46, 23, 210, 34, 36, 228, 89, 266, 6, 44, 32, 114, 121, 101, 109, 52, 56, 102, 55, 92, 1, 50, 59, 64, 134, 221, 253, 60, 66, 75, 262, 65, 41, 67, 69, 130, 132, 61, 70, 73, 135, 250, 81, 229, 251, 252, 272, 42, 79, 83, 163, 63, 84, 87, 90, 91, 93, 94, 100, 103, 120, 164, 166, 35, 49, 57, 74, 77, 96, 173, 174, 264, 265, 78, 85, 105, 112, 116, 117, 118, 141, 146, 159, 165, 230, 54, 99, 123, 126, 144, 198, 86, 185, 239, 277, 278, 119, 127, 129, 133, 139, 142, 143, 145, 149, 150, 151, 152, 153, 154, 155, 156, 157, 179, 182, 184, 218, 231, 243, 247, 248, 249, 260, 261, 271, 43, 58, 148, 168, 181, 186, 190, 195, 197, 208, 216, 217, 225, 227, 244, 246, 254, 255, 257, 273, 276, 294, 298, 167, 259, 263, 270, 300, 301, 302, 303, 304, 305, 306, 307, 199, 200, 201, 224, 232, 202, 203, 204, 205, 206, 207</code></td></tr>
     </table>
   </div>
   <div class="card">
@@ -158,7 +158,7 @@ flowchart LR
   <div class="card">
     <h4>Graph Report Highlights</h4>
     <ul>
-      <li>4449 nodes · 9102 edges · 296 communities (210 shown, 86 thin omitted)</li>
+      <li>4449 nodes · 9102 edges · 290 communities (209 shown, 81 thin omitted)</li>
       <li>Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 482 edges (avg confidence: 0.8)</li>
       <li>Token cost: 0 input · 0 output</li>
       <li>1. `handleError()` - 122 edges</li>
@@ -1182,76 +1182,79 @@ flowchart LR
 
 <!-- ====== 5. CLI & Skill Installers ====== -->
 <h2 id="cli-skills">5. CLI &amp; Skill Installers</h2>
-<p>CLI &amp; Skill Installers groups implementation around skills, skillmd, graphify, steamappclient, mostly in skills/graphify/SKILL.md, skills/pr-review/SKILL.md, services/loading/loading-state.service.ts. This section covers 98 nodes and 117 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>CLI &amp; Skill Installers groups implementation around skills, skillmd, graphify, codex, mostly in skills/graphify/SKILL.md, services/seo/seo-meta.service.ts, skills/pr-review/SKILL.md. This section covers 93 nodes and 111 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: CLI &amp; Skill Installers (98 nodes, 117 edges)
-    subgraph cli_skills_app_services_error_dialog_bridge_ts_235e9a0c["app/services/error-dialog-bridge.ts"]
-        steamapp_client_src_app_services_error_dialog_br_0b651522("error-dialog-bridge.ts")
-        steamapp_client_src_app_services_error_dialog_br_b7905dba("initialize()<br/><small>app/services/error-dialog-bridge.ts</small>")
-        steamapp_client_src_app_services_error_dialog_br_fd6e2372("ErrorDialogBridge<br/><small>app/services/error-dialog-bridge.ts</small>")
-        steamapp_client_src_app_services_error_dialog_br_150edff8("open()<br/><small>app/services/error-dialog-bridge.ts</small>")
-    end
+    %% Section: CLI &amp; Skill Installers (93 nodes, 111 edges)
     subgraph cli_skills_services_loading_loading_state_servic_c9da8279["services/loading/loading-state.service.ts"]
         steamapp_client_src_app_services_loading_loading_7648bb78("LoadingStateService<br/><small>services/loading/loading-state.service.ts</small>")
         steamapp_client_src_app_services_loading_loading_92787697("begin()<br/><small>services/loading/loading-state.service.ts</small>")
         steamapp_client_src_app_services_loading_loading_f426962f("end()<br/><small>services/loading/loading-state.service.ts</small>")
         steamapp_client_src_app_services_loading_loading_a4d426f5("constructor()<br/><small>services/loading/loading-state.service.ts</small>")
+        steamapp_client_src_app_services_loading_loading_69209a77("track()<br/><small>services/loading/loading-state.service.ts</small>")
     end
-    subgraph cli_skills_app_services_error_dialog_service_ts_a61b8b5f["app/services/error-dialog.service.ts"]
-        steamapp_client_src_app_services_error_dialog_se_f467880d("ErrorDialogService<br/><small>app/services/error-dialog.service.ts</small>")
-        steamapp_client_src_app_services_error_dialog_se_cb04c48e("constructor()<br/><small>app/services/error-dialog.service.ts</small>")
-        steamapp_client_src_app_services_error_dialog_se_72170373("open()<br/><small>app/services/error-dialog.service.ts</small>")
+    subgraph cli_skills_services_seo_seo_meta_service_ts_88b5ef67["services/seo/seo-meta.service.ts"]
+        steamapp_client_src_app_services_seo_seo_meta_se_254b8cb5("SeoMetaService<br/><small>services/seo/seo-meta.service.ts</small>")
+        steamapp_client_src_app_services_seo_seo_meta_se_5e577780("applyRouteSeo()<br/><small>services/seo/seo-meta.service.ts</small>")
+        steamapp_client_src_app_services_seo_seo_meta_se_33554dbe("absoluteUrl()<br/><small>services/seo/seo-meta.service.ts</small>")
+        steamapp_client_src_app_services_seo_seo_meta_se_d6437311("collectSeoData()<br/><small>services/seo/seo-meta.service.ts</small>")
+        steamapp_client_src_app_services_seo_seo_meta_se_6ff6bd18("pathOnly()<br/><small>services/seo/seo-meta.service.ts</small>")
+    end
+    subgraph cli_skills_services_loading_loading_interceptor_9ae1a414["services/loading/loading.interceptor.ts"]
+        steamapp_client_src_app_services_loading_loading_00901258("intercept()<br/><small>services/loading/loading.interceptor.ts</small>")
+        steamapp_client_src_app_services_loading_loading_7d5ee99c("LoadingInterceptor<br/><small>services/loading/loading.interceptor.ts</small>")
+        steamapp_client_src_app_services_loading_loading_61550df7("constructor()<br/><small>services/loading/loading.interceptor.ts</small>")
     end
     subgraph cli_skills_src_app_app_component_ts_8eb56e2a["src/app/app.component.ts"]
         steamapp_client_src_app_app_component_11c90ef6("app.component.ts")
-        steamapp_client_src_app_app_component_appcompone_b83e719b("constructor()<br/><small>src/app/app.component.ts</small>")
         steamapp_client_src_app_app_component_appcompone_d6a877e6("AppComponent<br/><small>src/app/app.component.ts</small>")
-    end
-    subgraph cli_skills_app_components_error_dialog_component_154f75c9["app/components/error-dialog.component.ts"]
-        steamapp_client_src_app_components_error_dialog_cdf87c45("ErrorDialogComponent<br/><small>app/components/error-dialog.component.ts</small>")
-        steamapp_client_src_app_components_error_dialog_f1ca505c("close()<br/><small>app/components/error-dialog.component.ts</small>")
+        steamapp_client_src_app_app_component_appcompone_b83e719b("constructor()<br/><small>src/app/app.component.ts</small>")
     end
     steamapp_client_src_app_app_component_spec_0d3cd223("app.component.spec.ts")
     steamapp_client_src_app_app_config_ab107be6("app.config.ts")
     steamapp_client_src_app_app_component_appcompone_d6a877e6 -->|method| steamapp_client_src_app_app_component_appcompone_b83e719b
-    steamapp_client_src_app_app_component_appcompone_b83e719b -->|calls| steamapp_client_src_app_services_error_dialog_br_b7905dba
     steamapp_client_src_app_app_component_appcompone_b83e719b -->|calls| steamapp_client_src_app_services_loading_loading_92787697
     steamapp_client_src_app_app_component_appcompone_b83e719b -->|calls| steamapp_client_src_app_services_loading_loading_f426962f
-    steamapp_client_src_app_components_error_dialog_cdf87c45 -->|method| steamapp_client_src_app_components_error_dialog_f1ca505c
-    steamapp_client_src_app_services_error_dialog_br_fd6e2372 -->|method| steamapp_client_src_app_services_error_dialog_br_b7905dba
-    steamapp_client_src_app_services_error_dialog_br_fd6e2372 -->|method| steamapp_client_src_app_services_error_dialog_br_150edff8
-    steamapp_client_src_app_services_error_dialog_se_f467880d -->|method| steamapp_client_src_app_services_error_dialog_se_cb04c48e
-    steamapp_client_src_app_services_error_dialog_se_f467880d -->|method| steamapp_client_src_app_services_error_dialog_se_72170373
+    steamapp_client_src_app_app_component_appcompone_b83e719b -->|calls| steamapp_client_src_app_services_seo_seo_meta_se_5e577780
     steamapp_client_src_app_services_loading_loading_7648bb78 -->|method| steamapp_client_src_app_services_loading_loading_92787697
     steamapp_client_src_app_services_loading_loading_7648bb78 -->|method| steamapp_client_src_app_services_loading_loading_a4d426f5
     steamapp_client_src_app_services_loading_loading_7648bb78 -->|method| steamapp_client_src_app_services_loading_loading_f426962f
+    steamapp_client_src_app_services_loading_loading_7648bb78 -->|method| steamapp_client_src_app_services_loading_loading_69209a77
+    steamapp_client_src_app_services_loading_loading_92787697 -->|calls| steamapp_client_src_app_services_loading_loading_69209a77
+    steamapp_client_src_app_services_loading_loading_f426962f -->|calls| steamapp_client_src_app_services_loading_loading_69209a77
+    steamapp_client_src_app_services_loading_loading_69209a77 -->|calls| steamapp_client_src_app_services_loading_loading_00901258
+    steamapp_client_src_app_services_loading_loading_7d5ee99c -->|method| steamapp_client_src_app_services_loading_loading_61550df7
+    steamapp_client_src_app_services_loading_loading_7d5ee99c -->|method| steamapp_client_src_app_services_loading_loading_00901258
+    steamapp_client_src_app_services_seo_seo_meta_se_254b8cb5 -->|method| steamapp_client_src_app_services_seo_seo_meta_se_33554dbe
+    steamapp_client_src_app_services_seo_seo_meta_se_254b8cb5 -->|method| steamapp_client_src_app_services_seo_seo_meta_se_5e577780
+    steamapp_client_src_app_services_seo_seo_meta_se_254b8cb5 -->|method| steamapp_client_src_app_services_seo_seo_meta_se_d6437311
+    steamapp_client_src_app_services_seo_seo_meta_se_254b8cb5 -->|method| steamapp_client_src_app_services_seo_seo_meta_se_6ff6bd18
+    steamapp_client_src_app_services_seo_seo_meta_se_5e577780 -->|calls| steamapp_client_src_app_services_seo_seo_meta_se_33554dbe
+    steamapp_client_src_app_services_seo_seo_meta_se_5e577780 -->|calls| steamapp_client_src_app_services_seo_seo_meta_se_d6437311
+    steamapp_client_src_app_services_seo_seo_meta_se_5e577780 -->|calls| steamapp_client_src_app_services_seo_seo_meta_se_6ff6bd18
     steamapp_client_src_app_app_component_spec_0d3cd223 -->|imports| steamapp_client_src_app_app_component_11c90ef6
     steamapp_client_src_app_app_component_spec_0d3cd223 -->|imports| steamapp_client_src_app_app_component_appcompone_d6a877e6
-    steamapp_client_src_app_app_component_11c90ef6 -->|imports| steamapp_client_src_app_services_error_dialog_br_0b651522
-    steamapp_client_src_app_app_component_11c90ef6 -->|imports| steamapp_client_src_app_services_error_dialog_br_fd6e2372
-    steamapp_client_src_app_app_component_11c90ef6 -->|imports| steamapp_client_src_app_services_error_dialog_se_f467880d
     steamapp_client_src_app_app_component_11c90ef6 -->|imports| steamapp_client_src_app_services_loading_loading_7648bb78
-    steamapp_client_src_app_services_error_dialog_br_0b651522 -->|imports| steamapp_client_src_app_services_error_dialog_se_f467880d
-    %% Omitted for readability: 80 nodes, 0 edges
-    class steamapp_client_src_app_services_error_dialog_br_0b651522 module;
-    class steamapp_client_src_app_services_error_dialog_br_b7905dba function;
-    class steamapp_client_src_app_services_error_dialog_br_fd6e2372 klass;
-    class steamapp_client_src_app_services_error_dialog_br_150edff8 function;
+    steamapp_client_src_app_app_component_11c90ef6 -->|imports| steamapp_client_src_app_services_seo_seo_meta_se_254b8cb5
+    %% Omitted for readability: 75 nodes, 1 edges
     class steamapp_client_src_app_services_loading_loading_7648bb78 klass;
     class steamapp_client_src_app_services_loading_loading_92787697 function;
     class steamapp_client_src_app_services_loading_loading_f426962f function;
     class steamapp_client_src_app_services_loading_loading_a4d426f5 function;
-    class steamapp_client_src_app_services_error_dialog_se_f467880d klass;
-    class steamapp_client_src_app_services_error_dialog_se_cb04c48e function;
-    class steamapp_client_src_app_services_error_dialog_se_72170373 function;
+    class steamapp_client_src_app_services_loading_loading_69209a77 function;
+    class steamapp_client_src_app_services_seo_seo_meta_se_254b8cb5 klass;
+    class steamapp_client_src_app_services_seo_seo_meta_se_5e577780 api;
+    class steamapp_client_src_app_services_seo_seo_meta_se_33554dbe function;
+    class steamapp_client_src_app_services_seo_seo_meta_se_d6437311 function;
+    class steamapp_client_src_app_services_seo_seo_meta_se_6ff6bd18 function;
+    class steamapp_client_src_app_services_loading_loading_00901258 function;
+    class steamapp_client_src_app_services_loading_loading_7d5ee99c klass;
+    class steamapp_client_src_app_services_loading_loading_61550df7 function;
     class steamapp_client_src_app_app_component_11c90ef6 ui;
-    class steamapp_client_src_app_app_component_appcompone_b83e719b function;
     class steamapp_client_src_app_app_component_appcompone_d6a877e6 ui;
-    class steamapp_client_src_app_components_error_dialog_cdf87c45 ui;
-    class steamapp_client_src_app_components_error_dialog_f1ca505c function;
+    class steamapp_client_src_app_app_component_appcompone_b83e719b function;
     class steamapp_client_src_app_app_component_spec_0d3cd223 test;
     class steamapp_client_src_app_app_config_ab107be6 module;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
@@ -1288,7 +1291,7 @@ flowchart LR
   <td><code>app.component.ts</code><br><small style="color:var(--muted)">src/app/app.component.ts</small></td>
   <td><span class="tag tag-hook">UI</span></td>
   <td><code>app.component.spec.ts</code><br><small style="color:var(--muted)">src/app/app.component.spec.ts</small></td>
-  <td><code>error-dialog-bridge.ts</code><br><small style="color:var(--muted)">app/services/error-dialog-bridge.ts</small><br><code>error-dialog.service.ts</code><br><small style="color:var(--muted)">app/services/error-dialog.service.ts</small><br><code>ErrorDialogBridge</code><br><small style="color:var(--muted)">app/services/error-dialog-bridge.ts</small><br>+4 more</td>
+  <td><code>loading-state.service.ts</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small><br><code>LoadingStateService</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small><br><code>main.ts</code><br><small style="color:var(--muted)">SteamApp.Client/src/main.ts</small><br>+1 more</td>
   <td>Module file in src/app/app.component.ts.</td>
 </tr>
 <tr>
@@ -1312,7 +1315,7 @@ flowchart LR
   <td><code>.constructor()</code><br><small style="color:var(--muted)">src/app/app.component.ts</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>AppComponent</code><br><small style="color:var(--muted)">src/app/app.component.ts</small></td>
-  <td><code>begin()</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small><br><code>end()</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small><br><code>initialize()</code><br><small style="color:var(--muted)">app/services/error-dialog-bridge.ts</small></td>
+  <td><code>applyRouteSeo()</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small><br><code>begin()</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small><br><code>end()</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small></td>
   <td>.constructor() node in src/app/app.component.ts.</td>
 </tr>
 <tr>
@@ -1365,126 +1368,6 @@ flowchart LR
 </tr>
 <tr>
   <td>12</td>
-  <td><code>error-dialog.component.ts</code><br><small style="color:var(--muted)">app/components/error-dialog.component.ts</small></td>
-  <td><span class="tag tag-hook">UI</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>error-dialog.service.ts</code><br><small style="color:var(--muted)">app/services/error-dialog.service.ts</small></td>
-  <td>Module file in app/components/error-dialog.component.ts.</td>
-</tr>
-<tr>
-  <td>13</td>
-  <td><code>ErrorDialogData</code><br><small style="color:var(--muted)">app/components/error-dialog.component.ts</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>ErrorDialogData node in app/components/error-dialog.component.ts.</td>
-</tr>
-<tr>
-  <td>14</td>
-  <td><code>ErrorDialogComponent</code><br><small style="color:var(--muted)">app/components/error-dialog.component.ts</small></td>
-  <td><span class="tag tag-hook">UI</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>close()</code><br><small style="color:var(--muted)">app/components/error-dialog.component.ts</small><br><code>error-dialog.service.ts</code><br><small style="color:var(--muted)">app/services/error-dialog.service.ts</small></td>
-  <td>ErrorDialogComponent node in app/components/error-dialog.component.ts.</td>
-</tr>
-<tr>
-  <td>15</td>
-  <td><code>Component</code><br><small style="color:var(--muted)"></small></td>
-  <td><span class="tag tag-hook">UI</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Component node in project.</td>
-</tr>
-<tr>
-  <td>16</td>
-  <td><code>.close()</code><br><small style="color:var(--muted)">app/components/error-dialog.component.ts</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>ErrorDialogComponent</code><br><small style="color:var(--muted)">app/components/error-dialog.component.ts</small></td>
-  <td>No direct outbound edge</td>
-  <td>.close() node in app/components/error-dialog.component.ts.</td>
-</tr>
-<tr>
-  <td>17</td>
-  <td><code>error-dialog-bridge.ts</code><br><small style="color:var(--muted)">app/services/error-dialog-bridge.ts</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td><code>app.component.ts</code><br><small style="color:var(--muted)">src/app/app.component.ts</small></td>
-  <td><code>error-dialog.service.ts</code><br><small style="color:var(--muted)">app/services/error-dialog.service.ts</small><br><code>error-handler.unit.spec.ts</code><br><small style="color:var(--muted)">app/services/error-handler.unit.spec.ts</small><br><code>ErrorDialogService</code><br><small style="color:var(--muted)">app/services/error-dialog.service.ts</small></td>
-  <td>Module file in app/services/error-dialog-bridge.ts.</td>
-</tr>
-<tr>
-  <td>18</td>
-  <td><code>ErrorDialogBridge</code><br><small style="color:var(--muted)">app/services/error-dialog-bridge.ts</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td><code>app.component.ts</code><br><small style="color:var(--muted)">src/app/app.component.ts</small></td>
-  <td><code>error-handler.unit.spec.ts</code><br><small style="color:var(--muted)">app/services/error-handler.unit.spec.ts</small><br><code>initialize()</code><br><small style="color:var(--muted)">app/services/error-dialog-bridge.ts</small><br><code>open()</code><br><small style="color:var(--muted)">app/services/error-dialog-bridge.ts</small></td>
-  <td>ErrorDialogBridge node in app/services/error-dialog-bridge.ts.</td>
-</tr>
-<tr>
-  <td>19</td>
-  <td><code>.initialize()</code><br><small style="color:var(--muted)">app/services/error-dialog-bridge.ts</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>constructor()</code><br><small style="color:var(--muted)">src/app/app.component.ts</small><br><code>ErrorDialogBridge</code><br><small style="color:var(--muted)">app/services/error-dialog-bridge.ts</small></td>
-  <td>No direct outbound edge</td>
-  <td>.initialize() node in app/services/error-dialog-bridge.ts.</td>
-</tr>
-<tr>
-  <td>20</td>
-  <td><code>.open()</code><br><small style="color:var(--muted)">app/services/error-dialog-bridge.ts</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>ErrorDialogBridge</code><br><small style="color:var(--muted)">app/services/error-dialog-bridge.ts</small></td>
-  <td>No direct outbound edge</td>
-  <td>.open() node in app/services/error-dialog-bridge.ts.</td>
-</tr>
-<tr>
-  <td>21</td>
-  <td><code>error-dialog.service.ts</code><br><small style="color:var(--muted)">app/services/error-dialog.service.ts</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td><code>app.component.ts</code><br><small style="color:var(--muted)">src/app/app.component.ts</small><br><code>error-dialog-bridge.ts</code><br><small style="color:var(--muted)">app/services/error-dialog-bridge.ts</small><br><code>error-dialog.component.ts</code><br><small style="color:var(--muted)">app/components/error-dialog.component.ts</small><br>+1 more</td>
-  <td>No direct outbound edge</td>
-  <td>Module file in app/services/error-dialog.service.ts.</td>
-</tr>
-<tr>
-  <td>22</td>
-  <td><code>ErrorDialogService</code><br><small style="color:var(--muted)">app/services/error-dialog.service.ts</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td><code>app.component.ts</code><br><small style="color:var(--muted)">src/app/app.component.ts</small><br><code>error-dialog-bridge.ts</code><br><small style="color:var(--muted)">app/services/error-dialog-bridge.ts</small></td>
-  <td><code>constructor()</code><br><small style="color:var(--muted)">app/services/error-dialog.service.ts</small><br><code>open()</code><br><small style="color:var(--muted)">app/services/error-dialog.service.ts</small></td>
-  <td>ErrorDialogService node in app/services/error-dialog.service.ts.</td>
-</tr>
-<tr>
-  <td>23</td>
-  <td><code>Injectable</code><br><small style="color:var(--muted)"></small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Injectable node in project.</td>
-</tr>
-<tr>
-  <td>24</td>
-  <td><code>.constructor()</code><br><small style="color:var(--muted)">app/services/error-dialog.service.ts</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>ErrorDialogService</code><br><small style="color:var(--muted)">app/services/error-dialog.service.ts</small></td>
-  <td>No direct outbound edge</td>
-  <td>.constructor() node in app/services/error-dialog.service.ts.</td>
-</tr>
-<tr>
-  <td>25</td>
-  <td><code>.open()</code><br><small style="color:var(--muted)">app/services/error-dialog.service.ts</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>ErrorDialogService</code><br><small style="color:var(--muted)">app/services/error-dialog.service.ts</small></td>
-  <td>No direct outbound edge</td>
-  <td>.open() node in app/services/error-dialog.service.ts.</td>
-</tr>
-<tr>
-  <td>26</td>
-  <td><code>error-handler.unit.spec.ts</code><br><small style="color:var(--muted)">app/services/error-handler.unit.spec.ts</small></td>
-  <td><span class="tag tag-func">Test</span></td>
-  <td><code>error-dialog-bridge.ts</code><br><small style="color:var(--muted)">app/services/error-dialog-bridge.ts</small><br><code>ErrorDialogBridge</code><br><small style="color:var(--muted)">app/services/error-dialog-bridge.ts</small></td>
-  <td>No direct outbound edge</td>
-  <td>Module file in app/services/error-handler.unit.spec.ts.</td>
-</tr>
-<tr>
-  <td>27</td>
   <td><code>loading-state.service.ts</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td><code>app.component.ts</code><br><small style="color:var(--muted)">src/app/app.component.ts</small></td>
@@ -1492,7 +1375,7 @@ flowchart LR
   <td>Module file in services/loading/loading-state.service.ts.</td>
 </tr>
 <tr>
-  <td>28</td>
+  <td>13</td>
   <td><code>LoadingStateService</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td><code>app.component.ts</code><br><small style="color:var(--muted)">src/app/app.component.ts</small></td>
@@ -1500,7 +1383,7 @@ flowchart LR
   <td>LoadingStateService node in services/loading/loading-state.service.ts.</td>
 </tr>
 <tr>
-  <td>29</td>
+  <td>14</td>
   <td><code>Injectable</code><br><small style="color:var(--muted)"></small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -1508,12 +1391,132 @@ flowchart LR
   <td>Injectable node in project.</td>
 </tr>
 <tr>
-  <td>30</td>
+  <td>15</td>
   <td><code>.constructor()</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>LoadingStateService</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small></td>
   <td>No direct outbound edge</td>
   <td>.constructor() node in services/loading/loading-state.service.ts.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>.begin()</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>constructor()</code><br><small style="color:var(--muted)">src/app/app.component.ts</small><br><code>LoadingStateService</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small></td>
+  <td><code>track()</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small></td>
+  <td>.begin() node in services/loading/loading-state.service.ts.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>.end()</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>constructor()</code><br><small style="color:var(--muted)">src/app/app.component.ts</small><br><code>LoadingStateService</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small></td>
+  <td><code>track()</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small></td>
+  <td>.end() node in services/loading/loading-state.service.ts.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>.track()</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>begin()</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small><br><code>end()</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small><br><code>LoadingStateService</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small></td>
+  <td><code>intercept()</code><br><small style="color:var(--muted)">services/loading/loading.interceptor.ts</small></td>
+  <td>.track() node in services/loading/loading-state.service.ts.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>loading-state.service.unit.spec.ts</code><br><small style="color:var(--muted)">services/loading/loading-state.service.unit.spec.ts</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td><code>loading-state.service.ts</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small><br><code>LoadingStateService</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small></td>
+  <td>No direct outbound edge</td>
+  <td>Module file in services/loading/loading-state.service.unit.spec.ts.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>loading.interceptor.ts</code><br><small style="color:var(--muted)">services/loading/loading.interceptor.ts</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td><code>app.config.ts</code><br><small style="color:var(--muted)">src/app/app.config.ts</small><br><code>loading-state.service.ts</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small><br><code>LoadingStateService</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small></td>
+  <td>No direct outbound edge</td>
+  <td>Module file in services/loading/loading.interceptor.ts.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>LoadingInterceptor</code><br><small style="color:var(--muted)">services/loading/loading.interceptor.ts</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>app.config.ts</code><br><small style="color:var(--muted)">src/app/app.config.ts</small></td>
+  <td><code>constructor()</code><br><small style="color:var(--muted)">services/loading/loading.interceptor.ts</small><br><code>intercept()</code><br><small style="color:var(--muted)">services/loading/loading.interceptor.ts</small></td>
+  <td>LoadingInterceptor node in services/loading/loading.interceptor.ts.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>Injectable</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Injectable node in project.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>.constructor()</code><br><small style="color:var(--muted)">services/loading/loading.interceptor.ts</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>LoadingInterceptor</code><br><small style="color:var(--muted)">services/loading/loading.interceptor.ts</small></td>
+  <td>No direct outbound edge</td>
+  <td>.constructor() node in services/loading/loading.interceptor.ts.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>.intercept()</code><br><small style="color:var(--muted)">services/loading/loading.interceptor.ts</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>LoadingInterceptor</code><br><small style="color:var(--muted)">services/loading/loading.interceptor.ts</small><br><code>track()</code><br><small style="color:var(--muted)">services/loading/loading-state.service.ts</small></td>
+  <td>No direct outbound edge</td>
+  <td>.intercept() node in services/loading/loading.interceptor.ts.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>SeoMetaService</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>app.component.ts</code><br><small style="color:var(--muted)">src/app/app.component.ts</small></td>
+  <td><code>absoluteUrl()</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small><br><code>applyRouteSeo()</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small><br><code>collectSeoData()</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small><br>+5 more</td>
+  <td>SeoMetaService node in services/seo/seo-meta.service.ts.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>Injectable</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Injectable node in project.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>.applyRouteSeo()</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small></td>
+  <td><span class="tag tag-endpoint">API</span></td>
+  <td><code>constructor()</code><br><small style="color:var(--muted)">src/app/app.component.ts</small><br><code>SeoMetaService</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small></td>
+  <td><code>absoluteUrl()</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small><br><code>collectSeoData()</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small><br><code>pathOnly()</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small><br>+3 more</td>
+  <td>.applyRouteSeo() node in services/seo/seo-meta.service.ts.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>.collectSeoData()</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>applyRouteSeo()</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small><br><code>SeoMetaService</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small></td>
+  <td>No direct outbound edge</td>
+  <td>.collectSeoData() node in services/seo/seo-meta.service.ts.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>.pathOnly()</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>applyRouteSeo()</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small><br><code>SeoMetaService</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small></td>
+  <td>No direct outbound edge</td>
+  <td>.pathOnly() node in services/seo/seo-meta.service.ts.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>.absoluteUrl()</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>applyRouteSeo()</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small><br><code>SeoMetaService</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small></td>
+  <td><code>resolveStructuredData()</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small><br><code>siteOrigin()</code><br><small style="color:var(--muted)">services/seo/seo-meta.service.ts</small></td>
+  <td>.absoluteUrl() node in services/seo/seo-meta.service.ts.</td>
 </tr>
 </table>
 
@@ -1523,18 +1526,18 @@ flowchart LR
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
       <tr><td><code>skills/graphify/SKILL.md</code></td><td>25 nodes</td></tr>
+<tr><td><code>services/seo/seo-meta.service.ts</code></td><td>9 nodes</td></tr>
 <tr><td><code>skills/pr-review/SKILL.md</code></td><td>7 nodes</td></tr>
 <tr><td><code>skills/codebase-discovery/SKILL.md</code></td><td>6 nodes</td></tr>
 <tr><td><code>skills/pr-review-refactor/SKILL.md</code></td><td>6 nodes</td></tr>
 <tr><td><code>services/loading/loading-state.service.ts</code></td><td>6 nodes</td></tr>
 <tr><td><code>skills/graphify/SKILL.md</code></td><td>5 nodes</td></tr>
 <tr><td><code>graphify/references/hooks.md</code></td><td>4 nodes</td></tr>
-<tr><td><code>src/app/app.routes.ts</code></td><td>4 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x60, imports x14, imports x14, method x12. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x56, method x15, calls x14, imports x10. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
@@ -2246,12 +2249,12 @@ flowchart LR
 
 <!-- ====== 8. Security & Global Graph ====== -->
 <h2 id="security-global">8. Security &amp; Global Graph</h2>
-<p>Security &amp; Global Graph groups implementation around steamappserver, security, steamappintegrationtests, steamappwebapi, mostly in .agents/directives/Directive.Security_v2.md, SteamApp.IntegrationTests/Security/SecurityPipelineIntegrationTests.cs, SteamApp.IntegrationTests/Startup/StartupIntegrationTests.cs. This section covers 126 nodes and 215 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>Security &amp; Global Graph groups implementation around steamappserver, security, steamappintegrationtests, steamappwebapi, mostly in .agents/directives/Directive.Security_v2.md, SteamApp.IntegrationTests/Security/SecurityPipelineIntegrationTests.cs, SteamApp.IntegrationTests/Startup/StartupIntegrationTests.cs. This section covers 129 nodes and 222 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Security &amp; Global Graph (126 nodes, 215 edges)
+    %% Section: Security &amp; Global Graph (129 nodes, 222 edges)
     subgraph security_global_SteamApp_IntegrationTests_Securi_0cacb29f["SteamApp.IntegrationTests/Security/SecurityPipelineIntegrationTests.cs"]
         steamapp_server_steamapp_integrationtests_securi_36c6055d("SecurityPipelineIntegrationTests<br/><small>SteamApp.IntegrationTests/Security/SecurityPipelineIntegrationTests.cs</small>")
         steamapp_server_steamapp_integrationtests_securi_1a06ca6c("ApiAndExpensiveApiEndpointsAreRateLimited()<br/><small>SteamApp.IntegrationTests/Security/SecurityPipelineIntegrationTests.cs</small>")
@@ -2287,7 +2290,7 @@ flowchart LR
     steamapp_server_steamapp_integrationtests_securi_36c6055d -->|method| steamapp_server_steamapp_integrationtests_securi_d9e3fb81
     steamapp_server_steamapp_integrationtests_securi_36c6055d -->|method| steamapp_server_steamapp_integrationtests_securi_8045a4ed
     steamapp_server_steamapp_integrationtests_securi_36c6055d -->|method| steamapp_server_steamapp_integrationtests_securi_fb1417fd
-    %% Omitted for readability: 108 nodes, 0 edges
+    %% Omitted for readability: 111 nodes, 0 edges
     class steamapp_server_steamapp_integrationtests_securi_36c6055d test;
     class steamapp_server_steamapp_integrationtests_securi_1a06ca6c test;
     class steamapp_server_steamapp_integrationtests_securi_d9e3fb81 test;
@@ -2369,15 +2372,15 @@ flowchart LR
 </tr>
 <tr>
   <td>6</td>
-  <td><code>GameUrlProductBulkIntegrationTests.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/MinimalApis/GameUrlProductBulkIntegrationTests.cs</small></td>
+  <td><code>EfRepositoryIntegrationTests.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Data/EfRepositoryIntegrationTests.cs</small></td>
   <td><span class="tag tag-func">Test</span></td>
-  <td><code>SteamApp.Infrastructure.Identity</code><br><small style="color:var(--muted)">SteamApp.Infrastructure/Identity/ApplicationUser.cs</small></td>
-  <td><code>SteamApp.IntegrationTests.Support</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Support/CapturingEmailService.cs</small></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>SteamApp.IntegrationTests.Support</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Support/CapturingEmailService.cs</small><br><code>SteamApp.WebAPI</code><br><small style="color:var(--muted)">SteamApp.Server/SteamApp.WebAPI/Program.cs</small></td>
   <td>Verifies imports, entry points, or version behavior.</td>
 </tr>
 <tr>
   <td>7</td>
-  <td><code>SteamApp.IntegrationTests.MinimalApis</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/MinimalApis/GameUrlProductBulkIntegrationTests.cs</small></td>
+  <td><code>SteamApp.IntegrationTests.Data</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Data/EfRepositoryIntegrationTests.cs</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
@@ -2385,7 +2388,7 @@ flowchart LR
 </tr>
 <tr>
   <td>8</td>
-  <td><code>GameUrlProductStockIntegrationTests.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/MinimalApis/GameUrlProductStockIntegrationTests.cs</small></td>
+  <td><code>GameUrlProductBulkIntegrationTests.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/MinimalApis/GameUrlProductBulkIntegrationTests.cs</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td><code>SteamApp.Infrastructure.Identity</code><br><small style="color:var(--muted)">SteamApp.Infrastructure/Identity/ApplicationUser.cs</small></td>
   <td><code>SteamApp.IntegrationTests.Support</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Support/CapturingEmailService.cs</small></td>
@@ -2393,6 +2396,22 @@ flowchart LR
 </tr>
 <tr>
   <td>9</td>
+  <td><code>SteamApp.IntegrationTests.MinimalApis</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/MinimalApis/GameUrlProductBulkIntegrationTests.cs</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Verifies imports, entry points, or version behavior.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>GameUrlProductStockIntegrationTests.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/MinimalApis/GameUrlProductStockIntegrationTests.cs</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td><code>SteamApp.Infrastructure.Identity</code><br><small style="color:var(--muted)">SteamApp.Infrastructure/Identity/ApplicationUser.cs</small></td>
+  <td><code>SteamApp.IntegrationTests.Support</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Support/CapturingEmailService.cs</small></td>
+  <td>Verifies imports, entry points, or version behavior.</td>
+</tr>
+<tr>
+  <td>11</td>
   <td><code>ItemGroupsRelationalIntegrationTests.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/MinimalApis/ItemGroupsRelationalIntegrationTests.cs</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td><code>SteamApp.Infrastructure.Identity</code><br><small style="color:var(--muted)">SteamApp.Infrastructure/Identity/ApplicationUser.cs</small></td>
@@ -2400,7 +2419,7 @@ flowchart LR
   <td>Verifies imports, entry points, or version behavior.</td>
 </tr>
 <tr>
-  <td>10</td>
+  <td>12</td>
   <td><code>ItemGroupsRelationalIntegrationTests</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/MinimalApis/ItemGroupsRelationalIntegrationTests.cs</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td>External entry / no inbound edge</td>
@@ -2408,7 +2427,7 @@ flowchart LR
   <td>Verifies imports, entry points, or version behavior.</td>
 </tr>
 <tr>
-  <td>11</td>
+  <td>13</td>
   <td><code>.ItemGroupConstraints_ExistingGroupSupportsTagsAndPresetsAndRejectsInvalidRows()</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/MinimalApis/ItemGroupsRelationalIntegrationTests.cs</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td><code>ItemGroupsRelationalIntegrationTests</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/MinimalApis/ItemGroupsRelationalIntegrationTests.cs</small></td>
@@ -2416,7 +2435,7 @@ flowchart LR
   <td>.ItemGroupConstraints_ExistingGroupSupportsTagsAndPresetsAndRejectsInvalidRows() node in SteamApp.IntegrationTests/MinimalApis/ItemGroupsRelationalIntegrationTests.cs.</td>
 </tr>
 <tr>
-  <td>12</td>
+  <td>14</td>
   <td><code>Task</code><br><small style="color:var(--muted)"></small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -2424,7 +2443,7 @@ flowchart LR
   <td>Task node in project.</td>
 </tr>
 <tr>
-  <td>13</td>
+  <td>15</td>
   <td><code>Test</code><br><small style="color:var(--muted)"></small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -2432,7 +2451,7 @@ flowchart LR
   <td>Verifies imports, entry points, or version behavior.</td>
 </tr>
 <tr>
-  <td>14</td>
+  <td>16</td>
   <td><code>SecurityPipelineIntegrationTests.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Security/SecurityPipelineIntegrationTests.cs</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td><code>SteamApp.Infrastructure.Identity</code><br><small style="color:var(--muted)">SteamApp.Infrastructure/Identity/ApplicationUser.cs</small></td>
@@ -2440,7 +2459,7 @@ flowchart LR
   <td>Verifies imports, entry points, or version behavior.</td>
 </tr>
 <tr>
-  <td>15</td>
+  <td>17</td>
   <td><code>SteamApp.IntegrationTests.Security</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Security/SecurityPipelineIntegrationTests.cs</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -2448,7 +2467,7 @@ flowchart LR
   <td>Verifies imports, entry points, or version behavior.</td>
 </tr>
 <tr>
-  <td>16</td>
+  <td>18</td>
   <td><code>CapturingEmailService.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Support/CapturingEmailService.cs</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td>External entry / no inbound edge</td>
@@ -2456,15 +2475,15 @@ flowchart LR
   <td>CapturingEmailService.cs node in SteamApp.IntegrationTests/Support/CapturingEmailService.cs.</td>
 </tr>
 <tr>
-  <td>17</td>
+  <td>19</td>
   <td><code>SteamApp.IntegrationTests.Support</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Support/CapturingEmailService.cs</small></td>
   <td><span class="tag tag-class">Module</span></td>
-  <td><code>CatalogManagementE2ETests.cs</code><br><small style="color:var(--muted)">SteamApp.E2ETests/MinimalApis/CatalogManagementE2ETests.cs</small><br><code>GameUrlProductBulkIntegrationTests.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/MinimalApis/GameUrlProductBulkIntegrationTests.cs</small><br><code>GameUrlProductStockIntegrationTests.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/MinimalApis/GameUrlProductStockIntegrationTests.cs</small><br>+4 more</td>
+  <td><code>CatalogManagementE2ETests.cs</code><br><small style="color:var(--muted)">SteamApp.E2ETests/MinimalApis/CatalogManagementE2ETests.cs</small><br><code>EfRepositoryIntegrationTests.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Data/EfRepositoryIntegrationTests.cs</small><br><code>GameUrlProductBulkIntegrationTests.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/MinimalApis/GameUrlProductBulkIntegrationTests.cs</small><br>+5 more</td>
   <td>No direct outbound edge</td>
   <td>Verifies imports, entry points, or version behavior.</td>
 </tr>
 <tr>
-  <td>18</td>
+  <td>20</td>
   <td><code>CapturingMessagePublisher.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Support/CapturingMessagePublisher.cs</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td>External entry / no inbound edge</td>
@@ -2472,7 +2491,7 @@ flowchart LR
   <td>CapturingMessagePublisher.cs node in SteamApp.IntegrationTests/Support/CapturingMessagePublisher.cs.</td>
 </tr>
 <tr>
-  <td>19</td>
+  <td>21</td>
   <td><code>IntegrationJwt.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Support/IntegrationJwt.cs</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td>External entry / no inbound edge</td>
@@ -2480,7 +2499,7 @@ flowchart LR
   <td>IntegrationJwt.cs node in SteamApp.IntegrationTests/Support/IntegrationJwt.cs.</td>
 </tr>
 <tr>
-  <td>20</td>
+  <td>22</td>
   <td><code>IntegrationSeed.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Support/IntegrationSeed.cs</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td><code>SteamApp.Infrastructure.Identity</code><br><small style="color:var(--muted)">SteamApp.Infrastructure/Identity/ApplicationUser.cs</small></td>
@@ -2488,7 +2507,7 @@ flowchart LR
   <td>IntegrationSeed.cs node in SteamApp.IntegrationTests/Support/IntegrationSeed.cs.</td>
 </tr>
 <tr>
-  <td>21</td>
+  <td>23</td>
   <td><code>SteamAppFactory.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Support/SteamAppFactory.cs</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td>External entry / no inbound edge</td>
@@ -2496,7 +2515,7 @@ flowchart LR
   <td>SteamAppFactory.cs node in SteamApp.IntegrationTests/Support/SteamAppFactory.cs.</td>
 </tr>
 <tr>
-  <td>22</td>
+  <td>24</td>
   <td><code>SteamApp.Domain.ValueObjects.Authentication</code><br><small style="color:var(--muted)">ValueObjects/Authentication/AuthResponse.cs</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -2504,7 +2523,7 @@ flowchart LR
   <td>SteamApp.Domain.ValueObjects.Authentication node in ValueObjects/Authentication/AuthResponse.cs.</td>
 </tr>
 <tr>
-  <td>23</td>
+  <td>25</td>
   <td><code>AuthControllerTests.cs</code><br><small style="color:var(--muted)">SteamApp.Tests/Controllers/AuthControllerTests.cs</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td><code>SteamApp.Domain.ValueObjects.Authentica...</code><br><small style="color:var(--muted)">ValueObjects/Authentication/AuthResponse.cs</small><br><code>SteamApp.Infrastructure.Identity</code><br><small style="color:var(--muted)">SteamApp.Infrastructure/Identity/ApplicationUser.cs</small></td>
@@ -2512,7 +2531,7 @@ flowchart LR
   <td>Verifies imports, entry points, or version behavior.</td>
 </tr>
 <tr>
-  <td>24</td>
+  <td>26</td>
   <td><code>SteamApp.Tests.Controllers</code><br><small style="color:var(--muted)">SteamApp.Tests/Controllers/AuthControllerTests.cs</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -2520,7 +2539,7 @@ flowchart LR
   <td>Verifies imports, entry points, or version behavior.</td>
 </tr>
 <tr>
-  <td>25</td>
+  <td>27</td>
   <td><code>ManualChecksControllerTests.cs</code><br><small style="color:var(--muted)">SteamApp.Tests/Controllers/ManualChecksControllerTests.cs</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td>External entry / no inbound edge</td>
@@ -2528,7 +2547,7 @@ flowchart LR
   <td>Verifies imports, entry points, or version behavior.</td>
 </tr>
 <tr>
-  <td>26</td>
+  <td>28</td>
   <td><code>ControllerSecurityMetadataTests.cs</code><br><small style="color:var(--muted)">SteamApp.Tests/Security/ControllerSecurityMetadataTests.cs</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td>External entry / no inbound edge</td>
@@ -2536,7 +2555,7 @@ flowchart LR
   <td>Verifies imports, entry points, or version behavior.</td>
 </tr>
 <tr>
-  <td>27</td>
+  <td>29</td>
   <td><code>SteamApp.Tests.Security</code><br><small style="color:var(--muted)">SteamApp.Tests/Security/ControllerSecurityMetadataTests.cs</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
@@ -2544,28 +2563,12 @@ flowchart LR
   <td>Verifies imports, entry points, or version behavior.</td>
 </tr>
 <tr>
-  <td>28</td>
+  <td>30</td>
   <td><code>IdentityRoleInitializerTests.cs</code><br><small style="color:var(--muted)">SteamApp.Tests/Security/IdentityRoleInitializerTests.cs</small></td>
   <td><span class="tag tag-func">Test</span></td>
   <td><code>SteamApp.Infrastructure.Identity</code><br><small style="color:var(--muted)">SteamApp.Infrastructure/Identity/ApplicationUser.cs</small></td>
-  <td><code>SteamApp.WebAPI.Security</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Security/ClaimsPrincipalExtensions.cs</small></td>
+  <td><code>SteamApp.WebAPI.Security</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Security/ClaimsPrincipalExtensions.cs</small><br><code>SteamApp.WebAPI.Services</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Services/IdentityRoleInitializer.cs</small></td>
   <td>Verifies imports, entry points, or version behavior.</td>
-</tr>
-<tr>
-  <td>29</td>
-  <td><code>SecurityConfigurationTests.cs</code><br><small style="color:var(--muted)">SteamApp.Tests/Security/SecurityConfigurationTests.cs</small></td>
-  <td><span class="tag tag-func">Test</span></td>
-  <td><code>SteamApp.Domain.ValueObjects.Authentica...</code><br><small style="color:var(--muted)">ValueObjects/Authentication/AuthResponse.cs</small></td>
-  <td><code>SteamApp.WebAPI</code><br><small style="color:var(--muted)">SteamApp.Server/SteamApp.WebAPI/Program.cs</small><br><code>SteamApp.WebAPI.Security</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Security/ClaimsPrincipalExtensions.cs</small></td>
-  <td>Reads, resolves, or persists project configuration.</td>
-</tr>
-<tr>
-  <td>30</td>
-  <td><code>SteamApp.WebAPI.Contracts.AdminUsers</code><br><small style="color:var(--muted)">Contracts/AdminUsers/AdminUserSummaryResponse.cs</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>AdminUserEndpoints.cs</code><br><small style="color:var(--muted)">SteamApp.WebAPI/MinimalAPIs/AdminUserEndpoints.cs</small></td>
-  <td>SteamApp.WebAPI.Contracts.AdminUsers node in Contracts/AdminUsers/AdminUserSummaryResponse.cs.</td>
 </tr>
 </table>
 
@@ -2586,19 +2589,19 @@ flowchart LR
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x60, imports x48, references x47, method x26. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x62, imports x53, references x47, method x26. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
 
 <!-- ====== 9. Tests & Fixtures ====== -->
 <h2 id="tests-fixtures">9. Tests &amp; Fixtures</h2>
-<p>Tests &amp; Fixtures groups implementation around steamappserver, steamapptests, services, steamappapplication, mostly in pages/web-scraper/web-scraper.component.ts, SteamApp.Tests/MinimalApis/MinimalApiEndpointTests.cs, SteamApp.Tests/Security/SecurityConfigurationTests.cs. This section covers 1005 nodes and 2311 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>Tests &amp; Fixtures groups implementation around steamappserver, steamapptests, services, steamappwebapi, mostly in pages/web-scraper/web-scraper.component.ts, SteamApp.Tests/MinimalApis/MinimalApiEndpointTests.cs, SteamApp.Tests/Security/SecurityConfigurationTests.cs. This section covers 1024 nodes and 2367 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Tests &amp; Fixtures (1005 nodes, 2311 edges)
+    %% Section: Tests &amp; Fixtures (1024 nodes, 2367 edges)
     subgraph tests_fixtures_game_game_form_game_form_ts_c8888e58["game/game-form/game-form.ts"]
         steamapp_client_src_app_pages_game_game_form_gam_1e488e3f("GameForm<br/><small>game/game-form/game-form.ts</small>")
         steamapp_client_src_app_pages_game_game_form_gam_0c7bc3f8("backButtonClicked()<br/><small>game/game-form/game-form.ts</small>")
@@ -2634,7 +2637,7 @@ flowchart LR
     steamapp_client_src_app_pages_game_game_form_gam_73401eb5 -->|calls| steamapp_client_src_app_services_game_game_servi_99867d36
     steamapp_client_src_app_pages_login_login_compon_fd3cc6ba -->|method| steamapp_client_src_app_pages_login_login_compon_7b830228
     steamapp_client_src_app_pages_login_login_compon_fd3cc6ba -->|method| steamapp_client_src_app_pages_login_login_compon_734b9df2
-    %% Omitted for readability: 987 nodes, 0 edges
+    %% Omitted for readability: 1006 nodes, 0 edges
     class steamapp_client_src_app_pages_game_game_form_gam_1e488e3f klass;
     class steamapp_client_src_app_pages_game_game_form_gam_0c7bc3f8 entry;
     class steamapp_client_src_app_pages_game_game_form_gam_ad88aad1 function;
@@ -2925,15 +2928,15 @@ flowchart LR
 <tr><td><code>SteamApp.Tests/MinimalApis/MinimalApiEndpointTests.cs</code></td><td>32 nodes</td></tr>
 <tr><td><code>SteamApp.Tests/Security/SecurityConfigurationTests.cs</code></td><td>32 nodes</td></tr>
 <tr><td><code>SteamApp.Tests/Services/ManualCheckExecutionServiceTests.cs</code></td><td>27 nodes</td></tr>
-<tr><td><code>SteamApp.Tests/Controllers/SteamControllerTests.cs</code></td><td>25 nodes</td></tr>
+<tr><td><code>SteamApp.Tests/Controllers/SteamControllerTests.cs</code></td><td>26 nodes</td></tr>
 <tr><td><code>SteamApp.Tests/Controllers/AuthControllerTests.cs</code></td><td>24 nodes</td></tr>
-<tr><td><code>SteamApp.Tests/Services/ManualCheckDataServiceTests.cs</code></td><td>24 nodes</td></tr>
+<tr><td><code>SteamApp.Tests/Services/ManualCheckDataServiceTests.cs</code></td><td>23 nodes</td></tr>
 <tr><td><code>SteamApp.Tests/Services/ManualCheckMatcherTests.cs</code></td><td>23 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: references x671, calls x529, method x429, contains x282. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: references x674, calls x529, method x429, imports x320. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
@@ -3637,8 +3640,364 @@ flowchart LR
 </div>
 <hr>
 
-<!-- ====== 12. WatchItemDto ====== -->
-<h2 id="watchitemdto">12. WatchItemDto</h2>
+<!-- ====== 12. .MaterializeResultsIfNeeded ====== -->
+<h2 id="materializeresultsifneeded">12. .MaterializeResultsIfNeeded</h2>
+<p>.MaterializeResultsIfNeeded groups implementation around steamappserver, steamappmodels, steamappapplication, enums, mostly in SteamApp.WebAPI/MinimalAPIs/FeedbackRequestEndpoints.cs, SteamApp.Application/Utilities/FeedbackRequestReference.cs, SteamApp.Models/Enums/ClassEnum.cs. This section covers 61 nodes and 89 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: .MaterializeResultsIfNeeded (61 nodes, 89 edges)
+    subgraph materializeresultsifneeded_SteamApp_WebAPI_Minim_4943ebca["SteamApp.WebAPI/MinimalAPIs/FeedbackRequestEndpoints.cs"]
+        steamapp_server_steamapp_webapi_minimalapis_feed_4cfc3a80("FeedbackRequestEndpoints<br/><small>SteamApp.WebAPI/MinimalAPIs/FeedbackRequestEndpoints.cs</small>")
+        steamapp_server_steamapp_webapi_minimalapis_feed_791fcf93("MapFeedbackRequestEndpoints()<br/><small>SteamApp.WebAPI/MinimalAPIs/FeedbackRequestEndpoints.cs</small>")
+        steamapp_server_steamapp_webapi_minimalapis_feed_ccc53b8c("HasDetailChange()<br/><small>SteamApp.WebAPI/MinimalAPIs/FeedbackRequestEndpoints.cs</small>")
+        steamapp_server_steamapp_webapi_minimalapis_feed_73c77e9c("IsDefined()<br/><small>SteamApp.WebAPI/MinimalAPIs/FeedbackRequestEndpoints.cs</small>")
+        steamapp_server_steamapp_webapi_minimalapis_feed_adc65c9d("NormalizeOptional()<br/><small>SteamApp.WebAPI/MinimalAPIs/FeedbackRequestEndpoints.cs</small>")
+        steamapp_server_steamapp_webapi_minimalapis_feed_287e7a43("Validate()<br/><small>SteamApp.WebAPI/MinimalAPIs/FeedbackRequestEndpoints.cs</small>")
+        steamapp_server_steamapp_webapi_minimalapis_feed_0c039dd4("ValidateText()<br/><small>SteamApp.WebAPI/MinimalAPIs/FeedbackRequestEndpoints.cs</small>")
+    end
+    subgraph materializeresultsifneeded_SteamApp_Application_6a11b717["SteamApp.Application/Utilities/FeedbackRequestReference.cs"]
+        steamapp_server_steamapp_application_utilities_f_2c4d8c02("FeedbackRequestReference<br/><small>SteamApp.Application/Utilities/FeedbackRequestReference.cs</small>")
+        steamapp_server_steamapp_application_utilities_f_b676e2d5("Format()<br/><small>SteamApp.Application/Utilities/FeedbackRequestReference.cs</small>")
+        steamapp_server_steamapp_application_utilities_f_2a759efc("TryParse()<br/><small>SteamApp.Application/Utilities/FeedbackRequestReference.cs</small>")
+    end
+    steamapp_server_steamapp_application_dtos_feedba_de77eac5("FeedbackRequestCreateDto.cs")
+    steamapp_server_steamapp_application_dtos_feedba_f44aa055("FeedbackRequestDto.cs")
+    steamapp_server_steamapp_application_dtos_feedba_78d450e5("FeedbackRequestHistoryDto.cs")
+    steamapp_server_steamapp_application_dtos_feedba_dbeee37b("FeedbackRequestUpdateDto.cs")
+    steamapp_server_steamapp_application_dtos_feedba_ad85a688("FeedbackRequestUpdateStatusDto.cs")
+    csharp_namespace_7f7be1b5316a47d3_895bb4ac("SteamApp.Application.DTOs.ScrapeHistory<br/><small>DTOs/ScrapeHistory/OwnedGameUrlSnapshot.cs</small>")
+    steamapp_server_steamapp_interfaces_services_isc_e17ece41("IScrapeHistoryDataService.cs")
+    csharp_namespace_8c89f1e6050824b2_a08dcad1("SteamApp.Domain.Enums<br/><small>SteamApp.Models/Enums/ClassEnum.cs</small>")
+    steamapp_server_steamapp_application_utilities_f_2c4d8c02 -->|method| steamapp_server_steamapp_application_utilities_f_b676e2d5
+    steamapp_server_steamapp_application_utilities_f_2c4d8c02 -->|method| steamapp_server_steamapp_application_utilities_f_2a759efc
+    steamapp_server_steamapp_application_utilities_f_2a759efc -->|calls| steamapp_server_steamapp_webapi_minimalapis_feed_791fcf93
+    steamapp_server_steamapp_webapi_minimalapis_feed_4cfc3a80 -->|method| steamapp_server_steamapp_webapi_minimalapis_feed_ccc53b8c
+    steamapp_server_steamapp_webapi_minimalapis_feed_4cfc3a80 -->|method| steamapp_server_steamapp_webapi_minimalapis_feed_73c77e9c
+    steamapp_server_steamapp_webapi_minimalapis_feed_4cfc3a80 -->|method| steamapp_server_steamapp_webapi_minimalapis_feed_791fcf93
+    steamapp_server_steamapp_webapi_minimalapis_feed_4cfc3a80 -->|method| steamapp_server_steamapp_webapi_minimalapis_feed_adc65c9d
+    steamapp_server_steamapp_webapi_minimalapis_feed_4cfc3a80 -->|method| steamapp_server_steamapp_webapi_minimalapis_feed_287e7a43
+    steamapp_server_steamapp_webapi_minimalapis_feed_4cfc3a80 -->|method| steamapp_server_steamapp_webapi_minimalapis_feed_0c039dd4
+    steamapp_server_steamapp_webapi_minimalapis_feed_791fcf93 -->|calls| steamapp_server_steamapp_webapi_minimalapis_feed_ccc53b8c
+    steamapp_server_steamapp_webapi_minimalapis_feed_791fcf93 -->|calls| steamapp_server_steamapp_webapi_minimalapis_feed_73c77e9c
+    steamapp_server_steamapp_webapi_minimalapis_feed_791fcf93 -->|calls| steamapp_server_steamapp_webapi_minimalapis_feed_adc65c9d
+    steamapp_server_steamapp_webapi_minimalapis_feed_791fcf93 -->|calls| steamapp_server_steamapp_webapi_minimalapis_feed_287e7a43
+    steamapp_server_steamapp_webapi_minimalapis_feed_287e7a43 -->|calls| steamapp_server_steamapp_webapi_minimalapis_feed_73c77e9c
+    steamapp_server_steamapp_webapi_minimalapis_feed_287e7a43 -->|calls| steamapp_server_steamapp_webapi_minimalapis_feed_0c039dd4
+    steamapp_server_steamapp_application_dtos_feedba_de77eac5 -->|imports| csharp_namespace_8c89f1e6050824b2_a08dcad1
+    steamapp_server_steamapp_application_dtos_feedba_f44aa055 -->|imports| csharp_namespace_8c89f1e6050824b2_a08dcad1
+    steamapp_server_steamapp_application_dtos_feedba_78d450e5 -->|imports| csharp_namespace_8c89f1e6050824b2_a08dcad1
+    steamapp_server_steamapp_application_dtos_feedba_dbeee37b -->|imports| csharp_namespace_8c89f1e6050824b2_a08dcad1
+    steamapp_server_steamapp_application_dtos_feedba_ad85a688 -->|imports| csharp_namespace_8c89f1e6050824b2_a08dcad1
+    csharp_namespace_7f7be1b5316a47d3_895bb4ac -->|imports| steamapp_server_steamapp_interfaces_services_isc_e17ece41
+    steamapp_server_steamapp_interfaces_services_isc_e17ece41 -->|imports| csharp_namespace_8c89f1e6050824b2_a08dcad1
+    %% Omitted for readability: 43 nodes, 0 edges
+    class steamapp_server_steamapp_webapi_minimalapis_feed_4cfc3a80 api;
+    class steamapp_server_steamapp_webapi_minimalapis_feed_791fcf93 api;
+    class steamapp_server_steamapp_webapi_minimalapis_feed_ccc53b8c function;
+    class steamapp_server_steamapp_webapi_minimalapis_feed_73c77e9c function;
+    class steamapp_server_steamapp_webapi_minimalapis_feed_adc65c9d function;
+    class steamapp_server_steamapp_webapi_minimalapis_feed_287e7a43 function;
+    class steamapp_server_steamapp_webapi_minimalapis_feed_0c039dd4 function;
+    class steamapp_server_steamapp_application_utilities_f_2c4d8c02 klass;
+    class steamapp_server_steamapp_application_utilities_f_b676e2d5 function;
+    class steamapp_server_steamapp_application_utilities_f_2a759efc function;
+    class steamapp_server_steamapp_application_dtos_feedba_de77eac5 klass;
+    class steamapp_server_steamapp_application_dtos_feedba_f44aa055 klass;
+    class steamapp_server_steamapp_application_dtos_feedba_78d450e5 klass;
+    class steamapp_server_steamapp_application_dtos_feedba_dbeee37b klass;
+    class steamapp_server_steamapp_application_dtos_feedba_ad85a688 test;
+    class csharp_namespace_7f7be1b5316a47d3_895bb4ac module;
+    class steamapp_server_steamapp_interfaces_services_isc_e17ece41 klass;
+    class csharp_namespace_8c89f1e6050824b2_a08dcad1 module;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>FeedbackRequestCreateDto.cs</code><br><small style="color:var(--muted)">DTOs/FeedbackRequest/FeedbackRequestCreateDto.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>SteamApp.Domain.Enums</code><br><small style="color:var(--muted)">SteamApp.Models/Enums/ClassEnum.cs</small></td>
+  <td>FeedbackRequestCreateDto.cs node in DTOs/FeedbackRequest/FeedbackRequestCreateDto.cs.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>FeedbackRequestCreateDto</code><br><small style="color:var(--muted)">DTOs/FeedbackRequest/FeedbackRequestCreateDto.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>FeedbackRequestCreateDto node in DTOs/FeedbackRequest/FeedbackRequestCreateDto.cs.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>FeedbackRequestDto.cs</code><br><small style="color:var(--muted)">DTOs/FeedbackRequest/FeedbackRequestDto.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>SteamApp.Domain.Enums</code><br><small style="color:var(--muted)">SteamApp.Models/Enums/ClassEnum.cs</small></td>
+  <td>FeedbackRequestDto.cs node in DTOs/FeedbackRequest/FeedbackRequestDto.cs.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>FeedbackRequestDto</code><br><small style="color:var(--muted)">DTOs/FeedbackRequest/FeedbackRequestDto.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>FeedbackRequestDto node in DTOs/FeedbackRequest/FeedbackRequestDto.cs.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>DateTime</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>DateTime node in project.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>FeedbackRequestHistoryDto.cs</code><br><small style="color:var(--muted)">DTOs/FeedbackRequest/FeedbackRequestHistoryDto.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>SteamApp.Domain.Enums</code><br><small style="color:var(--muted)">SteamApp.Models/Enums/ClassEnum.cs</small></td>
+  <td>FeedbackRequestHistoryDto.cs node in DTOs/FeedbackRequest/FeedbackRequestHistoryDto.cs.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>FeedbackRequestHistoryDto</code><br><small style="color:var(--muted)">DTOs/FeedbackRequest/FeedbackRequestHistoryDto.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>FeedbackRequestHistoryDto node in DTOs/FeedbackRequest/FeedbackRequestHistoryDto.cs.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>DateTime</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>DateTime node in project.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>FeedbackRequestUpdateDto.cs</code><br><small style="color:var(--muted)">DTOs/FeedbackRequest/FeedbackRequestUpdateDto.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>SteamApp.Domain.Enums</code><br><small style="color:var(--muted)">SteamApp.Models/Enums/ClassEnum.cs</small></td>
+  <td>FeedbackRequestUpdateDto.cs node in DTOs/FeedbackRequest/FeedbackRequestUpdateDto.cs.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>FeedbackRequestUpdateDto</code><br><small style="color:var(--muted)">DTOs/FeedbackRequest/FeedbackRequestUpdateDto.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>FeedbackRequestUpdateDto node in DTOs/FeedbackRequest/FeedbackRequestUpdateDto.cs.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>FeedbackRequestUpdateStatusDto.cs</code><br><small style="color:var(--muted)">DTOs/FeedbackRequest/FeedbackRequestUpdateStatusDto.cs</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>SteamApp.Domain.Enums</code><br><small style="color:var(--muted)">SteamApp.Models/Enums/ClassEnum.cs</small></td>
+  <td>Verifies imports, entry points, or version behavior.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>FeedbackRequestUpdateStatusDto</code><br><small style="color:var(--muted)">DTOs/FeedbackRequest/FeedbackRequestUpdateStatusDto.cs</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Verifies imports, entry points, or version behavior.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>SteamApp.Application.DTOs.ScrapeHistory</code><br><small style="color:var(--muted)">DTOs/ScrapeHistory/OwnedGameUrlSnapshot.cs</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>IScrapeHistoryDataService.cs</code><br><small style="color:var(--muted)">SteamApp.Interfaces/Services/IScrapeHistoryDataService.cs</small><br><code>ScrapeHistoryDataService.cs</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Services/ScrapeHistoryDataService.cs</small></td>
+  <td>SteamApp.Application.DTOs.ScrapeHistory node in DTOs/ScrapeHistory/OwnedGameUrlSnapshot.cs.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>ScrapeHistoryDetailDto.cs</code><br><small style="color:var(--muted)">DTOs/ScrapeHistory/ScrapeHistoryDetailDto.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>SteamApp.Domain.Enums</code><br><small style="color:var(--muted)">SteamApp.Models/Enums/ClassEnum.cs</small></td>
+  <td>ScrapeHistoryDetailDto.cs node in DTOs/ScrapeHistory/ScrapeHistoryDetailDto.cs.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>ScrapeHistoryJob.cs</code><br><small style="color:var(--muted)">DTOs/ScrapeHistory/ScrapeHistoryJob.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>SteamApp.Domain.Enums</code><br><small style="color:var(--muted)">SteamApp.Models/Enums/ClassEnum.cs</small></td>
+  <td>ScrapeHistoryJob.cs node in DTOs/ScrapeHistory/ScrapeHistoryJob.cs.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>ScrapeHistorySummaryDto.cs</code><br><small style="color:var(--muted)">DTOs/ScrapeHistory/ScrapeHistorySummaryDto.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>SteamApp.Domain.Enums</code><br><small style="color:var(--muted)">SteamApp.Models/Enums/ClassEnum.cs</small></td>
+  <td>ScrapeHistorySummaryDto.cs node in DTOs/ScrapeHistory/ScrapeHistorySummaryDto.cs.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>ScrapeJobAcceptedDto.cs</code><br><small style="color:var(--muted)">DTOs/ScrapeHistory/ScrapeJobAcceptedDto.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>SteamApp.Domain.Enums</code><br><small style="color:var(--muted)">SteamApp.Models/Enums/ClassEnum.cs</small></td>
+  <td>ScrapeJobAcceptedDto.cs node in DTOs/ScrapeHistory/ScrapeJobAcceptedDto.cs.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>FeedbackRequestReference.cs</code><br><small style="color:var(--muted)">SteamApp.Application/Utilities/FeedbackRequestReference.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>FeedbackRequestReference.cs node in SteamApp.Application/Utilities/FeedbackRequestReference.cs.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>FeedbackRequestReference</code><br><small style="color:var(--muted)">SteamApp.Application/Utilities/FeedbackRequestReference.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>Format()</code><br><small style="color:var(--muted)">SteamApp.Application/Utilities/FeedbackRequestReference.cs</small><br><code>TryParse()</code><br><small style="color:var(--muted)">SteamApp.Application/Utilities/FeedbackRequestReference.cs</small></td>
+  <td>FeedbackRequestReference node in SteamApp.Application/Utilities/FeedbackRequestReference.cs.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>string</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>string node in project.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>.Format()</code><br><small style="color:var(--muted)">SteamApp.Application/Utilities/FeedbackRequestReference.cs</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>FeedbackRequestReference</code><br><small style="color:var(--muted)">SteamApp.Application/Utilities/FeedbackRequestReference.cs</small></td>
+  <td>No direct outbound edge</td>
+  <td>.Format() node in SteamApp.Application/Utilities/FeedbackRequestReference.cs.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>.TryParse()</code><br><small style="color:var(--muted)">SteamApp.Application/Utilities/FeedbackRequestReference.cs</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>FeedbackRequestReference</code><br><small style="color:var(--muted)">SteamApp.Application/Utilities/FeedbackRequestReference.cs</small></td>
+  <td><code>MapFeedbackRequestEndpoints()</code><br><small style="color:var(--muted)">SteamApp.WebAPI/MinimalAPIs/FeedbackRequestEndpoints.cs</small></td>
+  <td>.TryParse() node in SteamApp.Application/Utilities/FeedbackRequestReference.cs.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>IScrapeHistoryDataService.cs</code><br><small style="color:var(--muted)">SteamApp.Interfaces/Services/IScrapeHistoryDataService.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td><code>SteamApp.Application.DTOs.ScrapeHistory</code><br><small style="color:var(--muted)">DTOs/ScrapeHistory/OwnedGameUrlSnapshot.cs</small></td>
+  <td><code>SteamApp.Domain.Enums</code><br><small style="color:var(--muted)">SteamApp.Models/Enums/ClassEnum.cs</small></td>
+  <td>IScrapeHistoryDataService.cs node in SteamApp.Interfaces/Services/IScrapeHistoryDataService.cs.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>AutomatedScrapeHistory.cs</code><br><small style="color:var(--muted)">SteamApp.Models/Entities/AutomatedScrapeHistory.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>SteamApp.Domain.Enums</code><br><small style="color:var(--muted)">SteamApp.Models/Enums/ClassEnum.cs</small></td>
+  <td>AutomatedScrapeHistory.cs node in SteamApp.Models/Entities/AutomatedScrapeHistory.cs.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>FeedbackRequest.cs</code><br><small style="color:var(--muted)">SteamApp.Models/Entities/FeedbackRequest.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>SteamApp.Domain.Enums</code><br><small style="color:var(--muted)">SteamApp.Models/Enums/ClassEnum.cs</small></td>
+  <td>FeedbackRequest.cs node in SteamApp.Models/Entities/FeedbackRequest.cs.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>FeedbackRequest</code><br><small style="color:var(--muted)">SteamApp.Models/Entities/FeedbackRequest.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>FeedbackRequest node in SteamApp.Models/Entities/FeedbackRequest.cs.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>int</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>int node in project.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>DateTime</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>DateTime node in project.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>FeedbackRequestHistory.cs</code><br><small style="color:var(--muted)">SteamApp.Models/Entities/FeedbackRequestHistory.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>SteamApp.Domain.Enums</code><br><small style="color:var(--muted)">SteamApp.Models/Enums/ClassEnum.cs</small></td>
+  <td>FeedbackRequestHistory.cs node in SteamApp.Models/Entities/FeedbackRequestHistory.cs.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>FeedbackRequestHistory</code><br><small style="color:var(--muted)">SteamApp.Models/Entities/FeedbackRequestHistory.cs</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>FeedbackRequestHistory node in SteamApp.Models/Entities/FeedbackRequestHistory.cs.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>SteamApp.WebAPI/MinimalAPIs/FeedbackRequestEndpoints.cs</code></td><td>7 nodes</td></tr>
+<tr><td><code>SteamApp.Application/Utilities/FeedbackRequestReference.cs</code></td><td>4 nodes</td></tr>
+<tr><td><code>SteamApp.Models/Enums/ClassEnum.cs</code></td><td>3 nodes</td></tr>
+<tr><td><code>DTOs/FeedbackRequest/FeedbackRequestCreateDto.cs</code></td><td>2 nodes</td></tr>
+<tr><td><code>DTOs/FeedbackRequest/FeedbackRequestDto.cs</code></td><td>2 nodes</td></tr>
+<tr><td><code>DTOs/FeedbackRequest/FeedbackRequestHistoryDto.cs</code></td><td>2 nodes</td></tr>
+<tr><td><code>DTOs/FeedbackRequest/FeedbackRequestUpdateDto.cs</code></td><td>2 nodes</td></tr>
+<tr><td><code>DTOs/FeedbackRequest/FeedbackRequestUpdateStatusDto.cs</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x30, references x26, imports x18, method x8. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 13. WatchItemDto ====== -->
+<h2 id="watchitemdto">13. WatchItemDto</h2>
 <p>WatchItemDto groups implementation around steamappserver, services, steamappinfrastructure, steamservicecs, mostly in SteamApp.Infrastructure/Services/SteamService.cs, SteamApp.IntegrationTests/Support/FakeSteamService.cs, SteamApp.Application/Utilities/JsonUtilities.cs. This section covers 51 nodes and 93 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
@@ -3992,8 +4351,8 @@ flowchart LR
 </div>
 <hr>
 
-<!-- ====== 13. SteamService ====== -->
-<h2 id="steamservice">13. SteamService</h2>
+<!-- ====== 14. SteamService ====== -->
+<h2 id="steamservice">14. SteamService</h2>
 <p>SteamService groups implementation around steamappserver, steamappwebapi, services, manualcheckdataservicecs, mostly in SteamApp.WebAPI/Services/ManualCheckDataService.cs, DTOs/ManualCheck/ManualCheckCriterionDto.cs, SteamApp.Models/Entities/ManualCheckRun.cs. This section covers 47 nodes and 134 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
@@ -4339,8 +4698,8 @@ flowchart LR
 </div>
 <hr>
 
-<!-- ====== 14. PixelService ====== -->
-<h2 id="pixelservice">14. PixelService</h2>
+<!-- ====== 15. PixelService ====== -->
+<h2 id="pixelservice">15. PixelService</h2>
 <p>PixelService groups implementation around pixel, steamappclient, app, pixels, mostly in pixel/pixels-view/pixels-view.ts, services/pixel/pixel.service.ts, pixel/pixel-form/pixel-form.ts. This section covers 47 nodes and 86 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
@@ -4695,75 +5054,70 @@ flowchart LR
 </div>
 <hr>
 
-<!-- ====== 15. .CreateTokenResponse ====== -->
-<h2 id="createtokenresponse">15. .CreateTokenResponse</h2>
-<p>.CreateTokenResponse groups implementation around steamappserver, steamappwebapi, controllers, authcontrollercs, mostly in SteamApp.WebAPI/Controllers/AuthController.cs, SteamApp.Infrastructure/Identity/ApplicationUser.cs, ValueObjects/Authentication/AuthResponse.cs. This section covers 46 nodes and 90 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<!-- ====== 16. Other ====== -->
+<h2 id="other">16. Other</h2>
+<p>Other groups implementation around steamappserver, steamappwebapi, steamappclient, app, mostly in services/auth/auth.service.ts, docs/PROJECT_DESCRIPTION_BG.md, docs/PROJECT_DESCRIPTION_ENG.md. This section covers 1823 nodes and 2687 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: .CreateTokenResponse (46 nodes, 90 edges)
+    %% Section: Other (1823 nodes, 2687 edges)
+    subgraph other_app_components_copy_link_component_ts_2d8d1dd3["app/components/copy-link.component.ts"]
+        steamapp_client_src_app_components_copy_link_com_0de306d5("CopyLinkComponent<br/><small>app/components/copy-link.component.ts</small>")
+        steamapp_client_src_app_components_copy_link_com_eb2519d9("allChangesAreFirstChanges()<br/><small>app/components/copy-link.component.ts</small>")
+        steamapp_client_src_app_components_copy_link_com_a3272e2a("clearCopiedState()<br/><small>app/components/copy-link.component.ts</small>")
+        steamapp_client_src_app_components_copy_link_com_6be033a9("clearResetTimer()<br/><small>app/components/copy-link.component.ts</small>")
+        steamapp_client_src_app_components_copy_link_com_05186e02("constructor()<br/><small>app/components/copy-link.component.ts</small>")
+        steamapp_client_src_app_components_copy_link_com_c979d72b("copyText()<br/><small>app/components/copy-link.component.ts</small>")
+        steamapp_client_src_app_components_copy_link_com_a4f79710("displayText()<br/><small>app/components/copy-link.component.ts</small>")
+        steamapp_client_src_app_components_copy_link_com_85618e26("ngOnChanges()<br/><small>app/components/copy-link.component.ts</small>")
+        steamapp_client_src_app_components_copy_link_com_8f1a3efa("ngOnDestroy()<br/><small>app/components/copy-link.component.ts</small>")
+    end
+    subgraph other_app_components_countdown_timer_component_t_02ba3ce7["app/components/countdown-timer.component.ts"]
+        steamapp_client_src_app_components_countdown_tim_a05c7321("CountdownTimerComponent<br/><small>app/components/countdown-timer.component.ts</small>")
+        steamapp_client_src_app_components_countdown_tim_3f060909("ngOnChanges()<br/><small>app/components/countdown-timer.component.ts</small>")
+        steamapp_client_src_app_components_countdown_tim_491e1e3f("ngOnDestroy()<br/><small>app/components/countdown-timer.component.ts</small>")
+    end
+    steamapp_server_steamapp_integrationtests_jobs_w_fd9ee0c0("WishlistJobIntegrationTests<br/><small>SteamApp.IntegrationTests/Jobs/WishlistJobIntegrationTests.cs</small>")
+    steamapp_server_steamapp_interfaces_services_ima_470bde5d("IManualCheckDataService<br/><small>SteamApp.Interfaces/Services/IManualCheckDataService.cs</small>")
     steamapp_server_steamapp_webapi_controllers_auth_02b6e75c("AuthController<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_a7a1a116("Register()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_2898caec("UpdateProfile()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_a4a4173f("CreateUserTokenResponseAsync()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_4b45eee3("EnsureUserRolesAsync()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_9ac53399("ChangePassword()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_55a6e0bf("AddRoleOrThrowAsync()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_c9665c36("CreateDisplayName()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_4a05ad18("CreateModelState()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_83c14c0f("CreateTokenResponse()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_edfdef64("CreateUserProfileResponse()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_d1dc37c8("DeleteProfile()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_56708d14("GetCurrentUserAsync()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_31ff16e7("GetProfile()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_08bcc843("IsConfiguredAdminEmail()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_897a91b5("NormalizeKnownRole()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_d963c4f6("NormalizeOptional()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_7a059e8d("OrderKnownRoles()<br/><small>SteamApp.WebAPI/Controllers/AuthController.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_55a6e0bf
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_9ac53399
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_c9665c36
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_4a05ad18
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_83c14c0f
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_edfdef64
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_a4a4173f
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_d1dc37c8
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_4b45eee3
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_56708d14
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_31ff16e7
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_08bcc843
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_897a91b5
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_d963c4f6
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_7a059e8d
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_a7a1a116
-    steamapp_server_steamapp_webapi_controllers_auth_02b6e75c -->|method| steamapp_server_steamapp_webapi_controllers_auth_2898caec
-    steamapp_server_steamapp_webapi_controllers_auth_a7a1a116 -->|calls| steamapp_server_steamapp_webapi_controllers_auth_4a05ad18
-    steamapp_server_steamapp_webapi_controllers_auth_a7a1a116 -->|calls| steamapp_server_steamapp_webapi_controllers_auth_a4a4173f
-    steamapp_server_steamapp_webapi_controllers_auth_a7a1a116 -->|calls| steamapp_server_steamapp_webapi_controllers_auth_d963c4f6
-    steamapp_server_steamapp_webapi_controllers_auth_31ff16e7 -->|calls| steamapp_server_steamapp_webapi_controllers_auth_edfdef64
-    steamapp_server_steamapp_webapi_controllers_auth_31ff16e7 -->|calls| steamapp_server_steamapp_webapi_controllers_auth_56708d14
-    steamapp_server_steamapp_webapi_controllers_auth_2898caec -->|calls| steamapp_server_steamapp_webapi_controllers_auth_4a05ad18
-    steamapp_server_steamapp_webapi_controllers_auth_2898caec -->|calls| steamapp_server_steamapp_webapi_controllers_auth_edfdef64
-    %% Omitted for readability: 28 nodes, 13 edges
+    steamapp_server_steamapp_webapi_controllers_stea_79652cef("SteamController<br/><small>SteamApp.WebAPI/Controllers/SteamController.cs</small>")
+    steamapp_client_src_app_pages_product_products_v_175fc83a("ProductsView<br/><small>product/products-view/products-view.ts</small>")
+    steamapp_client_src_app_services_auth_auth_servi_fecbc04d("AuthService<br/><small>services/auth/auth.service.ts</small>")
+    steamapp_client_src_app_components_copy_link_com_0de306d5 -->|method| steamapp_client_src_app_components_copy_link_com_eb2519d9
+    steamapp_client_src_app_components_copy_link_com_0de306d5 -->|method| steamapp_client_src_app_components_copy_link_com_a3272e2a
+    steamapp_client_src_app_components_copy_link_com_0de306d5 -->|method| steamapp_client_src_app_components_copy_link_com_6be033a9
+    steamapp_client_src_app_components_copy_link_com_0de306d5 -->|method| steamapp_client_src_app_components_copy_link_com_05186e02
+    steamapp_client_src_app_components_copy_link_com_0de306d5 -->|method| steamapp_client_src_app_components_copy_link_com_c979d72b
+    steamapp_client_src_app_components_copy_link_com_0de306d5 -->|method| steamapp_client_src_app_components_copy_link_com_a4f79710
+    steamapp_client_src_app_components_copy_link_com_0de306d5 -->|method| steamapp_client_src_app_components_copy_link_com_85618e26
+    steamapp_client_src_app_components_copy_link_com_0de306d5 -->|method| steamapp_client_src_app_components_copy_link_com_8f1a3efa
+    steamapp_client_src_app_components_copy_link_com_85618e26 -->|calls| steamapp_client_src_app_components_copy_link_com_eb2519d9
+    steamapp_client_src_app_components_copy_link_com_85618e26 -->|calls| steamapp_client_src_app_components_copy_link_com_a3272e2a
+    steamapp_client_src_app_components_copy_link_com_8f1a3efa -->|calls| steamapp_client_src_app_components_copy_link_com_6be033a9
+    steamapp_client_src_app_components_copy_link_com_c979d72b -->|calls| steamapp_client_src_app_components_copy_link_com_6be033a9
+    steamapp_client_src_app_components_copy_link_com_a3272e2a -->|calls| steamapp_client_src_app_components_copy_link_com_6be033a9
+    steamapp_client_src_app_components_countdown_tim_a05c7321 -->|method| steamapp_client_src_app_components_countdown_tim_3f060909
+    steamapp_client_src_app_components_countdown_tim_a05c7321 -->|method| steamapp_client_src_app_components_countdown_tim_491e1e3f
+    %% Omitted for readability: 1805 nodes, 0 edges
+    class steamapp_client_src_app_components_copy_link_com_0de306d5 ui;
+    class steamapp_client_src_app_components_copy_link_com_eb2519d9 function;
+    class steamapp_client_src_app_components_copy_link_com_a3272e2a function;
+    class steamapp_client_src_app_components_copy_link_com_6be033a9 function;
+    class steamapp_client_src_app_components_copy_link_com_05186e02 function;
+    class steamapp_client_src_app_components_copy_link_com_c979d72b function;
+    class steamapp_client_src_app_components_copy_link_com_a4f79710 function;
+    class steamapp_client_src_app_components_copy_link_com_85618e26 function;
+    class steamapp_client_src_app_components_copy_link_com_8f1a3efa function;
+    class steamapp_client_src_app_components_countdown_tim_a05c7321 ui;
+    class steamapp_client_src_app_components_countdown_tim_3f060909 function;
+    class steamapp_client_src_app_components_countdown_tim_491e1e3f function;
+    class steamapp_server_steamapp_integrationtests_jobs_w_fd9ee0c0 test;
+    class steamapp_server_steamapp_interfaces_services_ima_470bde5d klass;
     class steamapp_server_steamapp_webapi_controllers_auth_02b6e75c klass;
-    class steamapp_server_steamapp_webapi_controllers_auth_a7a1a116 function;
-    class steamapp_server_steamapp_webapi_controllers_auth_2898caec function;
-    class steamapp_server_steamapp_webapi_controllers_auth_a4a4173f async;
-    class steamapp_server_steamapp_webapi_controllers_auth_4b45eee3 async;
-    class steamapp_server_steamapp_webapi_controllers_auth_9ac53399 function;
-    class steamapp_server_steamapp_webapi_controllers_auth_55a6e0bf async;
-    class steamapp_server_steamapp_webapi_controllers_auth_c9665c36 function;
-    class steamapp_server_steamapp_webapi_controllers_auth_4a05ad18 function;
-    class steamapp_server_steamapp_webapi_controllers_auth_83c14c0f function;
-    class steamapp_server_steamapp_webapi_controllers_auth_edfdef64 function;
-    class steamapp_server_steamapp_webapi_controllers_auth_d1dc37c8 function;
-    class steamapp_server_steamapp_webapi_controllers_auth_56708d14 async;
-    class steamapp_server_steamapp_webapi_controllers_auth_31ff16e7 function;
-    class steamapp_server_steamapp_webapi_controllers_auth_08bcc843 function;
-    class steamapp_server_steamapp_webapi_controllers_auth_897a91b5 function;
-    class steamapp_server_steamapp_webapi_controllers_auth_d963c4f6 function;
-    class steamapp_server_steamapp_webapi_controllers_auth_7a059e8d function;
+    class steamapp_server_steamapp_webapi_controllers_stea_79652cef klass;
+    class steamapp_client_src_app_pages_product_products_v_175fc83a klass;
+    class steamapp_client_src_app_services_auth_auth_servi_fecbc04d klass;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -4918,7 +5272,7 @@ flowchart LR
   <td><code>AuthController</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Controllers/AuthController.cs</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>AddRoleOrThrowAsync()</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Controllers/AuthController.cs</small><br><code>ChangePassword()</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Controllers/AuthController.cs</small><br><code>CreateDisplayName()</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Controllers/AuthController.cs</small><br>+15 more</td>
+  <td><code>AddRoleOrThrowAsync()</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Controllers/AuthController.cs</small><br><code>ChangePassword()</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Controllers/AuthController.cs</small><br><code>ClientSecretMatches()</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Controllers/AuthController.cs</small><br>+18 more</td>
   <td>AuthController node in SteamApp.WebAPI/Controllers/AuthController.cs.</td>
 </tr>
 <tr>
@@ -5032,368 +5386,19 @@ flowchart LR
     <h4>Key Files</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>SteamApp.WebAPI/Controllers/AuthController.cs</code></td><td>19 nodes</td></tr>
-<tr><td><code>SteamApp.Infrastructure/Identity/ApplicationUser.cs</code></td><td>2 nodes</td></tr>
-<tr><td><code>ValueObjects/Authentication/AuthResponse.cs</code></td><td>2 nodes</td></tr>
-<tr><td><code>ValueObjects/Authentication/ChangePasswordRequest.cs</code></td><td>2 nodes</td></tr>
-<tr><td><code>ValueObjects/Authentication/DeleteUserRequest.cs</code></td><td>2 nodes</td></tr>
-<tr><td><code>ValueObjects/Authentication/RegisterRequest.cs</code></td><td>2 nodes</td></tr>
-<tr><td><code>ValueObjects/Authentication/UpdateUserProfileRequest.cs</code></td><td>2 nodes</td></tr>
-<tr><td><code>ValueObjects/Authentication/UserProfileResponse.cs</code></td><td>2 nodes</td></tr>
-    </table>
-  </div>
-  <div class="card">
-    <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: references x43, calls x21, method x18, contains x7. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
-  </div>
-</div>
-<hr>
-
-<!-- ====== 16. Other ====== -->
-<h2 id="other">16. Other</h2>
-<p>Other groups implementation around steamappserver, steamappwebapi, steamappclient, app, mostly in services/auth/auth.service.ts, docs/PROJECT_DESCRIPTION_BG.md, docs/PROJECT_DESCRIPTION_ENG.md. This section covers 1855 nodes and 2743 internal edges; the diagram shows only representative relationships to stay readable.</p>
-
-<div class="mermaid">
-%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
-flowchart LR
-    %% Section: Other (1855 nodes, 2743 edges)
-    subgraph other_app_components_copy_link_component_ts_2d8d1dd3["app/components/copy-link.component.ts"]
-        steamapp_client_src_app_components_copy_link_com_0de306d5("CopyLinkComponent<br/><small>app/components/copy-link.component.ts</small>")
-        steamapp_client_src_app_components_copy_link_com_eb2519d9("allChangesAreFirstChanges()<br/><small>app/components/copy-link.component.ts</small>")
-        steamapp_client_src_app_components_copy_link_com_a3272e2a("clearCopiedState()<br/><small>app/components/copy-link.component.ts</small>")
-        steamapp_client_src_app_components_copy_link_com_6be033a9("clearResetTimer()<br/><small>app/components/copy-link.component.ts</small>")
-        steamapp_client_src_app_components_copy_link_com_05186e02("constructor()<br/><small>app/components/copy-link.component.ts</small>")
-        steamapp_client_src_app_components_copy_link_com_c979d72b("copyText()<br/><small>app/components/copy-link.component.ts</small>")
-        steamapp_client_src_app_components_copy_link_com_a4f79710("displayText()<br/><small>app/components/copy-link.component.ts</small>")
-        steamapp_client_src_app_components_copy_link_com_85618e26("ngOnChanges()<br/><small>app/components/copy-link.component.ts</small>")
-        steamapp_client_src_app_components_copy_link_com_8f1a3efa("ngOnDestroy()<br/><small>app/components/copy-link.component.ts</small>")
-    end
-    subgraph other_app_components_countdown_timer_component_t_02ba3ce7["app/components/countdown-timer.component.ts"]
-        steamapp_client_src_app_components_countdown_tim_a05c7321("CountdownTimerComponent<br/><small>app/components/countdown-timer.component.ts</small>")
-        steamapp_client_src_app_components_countdown_tim_3f060909("ngOnChanges()<br/><small>app/components/countdown-timer.component.ts</small>")
-        steamapp_client_src_app_components_countdown_tim_491e1e3f("ngOnDestroy()<br/><small>app/components/countdown-timer.component.ts</small>")
-    end
-    steamapp_server_steamapp_integrationtests_jobs_w_fd9ee0c0("WishlistJobIntegrationTests<br/><small>SteamApp.IntegrationTests/Jobs/WishlistJobIntegrationTests.cs</small>")
-    steamapp_server_steamapp_interfaces_services_ima_470bde5d("IManualCheckDataService<br/><small>SteamApp.Interfaces/Services/IManualCheckDataService.cs</small>")
-    steamapp_server_steamapp_webapi_controllers_stea_79652cef("SteamController<br/><small>SteamApp.WebAPI/Controllers/SteamController.cs</small>")
-    steamapp_client_src_app_pages_profile_profile_pa_c948a2cb("ProfilePage<br/><small>pages/profile/profile-page.ts</small>")
-    steamapp_client_src_app_pages_product_products_v_175fc83a("ProductsView<br/><small>product/products-view/products-view.ts</small>")
-    steamapp_client_src_app_services_auth_auth_servi_fecbc04d("AuthService<br/><small>services/auth/auth.service.ts</small>")
-    steamapp_client_src_app_components_copy_link_com_0de306d5 -->|method| steamapp_client_src_app_components_copy_link_com_eb2519d9
-    steamapp_client_src_app_components_copy_link_com_0de306d5 -->|method| steamapp_client_src_app_components_copy_link_com_a3272e2a
-    steamapp_client_src_app_components_copy_link_com_0de306d5 -->|method| steamapp_client_src_app_components_copy_link_com_6be033a9
-    steamapp_client_src_app_components_copy_link_com_0de306d5 -->|method| steamapp_client_src_app_components_copy_link_com_05186e02
-    steamapp_client_src_app_components_copy_link_com_0de306d5 -->|method| steamapp_client_src_app_components_copy_link_com_c979d72b
-    steamapp_client_src_app_components_copy_link_com_0de306d5 -->|method| steamapp_client_src_app_components_copy_link_com_a4f79710
-    steamapp_client_src_app_components_copy_link_com_0de306d5 -->|method| steamapp_client_src_app_components_copy_link_com_85618e26
-    steamapp_client_src_app_components_copy_link_com_0de306d5 -->|method| steamapp_client_src_app_components_copy_link_com_8f1a3efa
-    steamapp_client_src_app_components_copy_link_com_85618e26 -->|calls| steamapp_client_src_app_components_copy_link_com_eb2519d9
-    steamapp_client_src_app_components_copy_link_com_85618e26 -->|calls| steamapp_client_src_app_components_copy_link_com_a3272e2a
-    steamapp_client_src_app_components_copy_link_com_8f1a3efa -->|calls| steamapp_client_src_app_components_copy_link_com_6be033a9
-    steamapp_client_src_app_components_copy_link_com_c979d72b -->|calls| steamapp_client_src_app_components_copy_link_com_6be033a9
-    steamapp_client_src_app_components_copy_link_com_a3272e2a -->|calls| steamapp_client_src_app_components_copy_link_com_6be033a9
-    steamapp_client_src_app_components_countdown_tim_a05c7321 -->|method| steamapp_client_src_app_components_countdown_tim_3f060909
-    steamapp_client_src_app_components_countdown_tim_a05c7321 -->|method| steamapp_client_src_app_components_countdown_tim_491e1e3f
-    %% Omitted for readability: 1837 nodes, 0 edges
-    class steamapp_client_src_app_components_copy_link_com_0de306d5 ui;
-    class steamapp_client_src_app_components_copy_link_com_eb2519d9 function;
-    class steamapp_client_src_app_components_copy_link_com_a3272e2a function;
-    class steamapp_client_src_app_components_copy_link_com_6be033a9 function;
-    class steamapp_client_src_app_components_copy_link_com_05186e02 function;
-    class steamapp_client_src_app_components_copy_link_com_c979d72b function;
-    class steamapp_client_src_app_components_copy_link_com_a4f79710 function;
-    class steamapp_client_src_app_components_copy_link_com_85618e26 function;
-    class steamapp_client_src_app_components_copy_link_com_8f1a3efa function;
-    class steamapp_client_src_app_components_countdown_tim_a05c7321 ui;
-    class steamapp_client_src_app_components_countdown_tim_3f060909 function;
-    class steamapp_client_src_app_components_countdown_tim_491e1e3f function;
-    class steamapp_server_steamapp_integrationtests_jobs_w_fd9ee0c0 test;
-    class steamapp_server_steamapp_interfaces_services_ima_470bde5d klass;
-    class steamapp_server_steamapp_webapi_controllers_stea_79652cef klass;
-    class steamapp_client_src_app_pages_profile_profile_pa_c948a2cb klass;
-    class steamapp_client_src_app_pages_product_products_v_175fc83a klass;
-    class steamapp_client_src_app_services_auth_auth_servi_fecbc04d klass;
-    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
-    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
-    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
-    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
-    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
-    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
-    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
-    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
-    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
-</div>
-
-<h3>Call Details</h3>
-<table class="call-table">
-<tr>
-  <th style="width:5%">#</th>
-  <th style="width:28%">Node</th>
-  <th style="width:10%">Type</th>
-  <th style="width:17%">Caller</th>
-  <th style="width:20%">Callees</th>
-  <th style="width:20%">Description</th>
-</tr>
-<tr>
-  <td>1</td>
-  <td><code>CacheKeys.cs</code><br><small style="color:var(--muted)">SteamApp.Application/Caching/CacheKeys.cs</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Caches analysis results or computes cache keys.</td>
-</tr>
-<tr>
-  <td>2</td>
-  <td><code>SteamApp.Application.Caching</code><br><small style="color:var(--muted)">SteamApp.Application/Caching/CacheKeys.cs</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>ScrapeEndpointDefinitions.cs</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Scraping/ScrapeEndpointDefinitions.cs</small><br><code>SteamController.cs</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Controllers/SteamController.cs</small><br><code>SteamControllerTests.cs</code><br><small style="color:var(--muted)">SteamApp.Tests/Controllers/SteamControllerTests.cs</small><br>+4 more</td>
-  <td>SteamApp.Application.Caching node in SteamApp.Application/Caching/CacheKeys.cs.</td>
-</tr>
-<tr>
-  <td>3</td>
-  <td><code>CacheKeys</code><br><small style="color:var(--muted)">SteamApp.Application/Caching/CacheKeys.cs</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Caches analysis results or computes cache keys.</td>
-</tr>
-<tr>
-  <td>4</td>
-  <td><code>string</code><br><small style="color:var(--muted)"></small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>string node in project.</td>
-</tr>
-<tr>
-  <td>5</td>
-  <td><code>ScrapeHistoryRerunResponseDto.cs</code><br><small style="color:var(--muted)">DTOs/ScrapeHistory/ScrapeHistoryRerunResponseDto.cs</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>SteamApp.Application.DTOs.WatchItem</code><br><small style="color:var(--muted)">DTOs/WatchItem/WatchItemDto.cs</small></td>
-  <td>ScrapeHistoryRerunResponseDto.cs node in DTOs/ScrapeHistory/ScrapeHistoryRerunResponseDto.cs.</td>
-</tr>
-<tr>
-  <td>6</td>
-  <td><code>SteamApp.Application.DTOs.WatchItem</code><br><small style="color:var(--muted)">DTOs/WatchItem/WatchItemDto.cs</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td><code>ScrapeHistoryRerunResponseDto.cs</code><br><small style="color:var(--muted)">DTOs/ScrapeHistory/ScrapeHistoryRerunResponseDto.cs</small></td>
-  <td><code>FakeSteamService.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Support/FakeSteamService.cs</small><br><code>IScrapeExecutionService.cs</code><br><small style="color:var(--muted)">SteamApp.Interfaces/Services/IScrapeExecutionService.cs</small><br><code>ISteamService.cs</code><br><small style="color:var(--muted)">SteamApp.Interfaces/Services/ISteamService.cs</small><br>+4 more</td>
-  <td>SteamApp.Application.DTOs.WatchItem node in DTOs/WatchItem/WatchItemDto.cs.</td>
-</tr>
-<tr>
-  <td>7</td>
-  <td><code>WishlistServiceE2ETests.cs</code><br><small style="color:var(--muted)">SteamApp.E2ETests/Services/WishlistServiceE2ETests.cs</small></td>
-  <td><span class="tag tag-func">Test</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>SteamApp.WebAPI.MessageBrokers.Handlers...</code><br><small style="color:var(--muted)">Handlers/Wishlist/WishlistCheckMessageHandler.cs</small><br><code>SteamApp.WebAPI.MessageBrokers.Messages...</code><br><small style="color:var(--muted)">Messages/Wishlist/WishlistCheckRequested.cs</small></td>
-  <td>Verifies imports, entry points, or version behavior.</td>
-</tr>
-<tr>
-  <td>8</td>
-  <td><code>SteamApp.E2ETests.Services</code><br><small style="color:var(--muted)">SteamApp.E2ETests/Services/WishlistServiceE2ETests.cs</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Verifies imports, entry points, or version behavior.</td>
-</tr>
-<tr>
-  <td>9</td>
-  <td><code>WishlistJobIntegrationTests.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Jobs/WishlistJobIntegrationTests.cs</small></td>
-  <td><span class="tag tag-func">Test</span></td>
-  <td><code>SteamApp.Application.Caching</code><br><small style="color:var(--muted)">SteamApp.Application/Caching/CacheKeys.cs</small></td>
-  <td><code>SteamApp.WebAPI.MessageBrokers.Handlers...</code><br><small style="color:var(--muted)">Handlers/Wishlist/WishlistCheckMessageHandler.cs</small><br><code>SteamApp.WebAPI.MessageBrokers.Messages...</code><br><small style="color:var(--muted)">Messages/Wishlist/WishlistCheckRequested.cs</small><br><code>SteamApp.WebAPI.MessageBrokers.Provider...</code><br><small style="color:var(--muted)">RabbitMq/Options/RabbitMqOptions.cs</small></td>
-  <td>Verifies imports, entry points, or version behavior.</td>
-</tr>
-<tr>
-  <td>10</td>
-  <td><code>SteamApp.IntegrationTests.Jobs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Jobs/WishlistJobIntegrationTests.cs</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Verifies imports, entry points, or version behavior.</td>
-</tr>
-<tr>
-  <td>11</td>
-  <td><code>FakeSteamService.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Support/FakeSteamService.cs</small></td>
-  <td><span class="tag tag-func">Test</span></td>
-  <td><code>SteamApp.Application.DTOs.WatchItem</code><br><small style="color:var(--muted)">DTOs/WatchItem/WatchItemDto.cs</small></td>
-  <td>No direct outbound edge</td>
-  <td>FakeSteamService.cs node in SteamApp.IntegrationTests/Support/FakeSteamService.cs.</td>
-</tr>
-<tr>
-  <td>12</td>
-  <td><code>IScrapeExecutionService.cs</code><br><small style="color:var(--muted)">SteamApp.Interfaces/Services/IScrapeExecutionService.cs</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td><code>SteamApp.Application.DTOs.WatchItem</code><br><small style="color:var(--muted)">DTOs/WatchItem/WatchItemDto.cs</small></td>
-  <td>No direct outbound edge</td>
-  <td>IScrapeExecutionService.cs node in SteamApp.Interfaces/Services/IScrapeExecutionService.cs.</td>
-</tr>
-<tr>
-  <td>13</td>
-  <td><code>IScrapeExecutionService</code><br><small style="color:var(--muted)">SteamApp.Interfaces/Services/IScrapeExecutionService.cs</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>ExecuteAsync()</code><br><small style="color:var(--muted)">SteamApp.Interfaces/Services/IScrapeExecutionService.cs</small></td>
-  <td>IScrapeExecutionService node in SteamApp.Interfaces/Services/IScrapeExecutionService.cs.</td>
-</tr>
-<tr>
-  <td>14</td>
-  <td><code>ISteamService.cs</code><br><small style="color:var(--muted)">SteamApp.Interfaces/Services/ISteamService.cs</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td><code>SteamApp.Application.DTOs.WatchItem</code><br><small style="color:var(--muted)">DTOs/WatchItem/WatchItemDto.cs</small></td>
-  <td>No direct outbound edge</td>
-  <td>ISteamService.cs node in SteamApp.Interfaces/Services/ISteamService.cs.</td>
-</tr>
-<tr>
-  <td>15</td>
-  <td><code>SteamControllerTests.cs</code><br><small style="color:var(--muted)">SteamApp.Tests/Controllers/SteamControllerTests.cs</small></td>
-  <td><span class="tag tag-func">Test</span></td>
-  <td><code>SteamApp.Application.Caching</code><br><small style="color:var(--muted)">SteamApp.Application/Caching/CacheKeys.cs</small><br><code>SteamApp.Application.DTOs.WatchItem</code><br><small style="color:var(--muted)">DTOs/WatchItem/WatchItemDto.cs</small></td>
-  <td><code>SteamApp.WebAPI.MessageBrokers.Abstract...</code><br><small style="color:var(--muted)">MessageBrokers/Abstractions/IMessagePublisher.cs</small><br><code>SteamApp.WebAPI.MessageBrokers.Handlers...</code><br><small style="color:var(--muted)">Handlers/Scraping/ScrapeRequestedMessageHandler.cs</small><br><code>SteamApp.WebAPI.MessageBrokers.Messages...</code><br><small style="color:var(--muted)">Messages/Scraping/ScrapeRequested.cs</small><br>+1 more</td>
-  <td>Verifies imports, entry points, or version behavior.</td>
-</tr>
-<tr>
-  <td>16</td>
-  <td><code>SteamApp.WebAPI.Caching</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Caching/DistributedCacheExtensions.cs</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>ScrapeRequestedMessageHandler.cs</code><br><small style="color:var(--muted)">Handlers/Scraping/ScrapeRequestedMessageHandler.cs</small><br><code>WishlistCheckJob.cs</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Jobs/WishlistCheckJob.cs</small><br><code>WishlistCheckMessageHandler.cs</code><br><small style="color:var(--muted)">Handlers/Wishlist/WishlistCheckMessageHandler.cs</small><br>+1 more</td>
-  <td>SteamApp.WebAPI.Caching node in SteamApp.WebAPI/Caching/DistributedCacheExtensions.cs.</td>
-</tr>
-<tr>
-  <td>17</td>
-  <td><code>SteamController.cs</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Controllers/SteamController.cs</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td><code>SteamApp.Application.Caching</code><br><small style="color:var(--muted)">SteamApp.Application/Caching/CacheKeys.cs</small></td>
-  <td><code>SteamApp.WebAPI.MessageBrokers.Abstract...</code><br><small style="color:var(--muted)">MessageBrokers/Abstractions/IMessagePublisher.cs</small><br><code>SteamApp.WebAPI.MessageBrokers.Messages...</code><br><small style="color:var(--muted)">Messages/Scraping/ScrapeRequested.cs</small><br><code>SteamApp.WebAPI.MessageBrokers.Provider...</code><br><small style="color:var(--muted)">RabbitMq/Options/RabbitMqOptions.cs</small><br>+1 more</td>
-  <td>SteamController.cs node in SteamApp.WebAPI/Controllers/SteamController.cs.</td>
-</tr>
-<tr>
-  <td>18</td>
-  <td><code>WishlistCheckJob.cs</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Jobs/WishlistCheckJob.cs</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td><code>SteamApp.Application.Caching</code><br><small style="color:var(--muted)">SteamApp.Application/Caching/CacheKeys.cs</small><br><code>SteamApp.Interfaces</code><br><small style="color:var(--muted)">SteamApp.Server/SteamApp.Interfaces/IJobService.cs</small><br><code>SteamApp.WebAPI.Caching</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Caching/DistributedCacheExtensions.cs</small></td>
-  <td><code>SteamApp.WebAPI.MessageBrokers.Abstract...</code><br><small style="color:var(--muted)">MessageBrokers/Abstractions/IMessagePublisher.cs</small><br><code>SteamApp.WebAPI.MessageBrokers.Messages...</code><br><small style="color:var(--muted)">Messages/Wishlist/WishlistCheckRequested.cs</small><br><code>SteamApp.WebAPI.MessageBrokers.Provider...</code><br><small style="color:var(--muted)">RabbitMq/Options/RabbitMqOptions.cs</small></td>
-  <td>WishlistCheckJob.cs node in SteamApp.WebAPI/Jobs/WishlistCheckJob.cs.</td>
-</tr>
-<tr>
-  <td>19</td>
-  <td><code>IMessagePublisher.cs</code><br><small style="color:var(--muted)">MessageBrokers/Abstractions/IMessagePublisher.cs</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>IMessagePublisher.cs node in MessageBrokers/Abstractions/IMessagePublisher.cs.</td>
-</tr>
-<tr>
-  <td>20</td>
-  <td><code>SteamApp.WebAPI.MessageBrokers.Abstractions</code><br><small style="color:var(--muted)">MessageBrokers/Abstractions/IMessagePublisher.cs</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td><code>SteamController.cs</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Controllers/SteamController.cs</small><br><code>SteamControllerTests.cs</code><br><small style="color:var(--muted)">SteamApp.Tests/Controllers/SteamControllerTests.cs</small><br><code>WishlistCheckJob.cs</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Jobs/WishlistCheckJob.cs</small></td>
-  <td><code>RabbitMqPublisher.cs</code><br><small style="color:var(--muted)">RabbitMq/Publishing/RabbitMqPublisher.cs</small><br><code>RabbitMqServiceCollectionExtensions.cs</code><br><small style="color:var(--muted)">RabbitMq/DependencyInjection/RabbitMqServiceCollectionExtensions.cs</small><br><code>WishlistCheckMessageHandler.cs</code><br><small style="color:var(--muted)">Handlers/Wishlist/WishlistCheckMessageHandler.cs</small></td>
-  <td>SteamApp.WebAPI.MessageBrokers.Abstractions node in MessageBrokers/Abstractions/IMessagePublisher.cs.</td>
-</tr>
-<tr>
-  <td>21</td>
-  <td><code>IMessagePublisher</code><br><small style="color:var(--muted)">MessageBrokers/Abstractions/IMessagePublisher.cs</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>PublishAsync()</code><br><small style="color:var(--muted)">MessageBrokers/Abstractions/IMessagePublisher.cs</small></td>
-  <td>IMessagePublisher node in MessageBrokers/Abstractions/IMessagePublisher.cs.</td>
-</tr>
-<tr>
-  <td>22</td>
-  <td><code>ScrapeRequestedMessageHandler.cs</code><br><small style="color:var(--muted)">Handlers/Scraping/ScrapeRequestedMessageHandler.cs</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td><code>SteamApp.Application.DTOs.WatchItem</code><br><small style="color:var(--muted)">DTOs/WatchItem/WatchItemDto.cs</small><br><code>SteamApp.WebAPI.Caching</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Caching/DistributedCacheExtensions.cs</small></td>
-  <td><code>SteamApp.WebAPI.MessageBrokers.Messages...</code><br><small style="color:var(--muted)">Messages/Scraping/ScrapeRequested.cs</small><br><code>SteamApp.WebAPI.Scraping</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Scraping/ScrapeEndpointDefinitions.cs</small></td>
-  <td>ScrapeRequestedMessageHandler.cs node in Handlers/Scraping/ScrapeRequestedMessageHandler.cs.</td>
-</tr>
-<tr>
-  <td>23</td>
-  <td><code>SteamApp.WebAPI.MessageBrokers.Handlers.Scraping</code><br><small style="color:var(--muted)">Handlers/Scraping/ScrapeRequestedMessageHandler.cs</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td><code>SteamControllerTests.cs</code><br><small style="color:var(--muted)">SteamApp.Tests/Controllers/SteamControllerTests.cs</small></td>
-  <td><code>RabbitMqServiceCollectionExtensions.cs</code><br><small style="color:var(--muted)">RabbitMq/DependencyInjection/RabbitMqServiceCollectionExtensions.cs</small><br><code>ScrapeRequestedConsumer.cs</code><br><small style="color:var(--muted)">RabbitMq/Consumers/ScrapeRequestedConsumer.cs</small></td>
-  <td>SteamApp.WebAPI.MessageBrokers.Handlers.Scraping node in Handlers/Scraping/ScrapeRequestedMessageHandler.cs.</td>
-</tr>
-<tr>
-  <td>24</td>
-  <td><code>WishlistCheckMessageHandler.cs</code><br><small style="color:var(--muted)">Handlers/Wishlist/WishlistCheckMessageHandler.cs</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td><code>SteamApp.Application.Caching</code><br><small style="color:var(--muted)">SteamApp.Application/Caching/CacheKeys.cs</small><br><code>SteamApp.WebAPI.Caching</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Caching/DistributedCacheExtensions.cs</small><br><code>SteamApp.WebAPI.MessageBrokers.Abstract...</code><br><small style="color:var(--muted)">MessageBrokers/Abstractions/IMessagePublisher.cs</small></td>
-  <td><code>SteamApp.WebAPI.MessageBrokers.Messages...</code><br><small style="color:var(--muted)">Messages/Wishlist/WishlistCheckRequested.cs</small><br><code>SteamApp.WebAPI.MessageBrokers.Provider...</code><br><small style="color:var(--muted)">RabbitMq/Options/RabbitMqOptions.cs</small></td>
-  <td>WishlistCheckMessageHandler.cs node in Handlers/Wishlist/WishlistCheckMessageHandler.cs.</td>
-</tr>
-<tr>
-  <td>25</td>
-  <td><code>SteamApp.WebAPI.MessageBrokers.Handlers.Wishlist</code><br><small style="color:var(--muted)">Handlers/Wishlist/WishlistCheckMessageHandler.cs</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td><code>WishlistJobIntegrationTests.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Jobs/WishlistJobIntegrationTests.cs</small><br><code>WishlistServiceE2ETests.cs</code><br><small style="color:var(--muted)">SteamApp.E2ETests/Services/WishlistServiceE2ETests.cs</small></td>
-  <td><code>RabbitMqServiceCollectionExtensions.cs</code><br><small style="color:var(--muted)">RabbitMq/DependencyInjection/RabbitMqServiceCollectionExtensions.cs</small><br><code>WishlistCheckConsumer.cs</code><br><small style="color:var(--muted)">RabbitMq/Consumers/WishlistCheckConsumer.cs</small><br><code>WishlistNotificationConsumer.cs</code><br><small style="color:var(--muted)">RabbitMq/Consumers/WishlistNotificationConsumer.cs</small></td>
-  <td>SteamApp.WebAPI.MessageBrokers.Handlers.Wishlist node in Handlers/Wishlist/WishlistCheckMessageHandler.cs.</td>
-</tr>
-<tr>
-  <td>26</td>
-  <td><code>WishlistNotificationMessageHandler.cs</code><br><small style="color:var(--muted)">Handlers/Wishlist/WishlistNotificationMessageHandler.cs</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td><code>SteamApp.Application.Caching</code><br><small style="color:var(--muted)">SteamApp.Application/Caching/CacheKeys.cs</small><br><code>SteamApp.WebAPI.Caching</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Caching/DistributedCacheExtensions.cs</small></td>
-  <td><code>SteamApp.WebAPI.MessageBrokers.Messages...</code><br><small style="color:var(--muted)">Messages/Wishlist/WishlistCheckRequested.cs</small></td>
-  <td>WishlistNotificationMessageHandler.cs node in Handlers/Wishlist/WishlistNotificationMessageHandler.cs.</td>
-</tr>
-<tr>
-  <td>27</td>
-  <td><code>SteamApp.WebAPI.MessageBrokers.Messages.Scraping</code><br><small style="color:var(--muted)">Messages/Scraping/ScrapeRequested.cs</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td><code>ScrapeRequestedMessageHandler.cs</code><br><small style="color:var(--muted)">Handlers/Scraping/ScrapeRequestedMessageHandler.cs</small><br><code>SteamController.cs</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Controllers/SteamController.cs</small><br><code>SteamControllerTests.cs</code><br><small style="color:var(--muted)">SteamApp.Tests/Controllers/SteamControllerTests.cs</small></td>
-  <td><code>ScrapeRequestedConsumer.cs</code><br><small style="color:var(--muted)">RabbitMq/Consumers/ScrapeRequestedConsumer.cs</small></td>
-  <td>SteamApp.WebAPI.MessageBrokers.Messages.Scraping node in Messages/Scraping/ScrapeRequested.cs.</td>
-</tr>
-<tr>
-  <td>28</td>
-  <td><code>SteamApp.WebAPI.MessageBrokers.Messages.Wishlist</code><br><small style="color:var(--muted)">Messages/Wishlist/WishlistCheckRequested.cs</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td><code>WishlistCheckJob.cs</code><br><small style="color:var(--muted)">SteamApp.WebAPI/Jobs/WishlistCheckJob.cs</small><br><code>WishlistCheckMessageHandler.cs</code><br><small style="color:var(--muted)">Handlers/Wishlist/WishlistCheckMessageHandler.cs</small><br><code>WishlistJobIntegrationTests.cs</code><br><small style="color:var(--muted)">SteamApp.IntegrationTests/Jobs/WishlistJobIntegrationTests.cs</small><br>+2 more</td>
-  <td><code>WishlistCheckConsumer.cs</code><br><small style="color:var(--muted)">RabbitMq/Consumers/WishlistCheckConsumer.cs</small><br><code>WishlistNotificationConsumer.cs</code><br><small style="color:var(--muted)">RabbitMq/Consumers/WishlistNotificationConsumer.cs</small></td>
-  <td>SteamApp.WebAPI.MessageBrokers.Messages.Wishlist node in Messages/Wishlist/WishlistCheckRequested.cs.</td>
-</tr>
-<tr>
-  <td>29</td>
-  <td><code>RabbitMqConnection.cs</code><br><small style="color:var(--muted)">RabbitMq/Connection/RabbitMqConnection.cs</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>SteamApp.WebAPI.MessageBrokers.Provider...</code><br><small style="color:var(--muted)">RabbitMq/Options/RabbitMqOptions.cs</small></td>
-  <td>RabbitMqConnection.cs node in RabbitMq/Connection/RabbitMqConnection.cs.</td>
-</tr>
-<tr>
-  <td>30</td>
-  <td><code>SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Connection</code><br><small style="color:var(--muted)">RabbitMq/Connection/RabbitMqConnection.cs</small></td>
-  <td><span class="tag tag-class">Module</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>RabbitMqPublisher.cs</code><br><small style="color:var(--muted)">RabbitMq/Publishing/RabbitMqPublisher.cs</small><br><code>RabbitMqServiceCollectionExtensions.cs</code><br><small style="color:var(--muted)">RabbitMq/DependencyInjection/RabbitMqServiceCollectionExtensions.cs</small><br><code>ScrapeRequestedConsumer.cs</code><br><small style="color:var(--muted)">RabbitMq/Consumers/ScrapeRequestedConsumer.cs</small><br>+2 more</td>
-  <td>SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Connection node in RabbitMq/Connection/RabbitMqConnection.cs.</td>
-</tr>
-</table>
-
-<div class="grid">
-  <div class="card">
-    <h4>Key Files</h4>
-    <table style="width:100%;font-size:0.85rem;">
-      <tr><th>File</th><th>Coverage</th></tr>
       <tr><td><code>services/auth/auth.service.ts</code></td><td>39 nodes</td></tr>
 <tr><td><code>docs/PROJECT_DESCRIPTION_BG.md</code></td><td>36 nodes</td></tr>
 <tr><td><code>docs/PROJECT_DESCRIPTION_ENG.md</code></td><td>29 nodes</td></tr>
 <tr><td><code>product/products-view/products-view.ts</code></td><td>24 nodes</td></tr>
-<tr><td><code>SteamApp.IntegrationTests/Jobs/WishlistJobIntegrationTests.cs</code></td><td>21 nodes</td></tr>
-<tr><td><code>SteamApp.WebAPI/Controllers/SteamController.cs</code></td><td>21 nodes</td></tr>
+<tr><td><code>SteamApp.WebAPI/Controllers/AuthController.cs</code></td><td>22 nodes</td></tr>
+<tr><td><code>SteamApp.WebAPI/Controllers/SteamController.cs</code></td><td>20 nodes</td></tr>
+<tr><td><code>SteamApp.IntegrationTests/Jobs/WishlistJobIntegrationTests.cs</code></td><td>19 nodes</td></tr>
 <tr><td><code>SteamApp.Interfaces/Services/IManualCheckDataService.cs</code></td><td>19 nodes</td></tr>
-<tr><td><code>AGENTS.md</code></td><td>17 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: references x1024, method x564, contains x498, calls x259. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: references x1052, method x571, contains x460, calls x266. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
@@ -5407,7 +5412,7 @@ flowchart LR
       <tr><td>Nodes</td><td>4449</td></tr>
       <tr><td>Edges</td><td>9102</td></tr>
       <tr><td>Hyperedges</td><td>0</td></tr>
-      <tr><td>Communities</td><td>296</td></tr>
+      <tr><td>Communities</td><td>290</td></tr>
       <tr><td>Documented Sections</td><td>15</td></tr>
     </table>
   </div>
@@ -5423,7 +5428,7 @@ flowchart LR
 
 <div style="text-align:center; padding:40px 0; color: var(--muted); font-size:0.9rem;">
   <p>SteamApp — Architecture Documentation</p>
-  <p>Generated: 2026-09-13 06:48 UTC · graphify callflow-html</p>
+  <p>Generated: 2026-09-13 07:13 UTC · graphify callflow-html</p>
 </div>
 
 </div><!-- .container -->

@@ -505,13 +505,13 @@
     "semantic_hash": "2ceeb328968b65919cd2d3fc0010ad77"
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-mode-v2.ts": {
-    "mtime": 1789278642.6990845,
-    "ast_hash": "253c961af6828802f56744d608601908",
+    "mtime": 1789283497.0462754,
+    "ast_hash": "a5310b9011f74c599b0382227446641f",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-mode-v2.unit.spec.ts": {
-    "mtime": 1789278896.2661119,
-    "ast_hash": "796b0d7beae5fd4fe4834a1de11c465e",
+    "mtime": 1789283511.1653094,
+    "ast_hash": "95669c5fb813fabaa0c482a2c1d92cef",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/not-found/not-found-page.ts": {
@@ -2575,8 +2575,8 @@
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/manual-mode-v2/manual-mode-v2.html": {
-    "mtime": 1789278647.915518,
-    "ast_hash": "ba51c14d291704646807e4fbb76fda77",
+    "mtime": 1789283504.7034876,
+    "ast_hash": "254c70254d7a495b0b19f4684419d0e3",
     "semantic_hash": ""
   },
   "SteamApp.Client/src/app/pages/not-found/not-found-page.html": {
@@ -3587,6 +3587,11 @@
   ".agents/skills/bulk-relations/SKILL.md": {
     "mtime": 1789281585.5546074,
     "ast_hash": "af57002fc79b13b90d1b03d0dd373ec6",
+    "semantic_hash": ""
+  },
+  "docs/update-tf2-hat-collection-tags.sql": {
+    "mtime": 1789282677.8893447,
+    "ast_hash": "e650466502ba97968113f7c7977c7ffd",
     "semantic_hash": ""
   }
 }
