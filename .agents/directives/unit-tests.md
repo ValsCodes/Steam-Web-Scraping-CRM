@@ -6,6 +6,10 @@ When production behavior changes, add or update the smallest deterministic tests
 
 Use the existing test stack. Do not introduce another test framework without explicit approval.
 
+## Required conventions
+
+Read and follow `.agents/skills/csharp-conventions/SKILL.md` for affected C#/.NET code or project references and `.agents/skills/ui-conventions/SKILL.md` for affected Angular code, including tests. Apply both for cross-stack work. Load other applicable skills as required by `AGENTS.md`.
+
 ## Coverage
 
 For each changed behavior, cover applicable cases:
@@ -59,12 +63,13 @@ Run from the repository root unless stated otherwise:
 - Client integration tests, from `SteamApp.Client`: `npm.cmd run test:integration`
 - Client E2E tests, from `SteamApp.Client`: `npm.cmd run test:e2e`
 
-Run only the relevant unit-test command by default. Run integration or E2E commands only when explicitly requested or required by the task's boundary; otherwise record relevant suites as `Not Verified`.
+Run only relevant unit tests by default. Run integration tests when explicitly requested or necessary to prove the affected boundary. Run E2E only when explicitly requested. Mark applicable skipped/unavailable checks `Not Verified` and unrelated checks `N/A`.
 
 ## Completion report
 
 Report:
 
+- Skills followed and unmet mandatory requirements.
 - Tests added or changed.
 - Behaviors and edge cases covered.
 - Exact commands executed.

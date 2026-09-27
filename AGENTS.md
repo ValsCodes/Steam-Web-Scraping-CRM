@@ -1,189 +1,78 @@
 # SteamApp repository instructions
 
-## Command execution
+## Command execution and scope
 
-- Run Windows commands with PowerShell.
-- Invoke explicit PowerShell commands through `pwsh -NoProfile -Command "<command>"`; if `pwsh` is unavailable, use `powershell -NoProfile -Command "<command>"`.
+- Run Windows commands through `pwsh -NoProfile -Command "<command>"`; use `powershell` if `pwsh` is unavailable.
 - Use `rg` or `rg --files` for search and file discovery.
-- Do not expose user secrets, connection strings, tokens, or local configuration in command output or reports.
+- Never expose secrets, connection strings, tokens, private data, or sensitive local configuration in output or reports.
+- Preserve unrelated user changes. Make the smallest complete change and avoid unrelated refactoring.
+- For an identified, locally understandable task, inspect the specified files directly. Expand investigation only when correctness requires callers, dependencies, architecture, or change impact.
+- Source and project files are authoritative; generated graphs are navigation aids.
 
-## Work style
+## Mandatory skill enforcement
 
-- For a small, identified change, inspect the named file or symbol and make the smallest complete change.
-- Expand discovery only when correctness requires callers, dependencies, architecture, or change-impact analysis.
-- Preserve unrelated user changes and avoid unrelated refactoring.
-- Prefer direct, readable control flow and existing framework capabilities over new helper layers or dependencies.
-- Treat source files and project files as authoritative; generated graphs are navigation aids.
+Before implementation or review, identify every applicable repository skill in the table below. Explicit skill invocations and matching automatic triggers MUST load and follow the skill.
 
-## Project map
+- Read the applicable `SKILL.md` and every directive or reference it requires before performing the governed work. Conditional references are required only when their condition applies.
+- Follow required procedures, validation, gates, and report formats. Do not substitute a generic checklist or claim compliance without performing the required work.
+- Apply overlapping skills together. Cross-stack changes require both conventions skills; relation mutations may also require bulk, testing, and security workflows.
+- Skill enforcement does not authorize unrelated discovery, refactoring, external actions, or broader validation.
+- If a required skill, directive, or reference is missing, report its exact path and pause the affected workflow. Continue independent authorized work; do not silently substitute another policy.
+- Existing user authorization remains valid. Do not request it again merely because a skill applies.
+- At completion, identify skills followed, validation performed, and unmet mandatory requirements. Do not recommend readiness while applicable blocking gates remain unmet.
 
-- `SteamApp.Client`: Angular 21 standalone client using Angular Material, RxJS, Jasmine/Karma unit tests, Jest integration tests, and Playwright E2E tests.
-- `SteamApp.Server/SteamApp.Models`: `SteamApp.Domain` entities, enums, value objects, and domain constants.
-- `SteamApp.Server/SteamApp.Application`: DTOs, mapping profiles, operation results, cache keys, JSON models, and application utilities.
-- `SteamApp.Server/SteamApp.Interfaces`: service and repository contracts.
-- `SteamApp.Server/SteamApp.Infrastructure`: EF Core context, ASP.NET Identity user, repositories, email, Steam/Selenium, encryption, retry, and wishlist services.
-- `SteamApp.Server/SteamApp.WebAPI`: ASP.NET Core API composition, controllers, Minimal APIs, security, jobs, manual/scrape orchestration, RabbitMQ, Redis caching, and migrations.
-- `SteamApp.Server/SteamApp.WebApiClient`: typed .NET API-client managers.
-- `SteamApp.Server/SteamApp.Tests`, `SteamApp.IntegrationTests`, and `SteamApp.E2ETests`: NUnit test projects.
+All skill paths below are relative to `.agents/skills/`.
 
-Respect the current project-reference graph rather than imposing a generic clean-architecture template:
+| Trigger | Required skill | Required directive |
+|---|---|---|
+| Create, modify, move, refactor, or review C# code or .NET project references, including tests | `csharp-conventions` | None |
+| Create, modify, move, refactor, or review Angular components, templates, styles, services, models, routes, or client tests | `ui-conventions` | None |
+| Repository discovery, callers, dependencies, routes, architecture, or change-impact analysis | `codebase-discovery` | None |
+| Join-table selection or batch relation mutations | `bulk-relations` | None |
+| Explicit test work or required characterization/regression coverage | `unit-tests` | `unit-tests.md` |
+| `/pr-review`, standard pre-PR readiness review, or creating/recommending/approving a PR | `pr-review` | `pr-review.md`, `unit-tests.md`, `security-review.md` |
+| `/pr-review-refactor` or behavior-preserving refactor readiness review | `pr-review-refactor` | `refactoring-review.md`, `unit-tests.md`; security directive when triggered |
+| `/security-review`, security assessment, or documented high-risk change | `security-review` | `security-review.md` |
+| `/graphify`, explicit Graphify analysis/maintenance, graph-specific outputs, selected discovery fallback, or required source-change update | `graphify` | None |
 
-- Application references Domain.
-- Interfaces references Application and Domain.
-- Infrastructure references Application, Interfaces, and Domain.
-- WebAPI references Infrastructure.
-- WebApiClient references Application and Domain.
+For a refactor-only readiness review, use `pr-review-refactor` instead of standard `pr-review`; mixed behavior changes use standard review. Apply other matching skills in either case.
 
-Inspect the affected `.csproj` files before changing these boundaries.
+Directives live under `.agents/directives/` and are authoritative for their workflow checks. They do not override higher-priority instructions or existing user authorization. Git history records directive versions; load the named file, never a version fallback.
 
-## Code conventions
+## Project orientation
 
-- Each C# class, record, struct, interface, enum, and delegate MUST have its own file named after the type. No local-grouping exception.
-- Do not add local functions inside methods; extract focused private members when extraction materially improves clarity.
-- Prefer primary constructors when they remain easy to read with validation, inheritance, and dependency injection.
-- Put domain entities and enums under `SteamApp.Models`, DTOs and mappings under `SteamApp.Application`, contracts under `SteamApp.Interfaces`, and infrastructure implementations under `SteamApp.Infrastructure`.
-- Put API-only orchestration, controllers, Minimal APIs, hosted workers, RabbitMQ messages/handlers/consumers, security policies, and API-specific services under `SteamApp.WebAPI`.
-- Extend existing services, endpoints, and message-broker infrastructure instead of creating parallel paths.
-- Follow the existing standalone Angular component/service style and existing import-barrel conventions in the touched area.
+- Angular client: `SteamApp.Client`.
+- Server projects and .NET tests: `SteamApp.Server`.
+- Server ownership and project dependencies: [C# conventions](.agents/skills/csharp-conventions/SKILL.md).
+- Angular conventions and browser behavior: [UI conventions](.agents/skills/ui-conventions/SKILL.md).
 
-## Architecture and structure enforcement
+## Security workflow triggers
 
-The existing repository structure is authoritative. Do not introduce a different architectural organization, generic clean-architecture layout, or alternative domain structure.
+Preserve security controls unless the authorized task explicitly changes them. Never put real secrets in tracked configuration, logs, tests, or examples.
 
-Before creating, moving, or substantially modifying code:
-
-- Inspect the affected project, neighboring folders, namespaces, and comparable existing implementations.
-- Determine which existing domain, project, folder, and layer owns the behavior.
-- Follow the nearest established implementation pattern unless the task explicitly requires an architectural change.
-- Place new code in the existing project and domain that already owns equivalent behavior.
-- Preserve the project-reference graph documented above.
-- Do not create new top-level folders, projects, layers, cross-domain abstractions, shared modules, or parallel service hierarchies merely for organizational preference.
-- Do not move responsibilities between Domain, Application, Interfaces, Infrastructure, WebAPI, or WebApiClient unless the requested change explicitly requires it.
-- Prefer extending an existing domain structure over inventing a new structure.
-- Namespace placement must follow the containing project's existing namespace and folder conventions.
-- If a proposed location conflicts with the repository's established structure, the repository structure wins.
-
-For repository-wide or structurally significant work, inspect comparable source files before implementation. Do not infer architecture from generic .NET conventions when this repository already establishes a pattern.
-
-## ENFORCE DIRECTIVE: One C# type per file
-
-Each C# class, record, struct, interface, enum, and delegate MUST be declared in its own source file.
-
-This directive is mandatory and has no local-grouping exception.
-
-- A `.cs` file MUST NOT contain multiple top-level types.
-- The filename MUST match the declared type name.
-- Do not place helper classes, DTOs, request/response models, options classes, configuration classes, message types, result types, interfaces, enums, or implementations in the same file as another type.
-- Do not add a second type to an existing source file for convenience.
-- When a task materially modifies an existing file containing multiple top-level types, split the touched types into correctly named files unless doing so would change generated code or violate an explicitly documented framework requirement.
-- Nested types are allowed only when they are genuinely implementation-private to the containing type and are already consistent with the local design. Do not use nesting to bypass this directive.
-- Generated source files are exempt unless the task explicitly modifies their generation strategy.
-
-Before completion, inspect every added or modified `.cs` file and verify that it contains no more than one top-level type.
-
-## Domain ownership
-
-Use these ownership boundaries when determining where code belongs:
-
-- `SteamApp.Models`: domain entities, enums, value objects, and domain constants.
-- `SteamApp.Application`: DTOs, mappings, operation results, cache keys, JSON models, and application-level utilities.
-- `SteamApp.Interfaces`: service and repository contracts.
-- `SteamApp.Infrastructure`: EF Core persistence, repository implementations, external integrations, email, Steam/Selenium, encryption, retry, and infrastructure services.
-- `SteamApp.WebAPI`: API composition, controllers, Minimal APIs, API-specific orchestration, hosted workers, RabbitMQ messages/handlers/consumers, security, jobs, and API-specific services.
-- `SteamApp.WebApiClient`: typed .NET API-client managers.
-- `SteamApp.Client`: Angular client code following the existing standalone Angular structure.
-
-Do not place code in a different layer because it is easier to reference from the current task. Respect ownership and dependency direction.
-
-## Structural completion checks
-
-Before reporting completion:
-
-- Verify each new type is in its own correctly named file.
-- Verify every new file is under the correct existing project, domain, and folder.
-- Verify namespaces match the surrounding source structure.
-- Verify the implementation follows the nearest comparable existing implementation.
-- Verify no unnecessary project, layer, folder, abstraction, or parallel architecture was introduced.
-- Verify project references still follow the documented dependency graph.
-- Inspect the final diff specifically for structural drift.
-
-## Data access and dependency injection
-
-- `ApplicationDbContext` is the single EF Core context for both ASP.NET Identity and SteamApp business data.
-- In repositories, reusable services, message handlers, and background work, inject `IDbContextFactory<ApplicationDbContext>`, create a context per operation, and dispose it with `using` or `await using`.
-- Request-bound Minimal API handlers may inject `ApplicationDbContext` directly, matching existing endpoint conventions.
-- Never run concurrent operations on one `DbContext` or let it escape its owning request, scope, or operation.
-- Register ordinary WebAPI services in `Program.cs` beside comparable registrations. Keep provider-specific registrations in their existing extension, such as `AddRabbitMqMessageBroker`.
-- Singletons must not capture scoped services. Hosted services and RabbitMQ consumers must create and dispose a scope per unit of scoped work.
-- Do not dispose dependencies supplied by DI. Dispose resources created and owned by the current component exactly once.
-
-## Async, workers, brokers, and caching
-
-- Await async work and propagate `CancellationToken` through cancellable I/O, EF Core, HTTP, and long-running operations.
-- Catch failures inside hosted-service iteration and message-consumer boundaries so one operation does not silently terminate processing.
-- Treat RabbitMQ payloads as untrusted input. Validate identifiers and state before persistence or external calls, keep correlation IDs in logs/history, and acknowledge messages only after the intended outcome is durable.
-- Preserve retry, cancellation, partial-result, status-transition, and history behavior in scrape and manual-check workflows.
-- Keep Redis and memory-cache keys consistent with `CacheKeys`; include user/tenant identity whenever cached data is user-specific.
-
-## Security
-
-- Preserve JWT validation, Identity lockout/password rules, authorization policies, user ownership checks, rate limiting, CORS, HSTS, and security headers unless the task explicitly changes them.
-- Never place real secrets in tracked `appsettings*.json`, launch settings, compose files, logs, tests, or examples.
-- Treat user-controlled URLs, Steam links, scrape targets, message payloads, and serialized JSON as untrusted.
-- The product intentionally permits users to open unverified external URLs after disclosure. Preserve the warning/consent flow and `noopener,noreferrer`; do not silently convert it into a blocklist.
-- Admin, role, ownership, authentication, authorization, external URL, scraping, broker, deployment, and secret-handling changes are high risk and require the security-review workflow.
+High-risk changes require `security-review`: authentication/Identity/JWT/roles/admin, authorization/ownership/internal-job trust, secrets/cryptography, user-controlled URLs/scraping/parsing/outbound HTTP, RabbitMQ, sensitive caches or personal data, files/paths/serialization/code execution, public API controls, migrations/infrastructure/deployment, security tests/controls/audit logging, and externally opened URLs. The security directive defines the complete risk classification and gates.
 
 ## Discovery and generated graphs
 
-This repository has a Graphify graph at `graphify-out/` and a codebase-memory-mcp index.
-
-- For an exact, locally understandable change, inspect source directly.
-- For repository discovery, including natural-language codebase questions, symbols, callers, dependencies, routes, architecture, and change impact, use the `codebase-discovery` skill and codebase-memory-mcp as the primary navigation index. Use the narrowest operation, check index freshness, and re-index only when the index is missing or stale.
+- Exact, locally understandable edits permit direct inspection without invoking discovery.
+- For repository discovery, use `codebase-discovery` and codebase-memory-mcp first. Check freshness and re-index only when missing or stale.
 - Verify implementation-sensitive, negative, exhaustive, and security-sensitive conclusions against source and project files.
-- Use Graphify when the user invokes `/graphify`, explicitly requests Graphify analysis, asks for graph-specific outputs such as communities, god nodes, wiki navigation, or visualization, or when codebase-memory-mcp is unavailable or insufficient and a scoped graph query can materially help. Use `graphify query`, `graphify path`, or `graphify explain` as appropriate.
-- Do not use Graphify and codebase-memory-mcp for the same routine task unless the primary result is insufficient or cross-validation is requested.
-- Use `graphify-out/wiki/index.md` only for Graphify-oriented broad navigation. Read `GRAPH_REPORT.md` only for broad graph architecture/community work or when scoped Graphify queries are insufficient.
-- Dirty `graphify-out/` files are expected. After modifying source code, run `graphify update .`.
+- Use Graphify for explicit graph work or a selected fallback when the primary index is unavailable or insufficient. Do not routinely use both graph systems.
+- Read `graphify-out/wiki/index.md` for broad Graphify navigation; read `GRAPH_REPORT.md` only for broad graph analysis or insufficient scoped queries.
+- Dirty `graphify-out/` files are expected. After source-code changes, follow the Graphify update procedure and run `graphify update .`. Do not update for read-only reviews or instruction/configuration-only changes unless requested.
 
-## Repository workflows
+## Validation policy
 
-Use the repository-local skills under `.agents/skills`:
+Run only validation relevant to the affected scope, plus checks required by applicable workflows.
 
-- Discovery or change impact: `codebase-discovery`
-- `/unit-tests` or focused test work: `unit-tests`
-- `/pr-review` or standard pre-PR review: `pr-review`
-- `/pr-review-refactor` or behavior-preserving refactor review: `pr-review-refactor`
-- `/security-review` or security-sensitive review: `security-review`
-- `/graphify` or explicit graph analysis: `graphify`
-
-Versioned directives under `.agents/directives` are authoritative for the workflows they govern:
-
-- `Directive.Code.PR_v4.md`
-- `Directive.Code.Refactoring_v1.md`
-- `Directive.UnitTest_v1.md`
-- `Directive.Security_v2.md`
-
-When a workflow directive conflicts with general guidance here, follow the workflow directive. Source files remain authoritative for implementation behavior.
-
-## Validation
-
-- Server build: `dotnet build SteamApp.Server\SteamApp.WebAPI\SteamApp.sln -v:m`
-- Server unit tests: `dotnet test SteamApp.Server\SteamApp.Tests\SteamApp.Tests.csproj -v:m -m:1`
-- Server integration tests: run only when explicitly requested or required by the changed boundary; otherwise report `Not Verified`.
-- Server E2E tests: run only when explicitly requested.
-- Client build: from `SteamApp.Client`, run `npm.cmd run build`.
-- Client unit tests: from `SteamApp.Client`, run `npm.cmd run test:unit`.
-- Client integration tests: run `npm.cmd run test:integration` only when requested or required.
-- Client E2E tests: run `npm.cmd run test:e2e` only when requested.
-
-Run only validation relevant to the changed scope. Report skipped or unavailable checks as `Not Verified`; never imply they passed.
+- Server build, repository root: `dotnet build SteamApp.Server\SteamApp.WebAPI\SteamApp.sln -v:m`.
+- Server unit tests, repository root: `dotnet test SteamApp.Server\SteamApp.Tests\SteamApp.Tests.csproj -v:m -m:1`.
+- Client build, from `SteamApp.Client`: `npm.cmd run build`.
+- Client unit tests, from `SteamApp.Client`: `npm.cmd run test:unit`.
+- Integration tests run when explicitly requested or necessary to prove the affected boundary; commands are in the testing directive.
+- Server/client E2E tests run only when explicitly requested.
+- Report failed checks as failed, applicable skipped/unavailable checks as `Not Verified`, and unrelated checks as `N/A`. Never imply unexecuted validation passed.
 
 ## Completion
 
-Before reporting completion:
-
-- Confirm the requested behavior or configuration exists.
-- Inspect the final diff for readability, scope, security, and accidental changes.
-- Run the relevant validation.
-- Update Graphify after source-code changes.
-- Report tests and commands actually executed, remaining risk, and every `Not Verified` check.
+Confirm the requested behavior or configuration exists. Inspect the final diff for readability, scope, structure, security, and accidental changes. Complete applicable skill checks and relevant validation; update Graphify after source changes. Report skills followed, exact commands and outcomes, unmet requirements, applicable `Not Verified` checks, and residual risk.

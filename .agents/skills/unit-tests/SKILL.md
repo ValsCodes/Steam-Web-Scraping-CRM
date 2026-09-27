@@ -7,9 +7,13 @@ description: Add, update, or validate focused SteamApp tests using the repositor
 
 ## Resolve the directive
 
-Read `.agents/directives/Directive.UnitTest_v1.md` completely before changing tests. If it is absent, locate the highest available `Directive.UnitTest_v*.md`. Stop and report the missing directive when no version exists.
+Read `.agents/directives/unit-tests.md` completely before governed work. If it is missing, report its exact path and pause that workflow; do not substitute another directive.
 
 Treat the resolved directive as authoritative.
+
+## Required conventions
+
+Read and follow `.agents/skills/csharp-conventions/SKILL.md` for affected C#/.NET code or project references and `.agents/skills/ui-conventions/SKILL.md` for affected Angular code, including tests. Apply both for cross-stack work. Load other applicable skills as required by `AGENTS.md`.
 
 ## Procedure
 
@@ -26,9 +30,10 @@ Treat the resolved directive as authoritative.
 5. Follow the surrounding file's fixtures and style. Use NUnit + Moq + `Assert.That` for .NET and Jasmine spies/testing utilities for Angular unit tests.
 6. Keep tests deterministic and isolate external HTTP, Selenium, email, RabbitMQ, Redis, time, and secrets.
 7. Run the relevant unit-test command.
-8. Run integration/E2E only when explicitly requested or required by the chosen boundary; otherwise report it as `Not Verified`.
+8. Run integration tests when explicitly requested or necessary to prove the affected boundary. Run E2E only when explicitly requested. Mark applicable skipped/unavailable checks `Not Verified` and unrelated checks `N/A`.
 
 ## Output
 
-Report the tests changed, behaviors covered, exact commands, results, `Not Verified` suites, and remaining untested risk.
+Identify applicable skills followed and any unmet mandatory requirements.
 
+Report the tests changed, behaviors covered, exact commands, results, `Not Verified` suites, and remaining untested risk.

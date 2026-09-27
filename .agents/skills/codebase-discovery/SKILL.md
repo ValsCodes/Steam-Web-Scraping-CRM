@@ -30,15 +30,7 @@ Do not route a question to Graphify merely because `graphify-out/graph.json` exi
 
 ## SteamApp orientation
 
-- Client: Angular under `SteamApp.Client/src/app`.
-- Domain: `SteamApp.Server/SteamApp.Models`.
-- DTOs/mapping/application helpers: `SteamApp.Application`.
-- Contracts: `SteamApp.Interfaces`.
-- EF Core and external integrations: `SteamApp.Infrastructure`.
-- API, jobs, RabbitMQ, Redis composition, and security: `SteamApp.WebAPI`.
-- Tests: `SteamApp.Tests`, `SteamApp.IntegrationTests`, `SteamApp.E2ETests`, and client unit/integration/E2E suites.
-
-Treat this map as navigation, not proof. Inspect affected `.csproj`, source, configuration, and tests before making architectural claims.
+Client sources are under `SteamApp.Client/src/app`; server projects and .NET tests are under `SteamApp.Server`. For architectural ownership or conventions conclusions, read the relevant [C# conventions](../csharp-conventions/SKILL.md) or [UI conventions](../ui-conventions/SKILL.md). Treat orientation as navigation, not proof; verify claims against affected project files, source, configuration, and tests.
 
 ## Fallback
 

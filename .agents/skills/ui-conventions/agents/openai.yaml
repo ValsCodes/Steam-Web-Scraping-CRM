@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI Conventions"
+  short_description: "Apply SteamApp Angular UI implementation rules"
+  default_prompt: "Use $ui-conventions to implement or review SteamApp Angular code using repository conventions."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "C# Conventions"
+  short_description: "Apply SteamApp C# and .NET implementation rules"
+  default_prompt: "Use $csharp-conventions to implement or review SteamApp C# code using repository conventions."

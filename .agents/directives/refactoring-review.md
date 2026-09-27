@@ -6,6 +6,14 @@ Improve structure, readability, maintainability, testability, or performance wit
 
 Apply only checks relevant to the changed files. Mark unrelated sections `N/A`.
 
+## Bind the review
+
+Record the commit SHA, whether uncommitted changes are included, and a snapshot of the reviewed scope (staged/unstaged diff plus included untracked file contents). Re-check both the commit and scope snapshot immediately before the recommendation. A changed commit invalidates the prior recommendation; changed working-tree content requires review and validation of the changed portions before a new recommendation.
+
+## Required conventions
+
+Read and follow `.agents/skills/csharp-conventions/SKILL.md` for affected C#/.NET code or project references and `.agents/skills/ui-conventions/SKILL.md` for affected Angular code, including tests. Apply both for cross-stack work. Load other applicable skills as required by `AGENTS.md`.
+
 ## Preserve the existing contract
 
 Before editing or reviewing, establish the current contract from executable behavior, tests, callers, configuration, and affected integration paths:
@@ -31,16 +39,7 @@ Database-schema and migration creation/execution are outside this workflow unles
 
 ## Architecture and placement
 
-Preserve SteamApp's current project responsibilities:
-
-- Domain in `SteamApp.Models`.
-- DTOs/mapping/application utilities in `SteamApp.Application`.
-- contracts in `SteamApp.Interfaces`.
-- EF Core and external integrations in `SteamApp.Infrastructure`.
-- API orchestration, jobs, brokers, and security in `SteamApp.WebAPI`.
-- presentation and browser behavior in `SteamApp.Client`.
-
-Validate project references from the affected `.csproj` files. Do not move code solely to satisfy a theoretical layering model.
+Verify applicable conventions, existing project ownership, namespace/folder placement, and actual project references. Do not move code solely to satisfy a theoretical layering model.
 
 ## Data, DI, and resource ownership
 
@@ -48,11 +47,7 @@ When touched, verify:
 
 - Query filtering, ordering, eager loading, tracking, materialization timing, writes, and transaction behavior remain equivalent.
 - User ownership filters are preserved.
-- Repositories/services/handlers/background work create per-operation contexts through `IDbContextFactory<ApplicationDbContext>`.
-- Request-bound Minimal API context injection remains request scoped.
-- No context is shared concurrently or retained beyond its operation.
-- Service lifetimes remain valid; singletons do not capture scoped or mutable transient dependencies.
-- DI-supplied dependencies are not disposed by consumers. Factory-created/owned resources are disposed exactly once.
+- Verify the C# conventions skill and preserve context ownership, concurrency, DI lifetimes, scopes, and disposal behavior.
 
 ## Async, workers, brokers, and client state
 
@@ -61,9 +56,7 @@ When touched, verify:
 - Awaiting, exception observability, cancellation propagation, and execution order are preserved.
 - Hosted workers and RabbitMQ consumers retain their scope, retry, acknowledgement, correlation, and failure semantics.
 - Cache behavior and invalidation remain equivalent.
-- Angular subscriptions/listeners/timers are cleaned up as before.
-- State changes after `await` and manual change-detection calls do not introduce repeated or disposed-component updates.
-- External-link disclosure and opening behavior remain unchanged.
+- Verify the UI conventions skill and preserve cleanup, async state, change detection, session safeguards, and external-link behavior.
 
 ## Readability gate
 
@@ -79,11 +72,11 @@ If the new version is not easier to reason about, the refactoring has not met it
 
 ## Verification
 
-- Apply `Directive.UnitTest_v1.md`.
+- Apply `unit-tests.md`.
 - Run the existing relevant tests before and after when feasible.
 - Add behavior-focused characterization/regression coverage where needed.
 - Run relevant builds and focused analyzers.
-- Do not run integration or E2E suites unless explicitly requested; mark relevant unexecuted suites `Not Verified`.
+- Run integration tests when explicitly requested or necessary to prove the affected boundary. Run E2E only when explicitly requested. Mark applicable skipped/unavailable checks `Not Verified` and unrelated checks `N/A`.
 - Do not weaken tests merely because private implementation changed.
 
 ## Blocking findings
@@ -99,6 +92,9 @@ Do not block solely because EF migrations are absent or unverified; migration wo
 ### Objective
 
 - Commit:
+- Uncommitted changes included:
+- Reviewed scope snapshot:
+- Skills followed and unmet requirements:
 - Refactoring goal:
 - Changed files or areas:
 - Existing behavior reviewed:

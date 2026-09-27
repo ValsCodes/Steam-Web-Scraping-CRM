@@ -1,13 +1,15 @@
 # graphify reference: add a URL and watch a folder
 
+PowerShell command bodies follow [runtime.md](runtime.md); execute them through `pwsh -NoProfile` as required by `AGENTS.md`.
+
 Load this when the user ran `/graphify add <url>` or passed `--watch`. Neither is part of the default build.
 
 ## For /graphify add
 
 Fetch a URL and add it to the corpus, then update the graph.
 
-```bash
-$(cat graphify-out/.graphify_python) -c "
+```powershell
+$graphifyCode = @'
 import sys
 from graphify.ingest import ingest
 from pathlib import Path
@@ -21,7 +23,8 @@ except ValueError as e:
 except RuntimeError as e:
     print(f'error: {e}', file=sys.stderr)
     sys.exit(1)
-"
+'@
+$graphifyCode | & $graphifyPython -
 ```
 
 Replace `URL` with the actual URL, `AUTHOR` with the user's name if provided, `CONTRIBUTOR` likewise. If the command exits with an error, tell the user what went wrong - do not silently continue. After a successful save, automatically run the `--update` pipeline on `./raw` to merge the new file into the existing graph.
@@ -40,8 +43,8 @@ Supported URL types (auto-detected):
 
 Start a background watcher that monitors a folder and auto-updates the graph when files change.
 
-```bash
-$(cat graphify-out/.graphify_python) -m graphify.watch INPUT_PATH --debounce 3
+```powershell
+& $graphifyPython -m graphify.watch INPUT_PATH --debounce 3
 ```
 
 Replace INPUT_PATH with the folder to watch. Behavior depends on what changed:

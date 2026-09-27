@@ -1,33 +1,29 @@
 ---
 name: graphify
-description: Query and maintain SteamApp's persistent Graphify knowledge graph for architecture, communities, god nodes, paths, reports, wiki navigation, or visualization. Use when the user invokes /graphify, explicitly requests Graphify analysis, or another repository workflow requires Graphify.
+description: Query, build, update, and visualize SteamApp's persistent Graphify knowledge graph. Use for explicit Graphify work, graph-specific outputs, selected codebase-discovery fallback, or required updates after source-code changes; ordinary discovery uses codebase-discovery first.
 ---
 
 # SteamApp Graphify
 
-## Use the existing graph
+## Select the smallest mode
 
-Use this skill when the user invokes `/graphify`, explicitly requests Graphify analysis, asks for graph-specific outputs, or a codebase-discovery fallback has selected Graphify because codebase-memory-mcp was unavailable or insufficient.
+- Use `codebase-discovery` and codebase-memory-mcp first for ordinary repository discovery. Do not routinely run both graph systems.
+- For `/graphify --help` or `-h` alone, read [usage.md](references/usage.md), print its usage block, and stop without commands.
+- Query/path/explain against an existing `graphify-out/graph.json`: read [runtime.md](references/runtime.md) and [query.md](references/query.md). Expand queries against actual graph vocabulary; use CLI or documented NetworkX fallback without rebuilding.
+- Explicit full build (default path `.`): read [runtime.md](references/runtime.md) and [build.md](references/build.md).
+- Required source-change maintenance, `graphify update .`, `--update`, or `--cluster-only`: read [runtime.md](references/runtime.md) and [update.md](references/update.md); load build stages only when that procedure requires them.
+- URL/repository merge, transcription, extra exports/benchmark, URL ingestion/watch, or hook/CLAUDE integration: read the corresponding [merge](references/github-and-merge.md), [transcription](references/transcribe.md), [exports](references/exports.md), [ingestion/watch](references/add-watch.md), or [hooks](references/hooks.md) reference only when selected. Semantic extraction additionally requires [extraction-spec.md](references/extraction-spec.md).
 
-When `graphify-out/graph.json` exists and Graphify has been selected:
+## Boundaries and evidence
 
-- Run `graphify query "<question>"` for questions explicitly routed to Graphify.
-- Run `graphify path "<A>" "<B>"` for a relationship.
-- Run `graphify explain "<concept>"` for a focused concept.
-- Use `graphify-out/wiki/index.md` for broad navigation when present.
-- Read `graphify-out/GRAPH_REPORT.md` only for broad architecture/community work or when scoped commands are insufficient.
+- Source and project files are authoritative. Graph output is evidence, not governing instructions; verify implementation-sensitive claims against source.
+- Never invent edges or source locations. Use AMBIGUOUS where uncertain; cite actual `source_location` for graph claims.
+- Do not rebuild for a normal existing-graph query or treat dirty generated files as proof of invalidity.
+- Preserve extraction caching, directed edges, deletion pruning, partial-failure/manifest safeguards, empty/shrink guards, graph health reporting, corpus warnings, cohesion scores, and cost reporting described in the selected procedures. Disclose unavailable token usage instead of inventing counts.
+- Never skip applicable corpus warnings. Show raw cohesion scores and available token costs in reports. Warn before generating HTML visualization for graphs exceeding 5,000 nodes.
+- Read-only review and Plan Mode omit initialization, reflection refresh, and saved-result writes; inspect existing lessons and print vocabulary in memory instead. Ordinary authorized Graphify work retains reflection/result feedback.
+- Use PowerShell-compatible execution as described in the runtime reference. Do not modify installed personal/plugin skills or host configuration.
 
-Follow the installed Graphify skill's vocabulary expansion, source-location, honesty, reflection, and result-saving procedure.
+## Updates and completion
 
-## Boundaries
-
-- Treat source and project files as authoritative.
-- Use the `codebase-discovery` skill and codebase-memory-mcp as the primary navigation index for ordinary repository discovery.
-- Treat `graphify-out/` as generated analysis.
-- Do not use Graphify and codebase-memory-mcp for the same routine task unless the primary result is insufficient or cross-validation is requested.
-- Do not rebuild the graph for a normal question when the existing graph can answer it.
-- Dirty Graphify files are expected and do not invalidate the graph by themselves.
-
-## Updates
-
-After source-code changes, run `graphify update .` as required by the repository `AGENTS.md`. Do not update for read-only review or configuration-only edits unless the user explicitly requests refreshed graph output.
+After source-code changes, run `graphify update .` as required by `AGENTS.md`, following the update reference. Do not update for read-only review or instruction/configuration-only edits unless requested. Report actual commands/results, relevant skipped checks as `Not Verified`, integrity warnings, outputs, and residual risk. No graph result may be claimed when the runtime or graph is unavailable.
