@@ -264,6 +264,13 @@ export const routes: Routes = [
         data: { seo: { title: 'Manual Mode', canonicalPath: '/manual-mode-v2' } },
       },
       {
+        path: 'automatic-queue',
+        loadComponent: () =>
+          import('./pages/automatic-queue/automatic-queue-page').then((m) => m.AutomaticQueuePage),
+        title: 'Automatic Queue',
+        data: { seo: { title: 'Automatic Queue', canonicalPath: '/automatic-queue' } },
+      },
+      {
         path: 'profile',
         loadComponent: () => import('./pages/profile/profile-page').then((m) => m.ProfilePage),
         title: 'Profile',

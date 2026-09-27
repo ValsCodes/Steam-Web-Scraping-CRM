@@ -4,8 +4,10 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  computed,
   inject,
   OnInit,
+  signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
@@ -23,7 +25,7 @@ import {
   ManualCheckProductTrace,
   ManualCheckRunDetail,
 } from '../../models';
-import { ManualCheckService } from '../../services';
+import { ExternalLinkDisclosureService, ManualCheckService } from '../../services';
 import {
   formatManualCheckExpression,
   ManualCheckGroupNode,
@@ -32,6 +34,7 @@ import {
 import { ManualCheckSteamResultDialogComponent } from './manual-check-steam-result-dialog.component';
 
 export type ManualCheckTraceView = 'setup' | 'results' | 'errors';
+type ManualCheckResultFilter = 'all' | 'matched' | 'unmatched';
 
 export interface ManualCheckTraceDialogData {
   runId?: number;
@@ -47,9 +50,9 @@ export interface ManualCheckTraceDialogData {
   template: `
     <h2 mat-dialog-title>{{ title }}</h2>
     <mat-dialog-content class="manual-check-trace">
-      @if (detail) {
+      @if (detail(); as loadedDetail) {
         <p class="manual-check-trace__intro">
-          {{ detail.presetName }} · Correlation ID: {{ detail.correlationId }}
+          {{ loadedDetail.presetName }} · Correlation ID: {{ loadedDetail.correlationId }}
         </p>
       }
 
@@ -63,7 +66,7 @@ export interface ManualCheckTraceDialogData {
             <button mat-stroked-button type="button" (click)="load(data.runId)">Try again</button>
           }
         </div>
-      } @else if (detail; as run) {
+      } @else if (detail(); as run) {
         <nav class="manual-check-trace__tabs" aria-label="Run trace sections">
           <button mat-stroked-button type="button" (click)="view = 'setup'" [class.manual-check-trace__tab--active]="view === 'setup'">Setup</button>
           <button mat-stroked-button type="button" (click)="view = 'results'" [class.manual-check-trace__tab--active]="view === 'results'">Checks ({{ run.results.productTraces.length }})</button>
@@ -120,60 +123,102 @@ export interface ManualCheckTraceDialogData {
               <p class="manual-check-trace__muted">
                 Every attempted product keeps a duration trace. Parsed Steam results are available when the request reached that stage.
               </p>
-              <div class="manual-check-trace__product-results-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Product</th>
-                      <th>Match result</th>
-                      <th>Matched assets</th>
-                      <th>Duration</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (trace of run.results.productTraces; track trace.productId) {
-                      <tr>
-                        <td>
-                          <strong>{{ trace.productName || ('Product #' + trace.productId) }}</strong><br />
-                          <small>Product #{{ trace.productId }}</small>
-                        </td>
-                        <td>
-                          <span
-                            class="manual-check-trace__result-status"
-                            [class.manual-check-trace__result-status--failed]="!trace.matchEvaluated"
-                            [class.manual-check-trace__result-status--matched]="trace.matchEvaluated && trace.matched">
-                            {{ !trace.matchEvaluated ? 'Check failed' : trace.matched ? 'Matched' : 'No match' }}
-                          </span>
-                        </td>
-                        <td>{{ trace.matchedAssetCount }}</td>
-                        <td>{{ formatDuration(trace.durationMilliseconds) }}</td>
-                        <td>
-                          @if (trace.steamApiResultJson) {
-                            <div class="table-actions-cell">
-                              <button
-                                type="button"
-                                mat-icon-button
-                                class="table-actions-trigger"
-                                [matMenuTriggerFor]="steamResultActionsMenu"
-                                [attr.aria-label]="'Open Steam result actions for ' + (trace.productName || ('product ' + trace.productId))">
-                                <mat-icon>more_horiz</mat-icon>
-                              </button>
-                              <mat-menu #steamResultActionsMenu="matMenu" xPosition="before" panelClass="table-actions-menu">
-                                <button type="button" mat-menu-item (click)="openSteamResult(trace)">
-                                  <span>View Steam API result</span>
-                                </button>
-                              </mat-menu>
-                            </div>
-                          } @else {
-                            <span class="manual-check-trace__muted">No response</span>
-                          }
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
+              <div class="manual-check-trace__result-filters" role="group" aria-label="Filter automated check results">
+                <button
+                  mat-stroked-button
+                  type="button"
+                  data-result-filter="all"
+                  (click)="resultFilter.set('all')"
+                  [attr.aria-pressed]="resultFilter() === 'all'"
+                  [class.manual-check-trace__result-filter--active]="resultFilter() === 'all'">
+                  All ({{ run.results.productTraces.length }})
+                </button>
+                <button
+                  mat-stroked-button
+                  type="button"
+                  data-result-filter="matched"
+                  (click)="resultFilter.set('matched')"
+                  [attr.aria-pressed]="resultFilter() === 'matched'"
+                  [class.manual-check-trace__result-filter--active]="resultFilter() === 'matched'">
+                  Matched ({{ matchedProductCount() }})
+                </button>
+                <button
+                  mat-stroked-button
+                  type="button"
+                  data-result-filter="unmatched"
+                  (click)="resultFilter.set('unmatched')"
+                  [attr.aria-pressed]="resultFilter() === 'unmatched'"
+                  [class.manual-check-trace__result-filter--active]="resultFilter() === 'unmatched'">
+                  Unmatched ({{ unmatchedProductCount() }})
+                </button>
               </div>
+              @if (filteredProductTraces().length === 0) {
+                <div class="manual-check-trace__callout">
+                  No {{ resultFilter() }} products were recorded for this run.
+                </div>
+              } @else {
+                <div class="manual-check-trace__product-results-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Match result</th>
+                        <th>Matched assets</th>
+                        <th>Duration</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (trace of filteredProductTraces(); track trace.productId) {
+                        <tr>
+                          <td>
+                            <strong>{{ trace.productName || ('Product #' + trace.productId) }}</strong><br />
+                            <small>Product #{{ trace.productId }}</small>
+                          </td>
+                          <td>
+                            <span
+                              class="manual-check-trace__result-status"
+                              [class.manual-check-trace__result-status--failed]="!trace.matchEvaluated"
+                              [class.manual-check-trace__result-status--matched]="trace.matchEvaluated && trace.matched">
+                              {{ !trace.matchEvaluated ? 'Check failed' : trace.matched ? 'Matched' : 'No match' }}
+                            </span>
+                          </td>
+                          <td>{{ trace.matchedAssetCount }}</td>
+                          <td>{{ formatDuration(trace.durationMilliseconds) }}</td>
+                          <td>
+                            @if (trace.steamApiResultJson || trace.fullUrl) {
+                              <div class="table-actions-cell">
+                                <button
+                                  type="button"
+                                  mat-icon-button
+                                  class="table-actions-trigger"
+                                  [matMenuTriggerFor]="steamResultActionsMenu"
+                                  [attr.aria-label]="'Open Steam result actions for ' + (trace.productName || ('product ' + trace.productId))">
+                                  <mat-icon>more_horiz</mat-icon>
+                                </button>
+                                <mat-menu #steamResultActionsMenu="matMenu" xPosition="before" panelClass="table-actions-menu">
+                                  @if (trace.steamApiResultJson) {
+                                    <button type="button" mat-menu-item (click)="openSteamResult(trace)">
+                                      <span>View Steam API result</span>
+                                    </button>
+                                  }
+                                  @if (trace.fullUrl) {
+                                    <button type="button" mat-menu-item (click)="openProductPage(trace)">
+                                      <span>Open product page</span>
+                                    </button>
+                                  }
+                                </mat-menu>
+                              </div>
+                            } @else {
+                              <span class="manual-check-trace__muted">No response</span>
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
             }
           </div>
         } @else {
@@ -228,6 +273,8 @@ export interface ManualCheckTraceDialogData {
     .manual-check-trace__panel h3, .manual-check-trace__record h3 { margin: 0; }
     .manual-check-trace__callout { display: flex; flex-direction: column; align-items: flex-start; gap: .4rem; border: 1px solid #cbd5e1; border-radius: .375rem; background: #f8fafc; padding: .75rem; color: #334155; }
     .manual-check-trace__callout--error { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+    .manual-check-trace__result-filters { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .manual-check-trace__result-filter--active { background: #dbeafe; border-color: #93c5fd; }
     .manual-check-trace__product-results-wrap { overflow: auto; border: 1px solid #e2e8f0; border-radius: .5rem; }
     table { width: 100%; border-collapse: collapse; font-size: .875rem; }
     th, td { border-bottom: 1px solid #e2e8f0; padding: .7rem; text-align: left; vertical-align: top; }
@@ -262,9 +309,22 @@ export class ManualCheckTraceDialogComponent implements OnInit {
   readonly dialogRef = inject<MatDialogRef<ManualCheckTraceDialogComponent>>(MatDialogRef);
   private readonly dialog = inject(MatDialog);
   private readonly manualCheckService = inject(ManualCheckService);
+  private readonly externalLinkDisclosure = inject(ExternalLinkDisclosureService);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  detail: ManualCheckRunDetail | null = null;
+  readonly detail = signal<ManualCheckRunDetail | null>(null);
+  readonly resultFilter = signal<ManualCheckResultFilter>('all');
+  readonly matchedProductCount = computed(() =>
+    this.detail()?.results.productTraces.filter((trace) => trace.matchEvaluated && trace.matched).length ?? 0);
+  readonly unmatchedProductCount = computed(() =>
+    this.detail()?.results.productTraces.filter((trace) => trace.matchEvaluated && !trace.matched).length ?? 0);
+  readonly filteredProductTraces = computed(() => {
+    const traces = this.detail()?.results.productTraces ?? [];
+    const filter = this.resultFilter();
+    if (filter === 'all') return traces;
+    return traces.filter((trace) =>
+      trace.matchEvaluated && trace.matched === (filter === 'matched'));
+  });
   setupExpression: ManualCheckGroupNode | null = null;
   setupExpressionValid = true;
   view: ManualCheckTraceView = 'results';
@@ -272,7 +332,7 @@ export class ManualCheckTraceDialogComponent implements OnInit {
   errorMessage = '';
 
   get title(): string {
-    const runId = this.detail?.id ?? this.data.runId;
+    const runId = this.detail()?.id ?? this.data.runId;
     return runId === undefined
       ? 'Automated Check Result'
       : `Automated Check Result · Run #${runId}`;
@@ -327,6 +387,10 @@ export class ManualCheckTraceDialogComponent implements OnInit {
       ?.durationMilliseconds ?? null;
   }
 
+  openProductPage(trace: ManualCheckProductTrace): void {
+    this.externalLinkDisclosure.openTrustedUrl(trace.fullUrl);
+  }
+
   get setupExpressionPreview(): string {
     return this.setupExpression
       ? formatManualCheckExpression(this.setupExpression, [])
@@ -334,7 +398,8 @@ export class ManualCheckTraceDialogComponent implements OnInit {
   }
 
   private setDetail(detail: ManualCheckRunDetail): void {
-    this.detail = detail;
+    this.detail.set(detail);
+    this.resultFilter.set('all');
     const parsed = parseManualCheckExpression(detail.setup.criteria);
     this.setupExpression = parsed.root;
     this.setupExpressionValid = parsed.isValid;

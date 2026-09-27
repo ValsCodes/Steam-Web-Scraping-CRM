@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -65,7 +67,7 @@ public sealed class ManualChecksControllerTests
     }
 
     [Test]
-    public async Task PresetCrudDoesNotRequireOrPassAUserIdentifier()
+    public async Task PresetCrudScopesOwnershipThroughTheAuthenticatedGame()
     {
         var data = new Mock<IManualCheckDataService>();
         var queue = new Mock<IManualCheckQueue>();
@@ -84,7 +86,7 @@ public sealed class ManualChecksControllerTests
         };
         data.Setup(x => x.CreatePresetAsync(input, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ManualCheckPresetDto { Id = 9, GameId = 440, Name = "Shared" });
-        data.Setup(x => x.GetPresetsAsync(440, It.IsAny<CancellationToken>()))
+        data.Setup(x => x.GetPresetsAsync("test-user", 440, It.IsAny<CancellationToken>()))
             .ReturnsAsync([new ManualCheckPresetDto { Id = 9, GameId = 440, Name = "Shared" }]);
         var controller = Controller(data, queue);
 
@@ -97,6 +99,7 @@ public sealed class ManualChecksControllerTests
             Assert.That((list as OkObjectResult)?.Value, Is.AssignableTo<IReadOnlyList<ManualCheckPresetDto>>());
             Assert.That(typeof(ManualCheckPresetWriteDto).GetProperty("UserId"), Is.Null);
         });
+        data.Verify(x => x.GetPresetsAsync("test-user", 440, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
@@ -183,6 +186,26 @@ public sealed class ManualChecksControllerTests
     }
 
     [Test]
+    public async Task QueueOwnedRunRejectsDirectControlOperations()
+    {
+        var data = new Mock<IManualCheckDataService>();
+        var queue = new Mock<IManualCheckQueue>();
+        var controller = Controller(data, queue);
+        data.Setup(x => x.IsQueueOwnedRunAsync(12, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await controller.CancelRun(12);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.TypeOf<ObjectResult>());
+            Assert.That((result as ObjectResult)?.StatusCode, Is.EqualTo(409));
+        });
+        data.Verify(x => x.CancelAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()), Times.Never);
+        queue.Verify(x => x.TryCancel(It.IsAny<long>()), Times.Never);
+    }
+
+    [Test]
     public void ContinueRun_KeepsTheExpensiveApiRateLimit()
     {
         var rateLimit = typeof(ManualChecksController)
@@ -233,10 +256,30 @@ public sealed class ManualChecksControllerTests
         Mock<IManualCheckDataService> data,
         Mock<IManualCheckQueue> queue)
     {
-        return new ManualChecksController(
+        data.Setup(x => x.UserOwnsGameAsync("test-user", It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        data.Setup(x => x.UserOwnsGameUrlAsync("test-user", It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        data.Setup(x => x.UserOwnsPresetAsync("test-user", It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        data.Setup(x => x.UserOwnsRunAsync("test-user", It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        data.Setup(x => x.IsQueueOwnedRunAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        var controller = new ManualChecksController(
             data.Object,
             queue.Object,
             NullLogger<ManualChecksController>.Instance);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                    [new Claim(ClaimTypes.NameIdentifier, "test-user")],
+                    "Test"))
+            }
+        };
+        return controller;
     }
 
     private static ManualCheckRunSummaryDto Summary(long id)

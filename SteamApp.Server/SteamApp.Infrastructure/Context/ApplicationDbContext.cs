@@ -29,6 +29,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<ManualCheckCriterion> ManualCheckCriteria { get; set; }
     public DbSet<ManualCheckConditionOperator> ManualCheckConditionOperators { get; set; }
     public DbSet<ManualCheckRun> ManualCheckRuns { get; set; }
+    public DbSet<AutomaticQueueDefinition> AutomaticQueueDefinitions { get; set; }
+    public DbSet<AutomaticQueueBlock> AutomaticQueueBlocks { get; set; }
+    public DbSet<AutomaticQueueRun> AutomaticQueueRuns { get; set; }
+    public DbSet<AutomaticQueueRunBlock> AutomaticQueueRunBlocks { get; set; }
     public DbSet<FeedbackRequest> FeedbackRequests { get; set; }
     public DbSet<FeedbackRequestHistory> FeedbackRequestHistories { get; set; }
     public DbSet<GameUrlProductStockHistory> GameUrlProductStockHistories { get; set; }
@@ -308,6 +312,53 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasIndex(x => x.Status);
             entity.HasIndex(x => x.GameId);
             entity.HasIndex(x => x.GameUrlId);
+        });
+        modelBuilder.Entity<AutomaticQueueDefinition>(entity =>
+        {
+            entity.HasIndex(x => new { x.UserId, x.Name }).IsUnique();
+            entity.HasIndex(x => x.UserId);
+        });
+        modelBuilder.Entity<AutomaticQueueBlock>(entity =>
+        {
+            entity.HasOne(x => x.AutomaticQueueDefinition)
+                  .WithMany(x => x.Blocks)
+                  .HasForeignKey(x => x.AutomaticQueueDefinitionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(x => new { x.AutomaticQueueDefinitionId, x.SortOrder }).IsUnique();
+            entity.HasIndex(x => new { x.AutomaticQueueDefinitionId, x.BlockKey }).IsUnique();
+        });
+        modelBuilder.Entity<AutomaticQueueRun>(entity =>
+        {
+            entity.Property(x => x.Status).IsConcurrencyToken();
+
+            entity.HasOne(x => x.AutomaticQueueDefinition)
+                  .WithMany(x => x.Runs)
+                  .HasForeignKey(x => x.AutomaticQueueDefinitionId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(x => new { x.UserId, x.Date });
+            entity.HasIndex(x => x.Status);
+            entity.HasIndex(x => x.AutomaticQueueDefinitionId)
+                  .IsUnique()
+                  .HasFilter("[automatic_queue_definition_id] IS NOT NULL AND [status] IN (1, 2, 3, 4)");
+        });
+        modelBuilder.Entity<AutomaticQueueRunBlock>(entity =>
+        {
+            entity.Property(x => x.Status).IsConcurrencyToken();
+
+            entity.HasOne(x => x.AutomaticQueueRun)
+                  .WithMany(x => x.Blocks)
+                  .HasForeignKey(x => x.AutomaticQueueRunId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.ManualCheckRun)
+                  .WithOne(x => x.AutomaticQueueRunBlock)
+                  .HasForeignKey<AutomaticQueueRunBlock>(x => x.ManualCheckRunId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(x => new { x.AutomaticQueueRunId, x.SortOrder }).IsUnique();
+            entity.HasIndex(x => new { x.AutomaticQueueRunId, x.BlockKey }).IsUnique();
         });
         modelBuilder.Entity<WatchList>(entity =>
         {

@@ -156,6 +156,7 @@ public sealed class SteamAppFactory : WebApplicationFactory<Program>
             ["Cors__AllowedOrigins__0"] = "https://spa.example.test",
             ["Authentication__AllowRegistration"] = "true",
             ["Database__EnsureIdentitySchemaOnStartup"] = "false",
+            ["Database__ApplyMigrationsOnStartup"] = "false",
             ["Workers__WishlistCheck__Enabled"] = "false",
             ["Clients__0__ClientId"] = "integration-client",
             ["Clients__0__ClientSecretHash"] = Sha256Hex("integration-secret"),

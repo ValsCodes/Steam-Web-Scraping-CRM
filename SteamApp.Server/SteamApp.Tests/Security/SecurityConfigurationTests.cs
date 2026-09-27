@@ -322,6 +322,23 @@ public sealed class SecurityConfigurationTests
     }
 
     [Test]
+    public void ShouldApplyMigrationsOnStartup_DefaultsToEnabledAndHonorsExplicitOptOut()
+    {
+        var defaultValue = InvokePrivate<bool>(
+            "ShouldApplyMigrationsOnStartup",
+            Config());
+        var explicitOptOut = InvokePrivate<bool>(
+            "ShouldApplyMigrationsOnStartup",
+            Config(("Database:ApplyMigrationsOnStartup", "false")));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(defaultValue, Is.True);
+            Assert.That(explicitOptOut, Is.False);
+        });
+    }
+
+    [Test]
     public async Task SecurityHeadersMiddleware_AddsExpectedHeaders()
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions

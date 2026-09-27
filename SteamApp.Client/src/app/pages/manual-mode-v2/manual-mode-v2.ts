@@ -458,7 +458,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
         disableClose: true,
       },
     ).afterClosed().pipe(takeUntil(this.destroy$)).subscribe((result) => {
-      if (result === undefined) {
+      if (result === undefined || result.mode !== 'run') {
         return;
       }
       this.lastPresetByGame.set(gameId, result.presetId);

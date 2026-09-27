@@ -74,6 +74,9 @@ export interface ManualCheckRunSummary {
   durationMilliseconds: number | null;
   correlationId: string;
   errorText: string | null;
+  automaticQueueRunId?: number | null;
+  automaticQueueName?: string | null;
+  automaticQueueBlockIndex?: number | null;
 }
 
 export interface ManualCheckRunAccepted {

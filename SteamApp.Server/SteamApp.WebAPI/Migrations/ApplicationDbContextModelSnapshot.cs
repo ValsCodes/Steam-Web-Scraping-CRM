@@ -242,6 +242,229 @@ namespace SteamApp.WebAPI.Migrations
                     b.ToTable("automated_scrape_history");
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.AutomaticQueueBlock", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AutomaticQueueDefinitionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("automatic_queue_definition_id");
+
+                    b.Property<Guid>("BlockKey")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("block_key");
+
+                    b.Property<int>("BlockType")
+                        .HasColumnType("int")
+                        .HasColumnName("block_type");
+
+                    b.Property<string>("ConfigurationJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("configuration_json");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AutomaticQueueDefinitionId", "BlockKey")
+                        .IsUnique();
+
+                    b.HasIndex("AutomaticQueueDefinitionId", "SortOrder")
+                        .IsUnique();
+
+                    b.ToTable("automatic_queue_block");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.AutomaticQueueDefinition", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("automatic_queue_definition");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.AutomaticQueueRun", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("AutomaticQueueDefinitionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("automatic_queue_definition_id");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("completed_at_utc");
+
+                    b.Property<string>("CorrelationId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("correlation_id");
+
+                    b.Property<int>("CurrentBlockIndex")
+                        .HasColumnType("int")
+                        .HasColumnName("current_block_index");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("date");
+
+                    b.Property<string>("ErrorText")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("error_text");
+
+                    b.Property<string>("QueueName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("queue_name");
+
+                    b.Property<DateTime?>("StartedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("started_at_utc");
+
+                    b.Property<int>("Status")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int")
+                        .HasColumnName("status");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AutomaticQueueDefinitionId")
+                        .IsUnique()
+                        .HasFilter("[automatic_queue_definition_id] IS NOT NULL AND [status] IN (1, 2, 3, 4)");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId", "Date");
+
+                    b.ToTable("automatic_queue_run");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.AutomaticQueueRunBlock", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AutomaticQueueRunId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("automatic_queue_run_id");
+
+                    b.Property<Guid>("BlockKey")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("block_key");
+
+                    b.Property<int>("BlockType")
+                        .HasColumnType("int")
+                        .HasColumnName("block_type");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("completed_at_utc");
+
+                    b.Property<string>("ErrorText")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("error_text");
+
+                    b.Property<long?>("ManualCheckRunId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("manual_check_run_id");
+
+                    b.Property<int?>("RemainingDelaySeconds")
+                        .HasColumnType("int")
+                        .HasColumnName("remaining_delay_seconds");
+
+                    b.Property<string>("SetupJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("setup_json");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime?>("StartedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("started_at_utc");
+
+                    b.Property<int>("Status")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime?>("WaitUntilUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("wait_until_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManualCheckRunId")
+                        .IsUnique()
+                        .HasFilter("[manual_check_run_id] IS NOT NULL");
+
+                    b.HasIndex("AutomaticQueueRunId", "BlockKey")
+                        .IsUnique();
+
+                    b.HasIndex("AutomaticQueueRunId", "SortOrder")
+                        .IsUnique();
+
+                    b.ToTable("automatic_queue_run_block");
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.FeedbackRequest", b =>
                 {
                     b.Property<long>("Id")
@@ -1315,6 +1538,45 @@ namespace SteamApp.WebAPI.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.AutomaticQueueBlock", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.AutomaticQueueDefinition", "AutomaticQueueDefinition")
+                        .WithMany("Blocks")
+                        .HasForeignKey("AutomaticQueueDefinitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AutomaticQueueDefinition");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.AutomaticQueueRun", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.AutomaticQueueDefinition", "AutomaticQueueDefinition")
+                        .WithMany("Runs")
+                        .HasForeignKey("AutomaticQueueDefinitionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("AutomaticQueueDefinition");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.AutomaticQueueRunBlock", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.AutomaticQueueRun", "AutomaticQueueRun")
+                        .WithMany("Blocks")
+                        .HasForeignKey("AutomaticQueueRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SteamApp.Domain.Entities.ManualCheckRun", "ManualCheckRun")
+                        .WithOne("AutomaticQueueRunBlock")
+                        .HasForeignKey("SteamApp.Domain.Entities.AutomaticQueueRunBlock", "ManualCheckRunId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("AutomaticQueueRun");
+
+                    b.Navigation("ManualCheckRun");
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.FeedbackRequest", b =>
                 {
                     b.HasOne("SteamApp.Infrastructure.Identity.ApplicationUser", null)
@@ -1614,6 +1876,18 @@ namespace SteamApp.WebAPI.Migrations
                     b.Navigation("Game");
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.AutomaticQueueDefinition", b =>
+                {
+                    b.Navigation("Blocks");
+
+                    b.Navigation("Runs");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.AutomaticQueueRun", b =>
+                {
+                    b.Navigation("Blocks");
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.Game", b =>
                 {
                     b.Navigation("GameAddOns");
@@ -1659,6 +1933,11 @@ namespace SteamApp.WebAPI.Migrations
                     b.Navigation("Criteria");
 
                     b.Navigation("Runs");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckRun", b =>
+                {
+                    b.Navigation("AutomaticQueueRunBlock");
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.Pixel", b =>

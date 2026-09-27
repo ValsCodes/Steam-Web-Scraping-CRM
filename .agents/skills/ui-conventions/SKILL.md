@@ -17,6 +17,8 @@ Read and follow this skill before governed Angular work, including client tests.
 
 ## Lifecycle and asynchronous state
 
+- Prefer Angular signals and `computed` values for component-owned, template-visible, and derived UI state, especially selections, loading/status flags, locks, progress, and polling results. Keep RxJS for asynchronous streams and event composition, then write results into signals at the component boundary. Plain mutable fields remain appropriate for narrowly scoped form drafts or values where signal tracking provides no observable benefit.
+- With `OnPush`, do not rely on plain field or collection mutation for state that must release controls, update status, or otherwise react to asynchronous completion. Use signal `set`/`update` operations so the template is invalidated deterministically.
 - Clean up subscriptions, timers, event listeners, and cancellation resources according to surrounding lifecycle patterns.
 - Ensure state changes after asynchronous work remain valid for the component lifecycle; avoid updates to disposed components.
 - Preserve request/action ordering, cancellation, component-visible state, route behavior, dialogs, notifications, and error outcomes unless the task intentionally changes them.

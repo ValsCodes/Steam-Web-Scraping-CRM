@@ -4,7 +4,13 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { of, throwError } from 'rxjs';
 
 import { ManualCheckPreset } from '../../models';
-import { ItemGroupService, ManualCheckService } from '../../services';
+import {
+  GameService,
+  GameUrlProductService,
+  GameUrlService,
+  ItemGroupService,
+  ManualCheckService,
+} from '../../services';
 import {
   ManualCheckSetupDialogComponent,
   ManualCheckSetupDialogResult,
@@ -59,6 +65,9 @@ describe('ManualCheckSetupDialogComponent', () => {
       providers: [
         { provide: ManualCheckService, useValue: service },
         { provide: ItemGroupService, useValue: itemGroupService },
+        { provide: GameService, useValue: jasmine.createSpyObj('GameService', ['getAll']) },
+        { provide: GameUrlService, useValue: jasmine.createSpyObj('GameUrlService', ['getAll']) },
+        { provide: GameUrlProductService, useValue: jasmine.createSpyObj('GameUrlProductService', ['existsByGameUrl']) },
         { provide: MatDialogRef, useValue: dialogRef },
         {
           provide: MAT_DIALOG_DATA,
@@ -230,7 +239,7 @@ describe('ManualCheckSetupDialogComponent', () => {
     component.startOrSave();
 
     expect(service.createPreset).toHaveBeenCalled();
-    expect(dialogRef.close).toHaveBeenCalledWith({ presetId: 3, bypassCache: true });
+    expect(dialogRef.close).toHaveBeenCalledWith({ mode: 'run', presetId: 3, bypassCache: true });
   });
 
   it('starts an existing preset with the selected cache behavior without marking it dirty', () => {
@@ -239,7 +248,7 @@ describe('ManualCheckSetupDialogComponent', () => {
     component.startOrSave();
 
     expect(service.updatePreset).not.toHaveBeenCalled();
-    expect(dialogRef.close).toHaveBeenCalledWith({ presetId: 2, bypassCache: true });
+    expect(dialogRef.close).toHaveBeenCalledWith({ mode: 'run', presetId: 2, bypassCache: true });
   });
 
   it('shows a useful retry message for rate-limited preset requests', () => {

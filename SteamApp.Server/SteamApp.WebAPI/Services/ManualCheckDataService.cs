@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SteamApp.Application.DTOs.ManualCheck;
+using SteamApp.Application.DTOs.AutomaticQueue;
 using SteamApp.Application.Utilities;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
@@ -36,6 +37,22 @@ public sealed class ManualCheckDataService(
         long? gameId,
         CancellationToken cancellationToken)
     {
+        return await GetPresetsInternalAsync(null, gameId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ManualCheckPresetDto>> GetPresetsAsync(
+        string userId,
+        long? gameId,
+        CancellationToken cancellationToken)
+    {
+        return await GetPresetsInternalAsync(userId, gameId, cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<ManualCheckPresetDto>> GetPresetsInternalAsync(
+        string? userId,
+        long? gameId,
+        CancellationToken cancellationToken)
+    {
         await using var db = dbContextFactory.CreateDbContext();
 
         IQueryable<ManualCheckPreset> query = db.ManualCheckPresets
@@ -44,6 +61,10 @@ public sealed class ManualCheckDataService(
             .Include(x => x.ItemGroup)
             .Include(x => x.Criteria)
             .ThenInclude(x => x.ConditionOperator);
+        if (userId is not null)
+        {
+            query = query.Where(x => x.Game.UserId == userId);
+        }
         if (gameId.HasValue)
         {
             query = query.Where(x => x.GameId == gameId.Value);
@@ -260,6 +281,114 @@ public sealed class ManualCheckDataService(
             cancellationToken);
     }
 
+    public async Task<ManualCheckSetupDto> PrepareRunSetupAsync(
+        string userId,
+        long gameUrlId,
+        long? presetId,
+        AutomaticQueuePrivateTemplateDto? privateTemplate,
+        bool bypassCache,
+        IReadOnlyList<long>? productIds,
+        CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        return await PrepareQueueRunSetupAsync(
+            db,
+            userId,
+            gameUrlId,
+            presetId,
+            privateTemplate,
+            bypassCache,
+            productIds,
+            cancellationToken);
+    }
+
+    internal static async Task<ManualCheckSetupDto> PrepareQueueRunSetupAsync(
+        ApplicationDbContext db,
+        string userId,
+        long gameUrlId,
+        long? presetId,
+        AutomaticQueuePrivateTemplateDto? privateTemplate,
+        bool bypassCache,
+        IReadOnlyList<long>? productIds,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw RequestError(StatusCodes.Status401Unauthorized, "A signed-in user is required.");
+        }
+
+        if (presetId.HasValue == (privateTemplate is not null))
+        {
+            throw RequestError(StatusCodes.Status400BadRequest, "Choose either a saved preset or a private template.");
+        }
+
+        if (presetId.HasValue)
+        {
+            var preset = await db.ManualCheckPresets
+                .AsNoTracking()
+                .Include(x => x.Criteria)
+                .ThenInclude(x => x.ConditionOperator)
+                .FirstOrDefaultAsync(
+                    x => x.Id == presetId.Value && x.Game.UserId == userId,
+                    cancellationToken)
+                ?? throw RequestError(StatusCodes.Status404NotFound, "Preset was not found.");
+
+            return await PrepareRunSetupInternalAsync(
+                db,
+                userId,
+                gameUrlId,
+                preset.Id,
+                preset.Name,
+                preset.GameId,
+                preset.ListingLimit,
+                preset.CooldownMinutes,
+                preset.CooldownSeconds,
+                bypassCache,
+                productIds,
+                ToCriterionDtos(preset.Criteria),
+                cancellationToken);
+        }
+
+        var gameId = await db.GameUrls
+            .AsNoTracking()
+            .Where(x => x.Id == gameUrlId && x.UserId == userId && x.Game.UserId == userId)
+            .Select(x => (long?)x.GameId)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw RequestError(StatusCodes.Status404NotFound, "Game URL was not found.");
+        var privatePreset = NormalizePreset(new ManualCheckPresetWriteDto
+        {
+            GameId = gameId,
+            Name = privateTemplate!.Name,
+            ListingLimit = privateTemplate.ListingLimit,
+            CooldownMinutes = privateTemplate.CooldownMinutes,
+            CooldownSeconds = privateTemplate.CooldownSeconds,
+            Criteria = privateTemplate.Criteria
+        });
+
+        return await PrepareRunSetupInternalAsync(
+            db,
+            userId,
+            gameUrlId,
+            null,
+            privatePreset.Name,
+            privatePreset.GameId,
+            privatePreset.ListingLimit,
+            privatePreset.CooldownMinutes,
+            privatePreset.CooldownSeconds,
+            bypassCache,
+            productIds,
+            privatePreset.Criteria,
+            cancellationToken);
+    }
+
+    public async Task<ManualCheckRunSummaryDto> CreateRunFromSetupAsync(
+        ManualCheckSetupDto setup,
+        CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        return await CreateRunRowAsync(db, setup, cancellationToken);
+    }
+
     public async Task<ManualCheckRunDetailDto> PauseAsync(
         long runId,
         CancellationToken cancellationToken)
@@ -394,8 +523,33 @@ public sealed class ManualCheckDataService(
         int take,
         CancellationToken cancellationToken)
     {
+        return await GetRunsInternalAsync(null, gameId, take, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ManualCheckRunSummaryDto>> GetRunsAsync(
+        string userId,
+        long? gameId,
+        int take,
+        CancellationToken cancellationToken)
+    {
+        return await GetRunsInternalAsync(userId, gameId, take, cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<ManualCheckRunSummaryDto>> GetRunsInternalAsync(
+        string? userId,
+        long? gameId,
+        int take,
+        CancellationToken cancellationToken)
+    {
         await using var db = dbContextFactory.CreateDbContext();
-        var query = db.ManualCheckRuns.AsNoTracking();
+        IQueryable<ManualCheckRun> query = db.ManualCheckRuns
+            .AsNoTracking()
+            .Include(x => x.AutomaticQueueRunBlock)
+            .ThenInclude(x => x!.AutomaticQueueRun);
+        if (userId is not null)
+        {
+            query = query.Where(x => x.Game.UserId == userId && x.GameUrl.UserId == userId);
+        }
         if (gameId.HasValue)
         {
             query = query.Where(x => x.GameId == gameId.Value);
@@ -410,6 +564,44 @@ public sealed class ManualCheckDataService(
         return rows.Select(ToRunSummary).ToList();
     }
 
+    public async Task<bool> UserOwnsGameAsync(string userId, long gameId, CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        return await db.Games.AsNoTracking().AnyAsync(x => x.Id == gameId && x.UserId == userId, cancellationToken);
+    }
+
+    public async Task<bool> UserOwnsGameUrlAsync(string userId, long gameUrlId, CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        return await db.GameUrls.AsNoTracking().AnyAsync(
+            x => x.Id == gameUrlId && x.UserId == userId && x.Game.UserId == userId,
+            cancellationToken);
+    }
+
+    public async Task<bool> UserOwnsPresetAsync(string userId, long presetId, CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        return await db.ManualCheckPresets.AsNoTracking().AnyAsync(
+            x => x.Id == presetId && x.Game.UserId == userId,
+            cancellationToken);
+    }
+
+    public async Task<bool> UserOwnsRunAsync(string userId, long runId, CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        return await db.ManualCheckRuns.AsNoTracking().AnyAsync(
+            x => x.Id == runId && x.Game.UserId == userId && x.GameUrl.UserId == userId,
+            cancellationToken);
+    }
+
+    public async Task<bool> IsQueueOwnedRunAsync(long runId, CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        return await db.AutomaticQueueRunBlocks.AsNoTracking().AnyAsync(
+            x => x.ManualCheckRunId == runId,
+            cancellationToken);
+    }
+
     public async Task<ManualCheckRunDetailDto?> GetRunAsync(
         long id,
         CancellationToken cancellationToken)
@@ -417,6 +609,8 @@ public sealed class ManualCheckDataService(
         await using var db = dbContextFactory.CreateDbContext();
         var row = await db.ManualCheckRuns
             .AsNoTracking()
+            .Include(x => x.AutomaticQueueRunBlock)
+            .ThenInclude(x => x!.AutomaticQueueRun)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (row is null)
         {
@@ -670,6 +864,7 @@ public sealed class ManualCheckDataService(
     {
         await using var db = dbContextFactory.CreateDbContext();
         var interrupted = await db.ManualCheckRuns
+            .Include(x => x.AutomaticQueueRunBlock)
             .Where(x =>
                 x.Status == ManualCheckRunStatusEnum.Queued ||
                 x.Status == ManualCheckRunStatusEnum.Running ||
@@ -684,6 +879,12 @@ public sealed class ManualCheckDataService(
         var now = DateTime.UtcNow;
         foreach (var row in interrupted)
         {
+            if (row.AutomaticQueueRunBlock is not null)
+            {
+                row.Status = ManualCheckRunStatusEnum.Paused;
+                continue;
+            }
+
             if (row.Status == ManualCheckRunStatusEnum.PauseRequested)
             {
                 row.Status = ManualCheckRunStatusEnum.Paused;
@@ -713,11 +914,45 @@ public sealed class ManualCheckDataService(
         List<ManualCheckCriterionDto> criteria,
         CancellationToken cancellationToken)
     {
+        var setup = await PrepareRunSetupInternalAsync(
+            db,
+            userId: null,
+            gameUrlId,
+            presetId,
+            presetName,
+            presetGameId,
+            listingLimit,
+            cooldownMinutes,
+            cooldownSeconds,
+            bypassCache,
+            requestedProductIds,
+            criteria,
+            cancellationToken);
+        return await CreateRunRowAsync(db, setup, cancellationToken);
+    }
+
+    private static async Task<ManualCheckSetupDto> PrepareRunSetupInternalAsync(
+        ApplicationDbContext db,
+        string? userId,
+        long gameUrlId,
+        long? presetId,
+        string presetName,
+        long presetGameId,
+        int listingLimit,
+        int? cooldownMinutes,
+        int? cooldownSeconds,
+        bool bypassCache,
+        IReadOnlyList<long>? requestedProductIds,
+        List<ManualCheckCriterionDto> criteria,
+        CancellationToken cancellationToken)
+    {
         var cooldown = NormalizeCooldown(cooldownMinutes, cooldownSeconds);
         var normalizedProductIds = NormalizeProductIds(requestedProductIds);
         var gameUrl = await db.GameUrls
             .AsNoTracking()
-            .Where(x => x.Id == gameUrlId)
+            .Where(x =>
+                x.Id == gameUrlId &&
+                (userId == null || (x.UserId == userId && x.Game.UserId == userId)))
             .Select(x => new
             {
                 x.Id,
@@ -748,7 +983,10 @@ public sealed class ManualCheckDataService(
 
         var productsQuery = db.GameUrlsProducts
             .AsNoTracking()
-            .Where(x => x.GameUrlId == gameUrlId && x.Product.IsActive);
+            .Where(x =>
+                x.GameUrlId == gameUrlId &&
+                x.Product.IsActive &&
+                (userId == null || (x.Product.UserId == userId && x.Product.Game.UserId == userId)));
 
         if (normalizedProductIds is not null)
         {
@@ -810,8 +1048,7 @@ public sealed class ManualCheckDataService(
             });
         }
 
-        var now = DateTime.UtcNow;
-        var setup = new ManualCheckSetupDto
+        return new ManualCheckSetupDto
         {
             PresetId = presetId,
             PresetName = presetName,
@@ -826,17 +1063,24 @@ public sealed class ManualCheckDataService(
             RequestedProductIds = normalizedProductIds,
             Criteria = criteria,
             Products = inputs,
-            RequestedAtUtc = now
+            RequestedAtUtc = DateTime.UtcNow
         };
+    }
 
+    private static async Task<ManualCheckRunSummaryDto> CreateRunRowAsync(
+        ApplicationDbContext db,
+        ManualCheckSetupDto setup,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
         var row = new ManualCheckRun
         {
-            ManualCheckPresetId = presetId,
-            GameId = gameUrl.GameId,
-            GameUrlId = gameUrl.Id,
-            PresetName = presetName,
+            ManualCheckPresetId = setup.PresetId,
+            GameId = setup.GameId,
+            GameUrlId = setup.GameUrlId,
+            PresetName = setup.PresetName,
             SetupJson = JsonConvert.SerializeObject(setup),
-            TotalProducts = inputs.Count,
+            TotalProducts = setup.Products.Count,
             Status = ManualCheckRunStatusEnum.Queued,
             Date = now,
             CorrelationId = Guid.NewGuid().ToString("N")
@@ -857,6 +1101,11 @@ public sealed class ManualCheckDataService(
         if (productIds.Count == 0)
         {
             throw RequestError(StatusCodes.Status400BadRequest, "At least one product must be selected.");
+        }
+
+        if (productIds.Count > 10000)
+        {
+            throw RequestError(StatusCodes.Status400BadRequest, "At most 10000 products can be selected.");
         }
 
         if (productIds.Any(x => x <= 0))
@@ -1060,7 +1309,10 @@ public sealed class ManualCheckDataService(
             CompletedAtUtc = row.CompletedAtUtc,
             DurationMilliseconds = GetRunDurationMilliseconds(row),
             CorrelationId = row.CorrelationId,
-            ErrorText = row.ErrorText
+            ErrorText = row.ErrorText,
+            AutomaticQueueRunId = row.AutomaticQueueRunBlock?.AutomaticQueueRunId,
+            AutomaticQueueName = row.AutomaticQueueRunBlock?.AutomaticQueueRun.QueueName,
+            AutomaticQueueBlockIndex = row.AutomaticQueueRunBlock?.SortOrder
         };
     }
 

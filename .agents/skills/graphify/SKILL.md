@@ -26,4 +26,4 @@ description: Query, build, update, and visualize SteamApp's persistent Graphify 
 
 ## Updates and completion
 
-After source-code changes, run `graphify update .` as required by `AGENTS.md`, following the update reference. Do not update for read-only review or instruction/configuration-only edits unless requested. Report actual commands/results, relevant skipped checks as `Not Verified`, integrity warnings, outputs, and residual risk. No graph result may be claimed when the runtime or graph is unavailable.
+After source-code changes, run `graphify update .` once per task as required by `AGENTS.md`, following the update reference. If the update still fails after any sandbox escalation required by the host, report it as `Not Verified` and do not invoke Graphify again during the task unless the user explicitly requests a retry. Do not update for read-only review or instruction/configuration-only edits unless requested. Report actual commands/results, relevant skipped checks as `Not Verified`, integrity warnings, outputs, and residual risk. No graph result may be claimed when the runtime or graph is unavailable.

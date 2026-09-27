@@ -17,3 +17,4 @@ export * from './seo/seo-meta.service';
 export * from './external-link-disclosure.service';
 export * from './feedback-request/feedback-request.service';
 export * from './manual-check/manual-check.service';
+export * from './automatic-queue/automatic-queue.service';

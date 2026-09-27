@@ -59,7 +59,7 @@ High-risk changes require `security-review`: authentication/Identity/JWT/roles/a
 - Verify implementation-sensitive, negative, exhaustive, and security-sensitive conclusions against source and project files.
 - Use Graphify for explicit graph work or a selected fallback when the primary index is unavailable or insufficient. Do not routinely use both graph systems.
 - Read `graphify-out/wiki/index.md` for broad Graphify navigation; read `GRAPH_REPORT.md` only for broad graph analysis or insufficient scoped queries.
-- Dirty `graphify-out/` files are expected. After source-code changes, follow the Graphify update procedure and run `graphify update .`. Do not update for read-only reviews or instruction/configuration-only changes unless requested.
+- Dirty `graphify-out/` files are expected. After source-code changes, follow the Graphify update procedure and run `graphify update .` once per task. If that update still fails after any sandbox escalation required by the host, report it as `Not Verified` and do not invoke Graphify again during the task unless the user explicitly requests a retry. Do not update for read-only reviews or instruction/configuration-only changes unless requested.
 
 ## Validation policy
 

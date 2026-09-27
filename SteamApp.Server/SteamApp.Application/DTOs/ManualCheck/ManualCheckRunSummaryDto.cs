@@ -28,4 +28,7 @@ public class ManualCheckRunSummaryDto
     public long? DurationMilliseconds { get; set; }
     public string CorrelationId { get; set; } = string.Empty;
     public string? ErrorText { get; set; }
+    public long? AutomaticQueueRunId { get; set; }
+    public string? AutomaticQueueName { get; set; }
+    public int? AutomaticQueueBlockIndex { get; set; }
 }

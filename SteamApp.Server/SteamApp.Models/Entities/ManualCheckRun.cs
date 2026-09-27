@@ -68,4 +68,6 @@ public sealed class ManualCheckRun
     [MaxLength(64)]
     [Column("correlation_id")]
     public string CorrelationId { get; set; } = string.Empty;
+
+    public AutomaticQueueRunBlock? AutomaticQueueRunBlock { get; set; }
 }

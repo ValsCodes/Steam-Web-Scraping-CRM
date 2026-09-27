@@ -347,6 +347,7 @@ public class Program
         builder.Services.AddScoped<IScrapeExecutionService, ScrapeExecutionService>();
         builder.Services.AddScoped<IManualCheckDataService, ManualCheckDataService>();
         builder.Services.AddScoped<IManualCheckExecutionService, ManualCheckExecutionService>();
+        builder.Services.AddScoped<IAutomaticQueueDataService, AutomaticQueueDataService>();
         builder.Services.AddSingleton<IManualCheckDelay, ManualCheckDelay>();
         builder.Services.AddScoped<IWishlistNotificationRecipientService, WishlistNotificationRecipientService>();
         builder.Services.AddScoped<ISteamRepository, SteamRepository>();
@@ -355,7 +356,9 @@ public class Program
         builder.Services.AddScoped<IWishlistService, WishlistService>();
 
         builder.Services.AddSingleton<IManualCheckQueue, ManualCheckQueue>();
+        builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddHostedService<ManualCheckWorker>();
+        builder.Services.AddHostedService<AutomaticQueueWorker>();
         builder.Services.AddHttpClient(ManualCheckOptions.HttpClientName, client =>
         {
             client.Timeout = Timeout.InfiniteTimeSpan;
@@ -656,7 +659,7 @@ public class Program
 
     private static bool ShouldApplyMigrationsOnStartup(IConfiguration configuration)
     {
-        return configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup");
+        return configuration.GetValue<bool?>("Database:ApplyMigrationsOnStartup") ?? true;
     }
 
     private static void AddDistributedCache(

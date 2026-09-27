@@ -30,7 +30,9 @@ public sealed class ManualChecksController(
     {
         try
         {
-            return Ok(await dataService.GetPresetsAsync(gameId, cancellationToken));
+            var userId = User.GetUserId();
+            if (userId is null) return Unauthorized();
+            return Ok(await dataService.GetPresetsAsync(userId, gameId, cancellationToken));
         }
         catch (ManualCheckRequestException exception)
         {
@@ -49,6 +51,9 @@ public sealed class ManualChecksController(
     {
         try
         {
+            var userId = User.GetUserId();
+            if (userId is null) return Unauthorized();
+            if (!await dataService.UserOwnsGameAsync(userId, input.GameId, cancellationToken)) return NotFound();
             var preset = await dataService.CreatePresetAsync(input, cancellationToken);
             return CreatedAtAction(nameof(GetPresets), new { gameId = preset.GameId }, preset);
         }
@@ -70,6 +75,10 @@ public sealed class ManualChecksController(
     {
         try
         {
+            var userId = User.GetUserId();
+            if (userId is null) return Unauthorized();
+            if (!await dataService.UserOwnsPresetAsync(userId, id, cancellationToken) ||
+                !await dataService.UserOwnsGameAsync(userId, input.GameId, cancellationToken)) return NotFound();
             return Ok(await dataService.UpdatePresetAsync(id, input, cancellationToken));
         }
         catch (ManualCheckRequestException exception)
@@ -89,6 +98,9 @@ public sealed class ManualChecksController(
     {
         try
         {
+            var userId = User.GetUserId();
+            if (userId is null) return Unauthorized();
+            if (!await dataService.UserOwnsPresetAsync(userId, id, cancellationToken)) return NotFound();
             await dataService.DeletePresetAsync(id, cancellationToken);
             return NoContent();
         }
@@ -110,6 +122,10 @@ public sealed class ManualChecksController(
     {
         try
         {
+            var userId = User.GetUserId();
+            if (userId is null) return Unauthorized();
+            if (!await dataService.UserOwnsGameUrlAsync(userId, input.GameUrlId, cancellationToken) ||
+                !await dataService.UserOwnsPresetAsync(userId, input.PresetId, cancellationToken)) return NotFound();
             var run = await dataService.CreateRunAsync(
                 input.GameUrlId,
                 input.PresetId,
@@ -145,7 +161,9 @@ public sealed class ManualChecksController(
     {
         try
         {
-            return Ok(await dataService.GetRunsAsync(gameId, take, cancellationToken));
+            var userId = User.GetUserId();
+            if (userId is null) return Unauthorized();
+            return Ok(await dataService.GetRunsAsync(userId, gameId, take, cancellationToken));
         }
         catch (ManualCheckRequestException exception)
         {
@@ -164,6 +182,9 @@ public sealed class ManualChecksController(
     {
         try
         {
+            var userId = User.GetUserId();
+            if (userId is null) return Unauthorized();
+            if (!await dataService.UserOwnsRunAsync(userId, id, cancellationToken)) return NotFound();
             var run = await dataService.GetRunAsync(id, cancellationToken);
             return run is null ? NotFound() : Ok(run);
         }
@@ -184,6 +205,7 @@ public sealed class ManualChecksController(
     {
         try
         {
+            await EnsureStandaloneRunAsync(id, cancellationToken);
             var run = await dataService.CancelAsync(id, cancellationToken);
             queue.TryCancel(id);
             logger.LogInformation(
@@ -210,6 +232,7 @@ public sealed class ManualChecksController(
     {
         try
         {
+            await EnsureStandaloneRunAsync(id, cancellationToken);
             var run = await dataService.PauseAsync(id, cancellationToken);
             queue.TryPause(id);
             logger.LogInformation(
@@ -237,6 +260,7 @@ public sealed class ManualChecksController(
     {
         try
         {
+            await EnsureStandaloneRunAsync(id, cancellationToken);
             var run = await dataService.ContinueAsync(id, cancellationToken);
             try
             {
@@ -273,6 +297,7 @@ public sealed class ManualChecksController(
     {
         try
         {
+            await EnsureStandaloneRunAsync(id, cancellationToken);
             var run = await dataService.RerunAsync(id, cancellationToken);
             await queue.EnqueueAsync(run.Id, cancellationToken);
             return AcceptedAtAction(nameof(GetRun), new { id = run.Id }, new ManualCheckRunAcceptedDto
@@ -288,6 +313,25 @@ public sealed class ManualChecksController(
                 statusCode: exception.StatusCode,
                 title: "Manual check request failed",
                 detail: exception.Message);
+        }
+    }
+
+    private async Task EnsureStandaloneRunAsync(long id, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId is null)
+        {
+            throw new ManualCheckRequestException(StatusCodes.Status401Unauthorized, "A signed-in user is required.");
+        }
+        if (!await dataService.UserOwnsRunAsync(userId, id, cancellationToken))
+        {
+            throw new ManualCheckRequestException(StatusCodes.Status404NotFound, "Run was not found.");
+        }
+        if (await dataService.IsQueueOwnedRunAsync(id, cancellationToken))
+        {
+            throw new ManualCheckRequestException(
+                StatusCodes.Status409Conflict,
+                "Queue-owned checks must be managed from their automatic queue run.");
         }
     }
 }

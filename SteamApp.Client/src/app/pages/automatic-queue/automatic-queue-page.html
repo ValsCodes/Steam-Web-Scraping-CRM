@@ -1,0 +1,111 @@
+<main class="queue-page">
+  <header class="queue-page__header">
+    <div>
+      <p class="queue-page__eyebrow">Automated checking</p>
+      <h1>Automatic Queue</h1>
+      <p>Build a reusable sequence of Steam manual checks and timeout blocks.</p>
+    </div>
+    <button mat-flat-button type="button" (click)="createNew()"><mat-icon>add</mat-icon>New queue</button>
+  </header>
+
+  @if (errorMessage) { <div class="queue-page__message queue-page__message--error" role="alert">{{ errorMessage }}</div> }
+  @if (successMessage) { <div class="queue-page__message queue-page__message--success" role="status">{{ successMessage }}</div> }
+
+  <div class="queue-page__layout">
+    <aside class="queue-list">
+      <div class="queue-list__title"><strong>Saved queues</strong><button mat-icon-button (click)="loadDefinitions()" aria-label="Refresh"><mat-icon>refresh</mat-icon></button></div>
+      @if (loading) { <p>Loading…</p> }
+      @for (definition of definitions(); track definition.id) {
+        <button type="button" class="queue-list__item" [class.queue-list__item--selected]="definition.id === selectedDefinitionId()" (click)="selectDefinition(definition)">
+          <span>{{ definition.name }}</span>
+          <small>{{ definition.blocks.length }} blocks @if (definition.activeRunId) { · active }</small>
+        </button>
+      } @empty { <p class="queue-list__empty">No saved queues yet.</p> }
+    </aside>
+
+    <section class="queue-workspace">
+      <div class="queue-toolbar">
+        <label><span>Queue name</span><input maxlength="100" [(ngModel)]="name" [disabled]="locked()" placeholder="Daily market checks" /></label>
+        <div class="queue-toolbar__actions">
+          <button mat-stroked-button (click)="addManualBlock()" [disabled]="locked()"><mat-icon>fact_check</mat-icon>Manual check</button>
+          <button mat-stroked-button (click)="addDelayBlock()" [disabled]="locked()"><mat-icon>timer</mat-icon>Timeout</button>
+          <button mat-stroked-button (click)="save()" [disabled]="!canSave || busy">Save</button>
+          <button mat-flat-button (click)="run()" [disabled]="!canSave || busy"><mat-icon>play_arrow</mat-icon>Run</button>
+          @if (selectedDefinitionId() !== null) {
+            <button mat-button (click)="duplicateDefinition()" [disabled]="busy">Duplicate queue</button>
+            <button mat-button color="warn" (click)="deleteDefinition()" [disabled]="locked() || busy">Delete</button>
+          }
+        </div>
+      </div>
+
+      @if (locked()) {
+        <div class="queue-workspace__locked">
+          <mat-icon>lock</mat-icon>
+          <span>This definition is locked while its run is active or paused.</span>
+          <button mat-stroked-button color="warn" type="button" (click)="cancelAndUnlock()" [disabled]="busy">Cancel run & unlock</button>
+        </div>
+      }
+
+      <div class="queue-chain" cdkDropList [cdkDropListData]="blocks" (cdkDropListDropped)="drop($event)">
+        @for (block of blocks; track block.key; let index = $index) {
+          <article class="queue-block" cdkDrag [cdkDragDisabled]="locked()" [class]="'queue-block queue-block--' + blockStatus(block).toLowerCase()">
+            <mat-icon class="queue-block__status" [attr.aria-label]="blockStatus(block)">{{ statusIcon(blockStatus(block)) }}</mat-icon>
+            <button mat-icon-button cdkDragHandle class="queue-block__drag" [disabled]="locked()" aria-label="Drag block"><mat-icon>drag_indicator</mat-icon></button>
+            <button mat-icon-button class="queue-block__menu" [matMenuTriggerFor]="blockMenu" aria-label="Block options"><mat-icon>more_horiz</mat-icon></button>
+            <mat-menu #blockMenu="matMenu">
+              @if (block.type === 'ManualCheck') { <button mat-menu-item (click)="editManualBlock(block)" [disabled]="locked()"><mat-icon>edit</mat-icon>Edit</button> }
+              <button mat-menu-item (click)="duplicateBlock(index)" [disabled]="locked()"><mat-icon>content_copy</mat-icon>Duplicate</button>
+              <button mat-menu-item (click)="viewConfiguration(block)"><mat-icon>tune</mat-icon>View configuration</button>
+              <button mat-menu-item (click)="viewBlock(block)" [disabled]="!runBlock(block)"><mat-icon>visibility</mat-icon>View results / timing</button>
+              <button mat-menu-item (click)="removeBlock(index)" [disabled]="locked()"><mat-icon>delete</mat-icon>Remove</button>
+            </mat-menu>
+
+            <div class="queue-block__body">
+              <span class="queue-block__type">{{ block.type === 'ManualCheck' ? 'Manual Check' : 'Timeout' }}</span>
+              @if (block.type === 'ManualCheck') {
+                <h2>{{ block.presetName || block.privateTemplate?.name || 'Manual check' }}</h2>
+                <p>{{ block.gameName || ('Game URL #' + block.gameUrlId) }} · {{ block.gameUrlName || ('Source #' + block.gameUrlId) }}</p>
+                <small>{{ block.productIds === null ? 'All active products' : block.productIds.length + ' selected products' }}</small>
+              } @else {
+                <h2>Wait before continuing</h2>
+                <label>Seconds <input type="number" min="1" max="604800" [ngModel]="block.delaySeconds" (ngModelChange)="updateDelay(block, $event)" [disabled]="locked()" /></label>
+                @if (countdown(block)) { <strong class="queue-block__countdown">{{ countdown(block) }}</strong> }
+              }
+              <span class="queue-block__state">{{ blockStatus(block) }}</span>
+              @if (runBlock(block)?.warningCount) {
+                <span class="queue-block__warning">{{ runBlock(block)?.warningCount }} warning(s)</span>
+              }
+            </div>
+          </article>
+          @if (!$last) { <div class="queue-chain__connector" aria-hidden="true"></div> }
+        } @empty {
+          <div class="queue-chain__empty"><mat-icon>account_tree</mat-icon><strong>Add your first block</strong><span>Manual checks and timeouts run from top to bottom.</span></div>
+        }
+      </div>
+
+      @if (selectedDefinitionId() !== null) {
+        <section class="run-panel">
+          <div class="run-panel__heading">
+            <h2>Run history</h2>
+            <select [ngModel]="selectedRun()?.id ?? null" (ngModelChange)="selectHistoryRun($event)">
+              <option [ngValue]="null">No run selected</option>
+              @for (run of runs(); track run.id) { <option [ngValue]="run.id">#{{ run.id }} · {{ run.status }} · {{ run.date | date:'short' }}</option> }
+            </select>
+          </div>
+          @if (selectedRun(); as selectedRun) {
+            <div class="run-panel__summary">
+              <strong>{{ selectedRun.status }}</strong>
+              <span>{{ selectedRun.completedBlocks }} / {{ selectedRun.totalBlocks }} blocks complete</span>
+              <small>Trace {{ selectedRun.correlationId }}</small>
+              <div>
+                <button mat-stroked-button (click)="pause()" [disabled]="!canPause() || busy">Pause</button>
+                <button mat-stroked-button (click)="resume()" [disabled]="!canResume() || busy">Resume</button>
+                <button mat-button color="warn" (click)="cancel()" [disabled]="!activeRun() || busy">Cancel</button>
+              </div>
+            </div>
+          }
+        </section>
+      }
+    </section>
+  </div>
+</main>

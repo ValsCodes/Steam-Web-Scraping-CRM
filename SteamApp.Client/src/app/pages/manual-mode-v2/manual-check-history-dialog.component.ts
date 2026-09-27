@@ -83,7 +83,12 @@ export interface ManualCheckHistoryDialogData {
                     {{ run.gameName || ('Game #' + run.gameId) }}<br />
                     <small>{{ run.gameUrlName || ('Source #' + run.gameUrlId) }}</small>
                   </td>
-                  <td>{{ run.presetName }}</td>
+                  <td>
+                    {{ run.presetName }}
+                    @if (run.automaticQueueRunId) {
+                      <br /><small>Queue: {{ run.automaticQueueName }} · block {{ (run.automaticQueueBlockIndex ?? 0) + 1 }}</small>
+                    }
+                  </td>
                   <td>
                     <span [class]="'manual-check-history__status manual-check-history__status--' + run.status.toLowerCase()">
                       {{ statusLabel(run) }}
@@ -109,7 +114,9 @@ export interface ManualCheckHistoryDialogData {
                   </td>
                   <td class="manual-check-history__actions">
                     <button mat-stroked-button type="button" (click)="openTrace(run)">View trace</button>
-                    @if (isActiveRun(run)) {
+                    @if (run.automaticQueueRunId) {
+                      <small class="manual-check-history__muted">Managed by its queue</small>
+                    } @else if (isActiveRun(run)) {
                       <button mat-button type="button" (click)="manage(run)">Manage</button>
                     } @else {
                       <button

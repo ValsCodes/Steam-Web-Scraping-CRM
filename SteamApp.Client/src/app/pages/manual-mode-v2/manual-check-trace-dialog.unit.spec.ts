@@ -4,7 +4,7 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dial
 import { of, throwError } from 'rxjs';
 
 import { ManualCheckRunDetail } from '../../models';
-import { ManualCheckService } from '../../services';
+import { ExternalLinkDisclosureService, ManualCheckService } from '../../services';
 import { ManualCheckSteamResultDialogComponent } from './manual-check-steam-result-dialog.component';
 import {
   ManualCheckTraceDialogComponent,
@@ -17,6 +17,7 @@ describe('ManualCheckTraceDialogComponent', () => {
   let service: jasmine.SpyObj<ManualCheckService>;
   let dialogData: ManualCheckTraceDialogData;
   let openDialog: jasmine.Spy;
+  let externalLinks: jasmine.SpyObj<ExternalLinkDisclosureService>;
 
   const productTrace = {
     productId: 1,
@@ -27,6 +28,23 @@ describe('ManualCheckTraceDialogComponent', () => {
     matchedAssetCount: 0,
     steamApiResultJson: '{"success":true,"total_count":1}',
     durationMilliseconds: 1250,
+  };
+
+  const matchedProductTrace = {
+    ...productTrace,
+    productId: 2,
+    productName: 'Matched Item',
+    matchEvaluated: true,
+    matched: true,
+    matchedAssetCount: 2,
+  };
+
+  const unmatchedProductTrace = {
+    ...productTrace,
+    productId: 3,
+    productName: 'Unmatched Item',
+    matchEvaluated: true,
+    matched: false,
   };
 
   const detail: ManualCheckRunDetail = {
@@ -92,11 +110,13 @@ describe('ManualCheckTraceDialogComponent', () => {
     dialogData = { runId: 42, initialView: 'errors' };
     service = jasmine.createSpyObj<ManualCheckService>('ManualCheckService', ['getRun']);
     service.getRun.and.returnValue(of(detail));
+    externalLinks = jasmine.createSpyObj<ExternalLinkDisclosureService>('ExternalLinkDisclosureService', ['openTrustedUrl']);
 
     await TestBed.configureTestingModule({
       imports: [ManualCheckTraceDialogComponent],
       providers: [
         { provide: ManualCheckService, useValue: service },
+        { provide: ExternalLinkDisclosureService, useValue: externalLinks },
         { provide: MatDialogRef, useValue: jasmine.createSpyObj('MatDialogRef', ['close']) },
         { provide: MAT_DIALOG_DATA, useFactory: () => dialogData },
       ],
@@ -185,6 +205,37 @@ describe('ManualCheckTraceDialogComponent', () => {
     expect(actions).not.toBeNull();
   });
 
+  it('filters product checks by matched and unmatched results while excluding failed checks', () => {
+    dialogData = {
+      detail: {
+        ...detail,
+        results: {
+          ...detail.results,
+          productTraces: [productTrace, matchedProductTrace, unmatchedProductTrace],
+        },
+      },
+      initialView: 'results',
+    };
+    createComponent();
+
+    const text = (): string => fixture.nativeElement.textContent;
+    expect(text()).toContain('All (3)');
+    expect(text()).toContain('Matched (1)');
+    expect(text()).toContain('Unmatched (1)');
+
+    fixture.nativeElement.querySelector('[data-result-filter="matched"]').click();
+    fixture.detectChanges();
+    expect(text()).toContain('Matched Item');
+    expect(text()).not.toContain('Unmatched Item');
+    expect(text()).not.toContain('Rocket Launcher');
+
+    fixture.nativeElement.querySelector('[data-result-filter="unmatched"]').click();
+    fixture.detectChanges();
+    expect(text()).not.toContain('Matched Item');
+    expect(text()).toContain('Unmatched Item');
+    expect(text()).not.toContain('Rocket Launcher');
+  });
+
   it('opens the Steam API result dialog for the selected trace', () => {
     dialogData = { detail, initialView: 'results' };
     createComponent();
@@ -195,6 +246,15 @@ describe('ManualCheckTraceDialogComponent', () => {
       ManualCheckSteamResultDialogComponent,
       jasmine.objectContaining({ data: productTrace }),
     );
+  });
+
+  it('opens a product page through the external-link disclosure control', () => {
+    dialogData = { detail, initialView: 'results' };
+    createComponent();
+
+    component.openProductPage(productTrace);
+
+    expect(externalLinks.openTrustedUrl).toHaveBeenCalledOnceWith(productTrace.fullUrl);
   });
 
   it('shows a retryable request error', () => {

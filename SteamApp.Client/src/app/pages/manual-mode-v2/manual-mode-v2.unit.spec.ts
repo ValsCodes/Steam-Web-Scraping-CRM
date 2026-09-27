@@ -494,7 +494,7 @@ describe('ManualModeV2 external link disclosure', () => {
       scrapingModeId: ScrapingModeEnum.ManualBatch,
     } as never;
     dialog.open.and.returnValue({
-      afterClosed: () => of({ presetId: 3, bypassCache: true }),
+      afterClosed: () => of({ mode: 'run', presetId: 3, bypassCache: true }),
     });
     manualCheckService.createRun.and.returnValue(of({ runId: 77, run: completed }));
     manualCheckService.getRun.and.returnValue(of(completed));
@@ -537,7 +537,7 @@ describe('ManualModeV2 external link disclosure', () => {
     component.setProductSelected(6, true);
     component.setProductSelected(5, true);
     dialog.open.and.returnValue({
-      afterClosed: () => of({ presetId: 3, bypassCache: false }),
+      afterClosed: () => of({ mode: 'run', presetId: 3, bypassCache: false }),
     });
     manualCheckService.createRun.and.returnValue(of({ runId: 77, run: completed }));
     manualCheckService.getRun.and.returnValue(of(completed));
@@ -565,7 +565,7 @@ describe('ManualModeV2 external link disclosure', () => {
     } as never;
     component.products = [product];
     dialog.open.and.returnValue({
-      afterClosed: () => of({ presetId: 3, bypassCache: true }),
+      afterClosed: () => of({ mode: 'run', presetId: 3, bypassCache: true }),
     });
     manualCheckService.createRun.and.returnValue(of({ runId: 77, run: completed }));
     manualCheckService.getRun.and.returnValue(of(completed));
