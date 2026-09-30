@@ -57,6 +57,17 @@ export class GameUrlProductService {
       .pipe(catchError(handleError));
   }
 
+  // PATCH: /api/game-url-products/{gameUrlId}/bulk (explicit relation additions/removals)
+  bulkUpdate(
+    gameUrlId: number,
+    addProductIds: readonly number[],
+    removeProductIds: readonly number[],
+  ): Observable<void> {
+    return this.http
+      .patch<void>(`${this.baseUrl}/${gameUrlId}/bulk`, { addProductIds, removeProductIds })
+      .pipe(catchError(handleError));
+  }
+
   // DELETE: /api/game-url-products/{productId}/{gameUrlId}
   delete(productId: number, gameUrlId: number): Observable<void> {
     return this.http

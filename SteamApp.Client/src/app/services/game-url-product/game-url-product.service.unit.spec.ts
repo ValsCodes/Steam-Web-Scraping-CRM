@@ -17,4 +17,18 @@ describe('GameUrlProductService bulk sync', () => {
     }
     http.verify();
   });
+
+  it('sends one PATCH with explicit product additions and removals', () => {
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    const service = TestBed.inject(GameUrlProductService);
+    const http = TestBed.inject(HttpTestingController);
+
+    service.bulkUpdate(7, [1, 2], [3]).subscribe();
+
+    const request = http.expectOne(candidate => candidate.url.endsWith('/api/game-url-products/7/bulk'));
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({ addProductIds: [1, 2], removeProductIds: [3] });
+    request.flush(null);
+    http.verify();
+  });
 });

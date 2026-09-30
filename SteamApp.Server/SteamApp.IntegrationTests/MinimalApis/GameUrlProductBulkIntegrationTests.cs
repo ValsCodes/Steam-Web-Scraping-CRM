@@ -184,4 +184,139 @@ public sealed class GameUrlProductBulkIntegrationTests
                 Is.EqualTo(new long[] { 1 }));
         });
     }
+
+    [Test]
+    public async Task BulkUpdate_AddsAndRemovesOnlyRequestedRelations()
+    {
+        using var factory = new SteamAppFactory();
+        using var client = factory.CreateAuthenticatedClient();
+        await factory.ResetDatabaseAsync();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.Products.AddRange(
+                new Product { Id = 10, GameId = 1, Name = "Ten", IsActive = true, UserId = IntegrationSeed.UserId },
+                new Product { Id = 11, GameId = 1, Name = "Eleven", IsActive = true, UserId = IntegrationSeed.UserId });
+            db.GameUrlsProducts.Add(new GameUrlProducts { ProductId = 11, GameUrlId = 1, CurrentStock = 7 });
+            (await db.GameUrlsProducts.FindAsync(1L, 1L))!.CurrentStock = 42;
+            await db.SaveChangesAsync();
+        }
+
+        var response = await client.PatchAsJsonAsync("/api/game-url-products/1/bulk",
+            new GameUrlProductBulkUpdateDto { AddProductIds = [10], RemoveProductIds = [1] });
+        using var verifyScope = factory.Services.CreateScope();
+        var verify = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var relations = await verify.GameUrlsProducts.Where(x => x.GameUrlId == 1)
+            .OrderBy(x => x.ProductId)
+            .ToListAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(relations.Select(x => x.ProductId), Is.EqualTo(new long[] { 10, 11 }));
+            Assert.That(relations.Single(x => x.ProductId == 10).CurrentStock, Is.Zero);
+            Assert.That(relations.Single(x => x.ProductId == 11).CurrentStock, Is.EqualTo(7));
+        });
+    }
+
+    [Test]
+    public async Task BulkUpdate_DuplicatesAndRetry_AreIdempotent()
+    {
+        using var factory = new SteamAppFactory();
+        using var client = factory.CreateAuthenticatedClient();
+        await factory.ResetDatabaseAsync();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.Products.Add(new Product
+            {
+                Id = 10, GameId = 1, Name = "Ten", IsActive = true, UserId = IntegrationSeed.UserId,
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var input = new GameUrlProductBulkUpdateDto
+        {
+            AddProductIds = [10, 10],
+            RemoveProductIds = [1, 1],
+        };
+        var first = await client.PatchAsJsonAsync("/api/game-url-products/1/bulk", input);
+        var retry = await client.PatchAsJsonAsync("/api/game-url-products/1/bulk", input);
+        using var verifyScope = factory.Services.CreateScope();
+        var verify = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.Multiple(() =>
+        {
+            Assert.That(first.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(retry.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(verify.GameUrlsProducts.Where(x => x.GameUrlId == 1).Select(x => x.ProductId),
+                Is.EqualTo(new long[] { 10 }));
+        });
+    }
+
+    [Test]
+    public async Task BulkUpdate_InsertFailureAfterDelete_RollsBackAllEarlierWrites()
+    {
+        using var factory = new SteamAppFactory();
+        using var client = factory.CreateAuthenticatedClient();
+        await factory.ResetDatabaseAsync();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.Products.Add(new Product
+            {
+                Id = 11, GameId = 1, Name = "Eleven", IsActive = true, UserId = IntegrationSeed.UserId,
+            });
+            (await db.GameUrlsProducts.FindAsync(1L, 1L))!.CurrentStock = 42;
+            await db.SaveChangesAsync();
+            await db.Database.ExecuteSqlRawAsync(
+                "CREATE TRIGGER reject_bulk_update_insert BEFORE INSERT ON game_url_products " +
+                "WHEN NEW.product_id = 11 BEGIN SELECT RAISE(ABORT, 'Forced bulk failure'); END;");
+        }
+
+        var response = await client.PatchAsJsonAsync("/api/game-url-products/1/bulk",
+            new GameUrlProductBulkUpdateDto { AddProductIds = [11], RemoveProductIds = [1] });
+        var errorBody = await response.Content.ReadAsStringAsync();
+        using var verifyScope = factory.Services.CreateScope();
+        var verify = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var relations = await verify.GameUrlsProducts.Where(x => x.GameUrlId == 1).ToListAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
+            Assert.That(errorBody, Does.Not.Contain("Forced bulk failure"));
+            Assert.That(relations.Select(x => x.ProductId), Is.EqualTo(new long[] { 1 }));
+            Assert.That(relations[0].CurrentStock, Is.EqualTo(42));
+        });
+    }
+
+    [Test]
+    public async Task BulkUpdate_AnonymousOverlapOrForeignIds_RejectsWithoutMutating()
+    {
+        using var factory = new SteamAppFactory();
+        using var client = factory.CreateAuthenticatedClient();
+        using var anonymous = factory.CreateAnonymousClient();
+        await factory.ResetDatabaseAsync();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.Users.Add(new ApplicationUser { Id = "other-user", UserName = "other-user" });
+            db.Products.Add(new Product { Id = 99, GameId = 1, Name = "Foreign", UserId = "other-user" });
+            await db.SaveChangesAsync();
+        }
+
+        var unauthenticated = await anonymous.PatchAsJsonAsync("/api/game-url-products/1/bulk",
+            new GameUrlProductBulkUpdateDto { RemoveProductIds = [1] });
+        var overlap = await client.PatchAsJsonAsync("/api/game-url-products/1/bulk",
+            new GameUrlProductBulkUpdateDto { AddProductIds = [1], RemoveProductIds = [1] });
+        var foreign = await client.PatchAsJsonAsync("/api/game-url-products/1/bulk",
+            new GameUrlProductBulkUpdateDto { AddProductIds = [99] });
+        using var verifyScope = factory.Services.CreateScope();
+        var verify = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.Multiple(() =>
+        {
+            Assert.That(unauthenticated.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+            Assert.That(overlap.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            Assert.That(foreign.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            Assert.That(verify.GameUrlsProducts.Where(x => x.GameUrlId == 1).Select(x => x.ProductId),
+                Is.EqualTo(new long[] { 1 }));
+        });
+    }
 }

@@ -60,6 +60,48 @@ describe('manual check expressions', () => {
     expect(validation.groupCount).toBe(1);
   });
 
+  it('accepts fifty criteria and rejects a fifty-first criterion', () => {
+    const root = createManualCheckGroupNode(null, true);
+    for (let index = 0; index < 50; index += 1) {
+      const node = createManualCheckCriterionNode(index === 0 ? null : 1);
+      node.valueContains = `Value ${index}`;
+      root.children.push(node);
+    }
+
+    expect(validateManualCheckExpression(root, new Set([1, 2])).isValid).toBeTrue();
+
+    const extra = createManualCheckCriterionNode(1);
+    extra.valueContains = 'Value 50';
+    root.children.push(extra);
+
+    expect(validateManualCheckExpression(root, new Set([1, 2])).isValid).toBeFalse();
+  });
+
+  it('accepts twenty-five nested groups and rejects a twenty-sixth group', () => {
+    const createNestedExpression = (groupCount: number) => {
+      const root = createManualCheckGroupNode(null, true);
+      let current = root;
+      for (let index = 0; index < groupCount; index += 1) {
+        const group = createManualCheckGroupNode();
+        current.children.push(group);
+        current = group;
+      }
+      const node = createManualCheckCriterionNode();
+      node.valueContains = 'Nested value';
+      current.children.push(node);
+      return root;
+    };
+
+    expect(validateManualCheckExpression(
+      createNestedExpression(25),
+      new Set([1, 2]),
+    ).isValid).toBeTrue();
+    expect(validateManualCheckExpression(
+      createNestedExpression(26),
+      new Set([1, 2]),
+    ).isValid).toBeFalse();
+  });
+
   it('ungroups in place and transfers the group operator to its first child', () => {
     const root = createManualCheckGroupNode(null, true);
     const first = createManualCheckCriterionNode();

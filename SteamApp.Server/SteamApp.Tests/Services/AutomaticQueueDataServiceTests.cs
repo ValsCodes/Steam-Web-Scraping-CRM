@@ -188,6 +188,105 @@ public sealed class AutomaticQueueDataServiceTests
     }
 
     [Test]
+    public async Task PresetCombination_RoundTripsAndResolvesLatestPresetsAtRunStart()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        PrepareManualSource(database);
+        var manualChecks = new ManualCheckDataService(database.Factory);
+        var first = await manualChecks.CreatePresetAsync(Preset("Paints"), CancellationToken.None);
+        var second = await manualChecks.CreatePresetAsync(Preset("Effects"), CancellationToken.None);
+        var service = CreateService(database, manualChecks);
+        var combinationBlock = new AutomaticQueueBlockWriteDto
+        {
+            Key = Guid.NewGuid(),
+            Type = AutomaticQueueBlockTypeEnum.ManualCheck,
+            GameUrlId = 1,
+            TemplateMode = AutomaticQueueTemplateModeEnum.PresetCombination,
+            PresetCombination = new ManualCheckPresetCombinationWriteDto
+            {
+                ListingLimit = 20,
+                Terms =
+                [
+                    new ManualCheckPresetCombinationTermWriteDto { PresetId = first.Id },
+                    new ManualCheckPresetCombinationTermWriteDto
+                    {
+                        PresetId = second.Id,
+                        Operator = ManualCheckPresetCombinationOperatorEnum.And
+                    }
+                ]
+            }
+        };
+        var definition = await service.CreateDefinitionAsync(
+            TestDb.TestUserId,
+            Definition("Combined", combinationBlock),
+            CancellationToken.None);
+        var updatedSecond = Preset("Effects");
+        updatedSecond.Criteria[0].ValueContains = "Changed before start";
+        await manualChecks.UpdatePresetAsync(second.Id, updatedSecond, CancellationToken.None);
+
+        await service.StartRunAsync(definition.Id, TestDb.TestUserId, CancellationToken.None);
+        var storedBlock = database.Context.AutomaticQueueRunBlocks.Single();
+        var snapshot = JsonConvert.DeserializeObject<AutomaticQueueRunBlockSetupDto>(storedBlock.SetupJson)!;
+        updatedSecond.Criteria[0].ValueContains = "Changed after start";
+        await manualChecks.UpdatePresetAsync(second.Id, updatedSecond, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(definition.Blocks[0].TemplateMode, Is.EqualTo(AutomaticQueueTemplateModeEnum.PresetCombination));
+            Assert.That(definition.Blocks[0].PresetCombination!.Terms.Select(x => x.PresetId), Is.EqualTo(new[] { first.Id, second.Id }));
+            Assert.That(snapshot.ManualCheckSetup!.ListingLimit, Is.EqualTo(20));
+            Assert.That(snapshot.ManualCheckSetup.Criteria[^1].ValueContains, Is.EqualTo("Changed before start"));
+            Assert.That(snapshot.ManualCheckSetup.PresetCombination!.Terms.Select(x => x.PresetName), Is.EqualTo(new[] { "Paints", "Effects" }));
+        });
+    }
+
+    [Test]
+    public async Task PresetCombination_DeletedReferenceRejectsRunWithoutCreatingSnapshot()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        PrepareManualSource(database);
+        var manualChecks = new ManualCheckDataService(database.Factory);
+        var first = await manualChecks.CreatePresetAsync(Preset("First"), CancellationToken.None);
+        var second = await manualChecks.CreatePresetAsync(Preset("Second"), CancellationToken.None);
+        var service = CreateService(database, manualChecks);
+        var block = new AutomaticQueueBlockWriteDto
+        {
+            Key = Guid.NewGuid(),
+            Type = AutomaticQueueBlockTypeEnum.ManualCheck,
+            GameUrlId = 1,
+            TemplateMode = AutomaticQueueTemplateModeEnum.PresetCombination,
+            PresetCombination = new ManualCheckPresetCombinationWriteDto
+            {
+                ListingLimit = 10,
+                Terms =
+                [
+                    new ManualCheckPresetCombinationTermWriteDto { PresetId = first.Id },
+                    new ManualCheckPresetCombinationTermWriteDto
+                    {
+                        PresetId = second.Id,
+                        Operator = ManualCheckPresetCombinationOperatorEnum.Or
+                    }
+                ]
+            }
+        };
+        var definition = await service.CreateDefinitionAsync(
+            TestDb.TestUserId,
+            Definition("Stale combination", block),
+            CancellationToken.None);
+        await manualChecks.DeletePresetAsync(second.Id, CancellationToken.None);
+
+        var exception = Assert.ThrowsAsync<AutomaticQueueRequestException>(() =>
+            service.StartRunAsync(definition.Id, TestDb.TestUserId, CancellationToken.None));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.StatusCode, Is.EqualTo(404));
+            Assert.That(database.Context.AutomaticQueueRuns, Is.Empty);
+            Assert.That(database.Context.AutomaticQueueRunBlocks, Is.Empty);
+        });
+    }
+
+    [Test]
     public async Task ProcessActiveRuns_ManualDelayManual_UsesTimeProviderAndContinuesAfterFailure()
     {
         using var database = TestDb.CreateSeededDatabase();

@@ -84,6 +84,9 @@ export interface ManualCheckTraceDialogData {
           <div class="manual-check-trace__panel">
             <h3>Preset snapshot</h3>
             <p><strong>{{ run.setup.presetName }}</strong> · Criteria are evaluated left-to-right inside each group.</p>
+            @if (run.setup.presetCombination) {
+              <p><strong>Combination:</strong> {{ presetCombinationPreview }}</p>
+            }
             <p>Top {{ run.setup.listingLimit }} cheapest available listing(s) checked per product.</p>
             <p>
               Cooldown between checks:
@@ -395,6 +398,12 @@ export class ManualCheckTraceDialogComponent implements OnInit {
     return this.setupExpression
       ? formatManualCheckExpression(this.setupExpression, [])
       : '';
+  }
+
+  get presetCombinationPreview(): string {
+    return this.detail()?.setup.presetCombination?.terms.map((term, index) =>
+      `${index === 0 ? '' : (term.operator ?? 'And').toUpperCase() + ' '}(${term.presetName})`,
+    ).join(' ') ?? '';
   }
 
   private setDetail(detail: ManualCheckRunDetail): void {

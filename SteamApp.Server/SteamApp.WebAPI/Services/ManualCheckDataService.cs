@@ -16,7 +16,8 @@ namespace SteamApp.WebAPI.Services;
 public sealed class ManualCheckDataService(
     IDbContextFactory<ApplicationDbContext> dbContextFactory) : IManualCheckDataService
 {
-    private const int MaxCriteria = 25;
+    private const int MaxCriteria = 50;
+    private const int MaxCombinationPresets = 10;
 
     public async Task<IReadOnlyList<ManualCheckConditionOperatorDto>> GetConditionOperatorsAsync(
         CancellationToken cancellationToken)
@@ -220,33 +221,26 @@ public sealed class ManualCheckDataService(
     }
 
     public async Task<ManualCheckRunSummaryDto> CreateRunAsync(
+        string userId,
         long gameUrlId,
-        long presetId,
+        long? presetId,
+        ManualCheckPresetCombinationWriteDto? presetCombination,
         bool bypassCache,
         IReadOnlyList<long>? productIds,
         CancellationToken cancellationToken)
     {
         await using var db = dbContextFactory.CreateDbContext();
-        var preset = await db.ManualCheckPresets
-            .AsNoTracking()
-            .Include(x => x.Criteria)
-            .ThenInclude(x => x.ConditionOperator)
-            .FirstOrDefaultAsync(x => x.Id == presetId, cancellationToken)
-            ?? throw RequestError(StatusCodes.Status404NotFound, "Preset was not found.");
-
-        return await CreateRunInternalAsync(
+        var setup = await PrepareQueueRunSetupAsync(
             db,
+            userId,
             gameUrlId,
-            preset.Id,
-            preset.Name,
-            preset.GameId,
-            preset.ListingLimit,
-            preset.CooldownMinutes,
-            preset.CooldownSeconds,
+            presetId,
+            presetCombination,
+            null,
             bypassCache,
             productIds,
-            ToCriterionDtos(preset.Criteria),
             cancellationToken);
+        return await CreateRunRowAsync(db, setup, cancellationToken);
     }
 
     public async Task<ManualCheckRunSummaryDto> RerunAsync(
@@ -278,6 +272,7 @@ public sealed class ManualCheckDataService(
             false,
             setup.RequestedProductIds,
             NormalizeCriteria(setup.Criteria),
+            setup.PresetCombination,
             cancellationToken);
     }
 
@@ -285,6 +280,7 @@ public sealed class ManualCheckDataService(
         string userId,
         long gameUrlId,
         long? presetId,
+        ManualCheckPresetCombinationWriteDto? presetCombination,
         AutomaticQueuePrivateTemplateDto? privateTemplate,
         bool bypassCache,
         IReadOnlyList<long>? productIds,
@@ -296,6 +292,7 @@ public sealed class ManualCheckDataService(
             userId,
             gameUrlId,
             presetId,
+            presetCombination,
             privateTemplate,
             bypassCache,
             productIds,
@@ -307,6 +304,7 @@ public sealed class ManualCheckDataService(
         string userId,
         long gameUrlId,
         long? presetId,
+        ManualCheckPresetCombinationWriteDto? presetCombination,
         AutomaticQueuePrivateTemplateDto? privateTemplate,
         bool bypassCache,
         IReadOnlyList<long>? productIds,
@@ -317,9 +315,12 @@ public sealed class ManualCheckDataService(
             throw RequestError(StatusCodes.Status401Unauthorized, "A signed-in user is required.");
         }
 
-        if (presetId.HasValue == (privateTemplate is not null))
+        var selectionCount = (presetId.HasValue ? 1 : 0) +
+            (presetCombination is not null ? 1 : 0) +
+            (privateTemplate is not null ? 1 : 0);
+        if (selectionCount != 1)
         {
-            throw RequestError(StatusCodes.Status400BadRequest, "Choose either a saved preset or a private template.");
+            throw RequestError(StatusCodes.Status400BadRequest, "Choose one saved preset, preset combination, or private template.");
         }
 
         if (presetId.HasValue)
@@ -346,6 +347,31 @@ public sealed class ManualCheckDataService(
                 bypassCache,
                 productIds,
                 ToCriterionDtos(preset.Criteria),
+                null,
+                cancellationToken);
+        }
+
+        if (presetCombination is not null)
+        {
+            var resolved = await ResolvePresetCombinationAsync(
+                db,
+                userId,
+                presetCombination,
+                cancellationToken);
+            return await PrepareRunSetupInternalAsync(
+                db,
+                userId,
+                gameUrlId,
+                null,
+                resolved.DisplayName,
+                resolved.GameId,
+                resolved.ListingLimit,
+                resolved.CooldownMinutes,
+                resolved.CooldownSeconds,
+                bypassCache,
+                productIds,
+                resolved.Criteria,
+                resolved.Snapshot,
                 cancellationToken);
         }
 
@@ -378,6 +404,7 @@ public sealed class ManualCheckDataService(
             bypassCache,
             productIds,
             privatePreset.Criteria,
+            null,
             cancellationToken);
     }
 
@@ -912,6 +939,7 @@ public sealed class ManualCheckDataService(
         bool bypassCache,
         IReadOnlyList<long>? requestedProductIds,
         List<ManualCheckCriterionDto> criteria,
+        ManualCheckPresetCombinationDto? presetCombination,
         CancellationToken cancellationToken)
     {
         var setup = await PrepareRunSetupInternalAsync(
@@ -927,6 +955,7 @@ public sealed class ManualCheckDataService(
             bypassCache,
             requestedProductIds,
             criteria,
+            presetCombination,
             cancellationToken);
         return await CreateRunRowAsync(db, setup, cancellationToken);
     }
@@ -944,6 +973,7 @@ public sealed class ManualCheckDataService(
         bool bypassCache,
         IReadOnlyList<long>? requestedProductIds,
         List<ManualCheckCriterionDto> criteria,
+        ManualCheckPresetCombinationDto? presetCombination,
         CancellationToken cancellationToken)
     {
         var cooldown = NormalizeCooldown(cooldownMinutes, cooldownSeconds);
@@ -1061,6 +1091,7 @@ public sealed class ManualCheckDataService(
             CooldownSeconds = cooldown.Seconds,
             BypassCache = bypassCache,
             RequestedProductIds = normalizedProductIds,
+            PresetCombination = presetCombination,
             Criteria = criteria,
             Products = inputs,
             RequestedAtUtc = DateTime.UtcNow
@@ -1214,6 +1245,123 @@ public sealed class ManualCheckDataService(
         }
 
         return normalized;
+    }
+
+    private static async Task<ResolvedPresetCombination> ResolvePresetCombinationAsync(
+        ApplicationDbContext db,
+        string userId,
+        ManualCheckPresetCombinationWriteDto combination,
+        CancellationToken cancellationToken)
+    {
+        var terms = combination.Terms ?? [];
+        if (terms.Count is < 2 or > MaxCombinationPresets)
+        {
+            throw RequestError(
+                StatusCodes.Status400BadRequest,
+                $"A preset combination must contain between 2 and {MaxCombinationPresets} presets.");
+        }
+
+        if (terms.Any(x => x.PresetId <= 0) || terms.Select(x => x.PresetId).Distinct().Count() != terms.Count)
+        {
+            throw RequestError(StatusCodes.Status400BadRequest, "Preset combinations require unique, valid preset IDs.");
+        }
+
+        if (terms[0].Operator.HasValue || terms.Skip(1).Any(x =>
+                !x.Operator.HasValue ||
+                !Enum.IsDefined(x.Operator.Value)))
+        {
+            throw RequestError(
+                StatusCodes.Status400BadRequest,
+                "The first combined preset cannot have an operator and every later preset requires AND or OR.");
+        }
+
+        var listingLimit = NormalizeListingLimit(combination.ListingLimit);
+        var cooldown = NormalizeCooldown(combination.CooldownMinutes, combination.CooldownSeconds);
+        var presetIds = terms.Select(x => x.PresetId).ToList();
+        var presets = await db.ManualCheckPresets
+            .AsNoTracking()
+            .Include(x => x.Criteria)
+            .ThenInclude(x => x.ConditionOperator)
+            .Where(x => presetIds.Contains(x.Id) && x.Game.UserId == userId)
+            .ToListAsync(cancellationToken);
+
+        if (presets.Count != presetIds.Count)
+        {
+            throw RequestError(StatusCodes.Status404NotFound, "One or more presets were not found.");
+        }
+
+        var presetsById = presets.ToDictionary(x => x.Id);
+        var orderedPresets = presetIds.Select(x => presetsById[x]).ToList();
+        var gameId = orderedPresets[0].GameId;
+        if (orderedPresets.Any(x => x.GameId != gameId))
+        {
+            throw RequestError(StatusCodes.Status400BadRequest, "Combined presets must belong to the same game.");
+        }
+
+        var criteria = new List<ManualCheckCriterionDto>();
+        var snapshotTerms = new List<ManualCheckPresetCombinationTermDto>(terms.Count);
+        for (var index = 0; index < terms.Count; index++)
+        {
+            var term = terms[index];
+            var preset = orderedPresets[index];
+            var presetCriteria = ToCriterionDtos(preset.Criteria);
+            if (presetCriteria.Count == 0)
+            {
+                throw RequestError(StatusCodes.Status400BadRequest, $"Preset #{preset.Id} has no criteria.");
+            }
+
+            presetCriteria[0].OpenGroupCount++;
+            presetCriteria[^1].CloseGroupCount++;
+            if (index == 0)
+            {
+                presetCriteria[0].ConditionOperatorId = null;
+                presetCriteria[0].ConditionOperatorName = null;
+            }
+            else
+            {
+                var conditionOperator = term.Operator == ManualCheckPresetCombinationOperatorEnum.And
+                    ? ManualCheckConditionOperatorEnum.And
+                    : ManualCheckConditionOperatorEnum.Or;
+                presetCriteria[0].ConditionOperatorId = (long)conditionOperator;
+                presetCriteria[0].ConditionOperatorName = GetOperatorName((long)conditionOperator);
+            }
+
+            criteria.AddRange(presetCriteria);
+            snapshotTerms.Add(new ManualCheckPresetCombinationTermDto
+            {
+                PresetId = preset.Id,
+                PresetName = preset.Name,
+                Operator = term.Operator
+            });
+        }
+
+        var normalizedCriteria = NormalizeCriteria(criteria);
+        var displayName = string.Join(
+            " ",
+            snapshotTerms.Select((term, index) => index == 0
+                ? $"({term.PresetName})"
+                : $"{term.Operator!.Value.ToString().ToUpperInvariant()} ({term.PresetName})"));
+        if (displayName.Length > ManualCheckPreset.NameMaxLength)
+        {
+            displayName = displayName[..(ManualCheckPreset.NameMaxLength - 1)] + "…";
+        }
+
+        return new ResolvedPresetCombination
+        {
+            GameId = gameId,
+            DisplayName = displayName,
+            ListingLimit = listingLimit,
+            CooldownMinutes = cooldown.Minutes,
+            CooldownSeconds = cooldown.Seconds,
+            Criteria = normalizedCriteria,
+            Snapshot = new ManualCheckPresetCombinationDto
+            {
+                ListingLimit = listingLimit,
+                CooldownMinutes = cooldown.Minutes,
+                CooldownSeconds = cooldown.Seconds,
+                Terms = snapshotTerms
+            }
+        };
     }
 
     private static string? NormalizeTerm(string? value)
@@ -1459,5 +1607,16 @@ public sealed class ManualCheckDataService(
     private static ManualCheckRequestException RequestError(int statusCode, string message)
     {
         return new ManualCheckRequestException(statusCode, message);
+    }
+
+    private sealed class ResolvedPresetCombination
+    {
+        public long GameId { get; init; }
+        public string DisplayName { get; init; } = string.Empty;
+        public int ListingLimit { get; init; }
+        public int? CooldownMinutes { get; init; }
+        public int? CooldownSeconds { get; init; }
+        public List<ManualCheckCriterionDto> Criteria { get; init; } = [];
+        public ManualCheckPresetCombinationDto Snapshot { get; init; } = new();
     }
 }

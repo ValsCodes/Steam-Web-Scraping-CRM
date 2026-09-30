@@ -13,8 +13,10 @@ public interface IManualCheckDataService
     Task<ManualCheckPresetDto> UpdatePresetAsync(long id, ManualCheckPresetWriteDto input, CancellationToken cancellationToken);
     Task DeletePresetAsync(long id, CancellationToken cancellationToken);
     Task<ManualCheckRunSummaryDto> CreateRunAsync(
+        string userId,
         long gameUrlId,
-        long presetId,
+        long? presetId,
+        ManualCheckPresetCombinationWriteDto? presetCombination,
         bool bypassCache,
         IReadOnlyList<long>? productIds,
         CancellationToken cancellationToken);
@@ -22,6 +24,7 @@ public interface IManualCheckDataService
         string userId,
         long gameUrlId,
         long? presetId,
+        ManualCheckPresetCombinationWriteDto? presetCombination,
         AutomaticQueuePrivateTemplateDto? privateTemplate,
         bool bypassCache,
         IReadOnlyList<long>? productIds,

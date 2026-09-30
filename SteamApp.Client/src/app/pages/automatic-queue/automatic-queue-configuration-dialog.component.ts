@@ -18,8 +18,12 @@ import { AutomaticQueueBlock } from '../../models';
         } @else {
           <div><dt>Game</dt><dd>{{ data.gameName || ('Game #' + data.gameId) }}</dd></div>
           <div><dt>Game URL</dt><dd>{{ data.gameUrlName || ('Source #' + data.gameUrlId) }}</dd></div>
-          <div><dt>Template</dt><dd>{{ data.presetName || data.privateTemplate?.name }}</dd></div>
-          <div><dt>Template type</dt><dd>{{ data.templateMode === 'SavedPreset' ? 'Saved preset' : 'Private template' }}</dd></div>
+          <div><dt>Template</dt><dd>{{ data.presetName || data.privateTemplate?.name || combinationLabel }}</dd></div>
+          <div><dt>Template type</dt><dd>{{ data.templateMode === 'SavedPreset' ? 'Saved preset' : data.templateMode === 'PresetCombination' ? 'Preset combination' : 'Private template' }}</dd></div>
+          @if (data.presetCombination) {
+            <div><dt>Listings</dt><dd>Top {{ data.presetCombination.listingLimit }}</dd></div>
+            <div><dt>Cooldown</dt><dd>{{ data.presetCombination.cooldownMinutes === null ? 'Server default' : data.presetCombination.cooldownMinutes + 'm ' + data.presetCombination.cooldownSeconds + 's' }}</dd></div>
+          }
           <div><dt>Products</dt><dd>{{ data.productIds === null ? 'All active products' : data.productIds.length + ' selected' }}</dd></div>
           <div><dt>Steam cache</dt><dd>{{ data.bypassCache ? 'Refresh data' : 'Reuse recent data' }}</dd></div>
         }
@@ -31,4 +35,10 @@ import { AutomaticQueueBlock } from '../../models';
 })
 export class AutomaticQueueConfigurationDialogComponent {
   readonly data = inject<AutomaticQueueBlock>(MAT_DIALOG_DATA);
+
+  get combinationLabel(): string {
+    return this.data.presetCombination?.terms.map((term, index) =>
+      `${index === 0 ? '' : (term.operator ?? 'And').toUpperCase() + ' '}Preset #${term.presetId}`,
+    ).join(' ') ?? '';
+  }
 }

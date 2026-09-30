@@ -127,6 +127,55 @@ public static class GameUrlProductsEndpoints
         .Produces(StatusCodes.Status400BadRequest)
         .Produces(StatusCodes.Status404NotFound);
 
+        // Applies only the requested additions and removals, preserving every other relation.
+        group.MapPatch("/{gameUrlId:long}/bulk", async (
+            long gameUrlId, GameUrlProductBulkUpdateDto input, HttpContext httpContext,
+            ApplicationDbContext db, ILoggerFactory loggerFactory, CancellationToken ct) =>
+        {
+            var userId = httpContext.User.GetUserId();
+            if (userId is null) { return Results.Unauthorized(); }
+
+            var requestedAddIds = input.AddProductIds ?? [];
+            var requestedRemoveIds = input.RemoveProductIds ?? [];
+            if (gameUrlId <= 0 || requestedAddIds.Length + requestedRemoveIds.Length > 10_000 ||
+                requestedAddIds.Any(id => id <= 0) || requestedRemoveIds.Any(id => id <= 0))
+            {
+                return Results.BadRequest("Provide valid product relation changes (at most 10000 IDs).");
+            }
+
+            var addProductIds = requestedAddIds.Distinct().Order().ToArray();
+            var removeProductIds = requestedRemoveIds.Distinct().Order().ToArray();
+            if (addProductIds.Length == 0 && removeProductIds.Length == 0)
+            {
+                return Results.BadRequest("Provide at least one product relation change.");
+            }
+            if (addProductIds.Intersect(removeProductIds).Any())
+            {
+                return Results.BadRequest("A product cannot be added and removed in the same request.");
+            }
+
+            var strategy = db.Database.CreateExecutionStrategy();
+            try
+            {
+                return await strategy.ExecuteAsync(() => BulkUpdateProductsAsync(
+                    gameUrlId, addProductIds, removeProductIds, userId, db, ct));
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                loggerFactory.CreateLogger(nameof(GameUrlProductsEndpoints))
+                    .LogError(exception, "Bulk product relation update failed for Game URL {GameUrlId}", gameUrlId);
+                return Results.Problem("Could not update product relations.", statusCode: StatusCodes.Status500InternalServerError);
+            }
+        })
+        .WithName("BulkUpdateGameUrlProducts")
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status404NotFound);
+
         group.MapPut("/{productId:long}/{gameUrlId:long}/current-stock", async (
             long productId, long gameUrlId, GameUrlProductCurrentStockUpdateDto input,
             HttpContext httpContext, ApplicationDbContext db, CancellationToken ct) =>
@@ -278,6 +327,63 @@ public static class GameUrlProductsEndpoints
                     SqlBulkCopyOptions = SqlBulkCopyOptions.CheckConstraints | SqlBulkCopyOptions.FireTriggers,
                 }, cancellationToken: ct);
             }
+            await transaction.CommitAsync(ct);
+            return Results.NoContent();
+        }
+        catch
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+    }
+
+    private static async Task<IResult> BulkUpdateProductsAsync(
+        long gameUrlId,
+        long[] addProductIds,
+        long[] removeProductIds,
+        string userId,
+        ApplicationDbContext db,
+        CancellationToken ct)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        try
+        {
+            var gameId = await db.GameUrls.AsNoTracking()
+                .Where(url => url.Id == gameUrlId && url.UserId == userId)
+                .Select(url => (long?)url.GameId)
+                .FirstOrDefaultAsync(ct);
+            if (gameId is null) { return Results.NotFound(); }
+
+            var productIds = addProductIds.Concat(removeProductIds).Distinct().ToArray();
+            var validCount = await db.Products.AsNoTracking().CountAsync(product =>
+                productIds.Contains(product.Id) && product.UserId == userId && product.GameId == gameId.Value, ct);
+            if (validCount != productIds.Length)
+            {
+                return Results.BadRequest("Every product must belong to you and to the Game URL's game.");
+            }
+
+            var existing = await db.GameUrlsProducts.AsNoTracking()
+                .Where(relation => relation.GameUrlId == gameUrlId && productIds.Contains(relation.ProductId))
+                .ToListAsync(ct);
+            var existingIds = existing.Select(relation => relation.ProductId).ToHashSet();
+            var removeIds = removeProductIds.ToHashSet();
+            var deletes = existing.Where(relation => removeIds.Contains(relation.ProductId)).ToList();
+            var inserts = addProductIds.Where(id => !existingIds.Contains(id))
+                .Select(id => new GameUrlProducts { GameUrlId = gameUrlId, ProductId = id })
+                .ToList();
+
+            if (deletes.Count > 0)
+            {
+                await db.BulkDeleteAsync(deletes, cancellationToken: ct);
+            }
+            if (inserts.Count > 0)
+            {
+                await db.BulkInsertAsync(inserts, new BulkConfig
+                {
+                    SqlBulkCopyOptions = SqlBulkCopyOptions.CheckConstraints | SqlBulkCopyOptions.FireTriggers,
+                }, cancellationToken: ct);
+            }
+
             await transaction.CommitAsync(ct);
             return Results.NoContent();
         }

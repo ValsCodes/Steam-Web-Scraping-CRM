@@ -24,6 +24,8 @@ import {
   containsManualCheckGroup,
   createManualCheckCriterionNode,
   createManualCheckGroupNode,
+  MANUAL_CHECK_MAX_CRITERIA,
+  MANUAL_CHECK_MAX_GROUPS,
   ManualCheckExpressionNode,
   ManualCheckGroupNode,
   normalizeManualCheckExpressionOperators,
@@ -64,14 +66,14 @@ import {
             mat-stroked-button
             type="button"
             (click)="addCriterion(group)"
-            [disabled]="criterionCount >= 25">
+            [disabled]="criterionCount >= criterionLimit">
             Add criterion
           </button>
           <button
             mat-stroked-button
             type="button"
             (click)="addGroup(group)"
-            [disabled]="groupCount >= 25">
+            [disabled]="groupCount >= groupLimit">
             Add group
           </button>
           @if (!group.isRoot) {
@@ -240,6 +242,8 @@ export class ManualCheckExpressionEditorComponent {
   @Input() operators: ManualCheckConditionOperator[] = [];
   @Output() readonly expressionChange = new EventEmitter<void>();
 
+  readonly criterionLimit = MANUAL_CHECK_MAX_CRITERIA;
+  readonly groupLimit = MANUAL_CHECK_MAX_GROUPS;
   announcement = '';
 
   readonly canEnterGroup = (
@@ -260,7 +264,7 @@ export class ManualCheckExpressionEditorComponent {
   }
 
   addCriterion(group: ManualCheckGroupNode): void {
-    if (this.criterionCount >= 25) {
+    if (this.criterionCount >= this.criterionLimit) {
       return;
     }
 
@@ -271,7 +275,7 @@ export class ManualCheckExpressionEditorComponent {
   }
 
   addGroup(group: ManualCheckGroupNode): void {
-    if (this.groupCount >= 25) {
+    if (this.groupCount >= this.groupLimit) {
       return;
     }
 

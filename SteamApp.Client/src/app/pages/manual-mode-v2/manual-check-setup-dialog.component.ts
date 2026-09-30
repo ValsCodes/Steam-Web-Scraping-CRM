@@ -26,6 +26,8 @@ import {
   ItemGroup,
   ManualCheckConditionOperator,
   ManualCheckPreset,
+  ManualCheckPresetCombinationOperator,
+  ManualCheckPresetCombinationWrite,
   ManualCheckPresetWrite,
   ScrapingModeEnum,
 } from '../../models';
@@ -42,6 +44,8 @@ import {
   createManualCheckGroupNode,
   flattenManualCheckExpression,
   formatManualCheckExpression,
+  MANUAL_CHECK_MAX_CRITERIA,
+  MANUAL_CHECK_MAX_GROUPS,
   ManualCheckCriterionNode,
   ManualCheckGroupNode,
   normalizeManualCheckExpressionOperators,
@@ -61,7 +65,8 @@ export interface ManualCheckSetupDialogData {
 
 export interface ManualCheckRunDialogResult {
   mode: 'run';
-  presetId: number;
+  presetId: number | null;
+  presetCombination: ManualCheckPresetCombinationWrite | null;
   bypassCache: boolean;
 }
 
@@ -71,6 +76,13 @@ export interface ManualCheckQueueDialogResult {
 }
 
 export type ManualCheckSetupDialogResult = ManualCheckRunDialogResult | ManualCheckQueueDialogResult;
+
+type ManualCheckPresetMode = 'Single' | 'Combination';
+
+interface ManualCheckPresetCombinationRow {
+  presetId: number | null;
+  operator: ManualCheckPresetCombinationOperator | null;
+}
 
 @Component({
   selector: 'steam-manual-check-setup-dialog',
@@ -135,64 +147,118 @@ export type ManualCheckSetupDialogResult = ManualCheckRunDialogResult | ManualCh
           </div>
         }
 
-        <label>
-          <span>Saved preset</span>
-          <select
-            name="manualCheckPreset"
-            [(ngModel)]="selectedPresetId"
-            (ngModelChange)="selectPreset($event)">
-            <option [ngValue]="null">{{ data.queueBuilder ? 'Private template' : 'Create new preset' }}</option>
-            @for (group of presetGroups; track group.itemGroupId) {
-              <optgroup [label]="group.name">
-                @for (preset of group.items; track preset.id) {
-                  <option [ngValue]="preset.id">{{ preset.name }}</option>
-                }
-              </optgroup>
-            }
-          </select>
-        </label>
-
-        <label>
-          <span>{{ data.queueBuilder && templateMode === 'PrivateTemplate' ? 'Private template name' : 'Preset name' }}</span>
-          <input
-            name="manualCheckPresetName"
-            maxlength="100"
-            [(ngModel)]="name"
-            (ngModelChange)="markDirty()"
-            placeholder="Preset name" />
-        </label>
-
-        @if (!data.queueBuilder) {
-        <label>
-          <span>Preset group</span>
-          <select
-            name="manualCheckPresetItemGroup"
-            [(ngModel)]="itemGroupId"
-            (ngModelChange)="markDirty()">
-            <option [ngValue]="null">No group</option>
-            @for (itemGroup of itemGroups; track itemGroup.id) {
-              <option [ngValue]="itemGroup.id">{{ itemGroup.name }}</option>
-            }
-          </select>
-        </label>
-
-        <section class="manual-check-dialog__item-group-create">
-          <label>
-            <span>Create a new group</span>
-            <input
-              name="manualCheckNewItemGroupName"
-              maxlength="255"
-              [(ngModel)]="newItemGroupName"
-              placeholder="Group name" />
+        <fieldset class="manual-check-dialog__mode">
+          <legend>Preset mode</legend>
+          <label class="manual-check-dialog__radio">
+            <input type="radio" name="manualCheckPresetMode" value="Single" [ngModel]="presetMode" (ngModelChange)="setPresetMode($event)" />
+            <span>Single preset</span>
           </label>
-          <button
-            mat-stroked-button
-            type="button"
-            (click)="createItemGroup()"
-            [disabled]="!newItemGroupName.trim() || creatingItemGroup || busy">
-            {{ creatingItemGroup ? 'Creating...' : 'Create group' }}
-          </button>
-        </section>
+          <label class="manual-check-dialog__radio">
+            <input type="radio" name="manualCheckPresetMode" value="Combination" [ngModel]="presetMode" (ngModelChange)="setPresetMode($event)" [disabled]="presets.length < 2" />
+            <span>Combine presets</span>
+          </label>
+        </fieldset>
+
+        @if (presetMode === 'Single') {
+          <label>
+            <span>Saved preset</span>
+            <select
+              name="manualCheckPreset"
+              [(ngModel)]="selectedPresetId"
+              (ngModelChange)="selectPreset($event)">
+              <option [ngValue]="null">{{ data.queueBuilder ? 'Private template' : 'Create new preset' }}</option>
+              @for (group of presetGroups; track group.itemGroupId) {
+                <optgroup [label]="group.name">
+                  @for (preset of group.items; track preset.id) {
+                    <option [ngValue]="preset.id">{{ preset.name }}</option>
+                  }
+                </optgroup>
+              }
+            </select>
+          </label>
+
+          <label>
+            <span>{{ data.queueBuilder && templateMode === 'PrivateTemplate' ? 'Private template name' : 'Preset name' }}</span>
+            <input
+              name="manualCheckPresetName"
+              maxlength="100"
+              [(ngModel)]="name"
+              (ngModelChange)="markDirty()"
+              placeholder="Preset name" />
+          </label>
+
+          @if (!data.queueBuilder) {
+            <label>
+              <span>Preset group</span>
+              <select
+                name="manualCheckPresetItemGroup"
+                [(ngModel)]="itemGroupId"
+                (ngModelChange)="markDirty()">
+                <option [ngValue]="null">No group</option>
+                @for (itemGroup of itemGroups; track itemGroup.id) {
+                  <option [ngValue]="itemGroup.id">{{ itemGroup.name }}</option>
+                }
+              </select>
+            </label>
+
+            <section class="manual-check-dialog__item-group-create">
+              <label>
+                <span>Create a new group</span>
+                <input
+                  name="manualCheckNewItemGroupName"
+                  maxlength="255"
+                  [(ngModel)]="newItemGroupName"
+                  placeholder="Group name" />
+              </label>
+              <button
+                mat-stroked-button
+                type="button"
+                (click)="createItemGroup()"
+                [disabled]="!newItemGroupName.trim() || creatingItemGroup || busy">
+                {{ creatingItemGroup ? 'Creating...' : 'Create group' }}
+              </button>
+            </section>
+          }
+        } @else {
+          <section class="manual-check-dialog__combination" aria-labelledby="manualCheckCombinationLabel">
+            <div>
+              <strong id="manualCheckCombinationLabel">Preset combination</strong>
+              <p>Each preset keeps its own criteria. The combined result is evaluated against the same listing asset.</p>
+            </div>
+            @for (row of combinationRows; track $index; let index = $index) {
+              <div class="manual-check-dialog__combination-row">
+                @if (index > 0) {
+                  <select [name]="'combinationOperator' + index" [(ngModel)]="row.operator" (ngModelChange)="combinationChanged()" aria-label="Combination operator">
+                    <option value="And">AND</option>
+                    <option value="Or">OR</option>
+                  </select>
+                } @else {
+                  <strong>Start with</strong>
+                }
+                <select [name]="'combinationPreset' + index" [(ngModel)]="row.presetId" (ngModelChange)="combinationChanged()" aria-label="Combined preset">
+                  @for (group of presetGroups; track group.itemGroupId) {
+                    <optgroup [label]="group.name">
+                      @for (preset of group.items; track preset.id) {
+                        <option [ngValue]="preset.id">{{ preset.name }}</option>
+                      }
+                    </optgroup>
+                  }
+                </select>
+                <button mat-button type="button" (click)="moveCombinationRow(index, -1)" [disabled]="index === 0">Up</button>
+                <button mat-button type="button" (click)="moveCombinationRow(index, 1)" [disabled]="index === combinationRows.length - 1">Down</button>
+                <button mat-button type="button" color="warn" (click)="removeCombinationRow(index)" [disabled]="combinationRows.length <= 2">Remove</button>
+              </div>
+            }
+            <button mat-stroked-button type="button" (click)="addCombinationRow()" [disabled]="combinationRows.length >= combinationLimit || combinationRows.length >= presets.length">Add preset</button>
+            <div class="manual-check-dialog__expression-preview" aria-live="polite">
+              <strong>Combination preview</strong>
+              <code>{{ combinationPreview }}</code>
+              <small>Evaluation is strictly left-to-right. Top-level parentheses are not supported.</small>
+            </div>
+            @if (!combinationValidation.isValid) {
+              <p class="manual-check-dialog__validation" role="alert">{{ combinationValidation.message }}</p>
+            }
+          </section>
         }
 
         <section class="manual-check-dialog__listing-limit" aria-labelledby="manualCheckListingLimitLabel">
@@ -324,27 +390,29 @@ export type ManualCheckSetupDialogResult = ManualCheckRunDialogResult | ManualCh
           </fieldset>
         }
 
-        <steam-manual-check-expression-editor
-          [root]="expressionRoot"
-          [operators]="conditionOperators"
-          (expressionChange)="markDirty()">
-        </steam-manual-check-expression-editor>
+        @if (presetMode === 'Single') {
+          <steam-manual-check-expression-editor
+            [root]="expressionRoot"
+            [operators]="conditionOperators"
+            (expressionChange)="markDirty()">
+          </steam-manual-check-expression-editor>
 
-        <section class="manual-check-dialog__expression-preview" aria-live="polite">
-          <strong>Expression preview</strong>
-          <code>{{ expressionPreview }}</code>
-          <small>Parentheses define groups. Evaluation is strictly left-to-right inside each group.</small>
-        </section>
+          <section class="manual-check-dialog__expression-preview" aria-live="polite">
+            <strong>Expression preview</strong>
+            <code>{{ expressionPreview }}</code>
+            <small>Parentheses define groups. Evaluation is strictly left-to-right inside each group.</small>
+          </section>
 
-        @if (!expressionValidation.isValid) {
-          <p class="manual-check-dialog__validation" role="alert">
-            Complete every criterion and operator, populate empty groups, and keep the expression within 25 criteria and 25 groups.
-          </p>
+          @if (!expressionValidation.isValid) {
+            <p class="manual-check-dialog__validation" role="alert">
+              Complete every criterion and operator, populate empty groups, and keep the expression within {{ criterionLimit }} criteria and {{ groupLimit }} groups.
+            </p>
+          }
         }
 
         @if (errorMessage) {
           <div class="manual-check-dialog__callout manual-check-dialog__callout--error" role="alert">
-            <strong>Could not save the preset</strong>
+            <strong>{{ presetMode === 'Combination' ? 'Could not use the combination' : 'Could not save the preset' }}</strong>
             <span>{{ errorMessage }}</span>
           </div>
         }
@@ -353,14 +421,14 @@ export type ManualCheckSetupDialogResult = ManualCheckRunDialogResult | ManualCh
             {{ successMessage }}
           </div>
         }
-        @if (dirty && selectedPresetId !== null) {
+        @if (presetMode === 'Single' && dirty && selectedPresetId !== null) {
           <p class="manual-check-dialog__hint">Your changes will be saved when you start the check.</p>
         }
       }
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      @if (!loading && !loadError && !data.queueBuilder) {
+      @if (!loading && !loadError && !data.queueBuilder && presetMode === 'Single') {
         <button
           mat-button
           type="button"
@@ -408,6 +476,10 @@ export type ManualCheckSetupDialogResult = ManualCheckRunDialogResult | ManualCh
     .manual-check-dialog select, .manual-check-dialog input { border: 1px solid #cbd5e1; border-radius: .25rem; padding: .55rem .7rem; }
     .manual-check-dialog fieldset { display: flex; gap: 1.25rem; border: 1px solid #e2e8f0; border-radius: .375rem; padding: .75rem; }
     .manual-check-dialog__radio { display: inline-flex; align-items: center; gap: .4rem; }
+    .manual-check-dialog__mode { flex-wrap: wrap; }
+    .manual-check-dialog__combination { display: flex; flex-direction: column; gap: .65rem; border: 1px solid #e2e8f0; border-radius: .375rem; padding: .75rem; }
+    .manual-check-dialog__combination p { margin: .2rem 0 0; color: #64748b; }
+    .manual-check-dialog__combination-row { display: grid; grid-template-columns: 7rem minmax(12rem, 1fr) auto auto auto; align-items: center; gap: .45rem; }
     .manual-check-dialog__item-group-create { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; }
     .manual-check-dialog__item-group-create label { flex: 1; min-width: 12rem; }
     .manual-check-dialog__listing-limit { display: flex; flex-direction: column; gap: .65rem; border: 1px solid #e2e8f0; border-radius: .375rem; padding: .75rem; }
@@ -427,13 +499,16 @@ export type ManualCheckSetupDialogResult = ManualCheckRunDialogResult | ManualCh
     .manual-check-dialog__queue-source { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
     .manual-check-dialog__products { flex-direction: column !important; }
     .manual-check-dialog__product-list { display: grid; max-height: 14rem; overflow: auto; gap: .35rem; border: 1px solid #e2e8f0; border-radius: .375rem; padding: .6rem; }
-    @media (max-width: 700px) { .manual-check-dialog__queue-source { grid-template-columns: 1fr; } }
+    @media (max-width: 700px) { .manual-check-dialog__queue-source, .manual-check-dialog__combination-row { grid-template-columns: 1fr; } }
     @keyframes manual-check-spin { to { transform: rotate(360deg); } }
   `],
 })
 export class ManualCheckSetupDialogComponent implements OnInit {
   readonly data = inject<ManualCheckSetupDialogData>(MAT_DIALOG_DATA);
   readonly dialogRef = inject<MatDialogRef<ManualCheckSetupDialogComponent, ManualCheckSetupDialogResult>>(MatDialogRef);
+  readonly criterionLimit = MANUAL_CHECK_MAX_CRITERIA;
+  readonly groupLimit = MANUAL_CHECK_MAX_GROUPS;
+  readonly combinationLimit = 10;
   private readonly manualCheckService = inject(ManualCheckService);
   private readonly itemGroupService = inject(ItemGroupService);
   private readonly gameService = inject(GameService);
@@ -453,6 +528,8 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   selectedProductIds = new Set<number>();
   itemGroups: ItemGroup[] = [];
   conditionOperators: ManualCheckConditionOperator[] = [];
+  presetMode: ManualCheckPresetMode = 'Single';
+  combinationRows: ManualCheckPresetCombinationRow[] = [];
   selectedPresetId: number | null = null;
   itemGroupId: number | null = null;
   newItemGroupName = '';
@@ -530,7 +607,13 @@ export class ManualCheckSetupDialogComponent implements OnInit {
         const preferredPresetId = this.data.initialBlock?.presetId ?? this.data.preselectedPresetId;
         const preferred = presets.find((x) => x.id === preferredPresetId)
           ?? presets[0];
-        if (this.data.queueBuilder && this.data.initialBlock?.templateMode === 'PrivateTemplate') {
+        if (
+          this.data.queueBuilder &&
+          this.data.initialBlock?.templateMode === 'PresetCombination' &&
+          this.data.initialBlock.gameId === this.selectedGameId
+        ) {
+          this.applyPresetCombination(this.data.initialBlock);
+        } else if (this.data.queueBuilder && this.data.initialBlock?.templateMode === 'PrivateTemplate') {
           this.applyPrivateTemplate(this.data.initialBlock);
         } else if (preferred) {
           this.selectedPresetId = preferred.id;
@@ -549,6 +632,12 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   }
 
   get isDraftValid(): boolean {
+    if (this.presetMode === 'Combination') {
+      return this.combinationValidation.isValid
+        && this.isListingLimitValid
+        && this.isCooldownValid;
+    }
+
     return this.name.trim().length >= 1
       && this.name.trim().length <= 100
       && this.isListingLimitValid
@@ -561,7 +650,9 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     return this.selectedGameId !== null
       && this.selectedGameUrlId !== null
       && (this.productSelectionMode === 'all' || this.selectedProductIds.size > 0)
-      && (this.templateMode === 'PrivateTemplate' || this.selectedPresetId !== null);
+      && (this.templateMode === 'PrivateTemplate' ||
+        (this.templateMode === 'PresetCombination' && this.combinationValidation.isValid) ||
+        this.selectedPresetId !== null);
   }
 
   get expressionValidation() {
@@ -573,6 +664,48 @@ export class ManualCheckSetupDialogComponent implements OnInit {
 
   get expressionPreview(): string {
     return formatManualCheckExpression(this.expressionRoot, this.conditionOperators);
+  }
+
+  get combinationPreview(): string {
+    return this.combinationRows.map((row, index) => {
+      const name = this.presets.find((preset) => preset.id === row.presetId)?.name ?? 'Select preset';
+      return index === 0 ? `(${name})` : `${row.operator?.toUpperCase() ?? 'AND'} (${name})`;
+    }).join(' ');
+  }
+
+  get combinationValidation(): { isValid: boolean; message: string } {
+    if (this.combinationRows.length < 2 || this.combinationRows.length > this.combinationLimit) {
+      return { isValid: false, message: `Choose between 2 and ${this.combinationLimit} presets.` };
+    }
+
+    const ids = this.combinationRows.map((row) => row.presetId);
+    if (ids.some((id) => id === null)) {
+      return { isValid: false, message: 'Choose a preset in every row.' };
+    }
+    if (new Set(ids).size !== ids.length) {
+      return { isValid: false, message: 'Each preset can appear only once.' };
+    }
+    if (this.combinationRows[0].operator !== null || this.combinationRows.slice(1).some((row) => !row.operator)) {
+      return { isValid: false, message: 'Choose AND or OR between every preset.' };
+    }
+
+    const selected = ids.map((id) => this.presets.find((preset) => preset.id === id));
+    if (selected.some((preset) => !preset)) {
+      return { isValid: false, message: 'One or more selected presets are no longer available.' };
+    }
+    const criterionCount = selected.reduce((total, preset) => total + preset!.criteria.length, 0);
+    const groupCount = selected.reduce((total, preset) => total + preset!.criteria.reduce(
+      (presetTotal, criterion) => presetTotal + (criterion.openGroupCount ?? 0),
+      1,
+    ), 0);
+    if (criterionCount > this.criterionLimit || groupCount > this.groupLimit) {
+      return {
+        isValid: false,
+        message: `Combined presets must stay within ${this.criterionLimit} criteria and ${this.groupLimit} groups.`,
+      };
+    }
+
+    return { isValid: true, message: '' };
   }
 
   get criteria(): ManualCheckCriterionNode[] {
@@ -601,10 +734,68 @@ export class ManualCheckSetupDialogComponent implements OnInit {
 
   get primaryActionLabel(): string {
     if (this.data.queueBuilder) return 'Use block';
+    if (this.presetMode === 'Combination') return 'Start combined check';
     if (this.selectedPresetId === null) {
       return 'Create & start';
     }
     return this.dirty ? 'Save & start' : 'Start check';
+  }
+
+  setPresetMode(mode: ManualCheckPresetMode): void {
+    if (mode === 'Combination') {
+      if (this.presets.length < 2) return;
+      this.presetMode = 'Combination';
+      this.templateMode = 'PresetCombination';
+      if (this.combinationRows.length < 2) {
+        const first = this.presets.find((preset) => preset.id === this.selectedPresetId) ?? this.presets[0];
+        const second = this.presets.find((preset) => preset.id !== first.id)!;
+        this.combinationRows = [
+          { presetId: first.id, operator: null },
+          { presetId: second.id, operator: 'And' },
+        ];
+        this.applyCombinationSettings(first);
+      }
+    } else {
+      this.presetMode = 'Single';
+      this.templateMode = this.data.queueBuilder && this.selectedPresetId === null
+        ? 'PrivateTemplate'
+        : 'SavedPreset';
+    }
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.cdr.markForCheck();
+  }
+
+  addCombinationRow(): void {
+    if (this.combinationRows.length >= this.combinationLimit) return;
+    const selectedIds = new Set(this.combinationRows.map((row) => row.presetId));
+    const next = this.presets.find((preset) => !selectedIds.has(preset.id));
+    if (!next) return;
+    this.combinationRows = [...this.combinationRows, { presetId: next.id, operator: 'And' }];
+    this.combinationChanged();
+  }
+
+  removeCombinationRow(index: number): void {
+    if (this.combinationRows.length <= 2) return;
+    this.combinationRows = this.combinationRows.filter((_, rowIndex) => rowIndex !== index);
+    this.normalizeCombinationOperators();
+    this.combinationChanged();
+  }
+
+  moveCombinationRow(index: number, direction: -1 | 1): void {
+    const target = index + direction;
+    if (target < 0 || target >= this.combinationRows.length) return;
+    const rows = [...this.combinationRows];
+    [rows[index], rows[target]] = [rows[target], rows[index]];
+    this.combinationRows = rows;
+    this.normalizeCombinationOperators();
+    this.combinationChanged();
+  }
+
+  combinationChanged(): void {
+    this.templateMode = 'PresetCombination';
+    this.errorMessage = '';
+    this.successMessage = '';
   }
 
   selectPreset(id: number | null): void {
@@ -619,6 +810,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     }
 
     this.selectedPresetId = preset.id;
+    this.presetMode = 'Single';
     if (this.data.queueBuilder) this.templateMode = 'SavedPreset';
     this.itemGroupId = preset.itemGroupId;
     this.name = preset.name;
@@ -634,6 +826,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   }
 
   newPreset(): void {
+    this.presetMode = 'Single';
     this.selectedPresetId = null;
     if (this.data.queueBuilder) this.templateMode = 'PrivateTemplate';
     this.itemGroupId = null;
@@ -700,7 +893,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   }
 
   addCriterion(): void {
-    if (this.criteria.length < 25) {
+    if (this.criteria.length < this.criterionLimit) {
       this.expressionRoot.children.push(this.emptyCriterion(false));
       normalizeManualCheckExpressionOperators(
         this.expressionRoot,
@@ -752,7 +945,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
         this.selectedPresetId = saved.id;
         this.selectPreset(saved.id);
         if (startAfterSave) {
-          this.closeForStart(saved.id);
+          this.closeForStart(saved.id, null);
           return;
         }
         this.successMessage = `Preset “${saved.name}” saved.`;
@@ -801,16 +994,24 @@ export class ManualCheckSetupDialogComponent implements OnInit {
       return;
     }
 
+    if (this.presetMode === 'Combination') {
+      this.closeForStart(null, this.toPresetCombination());
+      return;
+    }
+
     if (this.selectedPresetId === null || this.dirty) {
       this.savePreset(true);
       return;
     }
 
-    this.closeForStart(this.selectedPresetId);
+    this.closeForStart(this.selectedPresetId, null);
   }
 
-  private closeForStart(presetId: number): void {
-    this.dialogRef.close({ mode: 'run', presetId, bypassCache: this.bypassCache });
+  private closeForStart(
+    presetId: number | null,
+    presetCombination: ManualCheckPresetCombinationWrite | null,
+  ): void {
+    this.dialogRef.close({ mode: 'run', presetId, presetCombination, bypassCache: this.bypassCache });
   }
 
   private toWriteModel(): ManualCheckPresetWrite {
@@ -912,9 +1113,31 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.dirty = true;
   }
 
+  private applyPresetCombination(block: AutomaticQueueBlock): void {
+    const combination = block.presetCombination;
+    if (!combination) {
+      this.newPreset();
+      return;
+    }
+
+    this.presetMode = 'Combination';
+    this.templateMode = 'PresetCombination';
+    this.selectedPresetId = null;
+    this.combinationRows = combination.terms.map((term, index) => ({
+      presetId: term.presetId,
+      operator: index === 0 ? null : term.operator ?? 'And',
+    }));
+    this.listingLimit = combination.listingLimit;
+    this.customCooldown = combination.cooldownMinutes !== null && combination.cooldownSeconds !== null;
+    this.cooldownMinutes = combination.cooldownMinutes ?? 0;
+    this.cooldownSeconds = combination.cooldownSeconds ?? 0;
+    this.bypassCache = block.bypassCache;
+    this.dirty = false;
+  }
+
   private closeForQueue(): void {
     if (!this.isQueueSelectionValid || this.selectedGameUrlId === null) return;
-    const write = this.toWriteModel();
+    const write = this.presetMode === 'Single' ? this.toWriteModel() : null;
     this.dialogRef.close({
       mode: 'queue',
       block: {
@@ -927,15 +1150,16 @@ export class ManualCheckSetupDialogComponent implements OnInit {
         gameUrlName: this.selectedGameUrlName,
         templateMode: this.templateMode,
         presetId: this.templateMode === 'SavedPreset' ? this.selectedPresetId : null,
+        presetCombination: this.templateMode === 'PresetCombination' ? this.toPresetCombination() : null,
         presetName: this.templateMode === 'SavedPreset'
           ? this.presets.find((preset) => preset.id === this.selectedPresetId)?.name ?? null
-          : null,
+          : this.templateMode === 'PresetCombination' ? this.combinationPreview : null,
         privateTemplate: this.templateMode === 'PrivateTemplate' ? {
-          name: write.name,
-          listingLimit: write.listingLimit,
-          cooldownMinutes: write.cooldownMinutes,
-          cooldownSeconds: write.cooldownSeconds,
-          criteria: write.criteria,
+          name: write!.name,
+          listingLimit: write!.listingLimit,
+          cooldownMinutes: write!.cooldownMinutes,
+          cooldownSeconds: write!.cooldownSeconds,
+          criteria: write!.criteria,
         } : null,
         bypassCache: this.bypassCache,
         productIds: this.productSelectionMode === 'all'
@@ -943,6 +1167,32 @@ export class ManualCheckSetupDialogComponent implements OnInit {
           : this.products.filter((x) => this.selectedProductIds.has(x.productId)).map((x) => x.productId),
       },
     });
+  }
+
+  private toPresetCombination(): ManualCheckPresetCombinationWrite {
+    return {
+      listingLimit: this.listingLimit!,
+      cooldownMinutes: this.customCooldown ? this.cooldownMinutes! : null,
+      cooldownSeconds: this.customCooldown ? this.cooldownSeconds! : null,
+      terms: this.combinationRows.map((row, index) => ({
+        presetId: row.presetId!,
+        operator: index === 0 ? null : row.operator,
+      })),
+    };
+  }
+
+  private applyCombinationSettings(preset: ManualCheckPreset): void {
+    this.listingLimit = preset.listingLimit;
+    this.customCooldown = preset.cooldownMinutes !== null && preset.cooldownSeconds !== null;
+    this.cooldownMinutes = preset.cooldownMinutes ?? 0;
+    this.cooldownSeconds = preset.cooldownSeconds ?? 0;
+  }
+
+  private normalizeCombinationOperators(): void {
+    this.combinationRows = this.combinationRows.map((row, index) => ({
+      ...row,
+      operator: index === 0 ? null : row.operator ?? 'And',
+    }));
   }
 
   private emptyCriterion(first = true): ManualCheckCriterionNode {

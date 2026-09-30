@@ -838,11 +838,15 @@ public sealed class AutomaticQueueDataService(
         var privateTemplate = block.TemplateMode == AutomaticQueueTemplateModeEnum.PrivateTemplate
             ? block.PrivateTemplate ?? throw RequestError(StatusCodes.Status400BadRequest, "A private template is required.")
             : null;
+        var presetCombination = block.TemplateMode == AutomaticQueueTemplateModeEnum.PresetCombination
+            ? block.PresetCombination ?? throw RequestError(StatusCodes.Status400BadRequest, "A preset combination is required.")
+            : null;
         var setup = await PrepareManualSetupAsync(
             null,
             userId,
             block.GameUrlId.Value,
             presetId,
+            presetCombination,
             privateTemplate,
             block.BypassCache,
             productIds,
@@ -869,6 +873,7 @@ public sealed class AutomaticQueueDataService(
             userId,
             configuration.GameUrlId!.Value,
             configuration.TemplateMode == AutomaticQueueTemplateModeEnum.SavedPreset ? configuration.PresetId : null,
+            configuration.TemplateMode == AutomaticQueueTemplateModeEnum.PresetCombination ? configuration.PresetCombination : null,
             configuration.TemplateMode == AutomaticQueueTemplateModeEnum.PrivateTemplate ? configuration.PrivateTemplate : null,
             configuration.BypassCache,
             configuration.ProductIds,
@@ -885,6 +890,7 @@ public sealed class AutomaticQueueDataService(
         string userId,
         long gameUrlId,
         long? presetId,
+        ManualCheckPresetCombinationWriteDto? presetCombination,
         AutomaticQueuePrivateTemplateDto? privateTemplate,
         bool bypassCache,
         IReadOnlyList<long>? productIds,
@@ -897,6 +903,7 @@ public sealed class AutomaticQueueDataService(
                     userId,
                     gameUrlId,
                     presetId,
+                    presetCombination,
                     privateTemplate,
                     bypassCache,
                     productIds,
@@ -906,6 +913,7 @@ public sealed class AutomaticQueueDataService(
                     userId,
                     gameUrlId,
                     presetId,
+                    presetCombination,
                     privateTemplate,
                     bypassCache,
                     productIds,
@@ -928,7 +936,20 @@ public sealed class AutomaticQueueDataService(
             Type = source.Type,
             GameUrlId = source.GameUrlId,
             TemplateMode = source.TemplateMode,
-            PresetId = source.PresetId,
+            PresetId = source.TemplateMode == AutomaticQueueTemplateModeEnum.SavedPreset ? source.PresetId : null,
+            PresetCombination = source.TemplateMode == AutomaticQueueTemplateModeEnum.PresetCombination && setup.PresetCombination is not null
+                ? new ManualCheckPresetCombinationWriteDto
+                {
+                    ListingLimit = setup.PresetCombination.ListingLimit,
+                    CooldownMinutes = setup.PresetCombination.CooldownMinutes,
+                    CooldownSeconds = setup.PresetCombination.CooldownSeconds,
+                    Terms = setup.PresetCombination.Terms.Select(x => new ManualCheckPresetCombinationTermWriteDto
+                    {
+                        PresetId = x.PresetId,
+                        Operator = x.Operator
+                    }).ToList()
+                }
+                : null,
             PrivateTemplate = source.TemplateMode == AutomaticQueueTemplateModeEnum.PrivateTemplate
                 ? new AutomaticQueuePrivateTemplateDto
                 {

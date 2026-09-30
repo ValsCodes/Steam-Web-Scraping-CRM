@@ -29,6 +29,7 @@ import {
   ManualCheckProductError,
   ManualCheckProductResult,
   ManualCheckProductTrace,
+  ManualCheckPresetCombinationWrite,
   ManualCheckRunDetail,
   ScrapingMode,
   ScrapingModeEnum,
@@ -77,6 +78,7 @@ import {
 
 type StockStateFilter = 'all' | 'negative' | 'zero' | 'positive';
 type StockSort = 'default' | 'ascending' | 'descending';
+type AutomatedOutcomeFilter = 'All' | 'Matched' | 'Failed' | 'Pending' | 'No match';
 
 @Component({
   selector: 'steam-manual-mode-v2',
@@ -137,10 +139,13 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   automatedPausePending = false;
   automatedContinuePending = false;
   hasAutomatedCheckResult = false;
-  showAutomatedMatchesOnly = false;
+  automatedOutcomeFilter: AutomatedOutcomeFilter = 'All';
   automatedCheckWarning = '';
   automatedCheckError = '';
+  productRelationError = '';
   readonly selectedProductIds = new Set<number>();
+  readonly removedProductIds = new Set<number>();
+  readonly productRelationUpdatingIds = new Set<number>();
   private productSelectionAnchor: number | null = null;
 
   readonly productPreviewIds = new Set<number>();
@@ -264,6 +269,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
           this.selectedGameUrl = null;
           this.products = [];
           this.productsFiltered = [];
+          this.resetProductRelationState();
           this.clearProductSelection();
           this.resetAutomatedCheck();
           this.cdr.markForCheck();
@@ -274,6 +280,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
           this.gameUrlsFiltered$.value.find((u) => u.id === gameUrlId) ?? null;
 
         this.clearBatchButtonClicked();
+        this.resetProductRelationState();
         this.clearProductSelection();
         this.resetAutomatedCheck();
 
@@ -356,6 +363,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
     this.products = [];
     this.productsFiltered = [];
+    this.resetProductRelationState();
     this.clearProductSelection();
     this.resetAutomatedCheck();
 
@@ -461,10 +469,13 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       if (result === undefined || result.mode !== 'run') {
         return;
       }
-      this.lastPresetByGame.set(gameId, result.presetId);
+      if (result.presetId !== null) {
+        this.lastPresetByGame.set(gameId, result.presetId);
+      }
       this.startAutomatedRun(
         source.id,
         result.presetId,
+        result.presetCombination ?? null,
         result.bypassCache,
         productIds,
       );
@@ -507,8 +518,8 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     );
   }
 
-  setAutomatedMatchesOnly(enabled: boolean): void {
-    this.showAutomatedMatchesOnly = enabled;
+  setAutomatedOutcomeFilter(filter: AutomatedOutcomeFilter): void {
+    this.automatedOutcomeFilter = filter;
     this.loadFilteredProducts();
     this.cdr.markForCheck();
   }
@@ -547,16 +558,16 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   getAutomatedProductOutcome(
     productId: number,
   ): 'Pending' | 'Matched' | 'No match' | 'Failed' | null {
-    if (!this.automatedTargetProductIds.has(productId)) {
-      return null;
-    }
-
     if (this.automatedProductErrors.has(productId)) {
       return 'Failed';
     }
 
     if (this.automatedMatches.has(productId)) {
       return 'Matched';
+    }
+
+    if (!this.automatedTargetProductIds.has(productId)) {
+      return null;
     }
 
     const trace = this.automatedProductTraces.get(productId);
@@ -568,22 +579,90 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   }
 
   get areAllFilteredProductsSelected(): boolean {
-    return this.productsFiltered.length > 0 &&
-      this.productsFiltered.every((product) => this.selectedProductIds.has(product.productId));
+    const selectableProducts = this.productsFiltered.filter(
+      (product) => !this.isProductRemoved(product.productId) && !this.isProductRelationUpdating(product.productId),
+    );
+    return selectableProducts.length > 0 &&
+      selectableProducts.every((product) => this.selectedProductIds.has(product.productId));
   }
 
   get areSomeFilteredProductsSelected(): boolean {
-    const selectedCount = this.productsFiltered.filter(
-      (product) => this.selectedProductIds.has(product.productId),
+    const selectableProductCount = this.productsFiltered.filter(
+      (product) => !this.isProductRemoved(product.productId) && !this.isProductRelationUpdating(product.productId),
     ).length;
-    return selectedCount > 0 && selectedCount < this.productsFiltered.length;
+    const selectedCount = this.productsFiltered.filter(
+      (product) => !this.isProductRemoved(product.productId) &&
+        !this.isProductRelationUpdating(product.productId) &&
+        this.selectedProductIds.has(product.productId),
+    ).length;
+    return selectedCount > 0 && selectedCount < selectableProductCount;
   }
 
   isProductSelected(productId: number): boolean {
     return this.selectedProductIds.has(productId);
   }
 
+  isProductRemoved(productId: number): boolean {
+    return this.removedProductIds.has(productId);
+  }
+
+  isProductRelationUpdating(productId: number): boolean {
+    return this.productRelationUpdatingIds.has(productId);
+  }
+
+  toggleGameUrlProduct(product: GameUrlProduct): void {
+    const gameUrlId = this.selectedGameUrl?.id;
+    if (gameUrlId !== product.gameUrlId || this.isProductRelationUpdating(product.productId)) {
+      return;
+    }
+
+    const isRemoved = this.isProductRemoved(product.productId);
+    this.productRelationError = '';
+    this.productRelationUpdatingIds.add(product.productId);
+    this.cdr.markForCheck();
+
+    this.gameUrlProductService.bulkUpdate(
+      gameUrlId,
+      isRemoved ? [product.productId] : [],
+      isRemoved ? [] : [product.productId],
+    ).pipe(
+      takeUntil(this.destroy$),
+      finalize(() => {
+        this.productRelationUpdatingIds.delete(product.productId);
+        this.cdr.markForCheck();
+      }),
+    ).subscribe({
+      next: () => {
+        if (this.selectedGameUrl?.id !== gameUrlId) {
+          return;
+        }
+
+        if (isRemoved) {
+          this.removedProductIds.delete(product.productId);
+        } else {
+          this.removedProductIds.add(product.productId);
+          this.selectedProductIds.delete(product.productId);
+        }
+        this.loadFilteredProducts();
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        if (this.selectedGameUrl?.id === gameUrlId) {
+          this.productRelationError = this.getRequestError(
+            error,
+            'Unable to update the Game URL product.',
+          );
+          this.cdr.markForCheck();
+        }
+      },
+    });
+  }
+
   setProductSelected(productId: number, selected: boolean, shiftKey = false): void {
+    if (this.isProductRemoved(productId) || this.isProductRelationUpdating(productId)) {
+      return;
+    }
+
     this.clearProductPreview();
     const anchorIndex = this.productsFiltered.findIndex(product => product.productId === this.productSelectionAnchor);
     const endpointIndex = this.productsFiltered.findIndex(product => product.productId === productId);
@@ -594,7 +673,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       : [productId];
 
     for (const id of productIds) {
-      if (selected) {
+      if (selected && !this.isProductRemoved(id) && !this.isProductRelationUpdating(id)) {
         this.selectedProductIds.add(id);
       } else {
         this.selectedProductIds.delete(id);
@@ -610,7 +689,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.clearProductPreview();
     this.productSelectionAnchor = null;
     for (const product of this.productsFiltered) {
-      if (selected) {
+      if (selected && !this.isProductRemoved(product.productId) && !this.isProductRelationUpdating(product.productId)) {
         this.selectedProductIds.add(product.productId);
       } else {
         this.selectedProductIds.delete(product.productId);
@@ -827,7 +906,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.searchByStockFilterControl.setValue(null, { emitEvent: false });
     this.stockStateFilterControl.setValue('all', { emitEvent: false });
     this.stockSortControl.setValue('default', { emitEvent: false });
-    this.showAutomatedMatchesOnly = false;
+    this.automatedOutcomeFilter = 'All';
 
     this.tagsFilter = [];
 
@@ -988,6 +1067,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
       this.products = [];
       this.productsFiltered = [];
+      this.resetProductRelationState();
       this.clearProductSelection();
       this.resetAutomatedCheck();
 
@@ -1021,6 +1101,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
     this.products = [];
     this.productsFiltered = [];
+    this.resetProductRelationState();
     this.clearProductSelection();
     this.resetAutomatedCheck();
 
@@ -1053,8 +1134,8 @@ export class ManualModeV2 implements OnInit, OnDestroy {
           product.tags?.some((tag) => tag.toLowerCase().includes(filter)),
         );
 
-      const matchesAutomatedResult =
-        !this.showAutomatedMatchesOnly || this.automatedMatches.has(product.productId);
+      const matchesAutomatedResult = this.automatedOutcomeFilter === 'All' ||
+        this.getAutomatedProductOutcome(product.productId) === this.automatedOutcomeFilter;
 
       const matchesExactStock = exactStockFilter === null || product.currentStock === exactStockFilter;
       const matchesStockState = stockStateFilter === 'all' ||
@@ -1116,7 +1197,13 @@ export class ManualModeV2 implements OnInit, OnDestroy {
             return;
           }
 
-          this.products = products.filter((product) => product.isActive === true);
+          const activeProducts = products.filter((product) => product.isActive === true);
+          const activeProductIds = new Set(activeProducts.map((product) => product.productId));
+          const removedProducts = this.products.filter((product) =>
+            product.gameUrlId === gameUrlId &&
+            this.isProductRemoved(product.productId) &&
+            !activeProductIds.has(product.productId));
+          this.products = [...activeProducts, ...removedProducts];
           this.clearProductSelection();
           this.loadFilteredProducts();
           this.cdr.detectChanges();
@@ -1133,10 +1220,12 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
   private startAutomatedRun(
     gameUrlId: number,
-    presetId: number,
+    presetId: number | null,
+    presetCombination: ManualCheckPresetCombinationWrite | null,
     bypassCache: boolean,
     productIds: number[] | null,
   ): void {
+    this.discardRemovedProducts();
     this.resetAutomatedCheck();
     if (this.products.length === 0) {
       this.loadProductsGrid(gameUrlId);
@@ -1144,7 +1233,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.automatedRunActive = true;
     this.cdr.markForCheck();
 
-    this.manualCheckService.createRun({ gameUrlId, presetId, bypassCache, productIds })
+    this.manualCheckService.createRun({ gameUrlId, presetId, presetCombination, bypassCache, productIds })
       .pipe(
         takeUntil(this.automatedRunStop$),
         takeUntil(this.destroy$),
@@ -1248,7 +1337,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.automatedPausePending = false;
     this.automatedContinuePending = false;
     this.hasAutomatedCheckResult = false;
-    this.showAutomatedMatchesOnly = false;
+    this.automatedOutcomeFilter = 'All';
     this.automatedCheckWarning = '';
     this.automatedCheckError = '';
     this.automatedMatches.clear();
@@ -1268,6 +1357,25 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.clearProductPreview();
     this.selectedProductIds.clear();
     this.productSelectionAnchor = null;
+  }
+
+  private discardRemovedProducts(): void {
+    if (this.removedProductIds.size === 0) {
+      return;
+    }
+
+    this.products = this.products.filter((product) => !this.removedProductIds.has(product.productId));
+    for (const productId of this.removedProductIds) {
+      this.selectedProductIds.delete(productId);
+    }
+    this.removedProductIds.clear();
+    this.productRelationError = '';
+    this.loadFilteredProducts();
+  }
+
+  private resetProductRelationState(): void {
+    this.removedProductIds.clear();
+    this.productRelationError = '';
   }
 
   private getRequestError(error: unknown, fallback: string): string {

@@ -160,6 +160,7 @@ export class AutomaticQueuePage implements OnInit, OnDestroy {
       gameUrlId: null,
       templateMode: null,
       presetId: null,
+      presetCombination: null,
       privateTemplate: null,
       bypassCache: false,
       productIds: null,
@@ -327,6 +328,15 @@ export class AutomaticQueuePage implements OnInit, OnDestroy {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
   }
 
+  combinationOverrides(block: EditorBlock): string {
+    const combination = block.presetCombination;
+    if (!combination) return '';
+    const cooldown = combination.cooldownMinutes === null || combination.cooldownSeconds === null
+      ? 'server-default cooldown'
+      : `${combination.cooldownMinutes}m ${combination.cooldownSeconds}s cooldown`;
+    return `Top ${combination.listingLimit} listings · ${cooldown}`;
+  }
+
   viewBlock(block: EditorBlock): void {
     const runBlock = this.selectedRun()?.blocks.find((x) => x.key === block.key);
     if (!runBlock) return;
@@ -447,6 +457,7 @@ export class AutomaticQueuePage implements OnInit, OnDestroy {
         gameUrlId: block.type === 'ManualCheck' ? block.gameUrlId : null,
         templateMode: block.type === 'ManualCheck' ? block.templateMode : null,
         presetId: block.type === 'ManualCheck' ? block.presetId : null,
+        presetCombination: block.type === 'ManualCheck' ? block.presetCombination : null,
         privateTemplate: block.type === 'ManualCheck' ? block.privateTemplate : null,
         bypassCache: block.type === 'ManualCheck' && block.bypassCache,
         productIds: block.type === 'ManualCheck' ? block.productIds : null,

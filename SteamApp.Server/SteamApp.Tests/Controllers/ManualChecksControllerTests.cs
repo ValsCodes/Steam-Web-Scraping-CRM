@@ -38,8 +38,10 @@ public sealed class ManualChecksControllerTests
         var data = new Mock<IManualCheckDataService>();
         var queue = new Mock<IManualCheckQueue>();
         data.Setup(x => x.CreateRunAsync(
+                "test-user",
                 8,
                 4,
+                null,
                 true,
                 It.Is<IReadOnlyList<long>?>(ids => ids != null && ids.SequenceEqual(new long[] { 2, 3 })),
                 It.IsAny<CancellationToken>()))
@@ -64,6 +66,55 @@ public sealed class ManualChecksControllerTests
             Assert.That((accepted!.Value as ManualCheckRunAcceptedDto)?.RunId, Is.EqualTo(55));
         });
         queue.Verify(x => x.EnqueueAsync(55, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task CreateRun_PresetCombination_PassesAuthenticatedUserAndRecipeToTheService()
+    {
+        var data = new Mock<IManualCheckDataService>();
+        var queue = new Mock<IManualCheckQueue>();
+        var combination = new ManualCheckPresetCombinationWriteDto
+        {
+            ListingLimit = 20,
+            Terms =
+            [
+                new ManualCheckPresetCombinationTermWriteDto { PresetId = 4 },
+                new ManualCheckPresetCombinationTermWriteDto
+                {
+                    PresetId = 5,
+                    Operator = ManualCheckPresetCombinationOperatorEnum.And
+                }
+            ]
+        };
+        data.Setup(x => x.CreateRunAsync(
+                "test-user",
+                8,
+                null,
+                combination,
+                false,
+                null,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Summary(56));
+        queue.Setup(x => x.EnqueueAsync(56, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+        var controller = Controller(data, queue);
+
+        var result = await controller.CreateRun(new ManualCheckRunRequestDto
+        {
+            GameUrlId = 8,
+            PresetCombination = combination
+        });
+
+        Assert.That(result, Is.TypeOf<AcceptedAtActionResult>());
+        data.Verify(x => x.CreateRunAsync(
+            "test-user",
+            8,
+            null,
+            combination,
+            false,
+            null,
+            It.IsAny<CancellationToken>()), Times.Once);
+        queue.Verify(x => x.EnqueueAsync(56, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]

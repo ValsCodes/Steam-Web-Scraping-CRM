@@ -65,6 +65,9 @@
               @if (block.type === 'ManualCheck') {
                 <h2>{{ block.presetName || block.privateTemplate?.name || 'Manual check' }}</h2>
                 <p>{{ block.gameName || ('Game URL #' + block.gameUrlId) }} · {{ block.gameUrlName || ('Source #' + block.gameUrlId) }}</p>
+                @if (block.templateMode === 'PresetCombination' && block.presetCombination) {
+                  <small>{{ combinationOverrides(block) }}</small>
+                }
                 <small>{{ block.productIds === null ? 'All active products' : block.productIds.length + ' selected products' }}</small>
               } @else {
                 <h2>Wait before continuing</h2>

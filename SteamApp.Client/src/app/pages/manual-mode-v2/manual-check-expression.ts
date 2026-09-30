@@ -3,6 +3,9 @@ import {
   ManualCheckCriterion,
 } from '../../models/manual-check.model';
 
+export const MANUAL_CHECK_MAX_CRITERIA = 50;
+export const MANUAL_CHECK_MAX_GROUPS = 25;
+
 export type ManualCheckExpressionNode =
   | ManualCheckCriterionNode
   | ManualCheckGroupNode;
@@ -81,7 +84,10 @@ export function parseManualCheckExpression(
     }
 
     totalGroups += openCount;
-    if (totalGroups > 25 || groupStack.length - 1 + openCount > 25) {
+    if (
+      totalGroups > MANUAL_CHECK_MAX_GROUPS ||
+      groupStack.length - 1 + openCount > MANUAL_CHECK_MAX_GROUPS
+    ) {
       isValid = false;
       break;
     }
@@ -202,8 +208,8 @@ export function validateManualCheckExpression(
   if (
     root.children.length === 0 ||
     criterionCount === 0 ||
-    criterionCount > 25 ||
-    groupCount > 25
+    criterionCount > MANUAL_CHECK_MAX_CRITERIA ||
+    groupCount > MANUAL_CHECK_MAX_GROUPS
   ) {
     isValid = false;
   }

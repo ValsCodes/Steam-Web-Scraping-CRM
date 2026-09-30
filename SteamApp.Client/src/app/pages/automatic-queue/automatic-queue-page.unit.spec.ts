@@ -94,6 +94,51 @@ describe('AutomaticQueuePage', () => {
     expect(component.successMessage).toBe('Queue saved.');
   });
 
+  it('serializes preset-combination queue blocks without flattening their recipe', () => {
+    const block: AutomaticQueueBlockWrite = {
+      ...manualBlock(),
+      templateMode: 'PresetCombination',
+      presetId: null,
+      presetCombination: {
+        listingLimit: 20,
+        cooldownMinutes: 1,
+        cooldownSeconds: 5,
+        terms: [
+          { presetId: 3, operator: null },
+          { presetId: 4, operator: 'Or' },
+        ],
+      },
+    };
+    component.name = 'Combined checks';
+    component.blocks = [block];
+    service.createDefinition.and.returnValue(of(savedDefinition(block)));
+
+    component.save();
+
+    expect(service.createDefinition).toHaveBeenCalledWith(jasmine.objectContaining({
+      blocks: [jasmine.objectContaining({
+        templateMode: 'PresetCombination',
+        presetId: null,
+        presetCombination: block.presetCombination,
+      })],
+    }));
+  });
+
+  it('formats preset-combination overrides for queue cards', () => {
+    const block = manualBlock();
+    block.presetCombination = {
+      listingLimit: 25,
+      cooldownMinutes: 1,
+      cooldownSeconds: 30,
+      terms: [],
+    };
+
+    expect(component.combinationOverrides(block)).toBe('Top 25 listings · 1m 30s cooldown');
+    block.presetCombination.cooldownMinutes = null;
+    block.presetCombination.cooldownSeconds = null;
+    expect(component.combinationOverrides(block)).toBe('Top 25 listings · server-default cooldown');
+  });
+
   it('maps block states, warning counts, and local delay countdowns from the selected run', () => {
     const delay = delayBlock(60);
     const run = queueRun('Running', delay);

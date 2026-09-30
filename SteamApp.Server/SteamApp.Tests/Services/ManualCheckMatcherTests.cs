@@ -346,6 +346,41 @@ public sealed class ManualCheckMatcherTests
     }
 
     [Test]
+    public void MatchProduct_CombinedPresetGroups_RequireAndOnTheSameAssetAndAllowOrOnEitherAsset()
+    {
+        var listing = ListingWithAssets(
+            ("440", "2", "a1", AssetWith(("attribute", "Mean Green"))),
+            ("440", "2", "a2", AssetWith(("attribute", "Killstreaks Active"))),
+            ("440", "2", "a3", AssetWith(("attribute", "Mean Green"), ("attribute", "Killstreaks Active"))));
+        var criteria = new[]
+        {
+            new ManualCheckCriterionDto
+            {
+                OpenGroupCount = 1,
+                CloseGroupCount = 1,
+                ValueContains = "Mean Green"
+            },
+            new ManualCheckCriterionDto
+            {
+                ConditionOperatorId = (long)ManualCheckConditionOperatorEnum.And,
+                OpenGroupCount = 1,
+                CloseGroupCount = 1,
+                ValueContains = "Killstreaks Active"
+            }
+        };
+
+        var andResult = ManualCheckMatcher.MatchProduct(Product(), listing, criteria, 10);
+        criteria[1].ConditionOperatorId = (long)ManualCheckConditionOperatorEnum.Or;
+        var orResult = ManualCheckMatcher.MatchProduct(Product(), listing, criteria, 10);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(andResult!.MatchedAssets.Select(x => x.AssetId), Is.EqualTo(new[] { "a3" }));
+            Assert.That(orResult!.MatchedAssets.Select(x => x.AssetId), Is.EqualTo(new[] { "a1", "a2", "a3" }));
+        });
+    }
+
+    [Test]
     public void MatchProduct_NestedGroup_UsesStrictLeftFoldWithinGroup()
     {
         var listing = ListingWithAssets(("440", "2", "a1", AssetWith(("attribute", "cond-a"))));

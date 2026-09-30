@@ -16,6 +16,7 @@ public sealed class ManualCheckSetupDto
     public int? CooldownSeconds { get; set; }
     public bool BypassCache { get; set; }
     public List<long>? RequestedProductIds { get; set; }
+    public ManualCheckPresetCombinationDto? PresetCombination { get; set; }
     public List<ManualCheckCriterionDto> Criteria { get; set; } = [];
     public List<ManualCheckProductInputDto> Products { get; set; } = [];
     public DateTime RequestedAtUtc { get; set; }

@@ -138,15 +138,15 @@ describe('ManualCheckSetupDialogComponent', () => {
     expect(component.canStart).toBeTrue();
   });
 
-  it('allows one to twenty-five valid criterion rows', () => {
-    for (let i = 1; i < 25; i++) {
+  it('allows one to fifty valid criterion rows', () => {
+    for (let i = 1; i < 50; i++) {
       component.addCriterion();
       component.criteria[i].valueContains = `Value ${i}`;
     }
     component.criteria[0].valueContains = 'Value 0';
     component.addCriterion();
 
-    expect(component.criteria.length).toBe(25);
+    expect(component.criteria.length).toBe(50);
     expect(component.isDraftValid).toBeTrue();
   });
 
@@ -239,7 +239,7 @@ describe('ManualCheckSetupDialogComponent', () => {
     component.startOrSave();
 
     expect(service.createPreset).toHaveBeenCalled();
-    expect(dialogRef.close).toHaveBeenCalledWith({ mode: 'run', presetId: 3, bypassCache: true });
+    expect(dialogRef.close).toHaveBeenCalledWith({ mode: 'run', presetId: 3, presetCombination: null, bypassCache: true });
   });
 
   it('starts an existing preset with the selected cache behavior without marking it dirty', () => {
@@ -248,7 +248,58 @@ describe('ManualCheckSetupDialogComponent', () => {
     component.startOrSave();
 
     expect(service.updatePreset).not.toHaveBeenCalled();
-    expect(dialogRef.close).toHaveBeenCalledWith({ mode: 'run', presetId: 2, bypassCache: true });
+    expect(dialogRef.close).toHaveBeenCalledWith({ mode: 'run', presetId: 2, presetCombination: null, bypassCache: true });
+  });
+
+  it('builds and starts a left-to-right preset combination with independent settings', () => {
+    component.setPresetMode('Combination');
+    component.combinationRows[1].operator = 'Or';
+    component.setListingLimit(20);
+    component.setCustomCooldown(true);
+    component.cooldownMinutes = 1;
+    component.cooldownSeconds = 5;
+
+    component.startOrSave();
+
+    expect(service.createPreset).not.toHaveBeenCalled();
+    expect(service.updatePreset).not.toHaveBeenCalled();
+    expect(dialogRef.close).toHaveBeenCalledWith({
+      mode: 'run',
+      presetId: null,
+      presetCombination: {
+        listingLimit: 20,
+        cooldownMinutes: 1,
+        cooldownSeconds: 5,
+        terms: [
+          { presetId: 2, operator: null },
+          { presetId: 1, operator: 'Or' },
+        ],
+      },
+      bypassCache: false,
+    });
+  });
+
+  it('rejects duplicate combined presets and aggregate group overflow', () => {
+    component.setPresetMode('Combination');
+    component.combinationRows[1].presetId = component.combinationRows[0].presetId;
+
+    expect(component.combinationValidation.isValid).toBeFalse();
+    expect(component.combinationValidation.message).toContain('only once');
+
+    component.combinationRows[1].presetId = 1;
+    component.presets = component.presets.map((preset, presetIndex) => presetIndex === 0 ? {
+      ...preset,
+      criteria: Array.from({ length: 25 }, (_, index) => ({
+        conditionOperatorId: index === 0 ? null : 1,
+        openGroupCount: 1,
+        closeGroupCount: 1,
+        nameContains: null,
+        valueContains: `Value ${index}`,
+      })),
+    } : preset);
+
+    expect(component.combinationValidation.isValid).toBeFalse();
+    expect(component.combinationValidation.message).toContain('groups');
   });
 
   it('shows a useful retry message for rate-limited preset requests', () => {

@@ -1,7 +1,7 @@
-import { ManualCheckCriterion } from './manual-check.model';
+import { ManualCheckCriterion, ManualCheckPresetCombinationWrite } from './manual-check.model';
 
 export type AutomaticQueueBlockType = 'ManualCheck' | 'Delay';
-export type AutomaticQueueTemplateMode = 'SavedPreset' | 'PrivateTemplate';
+export type AutomaticQueueTemplateMode = 'SavedPreset' | 'PrivateTemplate' | 'PresetCombination';
 export type AutomaticQueueRunStatus =
   | 'Queued' | 'Running' | 'PauseRequested' | 'Paused'
   | 'Succeeded' | 'CompletedWithErrors' | 'Failed' | 'Canceled';
@@ -24,6 +24,7 @@ export interface AutomaticQueueBlockWrite {
   gameUrlId: number | null;
   templateMode: AutomaticQueueTemplateMode | null;
   presetId: number | null;
+  presetCombination?: ManualCheckPresetCombinationWrite | null;
   privateTemplate: AutomaticQueuePrivateTemplate | null;
   bypassCache: boolean;
   productIds: number[] | null;

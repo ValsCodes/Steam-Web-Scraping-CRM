@@ -124,11 +124,11 @@ public sealed class ManualChecksController(
         {
             var userId = User.GetUserId();
             if (userId is null) return Unauthorized();
-            if (!await dataService.UserOwnsGameUrlAsync(userId, input.GameUrlId, cancellationToken) ||
-                !await dataService.UserOwnsPresetAsync(userId, input.PresetId, cancellationToken)) return NotFound();
             var run = await dataService.CreateRunAsync(
+                userId,
                 input.GameUrlId,
                 input.PresetId,
+                input.PresetCombination,
                 input.BypassCache,
                 input.ProductIds,
                 cancellationToken);

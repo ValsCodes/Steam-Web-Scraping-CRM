@@ -1,6 +1,6 @@
 import { ChangeDetectorRef } from '@angular/core';
 import { fakeAsync, tick } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import * as XLSX from 'xlsx';
 
 import {
@@ -39,9 +39,10 @@ describe('ManualModeV2 external link disclosure', () => {
     );
     gameUrlProductService = jasmine.createSpyObj<GameUrlProductService>(
       'GameUrlProductService',
-      ['existsByGameUrl', 'incrementCurrentStock', 'decrementCurrentStock'],
+      ['existsByGameUrl', 'bulkUpdate', 'incrementCurrentStock', 'decrementCurrentStock'],
     );
     gameUrlProductService.existsByGameUrl.and.returnValue(of([]));
+    gameUrlProductService.bulkUpdate.and.returnValue(of(void 0));
     manualCheckService = jasmine.createSpyObj<ManualCheckService>('ManualCheckService', [
       'createRun',
       'getRun',
@@ -339,7 +340,7 @@ describe('ManualModeV2 external link disclosure', () => {
     component.automatedRunActive = true;
 
     component.cancelAutomatedRun();
-    component.setAutomatedMatchesOnly(true);
+    component.setAutomatedOutcomeFilter('Matched');
 
     expect(component.canViewAutomatedResult).toBeTrue();
     expect(component.productsFiltered.map((product) => product.productId)).toEqual([5]);
@@ -357,7 +358,7 @@ describe('ManualModeV2 external link disclosure', () => {
     component.cancelAutomatedRun();
     component.searchByRatingFilterControl.setValue(8);
 
-    component.setAutomatedMatchesOnly(true);
+    component.setAutomatedOutcomeFilter('Matched');
 
     expect(component.productsFiltered).toEqual([]);
   });
@@ -383,7 +384,7 @@ describe('ManualModeV2 external link disclosure', () => {
     component.automatedRunActive = true;
     disclosure.openTrustedUrl.and.returnValue('opened');
     component.cancelAutomatedRun();
-    component.setAutomatedMatchesOnly(true);
+    component.setAutomatedOutcomeFilter('Matched');
 
     component.openAllButtonClicked();
 
@@ -394,7 +395,7 @@ describe('ManualModeV2 external link disclosure', () => {
 
     component.clearFiltersButtonClicked();
 
-    expect(component.showAutomatedMatchesOnly).toBeFalse();
+    expect(component.automatedOutcomeFilter).toBe('All');
     expect(component.productsFiltered).toEqual(component.products);
   });
 
@@ -408,7 +409,7 @@ describe('ManualModeV2 external link disclosure', () => {
     component.automatedRunId = 77;
     component.automatedRunActive = true;
     component.cancelAutomatedRun();
-    component.setAutomatedMatchesOnly(true);
+    component.setAutomatedOutcomeFilter('Matched');
     const worksheet = {} as XLSX.WorkSheet;
     const workbook = {} as XLSX.WorkBook;
     const toSheet = spyOn(XLSX.utils, 'json_to_sheet').and.returnValue(worksheet);
@@ -468,16 +469,18 @@ describe('ManualModeV2 external link disclosure', () => {
       startAutomatedRun(
         gameUrlId: number,
         presetId: number,
+        presetCombination: null,
         bypassCache: boolean,
         productIds: number[] | null,
       ): void;
-    }).startAutomatedRun(2, 3, false, null);
+    }).startAutomatedRun(2, 3, null, false, null);
     tick(0);
 
     expect(gameUrlProductService.existsByGameUrl).toHaveBeenCalledOnceWith(2);
     expect(manualCheckService.createRun).toHaveBeenCalledOnceWith({
       gameUrlId: 2,
       presetId: 3,
+      presetCombination: null,
       bypassCache: false,
       productIds: null,
     });
@@ -515,7 +518,44 @@ describe('ManualModeV2 external link disclosure', () => {
     expect(manualCheckService.createRun).toHaveBeenCalledOnceWith({
       gameUrlId: 2,
       presetId: 3,
+      presetCombination: null,
       bypassCache: true,
+      productIds: null,
+    });
+  }));
+
+  it('passes a preset combination from the setup panel to the run request', fakeAsync(() => {
+    const completed = runDetail('Succeeded', 0, 0);
+    const presetCombination = {
+      listingLimit: 20,
+      cooldownMinutes: null,
+      cooldownSeconds: null,
+      terms: [
+        { presetId: 3, operator: null },
+        { presetId: 4, operator: 'And' as const },
+      ],
+    };
+    component.gameIdControl.setValue(1);
+    component.selectedGameUrl = {
+      id: 2,
+      name: 'Market',
+      isActive: true,
+      scrapingModeId: ScrapingModeEnum.ManualBatch,
+    } as never;
+    dialog.open.and.returnValue({
+      afterClosed: () => of({ mode: 'run', presetId: null, presetCombination, bypassCache: false }),
+    });
+    manualCheckService.createRun.and.returnValue(of({ runId: 77, run: completed }));
+    manualCheckService.getRun.and.returnValue(of(completed));
+
+    component.automatedCheckButtonClicked();
+    tick(0);
+
+    expect(manualCheckService.createRun).toHaveBeenCalledOnceWith({
+      gameUrlId: 2,
+      presetId: null,
+      presetCombination,
+      bypassCache: false,
       productIds: null,
     });
   }));
@@ -548,6 +588,7 @@ describe('ManualModeV2 external link disclosure', () => {
     expect(manualCheckService.createRun).toHaveBeenCalledOnceWith({
       gameUrlId: 2,
       presetId: 3,
+      presetCombination: null,
       bypassCache: false,
       productIds: [5, 6],
     });
@@ -576,9 +617,114 @@ describe('ManualModeV2 external link disclosure', () => {
     expect(manualCheckService.createRun).toHaveBeenCalledOnceWith({
       gameUrlId: 2,
       presetId: 3,
+      presetCombination: null,
       bypassCache: true,
       productIds: [6],
     });
+  }));
+
+  it('keeps a removed product visible and allows it to be re-added during the current cycle', () => {
+    const product = {
+      productId: 6,
+      gameUrlId: 2,
+      productName: 'Second',
+      isActive: true,
+    } as GameUrlProduct;
+    component.selectedGameUrl = { id: 2 } as GameUrl;
+    component.products = [product];
+    component.productsFiltered = [product];
+    component.setProductSelected(product.productId, true);
+
+    component.toggleGameUrlProduct(product);
+
+    expect(gameUrlProductService.bulkUpdate).toHaveBeenCalledOnceWith(2, [], [6]);
+    expect(component.products).toEqual([product]);
+    expect(component.isProductRemoved(6)).toBeTrue();
+    expect(component.isProductSelected(6)).toBeFalse();
+
+    gameUrlProductService.bulkUpdate.calls.reset();
+    component.toggleGameUrlProduct(product);
+
+    expect(gameUrlProductService.bulkUpdate).toHaveBeenCalledOnceWith(2, [6], []);
+    expect(component.products).toEqual([product]);
+    expect(component.isProductRemoved(6)).toBeFalse();
+  });
+
+  it('keeps the product membership state unchanged when an update fails', () => {
+    const product = {
+      productId: 6,
+      gameUrlId: 2,
+      productName: 'Second',
+      isActive: true,
+    } as GameUrlProduct;
+    component.selectedGameUrl = { id: 2 } as GameUrl;
+    component.products = [product];
+    component.productsFiltered = [product];
+    gameUrlProductService.bulkUpdate.and.returnValue(
+      throwError(() => new Error('Could not update the relation.')),
+    );
+
+    component.toggleGameUrlProduct(product);
+
+    expect(component.products).toEqual([product]);
+    expect(component.isProductRemoved(6)).toBeFalse();
+    expect(component.productRelationError).toBe('Could not update the relation.');
+    expect(component.isProductRelationUpdating(6)).toBeFalse();
+  });
+
+  it('keeps a locally removed card available after refreshing the current product grid', () => {
+    const product = {
+      productId: 6,
+      gameUrlId: 2,
+      productName: 'Second',
+      isActive: true,
+    } as GameUrlProduct;
+    component.selectedGameUrl = { id: 2 } as GameUrl;
+    component.products = [product];
+    component.productsFiltered = [product];
+    gameUrlProductService.existsByGameUrl.and.returnValue(of([]));
+    component.toggleGameUrlProduct(product);
+
+    component.showAllButtonClicked();
+
+    expect(component.products).toEqual([product]);
+    expect(component.isProductRemoved(6)).toBeTrue();
+  });
+
+  it('removes locally detached products from the grid when a new cycle starts', fakeAsync(() => {
+    const removedProduct = {
+      productId: 6,
+      gameUrlId: 2,
+      productName: 'Removed',
+      isActive: true,
+    } as GameUrlProduct;
+    const retainedProduct = {
+      productId: 7,
+      gameUrlId: 2,
+      productName: 'Retained',
+      isActive: true,
+    } as GameUrlProduct;
+    const completed = runDetail('Succeeded', 0, 0);
+    component.selectedGameUrl = { id: 2 } as GameUrl;
+    component.products = [removedProduct, retainedProduct];
+    component.productsFiltered = [...component.products];
+    component.toggleGameUrlProduct(removedProduct);
+    manualCheckService.createRun.and.returnValue(of({ runId: 77, run: completed }));
+    manualCheckService.getRun.and.returnValue(of(completed));
+
+    (component as unknown as {
+      startAutomatedRun(
+        gameUrlId: number,
+        presetId: number,
+        bypassCache: boolean,
+        productIds: number[] | null,
+      ): void;
+    }).startAutomatedRun(2, 3, false, null);
+    tick(0);
+
+    expect(component.products).toEqual([retainedProduct]);
+    expect(component.productsFiltered).toEqual([retainedProduct]);
+    expect(component.isProductRemoved(6)).toBeFalse();
   }));
 
   it('filters stock presets and exact values mutually exclusively', () => {
@@ -776,7 +922,7 @@ describe('ManualModeV2 external link disclosure', () => {
     expect(component.isProductSelected(7)).toBeFalse();
   });
 
-  it('applies matched, no-match, failed, and pending outcomes from a running poll', fakeAsync(() => {
+  it('filters matched, no-match, failed, and pending outcomes during a running poll', fakeAsync(() => {
     const running = runDetail('Running', 1, 1);
     running.totalProducts = 4;
     running.checkedProducts = 3;
@@ -805,6 +951,18 @@ describe('ManualModeV2 external link disclosure', () => {
     expect(component.getAutomatedProductOutcome(7)).toBe('No match');
     expect(component.getAutomatedProductOutcome(8)).toBe('Pending');
     expect(component.automatedRunActive).toBeTrue();
+
+    component.setAutomatedOutcomeFilter('Matched');
+    expect(component.productsFiltered.map((product) => product.productId)).toEqual([5]);
+    component.setAutomatedOutcomeFilter('Failed');
+    expect(component.productsFiltered.map((product) => product.productId)).toEqual([6]);
+    component.setAutomatedOutcomeFilter('No match');
+    expect(component.productsFiltered.map((product) => product.productId)).toEqual([7]);
+    component.setAutomatedOutcomeFilter('Pending');
+    expect(component.productsFiltered.map((product) => product.productId)).toEqual([8]);
+    component.setAutomatedOutcomeFilter('All');
+    expect(component.productsFiltered.map((product) => product.productId)).toEqual([5, 6, 7, 8]);
+
     component.ngOnDestroy();
   }));
 

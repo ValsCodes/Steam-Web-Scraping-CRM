@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using SteamApp.Application.DTOs.ManualCheck;
 using SteamApp.Domain.Enums;
 
 namespace SteamApp.Application.DTOs.AutomaticQueue;
@@ -18,6 +19,7 @@ public class AutomaticQueueBlockWriteDto
     public AutomaticQueueTemplateModeEnum? TemplateMode { get; set; }
 
     public long? PresetId { get; set; }
+    public ManualCheckPresetCombinationWriteDto? PresetCombination { get; set; }
     public AutomaticQueuePrivateTemplateDto? PrivateTemplate { get; set; }
     public bool BypassCache { get; set; }
     public List<long>? ProductIds { get; set; }

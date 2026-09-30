@@ -40,9 +40,32 @@ export interface ManualCheckPreset extends ManualCheckPresetWrite {
   updatedAtUtc: string;
 }
 
+export type ManualCheckPresetCombinationOperator = 'And' | 'Or';
+
+export interface ManualCheckPresetCombinationTermWrite {
+  presetId: number;
+  operator: ManualCheckPresetCombinationOperator | null;
+}
+
+export interface ManualCheckPresetCombinationWrite {
+  listingLimit: number;
+  cooldownMinutes: number | null;
+  cooldownSeconds: number | null;
+  terms: ManualCheckPresetCombinationTermWrite[];
+}
+
+export interface ManualCheckPresetCombinationTerm extends ManualCheckPresetCombinationTermWrite {
+  presetName: string;
+}
+
+export interface ManualCheckPresetCombination extends Omit<ManualCheckPresetCombinationWrite, 'terms'> {
+  terms: ManualCheckPresetCombinationTerm[];
+}
+
 export interface ManualCheckRunRequest {
   gameUrlId: number;
-  presetId: number;
+  presetId: number | null;
+  presetCombination?: ManualCheckPresetCombinationWrite | null;
   bypassCache: boolean;
   productIds: number[] | null;
 }
@@ -106,6 +129,7 @@ export interface ManualCheckSetup {
   cooldownSeconds: number | null;
   bypassCache: boolean;
   requestedProductIds: number[] | null;
+  presetCombination?: ManualCheckPresetCombination | null;
   criteria: ManualCheckCriterion[];
   products: ManualCheckProductInput[];
   requestedAtUtc: string;
