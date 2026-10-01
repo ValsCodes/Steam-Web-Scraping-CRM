@@ -322,6 +322,21 @@ public sealed class SecurityConfigurationTests
     }
 
     [Test]
+    public void BuildUserSessionAuthorizationPolicy_RequiresJwtBearerAndUserScopeOnly()
+    {
+        var policy = InvokePrivate<AuthorizationPolicy>("BuildUserSessionAuthorizationPolicy");
+        var scopeRequirement = policy.Requirements
+            .OfType<ClaimsAuthorizationRequirement>()
+            .Single(x => x.ClaimType == "scope");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(policy.AuthenticationSchemes, Contains.Item(JwtBearerDefaults.AuthenticationScheme));
+            Assert.That(scopeRequirement.AllowedValues, Is.EqualTo(new[] { SecurityPolicies.UserScope }));
+        });
+    }
+
+    [Test]
     public void ShouldApplyMigrationsOnStartup_DefaultsToEnabledAndHonorsExplicitOptOut()
     {
         var defaultValue = InvokePrivate<bool>(

@@ -16,6 +16,7 @@ import { ErrorDialogService } from './services/error-dialog.service';
 import { ErrorDialogBridge } from './services/error-dialog-bridge';
 import { LoadingStateService } from './services/loading/loading-state.service';
 import { SeoMetaService } from './services/seo/seo-meta.service';
+import { AuthService } from './services/auth/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -40,6 +41,7 @@ export class AppComponent {
     router: Router,
     loadingState: LoadingStateService,
     seoMeta: SeoMetaService,
+    authService: AuthService,
   ) {
     ErrorDialogBridge.initialize(errorDialogService);
 
@@ -53,6 +55,7 @@ export class AppComponent {
 
         if (event instanceof NavigationEnd) {
           loadingState.end();
+          authService.recordActivity();
           seoMeta.applyRouteSeo(router.routerState.snapshot.root, event.urlAfterRedirects);
           return;
         }

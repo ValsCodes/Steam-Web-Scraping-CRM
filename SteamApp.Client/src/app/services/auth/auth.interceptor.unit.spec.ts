@@ -90,7 +90,7 @@ describe('AuthInterceptor unit tests', () => {
 
     await firstValueFrom(
       interceptor.intercept(
-        new HttpRequest('GET', 'https://localhost:7443/api/Auth/profile'),
+        new HttpRequest('POST', 'https://localhost:7443/api/Auth/renew', {}),
         handler,
       ),
     );

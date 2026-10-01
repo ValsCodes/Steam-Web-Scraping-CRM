@@ -8,6 +8,7 @@ using SteamApp.Domain.ValueObjects.Authentication;
 using SteamApp.Infrastructure.Identity;
 using SteamApp.WebAPI.Security;
 using System.IdentityModel.Tokens.Jwt;
+using System.Globalization;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -24,8 +25,13 @@ public class AuthController(
     SignInManager<ApplicationUser> signInManager,
     IConfiguration configuration,
     IHostEnvironment environment,
+    TimeProvider timeProvider,
     ILogger<AuthController> logger) : ControllerBase
 {
+    private const string AuthenticationTimeClaim = "auth_time";
+    private static readonly TimeSpan MaximumClockSkew = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan MaximumUserSessionDuration = TimeSpan.FromHours(4);
+
     [HttpPost("token")]
     [AllowAnonymous]
     public IActionResult Token([FromBody] TokenRequest req)
@@ -78,7 +84,7 @@ public class AuthController(
 
         logger.LogInformation("User with email {Email} has successfully registered.", user.Email);
 
-        return Ok(await CreateUserTokenResponseAsync(user));
+        return Ok(await CreateUserTokenResponseAsync(user, timeProvider.GetUtcNow()));
     }
 
     [HttpPost("login")]
@@ -105,7 +111,31 @@ public class AuthController(
 
         logger.LogInformation("User with email {Email} has successfully logged in.", user.Email);
 
-        return Ok(await CreateUserTokenResponseAsync(user));
+        return Ok(await CreateUserTokenResponseAsync(user, timeProvider.GetUtcNow()));
+    }
+
+    [HttpPost("renew")]
+    [Authorize(Policy = SecurityPolicies.UserSession)]
+    [EnableRateLimiting(SecurityPolicies.ApiRateLimit)]
+    public async Task<IActionResult> Renew()
+    {
+        var authenticationTime = GetAuthenticationTime();
+        var now = timeProvider.GetUtcNow();
+
+        if (authenticationTime == null ||
+            authenticationTime > now.Add(MaximumClockSkew) ||
+            authenticationTime.Value.Add(MaximumUserSessionDuration) <= now)
+        {
+            return Unauthorized("User session cannot be renewed.");
+        }
+
+        var user = await GetCurrentUserAsync();
+        if (user == null)
+        {
+            return Unauthorized("User session cannot be renewed.");
+        }
+
+        return Ok(await CreateUserTokenResponseAsync(user, authenticationTime.Value));
     }
 
     [HttpGet("profile")]
@@ -203,7 +233,9 @@ public class AuthController(
         return NoContent();
     }
 
-    private async Task<AuthResponse> CreateUserTokenResponseAsync(ApplicationUser user)
+    private async Task<AuthResponse> CreateUserTokenResponseAsync(
+        ApplicationUser user,
+        DateTimeOffset authenticationTime)
     {
         var displayName = CreateDisplayName(user)
             ?? user.UserName
@@ -214,6 +246,10 @@ public class AuthController(
         {
             new(JwtRegisteredClaimNames.Sub, user.Id),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(
+                AuthenticationTimeClaim,
+                authenticationTime.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture),
+                ClaimValueTypes.Integer64),
             new(ClaimTypes.NameIdentifier, user.Id),
             new(ClaimTypes.Name, displayName),
             new("scope", SecurityPolicies.UserScope)
@@ -237,7 +273,9 @@ public class AuthController(
         var roles = await EnsureUserRolesAsync(user);
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
-        return CreateTokenResponse(claims);
+        return CreateTokenResponse(
+            claims,
+            authenticationTime.Add(MaximumUserSessionDuration));
     }
 
     private async Task<IReadOnlyCollection<string>> EnsureUserRolesAsync(ApplicationUser user)
@@ -316,27 +354,63 @@ public class AuthController(
         return role;
     }
 
-    private AuthResponse CreateTokenResponse(IEnumerable<Claim> claims)
+    private AuthResponse CreateTokenResponse(
+        IEnumerable<Claim> claims,
+        DateTimeOffset? maximumExpiration = null)
     {
-        var expiresAtUtc = DateTime.UtcNow.AddMinutes(jwtSettings.DurationMinutes);
+        var issuedAtUtc = timeProvider.GetUtcNow();
+        var expiresAtUtc = issuedAtUtc.AddMinutes(jwtSettings.DurationMinutes);
+        if (maximumExpiration is { } sessionExpiration &&
+            sessionExpiration < expiresAtUtc)
+        {
+            expiresAtUtc = sessionExpiration;
+        }
+
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(jwtSettings.Key));
         var creds = new SigningCredentials(
             key, SecurityAlgorithms.HmacSha256);
 
+        var tokenClaims = claims.Append(new Claim(
+            JwtRegisteredClaimNames.Iat,
+            issuedAtUtc.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture),
+            ClaimValueTypes.Integer64));
+
         var token = new JwtSecurityToken(
             issuer: jwtSettings.Issuer,
             audience: jwtSettings.Audience,
-            claims: claims,
-            expires: expiresAtUtc,
+            claims: tokenClaims,
+            expires: expiresAtUtc.UtcDateTime,
             signingCredentials: creds
         );
 
         return new AuthResponse
         {
             Token = new JwtSecurityTokenHandler().WriteToken(token),
-            ExpiresAtUtc = expiresAtUtc
+            ExpiresAtUtc = expiresAtUtc.UtcDateTime
         };
+    }
+
+    private DateTimeOffset? GetAuthenticationTime()
+    {
+        var value = User.FindFirstValue(AuthenticationTimeClaim);
+        if (!long.TryParse(
+                value,
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var unixTimeSeconds))
+        {
+            return null;
+        }
+
+        try
+        {
+            return DateTimeOffset.FromUnixTimeSeconds(unixTimeSeconds);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return null;
+        }
     }
 
     private bool RegistrationIsEnabled()

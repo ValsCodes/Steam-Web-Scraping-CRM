@@ -14,13 +14,15 @@ public static class IntegrationJwt
 
     public static string CreateToken(
         string scope = SecurityPolicies.UserScope,
-        DateTime? expiresUtc = null)
+        DateTime? expiresUtc = null,
+        DateTime? authenticationTimeUtc = null,
+        bool includeAuthenticationTime = true)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Key));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var now = DateTime.UtcNow;
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, "integration-user-id"),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
@@ -28,6 +30,15 @@ public static class IntegrationJwt
             new Claim(ClaimTypes.Name, "Integration User"),
             new Claim("scope", scope)
         };
+
+        if (includeAuthenticationTime)
+        {
+            var authenticationTime = authenticationTimeUtc ?? now;
+            claims.Add(new Claim(
+                "auth_time",
+                new DateTimeOffset(authenticationTime.ToUniversalTime()).ToUnixTimeSeconds().ToString(),
+                ClaimValueTypes.Integer64));
+        }
 
         var expires = expiresUtc ?? now.AddMinutes(60);
         var notBefore = expires < now

@@ -72,13 +72,19 @@ public sealed class SteamAppFactory : WebApplicationFactory<Program>
 
     public HttpClient CreateAuthenticatedClient(
         string scope = SecurityPolicies.UserScope,
-        DateTime? expiresUtc = null)
+        DateTime? expiresUtc = null,
+        DateTime? authenticationTimeUtc = null,
+        bool includeAuthenticationTime = true)
     {
         var client = CreateAnonymousClient();
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue(
                 "Bearer",
-                IntegrationJwt.CreateToken(scope, expiresUtc));
+                IntegrationJwt.CreateToken(
+                    scope,
+                    expiresUtc,
+                    authenticationTimeUtc,
+                    includeAuthenticationTime));
 
         return client;
     }

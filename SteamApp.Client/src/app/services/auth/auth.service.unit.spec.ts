@@ -1,6 +1,6 @@
 import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 
 import { createJwt } from '../../../testing/jwt';
 import { AuthService } from './auth.service';
@@ -282,6 +282,106 @@ describe('AuthService unit tests', () => {
     expect(service.getCurrentUser()).toBeNull();
     expect(service.getTimeBeforeExpiration()).toBeLessThan(0);
   });
+
+  it('renews once after five minutes when the visible user is active', fakeAsync(() => {
+    const issuedAt = Math.floor(Date.now() / 1000);
+    const token = createJwt({
+      sub: 'user-1',
+      name: 'Val',
+      scope: 'user',
+      auth_time: issuedAt,
+      iat: issuedAt,
+      exp: issuedAt + 3600,
+    });
+    const renewedToken = createJwt({
+      sub: 'user-1',
+      name: 'Val',
+      scope: 'user',
+      auth_time: issuedAt,
+      iat: issuedAt + 300,
+      exp: issuedAt + 3900,
+    });
+
+    service.login('val@example.test', 'Password1').subscribe();
+    http.expectOne('https://localhost:7443/api/Auth/login').flush({ token });
+    window.dispatchEvent(new KeyboardEvent('keydown'));
+
+    tick(5 * 60 * 1000);
+
+    const renew = http.expectOne('https://localhost:7443/api/Auth/renew');
+    expect(renew.request.method).toBe('POST');
+    expect(renew.request.body).toEqual({});
+
+    window.dispatchEvent(new PointerEvent('pointerdown'));
+    expect(http.match('https://localhost:7443/api/Auth/renew').length).toBe(0);
+
+    renew.flush({ token: renewedToken });
+    expect(service.getToken()).toBe(renewedToken);
+
+    tick(5 * 60 * 1000);
+    http.expectNone('https://localhost:7443/api/Auth/renew');
+  }));
+
+  it('does not renew inactive, hidden, or legacy sessions', fakeAsync(() => {
+    const issuedAt = Math.floor(Date.now() / 1000);
+    const renewableToken = createJwt({
+      sub: 'user-1',
+      auth_time: issuedAt,
+      iat: issuedAt,
+      exp: issuedAt + 3600,
+    });
+
+    localStorage.setItem('access_token', renewableToken);
+    const inactiveService = new AuthService(TestBed.inject(HttpClient));
+    tick(5 * 60 * 1000);
+    http.expectNone('https://localhost:7443/api/Auth/renew');
+    inactiveService.ngOnDestroy();
+
+    const visibility = spyOnProperty(document, 'visibilityState', 'get').and.returnValue('hidden');
+    service.login('val@example.test', 'Password1').subscribe();
+    http.expectOne('https://localhost:7443/api/Auth/login').flush({ token: renewableToken });
+    window.dispatchEvent(new KeyboardEvent('keydown'));
+    tick(5 * 60 * 1000);
+    http.expectNone('https://localhost:7443/api/Auth/renew');
+    visibility.and.returnValue('visible');
+
+    service.logout();
+    const legacyToken = createJwt({
+      sub: 'user-1',
+      iat: issuedAt,
+      exp: issuedAt + 3600,
+    });
+    service.login('val@example.test', 'Password1').subscribe();
+    http.expectOne('https://localhost:7443/api/Auth/login').flush({ token: legacyToken });
+    window.dispatchEvent(new KeyboardEvent('keydown'));
+    tick(5 * 60 * 1000);
+    http.expectNone('https://localhost:7443/api/Auth/renew');
+    expect(service.getToken()).toBe(legacyToken);
+  }));
+
+  it('keeps the current token after a transient renewal failure', fakeAsync(() => {
+    const issuedAt = Math.floor(Date.now() / 1000);
+    const token = createJwt({
+      sub: 'user-1',
+      auth_time: issuedAt,
+      iat: issuedAt,
+      exp: issuedAt + 3600,
+    });
+
+    service.login('val@example.test', 'Password1').subscribe();
+    http.expectOne('https://localhost:7443/api/Auth/login').flush({ token });
+    window.dispatchEvent(new KeyboardEvent('keydown'));
+    tick(5 * 60 * 1000);
+
+    http.expectOne('https://localhost:7443/api/Auth/renew').flush(
+      { message: 'Unavailable' },
+      { status: 503, statusText: 'Service Unavailable' },
+    );
+
+    expect(service.getToken()).toBe(token);
+    expect(service.isLoggedIn()).toBeTrue();
+    service.ngOnDestroy();
+  }));
 
   it('logout clears the in-memory session without touching new login requests', () => {
     const token = createJwt({

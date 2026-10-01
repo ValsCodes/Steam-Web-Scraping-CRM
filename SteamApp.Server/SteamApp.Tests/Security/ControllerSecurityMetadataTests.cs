@@ -29,4 +29,18 @@ public sealed class ControllerSecurityMetadataTests
 
         Assert.That(rateLimit?.PolicyName, Is.EqualTo(SecurityPolicies.AuthRateLimit));
     }
+
+    [Test]
+    public void AuthControllerRenew_RequiresUserSessionPolicyAndApiRateLimit()
+    {
+        var method = typeof(AuthController).GetMethod(nameof(AuthController.Renew));
+        var authorize = method?.GetCustomAttribute<AuthorizeAttribute>();
+        var rateLimit = method?.GetCustomAttribute<EnableRateLimitingAttribute>();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(authorize?.Policy, Is.EqualTo(SecurityPolicies.UserSession));
+            Assert.That(rateLimit?.PolicyName, Is.EqualTo(SecurityPolicies.ApiRateLimit));
+        });
+    }
 }

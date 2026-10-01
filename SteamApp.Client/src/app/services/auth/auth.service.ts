@@ -1,8 +1,8 @@
 // auth.service.ts
 import { Injectable, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { BehaviorSubject, EMPTY, Subscription } from 'rxjs';
+import { catchError, finalize, tap } from 'rxjs/operators';
 import * as g from '../general-data';
 
 export interface TokenResponse {
@@ -54,9 +54,22 @@ export interface DeleteUserRequest {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService implements OnDestroy {
+  private static readonly renewalIntervalMs = 5 * 60 * 1000;
+  private static readonly activityEvents: ReadonlyArray<keyof WindowEventMap> = [
+    'keydown',
+    'pointerdown',
+    'touchstart',
+    'scroll',
+  ];
+
   private readonly tokenKey = 'access_token';
   private accessToken: string | null = this.readPersistedToken();
   private readonly endpoint = `${g.localHost.replace(/\/$/, '')}/api/Auth/`;
+  private renewalTimer: number | null = null;
+  private renewalSubscription: Subscription | null = null;
+  private renewalWindowStartedAt = 0;
+  private renewalDueAt = 0;
+  private lastActivityAt = 0;
 
   private readonly loggedInSubject =
     new BehaviorSubject<boolean>(this.hasValidToken());
@@ -69,19 +82,28 @@ export class AuthService implements OnDestroy {
   constructor(private http: HttpClient) {
     if (!this.hasValidToken()) {
       this.clearSessionToken();
+    } else {
+      this.scheduleSessionRenewal();
     }
 
     window.addEventListener('storage', this.handleStorageEvent);
+    AuthService.activityEvents.forEach(eventName =>
+      window.addEventListener(eventName, this.handleUserActivity),
+    );
   }
 
   ngOnDestroy(): void {
     window.removeEventListener('storage', this.handleStorageEvent);
+    AuthService.activityEvents.forEach(eventName =>
+      window.removeEventListener(eventName, this.handleUserActivity),
+    );
+    this.stopSessionRenewal();
   }
 
   login(emailOrUserName: string, password: string) {
     const url = `${this.endpoint}login`;
     return this.http.post<TokenResponse>(url, { emailOrUserName, password }).pipe(
-      tap(res => this.storeSession(res.token))
+      tap(res => this.storeSession(res.token, true))
     );
   }
 
@@ -102,7 +124,7 @@ export class AuthService implements OnDestroy {
       userName,
       password,
     }).pipe(
-      tap(res => this.storeSession(res.token))
+      tap(res => this.storeSession(res.token, true))
     );
   }
 
@@ -110,6 +132,18 @@ export class AuthService implements OnDestroy {
     return this.http.get<UserProfile>(`${this.endpoint}profile`).pipe(
       tap(profile => this.publishCurrentUserFromProfile(profile)),
     );
+  }
+
+  recordActivity(): void {
+    if (document.visibilityState !== 'visible' || !this.hasRenewableSession()) {
+      return;
+    }
+
+    this.lastActivityAt = Date.now();
+
+    if (this.renewalDueAt > 0 && this.lastActivityAt >= this.renewalDueAt) {
+      this.tryRenewSession();
+    }
   }
 
   updateProfile(request: UpdateUserProfileRequest) {
@@ -174,20 +208,31 @@ export class AuthService implements OnDestroy {
     return payload.exp * 1000 - Date.now();
   }
 
-  private storeSession(token: string): void {
+  private storeSession(token: string, markActive = false): void {
     this.accessToken = token;
     this.persistToken(token);
     this.setSessionState(true);
+    this.lastActivityAt = markActive && document.visibilityState === 'visible'
+      ? Date.now()
+      : 0;
+    this.scheduleSessionRenewal();
   }
+
+  private readonly handleUserActivity = (): void => {
+    this.recordActivity();
+  };
 
   private readonly handleStorageEvent = (event: StorageEvent): void => {
     if (event.key !== this.tokenKey && event.key !== null) {
       return;
     }
 
+    this.stopSessionRenewal();
     this.accessToken = event.newValue;
 
     if (this.hasValidToken()) {
+      this.lastActivityAt = 0;
+      this.scheduleSessionRenewal();
       this.setSessionState(true);
       return;
     }
@@ -195,6 +240,106 @@ export class AuthService implements OnDestroy {
     this.accessToken = null;
     this.setSessionState(false);
   };
+
+  private scheduleSessionRenewal(): void {
+    this.clearRenewalTimer();
+
+    if (!this.hasRenewableSession()) {
+      this.renewalWindowStartedAt = 0;
+      this.renewalDueAt = 0;
+      return;
+    }
+
+    const issuedAt = this.readNumericClaim('iat');
+    const issuedAtMs = issuedAt === null
+      ? Date.now()
+      : issuedAt * 1000;
+
+    this.renewalWindowStartedAt = Date.now();
+    this.renewalDueAt = Math.max(
+      this.renewalWindowStartedAt,
+      issuedAtMs + AuthService.renewalIntervalMs,
+    );
+
+    this.renewalTimer = window.setTimeout(
+      () => this.tryRenewSession(),
+      Math.max(0, this.renewalDueAt - Date.now()),
+    );
+  }
+
+  private tryRenewSession(): void {
+    this.clearRenewalTimer();
+
+    if (this.renewalSubscription ||
+        !this.hasRenewableSession() ||
+        document.visibilityState !== 'visible' ||
+        this.lastActivityAt < this.renewalWindowStartedAt) {
+      return;
+    }
+
+    this.renewalSubscription = this.http
+      .post<TokenResponse>(`${this.endpoint}renew`, {})
+      .pipe(
+        tap(response => this.storeSession(response.token)),
+        catchError(() => {
+          if (this.hasRenewableSession()) {
+            this.scheduleRenewalRetry();
+          }
+
+          return EMPTY;
+        }),
+        finalize(() => {
+          this.renewalSubscription = null;
+        }),
+      )
+      .subscribe();
+  }
+
+  private scheduleRenewalRetry(): void {
+    this.clearRenewalTimer();
+    this.renewalDueAt = Date.now() + AuthService.renewalIntervalMs;
+    this.renewalWindowStartedAt = Date.now();
+    this.lastActivityAt = 0;
+    this.renewalTimer = window.setTimeout(
+      () => this.tryRenewSession(),
+      AuthService.renewalIntervalMs,
+    );
+  }
+
+  private hasRenewableSession(): boolean {
+    return this.hasValidToken() && this.readNumericClaim('auth_time') !== null;
+  }
+
+  private readNumericClaim(claimName: string): number | null {
+    const value = this.getTokenPayload()?.[claimName];
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string' && value.trim()) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+  }
+
+  private stopSessionRenewal(): void {
+    this.clearRenewalTimer();
+    this.renewalSubscription?.unsubscribe();
+    this.renewalSubscription = null;
+    this.renewalWindowStartedAt = 0;
+    this.renewalDueAt = 0;
+    this.lastActivityAt = 0;
+  }
+
+  private clearRenewalTimer(): void {
+    if (this.renewalTimer !== null) {
+      window.clearTimeout(this.renewalTimer);
+      this.renewalTimer = null;
+    }
+  }
 
   private setSessionState(isLoggedIn: boolean): void {
     if (this.loggedInSubject.value !== isLoggedIn) {
@@ -390,6 +535,7 @@ export class AuthService implements OnDestroy {
   }
 
   private clearSessionToken(): void {
+    this.stopSessionRenewal();
     this.accessToken = null;
     this.clearPersistedToken();
   }

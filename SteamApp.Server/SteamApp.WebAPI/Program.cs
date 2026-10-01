@@ -111,7 +111,7 @@ public class Program
                     IssuerSigningKey = new SymmetricSecurityKey(key),
 
                     ValidateLifetime = true,
-                    ClockSkew = TimeSpan.FromMinutes(1)
+                    ClockSkew = TimeSpan.Zero
                 };
             });
 
@@ -148,6 +148,10 @@ public class Program
                     SecurityPolicies.UserScope,
                     SecurityPolicies.InternalScope);
             });
+
+            opts.AddPolicy(
+                SecurityPolicies.UserSession,
+                BuildUserSessionAuthorizationPolicy());
 
             opts.AddPolicy(SecurityPolicies.AdminOnly, policy =>
             {
@@ -463,6 +467,14 @@ public class Program
                 "scope",
                 SecurityPolicies.UserScope,
                 SecurityPolicies.InternalScope)
+            .Build();
+    }
+
+    private static AuthorizationPolicy BuildUserSessionAuthorizationPolicy()
+    {
+        return new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
+            .RequireAuthenticatedUser()
+            .RequireClaim("scope", SecurityPolicies.UserScope)
             .Build();
     }
 

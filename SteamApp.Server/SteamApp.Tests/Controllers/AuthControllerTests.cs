@@ -22,6 +22,8 @@ namespace SteamApp.Tests.Controllers;
 public sealed class AuthControllerTests
 {
     private const string JwtKey = "12345678901234567890123456789012";
+    private static readonly DateTimeOffset DefaultNow =
+        new(2026, 1, 15, 12, 0, 0, TimeSpan.Zero);
 
     [Test]
     public void Token_RejectsInvalidClientCredentials()
@@ -162,6 +164,10 @@ public sealed class AuthControllerTests
             Assert.That(token.Claims.Any(x => x.Type == ClaimTypes.Role && x.Value == SecurityPolicies.UserRole), Is.True);
             Assert.That(token.Claims.Any(x => x.Type == "given_name" && x.Value == "Test"), Is.True);
             Assert.That(token.Claims.Any(x => x.Type == "family_name" && x.Value == "User"), Is.True);
+            Assert.That(
+                token.Claims.Single(x => x.Type == "auth_time").Value,
+                Is.EqualTo(DefaultNow.ToUnixTimeSeconds().ToString()));
+            Assert.That(token.ValidTo, Is.EqualTo(DefaultNow.AddMinutes(60).UtcDateTime));
         });
         userManager.Verify(
             x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), SecurityPolicies.UserRole),
@@ -234,6 +240,9 @@ public sealed class AuthControllerTests
             Assert.That(token.Claims.Any(x => x.Type == ClaimTypes.Email && x.Value == "user@example.com"), Is.True);
             Assert.That(token.Claims.Any(x => x.Type == ClaimTypes.Role && x.Value == "Admin"), Is.True);
             Assert.That(token.Claims.Any(x => x.Type == "scope" && x.Value == SecurityPolicies.UserScope), Is.True);
+            Assert.That(
+                token.Claims.Single(x => x.Type == "auth_time").Value,
+                Is.EqualTo(DefaultNow.ToUnixTimeSeconds().ToString()));
         });
     }
 
@@ -366,6 +375,80 @@ public sealed class AuthControllerTests
     }
 
     [Test]
+    public async Task Renew_ValidUserSession_PreservesAuthenticationTimeAndCapsExpiration()
+    {
+        var authenticationTime = DefaultNow.AddHours(-3).AddMinutes(-55);
+        var user = new ApplicationUser
+        {
+            Id = "user-id",
+            UserName = "updated-user",
+            Email = "updated@example.com"
+        };
+        var userManager = CreateUserManager();
+        userManager.Setup(x => x.FindByIdAsync(user.Id)).ReturnsAsync(user);
+        userManager.Setup(x => x.GetRolesAsync(user)).ReturnsAsync([SecurityPolicies.AdminRole]);
+
+        var controller = CreateController(userManager: userManager);
+        Authenticate(controller, authenticationTime: authenticationTime);
+
+        var result = await controller.Renew();
+
+        var ok = result as OkObjectResult;
+        var response = ok?.Value as AuthResponse;
+        var token = new JwtSecurityTokenHandler().ReadJwtToken(response!.Token);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ok, Is.Not.Null);
+            Assert.That(
+                token.Claims.Single(x => x.Type == "auth_time").Value,
+                Is.EqualTo(authenticationTime.ToUnixTimeSeconds().ToString()));
+            Assert.That(
+                token.Claims.Single(x => x.Type == JwtRegisteredClaimNames.Iat).Value,
+                Is.EqualTo(DefaultNow.ToUnixTimeSeconds().ToString()));
+            Assert.That(token.Claims.Single(x => x.Type == JwtRegisteredClaimNames.Jti).Value, Is.Not.Empty);
+            Assert.That(token.ValidTo, Is.EqualTo(authenticationTime.AddHours(4).UtcDateTime));
+            Assert.That(token.Claims.Any(x => x.Type == ClaimTypes.Name && x.Value == "updated-user"), Is.True);
+            Assert.That(token.Claims.Any(x => x.Type == ClaimTypes.Role && x.Value == SecurityPolicies.AdminRole), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task Renew_LegacyOrInvalidSession_RejectsRenewal()
+    {
+        var legacyController = CreateController();
+        Authenticate(legacyController);
+
+        var invalidController = CreateController();
+        Authenticate(invalidController, authenticationTimeClaim: "invalid");
+
+        var expiredController = CreateController();
+        Authenticate(expiredController, authenticationTime: DefaultNow.AddHours(-4));
+
+        var legacyResult = await legacyController.Renew();
+        var invalidResult = await invalidController.Renew();
+        var expiredResult = await expiredController.Renew();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(legacyResult, Is.TypeOf<UnauthorizedObjectResult>());
+            Assert.That(invalidResult, Is.TypeOf<UnauthorizedObjectResult>());
+            Assert.That(expiredResult, Is.TypeOf<UnauthorizedObjectResult>());
+        });
+    }
+
+    [Test]
+    public async Task Renew_MissingCurrentUser_RejectsRenewal()
+    {
+        var controller = CreateController();
+        Authenticate(controller, authenticationTime: DefaultNow.AddHours(-1));
+
+        var result = await controller.Renew();
+
+        Assert.That(result, Is.TypeOf<UnauthorizedObjectResult>());
+    }
+
+    [Test]
     public async Task GetProfile_ReturnsCurrentUserProfile()
     {
         var user = new ApplicationUser
@@ -480,7 +563,8 @@ public sealed class AuthControllerTests
         Mock<UserManager<ApplicationUser>>? userManager = null,
         Mock<SignInManager<ApplicationUser>>? signInManager = null,
         IConfiguration? configuration = null,
-        string environmentName = "Production")
+        string environmentName = "Production",
+        TimeProvider? timeProvider = null)
     {
         userManager ??= CreateUserManager();
         signInManager ??= CreateSignInManager(userManager);
@@ -498,6 +582,7 @@ public sealed class AuthControllerTests
             signInManager.Object,
             configuration ?? Config(),
             Environment(environmentName),
+            timeProvider ?? CreateTimeProvider(DefaultNow),
             NullLogger<AuthController>.Instance);
     }
 
@@ -551,19 +636,44 @@ public sealed class AuthControllerTests
         return environment.Object;
     }
 
-    private static void Authenticate(AuthController controller, string userId = "user-id")
+    private static void Authenticate(
+        AuthController controller,
+        string userId = "user-id",
+        DateTimeOffset? authenticationTime = null,
+        string? authenticationTimeClaim = null)
     {
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, userId),
+            new("scope", SecurityPolicies.UserScope)
+        };
+
+        if (authenticationTime != null)
+        {
+            claims.Add(new Claim(
+                "auth_time",
+                authenticationTime.Value.ToUnixTimeSeconds().ToString(),
+                ClaimValueTypes.Integer64));
+        }
+        else if (authenticationTimeClaim != null)
+        {
+            claims.Add(new Claim("auth_time", authenticationTimeClaim));
+        }
+
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
             {
-                User = new ClaimsPrincipal(new ClaimsIdentity(
-                [
-                    new Claim(ClaimTypes.NameIdentifier, userId),
-                    new Claim("scope", SecurityPolicies.UserScope)
-                ], "Test"))
+                User = new ClaimsPrincipal(new ClaimsIdentity(claims, "Test"))
             }
         };
+    }
+
+    private static TimeProvider CreateTimeProvider(DateTimeOffset utcNow)
+    {
+        var timeProvider = new Mock<TimeProvider>();
+        timeProvider.Setup(x => x.GetUtcNow()).Returns(utcNow);
+        return timeProvider.Object;
     }
 
     private static string Sha256Hex(string value)

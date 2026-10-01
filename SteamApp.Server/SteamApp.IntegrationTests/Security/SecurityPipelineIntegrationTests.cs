@@ -19,7 +19,7 @@ public sealed class SecurityPipelineIntegrationTests
         using var anonymous = factory.CreateAnonymousClient();
         using var wrongScope = factory.CreateAuthenticatedClient("other");
         using var expired = factory.CreateAuthenticatedClient(
-            expiresUtc: DateTime.UtcNow.AddMinutes(-5));
+            expiresUtc: DateTime.UtcNow.AddSeconds(-1));
         using var valid = factory.CreateAuthenticatedClient();
         await factory.ResetDatabaseAsync();
 
@@ -216,6 +216,34 @@ public sealed class SecurityPipelineIntegrationTests
         });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [Test]
+    public async Task SessionRenewal_EnforcesUserScopeLegacyMigrationAndAbsoluteLifetime()
+    {
+        using var factory = new SteamAppFactory();
+        using var anonymous = factory.CreateAnonymousClient();
+        using var internalClient = factory.CreateAuthenticatedClient(SecurityPolicies.InternalScope);
+        using var validUser = factory.CreateAuthenticatedClient();
+        using var legacyUser = factory.CreateAuthenticatedClient(includeAuthenticationTime: false);
+        using var expiredSession = factory.CreateAuthenticatedClient(
+            authenticationTimeUtc: DateTime.UtcNow.AddHours(-4).AddMinutes(-1));
+        await factory.ResetDatabaseAsync();
+
+        var anonymousResponse = await anonymous.PostAsync("/api/auth/renew", null);
+        var internalResponse = await internalClient.PostAsync("/api/auth/renew", null);
+        var validResponse = await validUser.PostAsync("/api/auth/renew", null);
+        var legacyResponse = await legacyUser.PostAsync("/api/auth/renew", null);
+        var expiredResponse = await expiredSession.PostAsync("/api/auth/renew", null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(anonymousResponse.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+            Assert.That(internalResponse.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+            Assert.That(validResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(legacyResponse.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+            Assert.That(expiredResponse.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        });
     }
 
     [Test]
