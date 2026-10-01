@@ -27,8 +27,8 @@ export class PricingPage {
       description: 'For trying the workflow and managing a small Steam market setup.',
       benefits: [
         'Core catalog setup for a focused game and product set.',
-        'Basic game, product, tag, and pixel organization.',
-        'Manual source configuration for early scraping experiments.',
+        'Basic game, source, product, tag, and item-group organization.',
+        'Manual checks for exploring reusable matching criteria.',
         'Limited wish and watch tracking for priority market targets.',
         'Basic filters and Excel exports for review.',
       ],
@@ -40,9 +40,9 @@ export class PricingPage {
       description: 'For active operators running regular market tracking and analysis.',
       benefits: [
         'Expanded catalog coverage across active games, URLs, and products.',
-        'Web scraper and public API workflows for routine market checks.',
+        'Saved presets and preset combinations for repeatable market checks.',
+        'Live outcome filters plus pause, continue, cancel, and rerun controls.',
         'Excel export for filtered operational slices.',
-        'Saved operational views for repeated catalog and monitoring work.',
         'Standard worker-backed wish and watch checks.',
       ],
       cta: 'Choose Tier 1',
@@ -54,8 +54,8 @@ export class PricingPage {
       description: 'For advanced monitoring, higher automation, and heavier operational usage.',
       benefits: [
         'Highest catalog and monitoring capacity for larger market operations.',
-        'Priority scraping workflows for high-value watch targets.',
-        'Pixel validation support for visual attribute checks.',
+        'Automated queues with preset, combination, private-template, and delay blocks.',
+        'Frozen queue-run snapshots for operational review and auditability.',
         'Faster worker-backed checks for wish and watch scenarios.',
         'Priority support and deployment assistance.',
       ],

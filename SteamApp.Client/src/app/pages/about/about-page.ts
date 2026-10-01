@@ -22,19 +22,19 @@ type AboutAudience = {
 export class AboutPage {
   readonly managementAreas: readonly AboutHighlight[] = [
     {
-      title: 'Steam market sources',
+      title: 'Connected market context',
       description:
-        'Configure game URLs, paging, source modes, and pixel validation inputs from one workspace.',
+        'Keep games, Steam market URLs, products, tags, item groups, and stock history in one operational model.',
     },
     {
-      title: 'Catalog metadata',
+      title: 'Reusable matching rules',
       description:
-        'Maintain games, products, tags, and visual signatures so scraping scenarios start with reliable context.',
+        'Capture criteria as presets and combine same-game presets with clear top-level AND or OR logic.',
     },
     {
-      title: 'Monitoring targets',
+      title: 'Observable automation',
       description:
-        'Track wish list thresholds and watch list priorities without repeating the same manual checks every day.',
+        'Run checks directly or arrange them into queues with live outcomes, controls, and frozen history.',
     },
   ];
 
@@ -42,24 +42,24 @@ export class AboutPage {
     {
       role: 'Operators',
       summary:
-        'Run scraping workflows, review filtered results, and export the current working slice for analysis.',
+        'Run checks, filter live outcomes, manage queues, and keep repeatable workflows moving.',
     },
     {
       role: 'Analysts',
       summary:
-        'Use structured catalog data and monitoring rules to understand market movement with less spreadsheet setup.',
+        'Use structured catalog context, explicit criteria, and historical snapshots to explain market results.',
     },
     {
       role: 'Administrators',
       summary:
-        'Keep source configuration, account access, monitoring rules, and operational routines aligned.',
+        'Keep account access, market sources, shared catalog data, and operational routines aligned.',
     },
   ];
 
   readonly capabilities: readonly string[] = [
-    'Source configuration for listing page, alternate source, and pixel-based scraping scenarios.',
-    'Relation-driven administration for games, URLs, products, pixels, and tags.',
-    'Wish list and watch list workflows for price and target monitoring.',
-    'Filter-first review screens with Excel export for offline reporting.',
+    'Manual checks with reusable criteria, presets, preset combinations, and product selection.',
+    'Automated queues with ordered check and delay blocks plus frozen run snapshots.',
+    'Relation-driven catalog management for games, URLs, products, tags, item groups, and stock.',
+    'Wish-list and watch-list workflows for price conditions and priority market targets.',
   ];
 }

@@ -20,12 +20,12 @@ describe('AboutPage', () => {
     const element: HTMLElement = fixture.nativeElement;
     const text = element.textContent ?? '';
 
-    expect(text).toContain('About Steam Web Scraping CRM');
-    expect(text).toContain('Reduce the manual work behind Steam market monitoring');
+    expect(text).toContain('About SteamApp');
+    expect(text).toContain('Reduce the repeated setup behind Steam market research');
     expect(text).toContain('What It Manages');
     expect(text).toContain('Who It Helps');
     expect(text).toContain('Capabilities');
-    expect(text).toContain('Steam market sources');
+    expect(text).toContain('Connected market context');
     expect(text).toContain('Operators');
     expect(text).toContain('operational routines');
   });

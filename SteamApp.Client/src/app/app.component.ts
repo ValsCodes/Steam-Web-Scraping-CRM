@@ -33,7 +33,7 @@ import { SeoMetaService } from './services/seo/seo-meta.service';
 export class AppComponent {
   private readonly destroyRef = inject(DestroyRef);
 
-  title = 'Steam Web Scraping CRM';
+  title = 'SteamApp';
 
   public constructor(
     errorDialogService: ErrorDialogService,

@@ -21,15 +21,15 @@ describe('FaqPage', () => {
     const text = element.textContent ?? '';
     const questions = Array.from(element.querySelectorAll('summary'));
 
-    expect(text).toContain('Answers for evaluating Steam Web Scraping CRM');
+    expect(text).toContain('Answers for evaluating SteamApp');
     expect(text).toContain('Platform Basics');
-    expect(text).toContain('Catalog And Scraping');
-    expect(text).toContain('Monitoring And Reporting');
-    expect(text).toContain('Accounts, Pricing, And Links');
+    expect(text).toContain('Checks And Matching Rules');
+    expect(text).toContain('Automation And History');
+    expect(text).toContain('Catalog, Accounts, And Links');
     expect(questions.length).toBe(10);
-    expect(text).toContain('What does Steam Web Scraping CRM do?');
-    expect(text).toContain('Which scraping modes are supported?');
-    expect(text).toContain('Can I export data for offline analysis?');
+    expect(text).toContain('What does SteamApp do?');
+    expect(text).toContain('Can I filter results while a check is running?');
+    expect(text).toContain('What does the Automated Queue do?');
     expect(text).toContain('Does the app open external Steam or third-party links?');
   });
 
@@ -38,7 +38,7 @@ describe('FaqPage', () => {
     const links = Array.from(element.querySelectorAll<HTMLAnchorElement>('.faq-hero__actions a'));
 
     expect(links.map((link) => link.textContent?.trim())).toEqual([
-      'About The CRM',
+      'About SteamApp',
       'Compare Plans',
     ]);
     expect(links.map((link) => link.getAttribute('href'))).toEqual(['/about', '/pricing']);

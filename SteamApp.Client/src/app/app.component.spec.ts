@@ -27,6 +27,6 @@ describe('AppComponent', () => {
   it(`should have the application title`, () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
-    expect(app.title).toEqual('Steam Web Scraping CRM');
+    expect(app.title).toEqual('SteamApp');
   });
 });

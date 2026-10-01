@@ -25,64 +25,64 @@ export class FaqPage {
       title: 'Platform Basics',
       items: [
         {
-          question: 'What does Steam Web Scraping CRM do?',
+          question: 'What does SteamApp do?',
           answer:
-            'It helps teams configure Steam market sources, manage catalog data, run scraping workflows, monitor target items, and export results for analysis.',
+            'SteamApp is a Steam market intelligence and workflow automation platform. It connects catalog data, reusable matching rules, live checks, automated queues, monitoring targets, and run history.',
         },
         {
-          question: 'Who is the CRM built for?',
+          question: 'Is SteamApp a traditional CRM?',
           answer:
-            'It is built for operators, analysts, and administrators who need a repeatable workspace for Steam market intelligence instead of scattered manual checks.',
+            'No. It does not manage customer relationships or a sales pipeline. It is built for operators and analysts who need repeatable Steam market research instead of scattered links, spreadsheets, and one-off checks.',
         },
       ],
     },
     {
-      title: 'Catalog And Scraping',
+      title: 'Checks And Matching Rules',
       items: [
         {
-          question: 'What catalog data can I manage?',
+          question: 'What is a manual check?',
           answer:
-            'You can manage games, game URLs, products, pixels, and tags, including the relationships that connect sources to monitored products and visual checks.',
+            'A manual check evaluates Steam listings from a selected game source against reusable criteria. You can follow progress live, filter outcomes, pause or continue eligible runs, and revisit the saved setup later.',
         },
         {
-          question: 'How do game URLs work?',
+          question: 'What are presets and preset combinations?',
           answer:
-            'Game URLs define source settings such as page ranges, source mode, linked products, linked pixels, and the details needed for a scraping scenario.',
+            'A preset stores one criteria expression. A preset combination applies two or more unique presets for the same game with top-level AND or OR operators while leaving the saved presets unchanged.',
         },
         {
-          question: 'Which scraping modes are supported?',
+          question: 'Can I filter results while a check is running?',
           answer:
-            'The app supports listing page workflows, alternate source workflows, and pixel-based validation scenarios for checking visual item attributes.',
+            'Yes. Live results can be filtered by Pending, Matched, No match, and Failed without waiting for the whole run to finish.',
         },
       ],
     },
     {
-      title: 'Monitoring And Reporting',
+      title: 'Automation And History',
       items: [
         {
-          question: 'What is the difference between wish list and watch list monitoring?',
+          question: 'What does the Automated Queue do?',
           answer:
-            'Wish list items focus on target conditions such as price thresholds, while watch list items keep priority market targets visible for ongoing review.',
+            'It turns saved presets, preset combinations, private check templates, and delays into an ordered recipe. Each run records its resolved setup so its results remain understandable later.',
         },
         {
-          question: 'Can I export data for offline analysis?',
+          question: 'Do queue runs use the latest presets?',
           answer:
-            'Yes. Key table workflows are designed around filtering first, then exporting the current slice to Excel for review, reporting, or deeper analysis.',
+            'Queue definitions retain references to their presets and resolve the latest accessible versions when a new run starts. The resolved setup is then frozen for that run and historical reruns.',
         },
       ],
     },
     {
-      title: 'Accounts, Pricing, And Links',
+      title: 'Catalog, Accounts, And Links',
       items: [
+        {
+          question: 'What market context can I manage?',
+          answer:
+            'You can organize games, Steam market URLs, products, tags, item groups, stock history, wish-list conditions, and watch-list targets, then use that context in checks and reporting.',
+        },
         {
           question: 'Do I need an account to use the workspace?',
           answer:
-            'Yes. Public pages explain the product, but catalog, scraping, monitoring, and profile workflows are protected behind login.',
-        },
-        {
-          question: 'Is there a free tier?',
-          answer:
-            'The pricing page presents a Free Tier for trying the core workflow, plus paid tiers for higher catalog, scraping, monitoring, and automation needs.',
+            'Yes. Public pages explain the product, while catalog, checks, queues, monitoring, and profile workflows are protected behind sign-in.',
         },
         {
           question: 'Does the app open external Steam or third-party links?',

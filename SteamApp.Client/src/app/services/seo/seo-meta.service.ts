@@ -15,7 +15,7 @@ export interface SeoRouteData {
   structuredData?: Record<string, unknown>;
 }
 
-const APP_NAME = 'Steam Web Scraping CRM';
+const APP_NAME = 'SteamApp';
 const DEFAULT_DESCRIPTION =
   'Centralized administration for Steam market sources, catalog metadata, monitoring, and scraping workflows.';
 const DEFAULT_IMAGE_PATH = '/assets/brand/steam-app-social.svg';

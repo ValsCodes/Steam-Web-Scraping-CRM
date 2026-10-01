@@ -1,10 +1,12 @@
-# Steam Web Scraping CRM
+# SteamApp
 
-A full-stack application for tracking and analyzing Steam Community Market listings.
+A full-stack Steam market intelligence and workflow automation platform.
 
 - **Frontend:** Angular 21 (`SteamApp.Client`)
 - **Backend:** .NET 9 Web API (`SteamApp.Server/SteamApp.WebAPI`)
-- **Primary use case:** maintain game/product/tag/pixel metadata and run market scraping workflows with watch/wish list automation.
+- **Primary use case:** connect Steam catalog context with reusable matching rules, live manual checks, automated queues, monitoring targets, and auditable run history.
+
+SteamApp is not a traditional customer-relationship CRM. It is an operations workspace for turning repeated Steam market research into structured, explainable workflows.
 
 > **Disclaimer**
 > This project is not affiliated with, endorsed by, or sponsored by Valve Software.
@@ -69,14 +71,17 @@ npm start
 
 ## Core features
 
-- CRUD for Games, Game URLs, Products, Pixels, Tags, Wish List, Watch List.
-- M2M relation management from primary forms:
-  - Game URL ↔ Products
-  - Game URL ↔ Pixels
-  - Product ↔ Tags
-- Data-table filters and export to Excel in key pages.
-- JWT auth and protected API routes.
-- Background worker support for wishlist checks.
+- Connected catalog management for games, Steam market URLs, products, tags, item groups, current stock, and stock history.
+- Reusable manual-check criteria with saved presets, expression groups, product selection, limits, and cooldowns.
+- Preset combinations using ordered top-level `AND`/`OR` operators without modifying the referenced presets.
+- Live manual-check outcomes with Pending, Matched, No match, and Failed filters, plus pause, continue, cancel, history, and rerun controls.
+- Automated queues composed from presets, preset combinations, private templates, and delay blocks.
+- Queue definitions resolve current preset references at run start and persist frozen snapshots for historical analysis.
+- Wish-list conditions and watch-list targets for ongoing market monitoring.
+- Filter-first tables and Excel export in supported catalog views.
+- JWT authentication, user-scoped data, protected routes, rate limits, and background workers.
+
+Legacy pixel and standalone scraper implementations remain in the repository for compatibility, but their client routes are deprecated and they are not part of the active product navigation.
 
 ## Tech stack
 
@@ -95,7 +100,8 @@ npm start
 - Entity Framework Core (SQL Server)
 - JWT auth
 - AutoMapper
-- Hosted background worker(s)
+- RabbitMQ-backed and hosted background workers
+- Memory and Redis caching
 
 ## Current repository layout
 

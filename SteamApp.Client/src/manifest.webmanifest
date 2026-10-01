@@ -1,7 +1,7 @@
 {
-  "name": "Steam Web Scraping CRM",
-  "short_name": "Steam CRM",
-  "description": "Centralized administration for Steam market sources, catalog metadata, monitoring, and scraping workflows.",
+  "name": "SteamApp",
+  "short_name": "SteamApp",
+  "description": "Steam market intelligence, reusable matching rules, live checks, and workflow automation.",
   "start_url": "/home",
   "scope": "/",
   "display": "standalone",

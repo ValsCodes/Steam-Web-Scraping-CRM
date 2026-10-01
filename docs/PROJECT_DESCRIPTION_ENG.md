@@ -1,295 +1,161 @@
-# Steam Web Scraping CRM — Extended Project Description
+# SteamApp — Extended Project Description
 
 ## Project overview
 
-**Steam Web Scraping CRM** is a full-stack market-intelligence workspace for configuring Steam Community Market data sources, organizing catalog metadata, running repeatable scraping and manual-check workflows, and monitoring products against operator-defined conditions.
+**SteamApp** is a full-stack Steam market intelligence and workflow automation platform. It connects market context, reusable matching rules, live listing checks, automated queues, monitoring targets, and historical evidence in one authenticated workspace.
 
-The application replaces scattered links, spreadsheets, and one-off market checks with a single operational system. Users can model games and market URLs, connect products to tags and pixel signatures, execute listing analysis, review scrape history, maintain watch and wish lists, and export filtered results for offline analysis.
+The product is not a traditional CRM. It does not manage customers, leads, or a sales pipeline. Its operational model is closer to a market-research workbench: users describe the Steam items they care about, capture the rules behind a decision, execute those rules consistently, and keep enough history to explain the result later.
 
-The product is designed for three closely related activities:
+The application combines:
 
-- **Catalog operations** — maintain games, source URLs, products, tags, item groups, pixel definitions, and their relationships.
-- **Market analysis** — collect Steam listing data through page, public-API, and pixel-assisted workflows, then match it against configurable criteria.
-- **Monitoring automation** — queue manual checks, retain run history, schedule wish-list checks, and distribute longer-running work through background services and RabbitMQ.
+- an Angular client in `SteamApp.Client`;
+- a .NET Web API under `SteamApp.Server`;
+- SQL Server persistence through Entity Framework Core;
+- RabbitMQ-backed and hosted background processing;
+- memory and Redis caching;
+- authenticated, user-scoped access to saved definitions and runs.
 
-> **Product callout — one control surface:** The value of the system is not scraping alone. It combines source configuration, domain metadata, condition matching, execution history, exports, and user-scoped operations in one authenticated workspace.
+> **Disclaimer:** SteamApp is not affiliated with, endorsed by, or sponsored by Valve Software.
 
-> **Disclaimer:** Steam Web Scraping CRM is not affiliated with, endorsed by, or sponsored by Valve Software.
+## Product direction
 
-## Repository snapshot
+SteamApp has moved beyond its original scraper-oriented CRM description. Its active direction has four pillars:
 
-The following metrics describe the repository as of **August 30, 2026**. They are source-level measurements, not production traffic or business KPIs.
+1. **Connected market context** — games, Steam market URLs, products, tags, item groups, stock history, wish-list conditions, and watch-list targets.
+2. **Reusable decision logic** — expression-based manual-check presets and ordered preset combinations.
+3. **Observable execution** — live Pending, Matched, No match, and Failed outcomes; run controls; persisted setup and history.
+4. **Workflow automation** — automatic queues built from check blocks and delays, with current references resolved at run start and frozen snapshots retained afterward.
 
-| Metric | Repository snapshot |
-| --- | ---: |
-| Declared HTTP operations | **113** — 81 Minimal API mappings and 32 controller actions |
-| API surface modules | **14** Minimal API endpoint modules and **3** API controllers |
-| Active Angular route declarations | **35** |
-| Angular UI building blocks | **51** component declarations and **24** injectable declarations |
-| Domain entities | **20** entity types |
-| Backend application source | **264** C# files, excluding tests, EF migrations, and generated build output |
-| Frontend application source | **185** files — 118 TypeScript, 33 HTML, and 34 SCSS files, excluding test specifications |
-| Test declarations | **541** — 334 NUnit `[Test]`/`[TestCase]` declarations and 207 Jasmine/Jest/Playwright `it`/`test` declarations |
-| Test source files | **123** — 55 server test files and 68 client test specifications |
-| EF Core migration history | **30** migration files, excluding designers and the model snapshot |
+Standalone Web Scraper and Pixel client routes are deprecated. Their underlying server code and contracts remain for compatibility, but they are no longer promoted as core product workflows.
 
-Test declarations are counted from source and may expand into additional runtime cases through parameterization. The figures describe the checked-in engineering footprint; they do not imply that every test was executed for this documentation change.
+## The problem it solves
 
-## What problem it solves
+Steam market research becomes difficult to reproduce when URLs, item definitions, quality rules, price thresholds, and outcomes live in separate spreadsheets or one-off scripts. Even when an individual check is correct, the reasoning can be lost when the same work is repeated later.
 
-Steam market research becomes difficult to reproduce when source URLs, product definitions, quality rules, price thresholds, and results live in separate tools. Steam Web Scraping CRM turns those moving parts into durable, related records and repeatable workflows.
+SteamApp turns those moving parts into durable records and explicit workflows:
 
-The system helps operators:
-
-1. standardize how a market source is configured;
-2. describe which products and visual attributes matter;
-3. reuse tags, item groups, and matching criteria across checks;
-4. run work immediately or through a queue;
-5. preserve status, history, and partial results;
-6. monitor target items without repeating the same manual process;
-7. export a filtered data set when deeper spreadsheet analysis is useful.
+- catalog records provide shared market context;
+- presets capture a reusable matching expression;
+- preset combinations express broader decisions without copying or changing the original presets;
+- manual runs expose live progress and retain their resolved setup;
+- automatic queues sequence checks and delays;
+- historical snapshots preserve what a run actually evaluated.
 
 ## Core capabilities
 
-### Catalog and source configuration
+### Catalog, stock, and monitoring context
 
-The catalog provides the shared context for every monitoring and scraping workflow:
+- **Games** anchor market-specific records.
+- **Game URLs** identify the Steam listing sources used by checks.
+- **Products** represent tracked items and their operational metadata.
+- **Tags** provide reusable taxonomy.
+- **Item groups** collect related items for matching criteria.
+- **Current stock and stock history** record inventory context for game URL/product pairs.
+- **Wish List** records target conditions such as price thresholds.
+- **Watch List** keeps priority market targets visible for ongoing review.
 
-- **Games** define the top-level market context.
-- **Game URLs** capture Steam source information and scraping configuration.
-- **Products** represent the item definitions that operators want to find or monitor.
-- **Tags** and **item groups** provide a reusable classification and grouping model.
-- **Pixels** represent RGB-based visual signatures used by pixel-assisted checks.
-- **Scraping modes** describe supported collection strategies.
+### Manual checks and presets
 
-The principal many-to-many relationships are managed in the context of the main records:
+A manual check evaluates listings from one selected game URL against a criteria expression. Users can:
 
-- Game URL ↔ Product
-- Game URL ↔ Pixel
-- Product ↔ Tag
+- construct grouped expressions from supported condition operators;
+- save and maintain reusable presets;
+- select the products included in a run;
+- apply a listing limit and cooldown;
+- follow progress while work is running;
+- filter results by Pending, Matched, No match, or Failed;
+- pause, continue, cancel, inspect, and rerun eligible checks.
 
-This keeps relationship management close to the operator's task instead of exposing raw join-table administration.
+### Preset combinations
 
-### Manual market checks
+Combination mode applies two to ten unique presets from the same game. The first term has no operator; later terms use top-level `AND` or `OR`. Evaluation is left-to-right against the same listing asset, while every preset retains its own internal expression grouping.
 
-Manual Mode supports configurable, repeatable listing evaluation rather than a single hard-coded search. Operators can create presets, group criteria, choose match behavior, start a run, and inspect the resulting status and history.
+A combination is a run or queue recipe, not a new saved preset. Its listing limit and cooldown are independent overrides. The server resolves every referenced preset within the authenticated user's scope, validates aggregate criterion and group limits, and stores the resolved recipe with the run.
 
-The backend uses a channel-backed queue and a hosted worker for this flow. Runs can be stopped or rerun, while execution state and partial outcomes remain available to the UI.
+### Automated queues
 
-### Scraping and result history
+An automatic queue is an ordered workflow composed from:
 
-The scraping layer supports several source strategies, including Steam listing pages, public endpoints, and pixel-assisted validation. Selenium and HTML parsing cover browser-oriented collection, while dedicated application services normalize execution and persistence behavior.
+- saved-preset check blocks;
+- preset-combination check blocks;
+- private-template check blocks;
+- delay blocks.
 
-Scrape-history records retain the request context, outcome, status, and error information. Selected runs can be replayed directly or queued through the message broker.
+Queue definitions retain live references to saved presets. When a run starts, the server revalidates ownership and compatibility, resolves the latest accessible preset versions, and freezes the resulting block setup into the queue-run snapshot. A missing or inaccessible reference prevents a partial run from being created.
 
-### Watch-list and wish-list monitoring
+### History and analysis
 
-- **Watch List** keeps priority products and market targets visible for ongoing review.
-- **Wish List** captures price-oriented target conditions and participates in scheduled checking and notification workflows.
-
-Wishlist automation combines a hosted job, distributed cache coordination, RabbitMQ messages, consumers, and email delivery. The API scopes wishlist access to the current user, while broker messages retain the wishlist identifier, delivery target, request time, and correlation ID needed by the background path.
-
-### Feedback and administration
-
-Authenticated users can create and follow feedback requests with reference identifiers and status history. Administrative API and UI paths support user and role management, while ordinary catalog and monitoring operations remain user-scoped.
-
-### Filtering and export
-
-Data-heavy screens emphasize filter-first tables. XLSX export lets operators move the current result set into a spreadsheet for reporting or exploratory analysis without making the spreadsheet the system of record.
+Manual and queue runs persist status, progress, setup, and results. Frozen snapshots keep historical outcomes understandable even after saved presets change. Supported catalog tables provide filter-first review and Excel export for offline reporting.
 
 ## Typical user flows
 
-### Onboard a new market context
+### Build market context
 
 1. Create a game.
-2. Configure one or more Steam market URLs.
-3. Add products, tags, item groups, and optional pixel signatures.
-4. Link products and pixels to the relevant source URLs.
-5. Use the resulting catalog in manual checks, watch lists, or wish lists.
+2. Add the Steam market URL used for listing checks.
+3. Create products and connect tags or item groups.
+4. Maintain stock, wish-list conditions, and watch-list targets as needed.
 
-### Run a manual check
+### Run repeatable listing analysis
 
-1. Choose or create a preset.
-2. Define criteria and grouping behavior.
-3. Select the relevant game/source context.
-4. Queue the run.
-5. Follow execution status, stop it if necessary, and inspect matches or errors.
-6. Rerun the saved configuration when market conditions change.
+1. Choose a game and listing source.
+2. Select or create a saved preset, or enter combination mode.
+3. Configure products, listing limit, and cooldown.
+4. Start the check and filter live outcomes as they arrive.
+5. Inspect the frozen setup and results from run history.
 
-### Automate wish-list monitoring
+### Automate a sequence
 
-1. Create a user-owned wish-list target and threshold.
-2. Let the hosted schedule publish work to RabbitMQ.
-3. Process checks and notifications through scoped consumers.
-4. Use Redis-backed coordination to prevent overlapping or duplicate work.
-5. Review the resulting market state and adjust the target.
+1. Create an automatic queue for the relevant market context.
+2. Add check and delay blocks in execution order.
+3. Save the queue definition and start a run.
+4. Follow block-level progress and manage the run from the queue workspace.
+5. Use the persisted snapshot to explain or revisit the completed execution.
 
 ## System architecture
 
-```mermaid
-flowchart LR
-    UI["Angular 21 client"] -->|"HTTPS + JWT"| API["ASP.NET Core .NET 9 API"]
-    API --> DB["SQL Server + EF Core"]
-    API --> CACHE["Memory cache + Redis"]
-    API --> MQ["RabbitMQ"]
-    API --> STEAM["Steam pages and APIs"]
-    API --> MAIL["SMTP email"]
-    MQ --> WORKERS["Scrape and wishlist consumers"]
-    WORKERS --> DB
-    WORKERS --> CACHE
-    WORKERS --> STEAM
-    WORKERS --> MAIL
+```text
+Angular client
+    |
+    | HTTPS + bearer JWT
+    v
+ASP.NET Core API
+    |---- EF Core ----> SQL Server
+    |---- cache ------> memory / Redis
+    |---- messages ---> RabbitMQ consumers and hosted workers
+    `---- external ---> Steam listing sources and SMTP
 ```
 
-### Backend ownership boundaries
-
-The server follows the repository's established project-reference graph:
+The server projects keep explicit ownership boundaries:
 
 | Project | Responsibility |
 | --- | --- |
 | `SteamApp.Models` | Domain entities, enums, value objects, and constants |
-| `SteamApp.Application` | DTOs, mapping profiles, operation results, cache keys, JSON models, and application utilities |
+| `SteamApp.Application` | DTOs, mappings, operation results, cache keys, and JSON models |
 | `SteamApp.Interfaces` | Repository and service contracts |
-| `SteamApp.Infrastructure` | EF Core context, repositories, Identity persistence, scraping integrations, email, encryption, and retry services |
-| `SteamApp.WebAPI` | API composition, endpoints, controllers, security, jobs, manual-check orchestration, RabbitMQ messages and consumers, and caching configuration |
+| `SteamApp.Infrastructure` | EF Core persistence and external integrations |
+| `SteamApp.WebAPI` | HTTP composition, security, orchestration, messages, consumers, workers, and caching |
 | `SteamApp.WebApiClient` | Typed .NET API-client managers |
 
-`Application` references `Domain`; `Interfaces` references `Application` and `Domain`; `Infrastructure` references all three; and `WebAPI` composes the system through `Infrastructure`. The layout favors explicit ownership over a generic one-size-fits-all layering template.
+The Angular client uses standalone components and lazy-loaded routes. Route-level screens live under `pages/`; shared dialogs and controls under `components/`; typed HTTP access under `services/`; and client contracts under `models/`.
 
-### Angular client structure
+## Security and reliability
 
-The Angular client is a standalone application with lazy-loaded route components. Its main source areas are:
+- ASP.NET Core Identity and JWT bearer authentication protect private workflows.
+- Policies distinguish authenticated users, administrators, and internal jobs.
+- User ownership is checked for saved presets, runs, queue definitions, and referenced IDs.
+- General and expensive API operations use separate rate-limit policies.
+- External Steam data and user-supplied URLs are treated as untrusted input.
+- Long-running work is detached from initiating HTTP requests and persists observable state.
+- Cancellation, pause, failure, and partial progress are represented explicitly.
+- Configuration and secrets are supplied through environment-specific settings, user secrets, or environment variables rather than tracked production credentials.
 
-- `pages/` for route-level catalog, scraping, monitoring, profile, feedback, and public product screens;
-- `components/` for reusable dialogs, navigation, status, timing, and utility UI;
-- `services/` for typed API access, authentication, loading/error handling, SEO, and external-link disclosure;
-- `models/` for client-side API contracts;
-- `common/` for focused shared directives and utilities.
+## Testing and delivery
 
-Public product pages are indexable, while authenticated workspace routes use guarded navigation and private search-engine metadata.
+The repository contains server unit, integration, and end-to-end projects plus Angular unit, integration, and Playwright suites. Local development can run directly through the .NET and Angular toolchains or with containerized SQL Server, Redis, and optional mail infrastructure.
 
-## Tech stack callouts
-
-> **Frontend — Angular 21:** Angular 21.2, Angular Material/CDK 21.2, TypeScript 5.9, RxJS 7.8, SCSS, and Tailwind CSS 3.4 provide a standalone, lazy-loaded client. XLSX and FileSaver support exports.
-
-> **API — .NET 9:** ASP.NET Core combines Minimal APIs for catalog-oriented resources with controllers for authentication, manual checks, and scraping orchestration. OpenAPI is exposed through Swashbuckle.
-
-> **Data — EF Core + SQL Server:** A single `ApplicationDbContext` stores both ASP.NET Core Identity data and SteamApp business data. EF Core 9 migrations evolve the schema, while repository and operation-scoped context patterns protect async work.
-
-> **Automation — RabbitMQ + hosted workers:** RabbitMQ carries scrape, wishlist-check, and notification messages. Hosted services handle manual-check queues and scheduled wishlist dispatch without tying long-running work to an HTTP request.
-
-> **Caching — memory + Redis:** In-memory caching accelerates frequently read catalog and scrape data. Redis-backed distributed caching coordinates work that must remain consistent across API and worker paths.
-
-> **Scraping — Selenium + HtmlAgilityPack:** Selenium WebDriver supports browser-dependent flows; HtmlAgilityPack covers HTML parsing. Retry policies, cancellation, run state, and persisted history make failures observable and recoverable.
-
-> **Security — Identity + JWT:** ASP.NET Core Identity, JWT bearer authentication, user/admin/internal-job policies, ownership filtering, rate limits, controlled CORS, HSTS, and environment-based secret loading protect the application boundary.
-
-> **Testing — three levels on both stacks:** NUnit, Moq, ASP.NET Core TestHost, SQLite/InMemory EF, and `WebApplicationFactory` cover the server. Jasmine/Karma, Jest, and Playwright cover client unit, integration, and browser-level behavior.
-
-### Stack reference
-
-| Concern | Primary technology |
-| --- | --- |
-| Web client | Angular 21.2, Angular Material/CDK, RxJS, TypeScript 5.9 |
-| Styling | SCSS, Tailwind CSS 3.4, PostCSS, Autoprefixer |
-| API | ASP.NET Core on .NET 9, Minimal APIs, MVC controllers |
-| Persistence | EF Core 9.0, SQL Server, ASP.NET Core Identity |
-| Mapping and serialization | AutoMapper 15, Newtonsoft.Json |
-| API documentation | Swashbuckle / OpenAPI |
-| Browser scraping | Selenium WebDriver 4.43, Selenium support helpers |
-| HTML processing | HtmlAgilityPack 1.12 |
-| Messaging | RabbitMQ.Client 7.1 |
-| Caching | ASP.NET Core memory cache, StackExchange Redis integration |
-| Email | MailKit and SMTP configuration |
-| Credential protection | JWT validation and Argon2-based cryptography support |
-| Client tests | Jasmine/Karma, Jest 30, Playwright 1.59 |
-| Server tests | NUnit 4, Moq, TestHost, `WebApplicationFactory`, coverlet |
-| Local infrastructure | Docker Compose, SQL Server 2022, Redis 7, optional docker-mailserver and Certbot |
-
-Versions above reflect the checked-in project manifests and are intentionally more specific than the conceptual architecture.
-
-## Security and operational characteristics
-
-### Authentication and authorization
-
-- JWTs validate issuer, audience, signature, and lifetime with a bounded clock skew.
-- ASP.NET Core Identity enforces unique email addresses, password rules, and account lockout.
-- Policies distinguish authenticated API users, administrators, and internal jobs.
-- Entity queries enforce user ownership for user-specific records.
-- Auth, general API, and expensive API operations use separate rate-limit policies.
-
-### External data and links
-
-Steam pages, public endpoints, message payloads, and user-supplied URLs are treated as external input. The client preserves a disclosure flow before users open unverified third-party destinations and opens them with browser isolation protections.
-
-### Reliability
-
-- Startup fails fast when required database or JWT configuration is missing.
-- Database migrations use bounded retry behavior during startup.
-- Background loops and consumers contain failures at the unit-of-work boundary.
-- Cancellation tokens are propagated through cancellable database, HTTP, queue, and scraping work.
-- Scrape and manual-check history make partial results and failures inspectable.
-- Cache keys are centralized and namespaced by resource or job identifiers.
-
-### Configuration and secrets
-
-Configuration is loaded in this order:
-
-1. `appsettings.json`;
-2. `appsettings.{Environment}.json`;
-3. .NET user secrets in Development;
-4. environment variables as the final override.
-
-Real connection strings, JWT keys, client secrets, and mail credentials are expected outside tracked configuration.
-
-## Testing strategy
-
-The repository separates fast behavioral checks from broader integration boundaries:
-
-- **Server unit tests** validate services, repositories, controllers, Minimal APIs, security metadata, migrations, queues, and retry behavior.
-- **Server integration tests** exercise the hosted API, relational EF behavior, startup configuration, security pipeline, contracts, jobs, and external-service adapters.
-- **Server end-to-end tests** cover catalog, repository, scraping, wishlist, and security behavior against the composed system.
-- **Client unit tests** cover components, forms, services, guards, interceptors, directives, matching utilities, and state handling.
-- **Client integration tests** cover multi-component flows such as login, games, scraping, and scrape history.
-- **Playwright tests** exercise browser-level authentication, catalog creation, and scraping flows.
-
-## Deployment and local development
-
-The application can be run directly with the .NET and Angular toolchains or assembled with containerized dependencies.
-
-- The Windows local-release launcher starts the .NET API and optimized Angular client against an existing SQL Server LocalDB database.
-- Root Docker Compose configuration provides SQL Server 2022 and Redis 7 with persistent volumes.
-- Client and API Dockerfiles support container builds.
-- Optional mail infrastructure uses docker-mailserver, Rspamd, ClamAV, Fail2Ban, and Certbot-managed TLS certificates.
-
-For setup commands, required secrets, ports, and troubleshooting guidance, see [Getting Started](GETTING_STARTED.md).
-
-## Project structure
-
-```text
-SteamApp/
-├── SteamApp.Client/                     Angular application
-│   ├── src/app/pages/                   Route-level UI
-│   ├── src/app/components/              Reusable UI
-│   ├── src/app/services/                API and application services
-│   └── e2e/                             Playwright scenarios
-├── SteamApp.Server/
-│   ├── SteamApp.Models/                 Domain model
-│   ├── SteamApp.Application/            DTOs and application utilities
-│   ├── SteamApp.Interfaces/             Contracts
-│   ├── SteamApp.Infrastructure/         Persistence and external integrations
-│   ├── SteamApp.WebAPI/                 API host, security, jobs, and messaging
-│   ├── SteamApp.WebApiClient/           Typed .NET API clients
-│   ├── SteamApp.Tests/                  Unit tests
-│   ├── SteamApp.IntegrationTests/       Integration tests
-│   └── SteamApp.E2ETests/               Server end-to-end tests
-├── docs/                                Product and engineering documentation
-├── docker-compose.yml                   SQL Server and Redis
-└── docker-compose.mail.yml              Optional self-hosted mail stack
-```
+See [Getting Started](GETTING_STARTED.md), [Architecture Overview](ARCHITECTURE.md), and [API Reference](API_REFERENCE.md) for operational detail.
 
 ## Project position
 
-Steam Web Scraping CRM is best understood as an **operations platform for Steam market intelligence**, not a generic customer-contact CRM. Its differentiator is the combination of a relational catalog, reusable matching rules, multiple scraping strategies, queued and scheduled execution, user-scoped history, and export-ready analysis in one maintainable full-stack system.
-
-The repository already demonstrates production-oriented concerns—authentication, authorization, rate limiting, caching, message delivery, background processing, migrations, observability, and multi-level tests—while remaining structured so another developer can extend an existing domain or workflow without introducing a parallel architecture.
+SteamApp is best categorized as a **Steam market intelligence and workflow automation platform**. Its differentiator is not generic record keeping or raw scraping. It is the combination of connected market context, explicit reusable rules, observable execution, queue automation, user-scoped history, and frozen evidence in one maintainable system.

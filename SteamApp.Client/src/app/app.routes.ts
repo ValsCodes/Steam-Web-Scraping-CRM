@@ -7,18 +7,18 @@ const LOGIN_ROBOTS = 'noindex,follow';
 const PRIVATE_ROBOTS = 'noindex,nofollow';
 
 const defaultPrivateDescription =
-  'Authenticated Steam Web Scraping CRM workspace for managing catalog, monitoring, and scraping operations.';
+  'Authenticated SteamApp workspace for catalog context, market checks, monitoring, and workflow automation.';
 
 const aboutPageStructuredData = {
   '@context': 'https://schema.org',
   '@type': 'AboutPage',
-  name: 'About Steam Web Scraping CRM',
+  name: 'About SteamApp',
   description:
-    'About Steam Web Scraping CRM, a workspace for Steam market source configuration, catalog metadata, scraping workflows, monitoring, and exports.',
+    'About SteamApp, a market intelligence workspace for connected catalog context, reusable matching rules, live checks, and automated queues.',
   url: '/about',
   mainEntity: {
     '@type': 'WebApplication',
-    name: 'Steam Web Scraping CRM',
+    name: 'SteamApp',
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
   },
@@ -27,63 +27,71 @@ const aboutPageStructuredData = {
 const faqPageStructuredData = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
-  name: 'Steam Web Scraping CRM FAQ',
+  name: 'SteamApp FAQ',
   url: '/faq',
   mainEntity: [
     {
       '@type': 'Question',
-      name: 'What does Steam Web Scraping CRM do?',
+      name: 'What does SteamApp do?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'It helps teams configure Steam market sources, manage catalog data, run scraping workflows, monitor target items, and export results for analysis.',
+        text: 'SteamApp connects Steam market catalog data, reusable matching rules, live checks, automated queues, monitoring targets, and run history.',
       },
     },
     {
       '@type': 'Question',
-      name: 'Who is the CRM built for?',
+      name: 'Is SteamApp a traditional CRM?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'It is built for operators, analysts, and administrators who need a repeatable workspace for Steam market intelligence instead of scattered manual checks.',
+        text: 'No. SteamApp is built for operators and analysts who need repeatable Steam market research, not customer-relationship or sales-pipeline management.',
       },
     },
     {
       '@type': 'Question',
-      name: 'What catalog data can I manage?',
+      name: 'What is a manual check?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'You can manage games, game URLs, products, pixels, and tags, including the relationships that connect sources to monitored products and visual checks.',
+        text: 'A manual check evaluates Steam listings against reusable criteria and exposes live progress, outcome filters, run controls, and history.',
       },
     },
     {
       '@type': 'Question',
-      name: 'How do game URLs work?',
+      name: 'What are presets and preset combinations?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Game URLs define source settings such as page ranges, source mode, linked products, linked pixels, and the details needed for a scraping scenario.',
+        text: 'A preset stores one criteria expression. A preset combination applies two or more unique same-game presets with top-level AND or OR operators without changing the saved presets.',
       },
     },
     {
       '@type': 'Question',
-      name: 'Which scraping modes are supported?',
+      name: 'Can I filter results while a check is running?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'The app supports listing page workflows, alternate source workflows, and pixel-based validation scenarios for checking visual item attributes.',
+        text: 'Yes. Live results can be filtered by Pending, Matched, No match, and Failed before the run finishes.',
       },
     },
     {
       '@type': 'Question',
-      name: 'What is the difference between wish list and watch list monitoring?',
+      name: 'What does the Automated Queue do?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Wish list items focus on target conditions such as price thresholds, while watch list items keep priority market targets visible for ongoing review.',
+        text: 'It arranges saved presets, preset combinations, private check templates, and delays into an ordered recipe with block-level progress and frozen run history.',
       },
     },
     {
       '@type': 'Question',
-      name: 'Can I export data for offline analysis?',
+      name: 'Do queue runs use the latest presets?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Yes. Key table workflows are designed around filtering first, then exporting the current slice to Excel for review, reporting, or deeper analysis.',
+        text: 'A queue resolves its latest accessible preset versions when a run starts, then freezes that resolved setup for the run and its historical reruns.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What market context can I manage?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'You can organize games, Steam market URLs, products, tags, item groups, stock history, wish-list conditions, and watch-list targets.',
       },
     },
     {
@@ -91,15 +99,7 @@ const faqPageStructuredData = {
       name: 'Do I need an account to use the workspace?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Yes. Public pages explain the product, but catalog, scraping, monitoring, and profile workflows are protected behind login.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Is there a free tier?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'The pricing page presents a Free Tier for trying the core workflow, plus paid tiers for higher catalog, scraping, monitoring, and automation needs.',
+        text: 'Yes. Public pages explain the product, while catalog, checks, queues, monitoring, and profile workflows are protected behind sign-in.',
       },
     },
     {
@@ -122,12 +122,12 @@ export const routes: Routes = [
   {
     path: 'home',
     loadComponent: () => import('./pages/home/home-page').then((m) => m.HomePage),
-    title: 'Steam Web Scraping CRM',
+    title: 'SteamApp',
     data: {
       seo: {
-        title: 'Steam Web Scraping CRM',
+        title: 'SteamApp',
         description:
-          'Operate Steam market intelligence from one control surface for scraping, catalog metadata, monitoring, and operational workflows.',
+          'Connect Steam market catalog context, reusable matching rules, live checks, and automated queues in one operational workspace.',
         canonicalPath: '/home',
         robots: PUBLIC_ROBOTS,
         imagePath: '/assets/brand/steam-app-social.svg',
@@ -135,11 +135,11 @@ export const routes: Routes = [
         structuredData: {
           '@context': 'https://schema.org',
           '@type': 'WebApplication',
-          name: 'Steam Web Scraping CRM',
+          name: 'SteamApp',
           applicationCategory: 'BusinessApplication',
           operatingSystem: 'Web',
           description:
-            'A web application for Steam market source configuration, scraping workflow control, catalog metadata, and monitoring.',
+            'A web application for Steam market intelligence, reusable matching rules, live checks, queue automation, and monitoring.',
           url: '/home',
         },
       },
@@ -153,7 +153,7 @@ export const routes: Routes = [
       seo: {
         title: 'Subscription Pricing',
         description:
-          'Compare Steam Web Scraping CRM plans for catalog setup, scraping workflows, monitoring, exports, and automation.',
+          'Compare SteamApp plans for catalog context, market checks, monitoring, history, and workflow automation.',
         canonicalPath: '/pricing',
         robots: PUBLIC_ROBOTS,
         imagePath: '/assets/brand/steam-app-social.svg',
@@ -169,7 +169,7 @@ export const routes: Routes = [
       seo: {
         title: 'About',
         description:
-          'Learn how Steam Web Scraping CRM helps teams manage Steam market sources, catalog metadata, scraping workflows, monitoring, and exports.',
+          'Learn how SteamApp helps teams connect market context, matching rules, live checks, automated queues, and monitoring.',
         canonicalPath: '/about',
         robots: PUBLIC_ROBOTS,
         imagePath: '/assets/brand/steam-app-social.svg',
@@ -186,7 +186,7 @@ export const routes: Routes = [
       seo: {
         title: 'FAQ',
         description:
-          'Answers to common questions about Steam Web Scraping CRM catalog setup, scraping workflows, monitoring, exports, accounts, pricing, and external links.',
+          'Answers to common questions about SteamApp market context, matching rules, live checks, automated queues, accounts, and external links.',
         canonicalPath: '/faq',
         robots: PUBLIC_ROBOTS,
         imagePath: '/assets/brand/steam-app-social.svg',
@@ -202,7 +202,7 @@ export const routes: Routes = [
     data: {
       seo: {
         title: 'Login',
-        description: 'Sign in to the Steam Web Scraping CRM workspace.',
+        description: 'Sign in to the SteamApp workspace.',
         canonicalPath: '/login',
         robots: LOGIN_ROBOTS,
       },
@@ -219,7 +219,7 @@ export const routes: Routes = [
       seo: {
         title: 'External Link Disclosure',
         description:
-          'External link responsibility disclosure for Steam Web Scraping CRM users.',
+          'External link responsibility disclosure for SteamApp users.',
         canonicalPath: '/external-link-disclosure',
         robots: LOGIN_ROBOTS,
       },
@@ -233,7 +233,7 @@ export const routes: Routes = [
     data: {
       seo: {
         title: 'Session Expired',
-        description: 'Your Steam Web Scraping CRM session has expired.',
+        description: 'Your SteamApp session has expired.',
         canonicalPath: '/session-expired',
         robots: PRIVATE_ROBOTS,
       },
@@ -249,13 +249,6 @@ export const routes: Routes = [
       },
     },
     children: [
-      // {
-      //   path: 'web-scraper',
-      //   loadComponent: () =>
-      //     import('./pages/web-scraper/web-scraper.component').then((m) => m.WebScraperComponent),
-      //   title: 'Web Scraper',
-      //   data: { seo: { title: 'Web Scraper', canonicalPath: '/web-scraper' } },
-      // },
       {
         path: 'manual-mode-v2',
         loadComponent: () =>
@@ -382,25 +375,6 @@ export const routes: Routes = [
         title: 'Edit Product',
         data: { seo: { title: 'Edit Product', canonicalPath: '/products/edit' } },
       },
-      // {
-      //   path: 'pixels',
-      //   loadComponent: () =>
-      //     import('./pages/pixel/pixels-view/pixels-view').then((m) => m.PixelsView),
-      //   title: 'Pixels',
-      //   data: { seo: { title: 'Pixels', canonicalPath: '/pixels' } },
-      // },
-      // {
-      //   path: 'pixels/create',
-      //   loadComponent: () => import('./pages/pixel/pixel-form/pixel-form').then((m) => m.PixelForm),
-      //   title: 'Create Pixel',
-      //   data: { seo: { title: 'Create Pixel', canonicalPath: '/pixels/create' } },
-      // },
-      // {
-      //   path: 'pixels/edit/:id',
-      //   loadComponent: () => import('./pages/pixel/pixel-form/pixel-form').then((m) => m.PixelForm),
-      //   title: 'Edit Pixel',
-      //   data: { seo: { title: 'Edit Pixel', canonicalPath: '/pixels/edit' } },
-      // },
       {
         path: 'wishlist',
         loadComponent: () =>
@@ -471,7 +445,7 @@ export const routes: Routes = [
     data: {
       seo: {
         title: 'Page Not Found',
-        description: 'The requested Steam Web Scraping CRM page could not be found.',
+        description: 'The requested SteamApp page could not be found.',
         canonicalPath: '/404',
         robots: PRIVATE_ROBOTS,
       },
