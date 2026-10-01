@@ -68,6 +68,68 @@ public sealed class ManualCheckDataServiceTests
     }
 
     [Test]
+    public async Task CreateAndUpdatePresetAsync_PriceRange_PersistsAndRoundTrips()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var service = new ManualCheckDataService(database.Factory);
+        var input = PresetInput("Priced");
+        input.PriceRange = new ManualCheckPriceRangeDto
+        {
+            Mode = ManualCheckPriceRangeModeEnum.Between,
+            MinimumPriceMinorUnits = 125,
+            MaximumPriceMinorUnits = 350
+        };
+
+        var created = await service.CreatePresetAsync(input, CancellationToken.None);
+        input.PriceRange = new ManualCheckPriceRangeDto
+        {
+            Mode = ManualCheckPriceRangeModeEnum.Below,
+            MaximumPriceMinorUnits = 275
+        };
+        var updated = await service.UpdatePresetAsync(created.Id, input, CancellationToken.None);
+        var stored = database.Context.ManualCheckPresets.Single(x => x.Id == created.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(created.PriceRange!.Mode, Is.EqualTo(ManualCheckPriceRangeModeEnum.Between));
+            Assert.That(created.PriceRange.MinimumPriceMinorUnits, Is.EqualTo(125));
+            Assert.That(created.PriceRange.MaximumPriceMinorUnits, Is.EqualTo(350));
+            Assert.That(updated.PriceRange!.Mode, Is.EqualTo(ManualCheckPriceRangeModeEnum.Below));
+            Assert.That(updated.PriceRange.MinimumPriceMinorUnits, Is.Null);
+            Assert.That(updated.PriceRange.MaximumPriceMinorUnits, Is.EqualTo(275));
+            Assert.That(stored.PriceRangeMode, Is.EqualTo(ManualCheckPriceRangeModeEnum.Below));
+            Assert.That(stored.MinimumPriceMinorUnits, Is.Null);
+            Assert.That(stored.MaximumPriceMinorUnits, Is.EqualTo(275));
+        });
+    }
+
+    [TestCase(ManualCheckPriceRangeModeEnum.Above, null, null)]
+    [TestCase(ManualCheckPriceRangeModeEnum.Above, 100, 200)]
+    [TestCase(ManualCheckPriceRangeModeEnum.Between, 200, 100)]
+    [TestCase(ManualCheckPriceRangeModeEnum.Below, 100, 200)]
+    [TestCase(ManualCheckPriceRangeModeEnum.Below, null, -1)]
+    public void CreatePresetAsync_InvalidPriceRange_RejectsRequest(
+        ManualCheckPriceRangeModeEnum mode,
+        long? minimum,
+        long? maximum)
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var service = new ManualCheckDataService(database.Factory);
+        var input = PresetInput("Invalid price");
+        input.PriceRange = new ManualCheckPriceRangeDto
+        {
+            Mode = mode,
+            MinimumPriceMinorUnits = minimum,
+            MaximumPriceMinorUnits = maximum
+        };
+
+        var exception = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.CreatePresetAsync(input, CancellationToken.None));
+
+        Assert.That(exception!.StatusCode, Is.EqualTo(400));
+    }
+
+    [Test]
     public async Task PresetItemGroup_CreateListUpdateAndClear_ValidatesGameAndOrdersUngroupedLast()
     {
         using var database = TestDb.CreateSeededDatabase();
@@ -542,6 +604,11 @@ public sealed class ManualCheckDataServiceTests
         var combination = new ManualCheckPresetCombinationWriteDto
         {
             ListingLimit = 20,
+            PriceRange = new ManualCheckPriceRangeDto
+            {
+                Mode = ManualCheckPriceRangeModeEnum.Above,
+                MinimumPriceMinorUnits = 500
+            },
             CooldownMinutes = 1,
             CooldownSeconds = 5,
             Terms =
@@ -575,6 +642,8 @@ public sealed class ManualCheckDataServiceTests
             Assert.That(row.ManualCheckPresetId, Is.Null);
             Assert.That(row.PresetName, Is.EqualTo("(Paints) OR (Effects)"));
             Assert.That(detail!.Setup.ListingLimit, Is.EqualTo(20));
+            Assert.That(detail.Setup.PriceRange!.Mode, Is.EqualTo(ManualCheckPriceRangeModeEnum.Above));
+            Assert.That(detail.Setup.PriceRange.MinimumPriceMinorUnits, Is.EqualTo(500));
             Assert.That(detail.Setup.CooldownMinutes, Is.EqualTo(1));
             Assert.That(detail.Setup.CooldownSeconds, Is.EqualTo(5));
             Assert.That(detail.Setup.PresetCombination!.Terms.Select(x => x.PresetName), Is.EqualTo(new[] { "Paints", "Effects" }));
@@ -582,6 +651,7 @@ public sealed class ManualCheckDataServiceTests
             Assert.That(detail.Setup.Criteria.Select(x => x.CloseGroupCount), Is.EqualTo(new[] { 0, 2, 1 }));
             Assert.That(detail.Setup.Criteria[2].ConditionOperatorId, Is.EqualTo((long)ManualCheckConditionOperatorEnum.Or));
             Assert.That(rerunDetail!.Setup.PresetCombination!.Terms.Select(x => x.PresetName), Is.EqualTo(new[] { "Paints", "Effects" }));
+            Assert.That(rerunDetail.Setup.PriceRange!.MinimumPriceMinorUnits, Is.EqualTo(500));
             Assert.That(rerunDetail.Setup.Criteria[0].ValueContains, Is.EqualTo("Mean Green"));
         });
     }

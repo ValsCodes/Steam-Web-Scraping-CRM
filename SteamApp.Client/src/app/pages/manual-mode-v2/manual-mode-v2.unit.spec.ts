@@ -11,6 +11,7 @@ import {
 import { GameUrl, GameUrlProduct, ManualCheckRunDetail, ScrapingModeEnum } from '../../models';
 import { ManualCheckSetupDialogComponent } from './manual-check-setup-dialog.component';
 import { ManualCheckSteamResultDialogComponent } from './manual-check-steam-result-dialog.component';
+import { ManualCheckMatchesDialogComponent } from './manual-check-matches-dialog.component';
 import { ManualCheckTraceDialogComponent } from './manual-check-trace-dialog.component';
 import { AdvancedStockDialogComponent } from './advanced-stock-dialog.component';
 import { ManualModeV2 } from './manual-mode-v2';
@@ -650,6 +651,38 @@ describe('ManualModeV2 external link disclosure', () => {
     expect(component.isProductRemoved(6)).toBeFalse();
   });
 
+  it('opens all matches for a product with the run criteria and checked-price trace', () => {
+    const completed = runDetail('Succeeded', 1, 0);
+    completed.results.productTraces = [{
+      productId: 5,
+      productName: 'Matched Item',
+      fullUrl: '',
+      matchEvaluated: true,
+      matched: true,
+      matchedAssetCount: 1,
+      lowestCheckedPriceMinorUnits: 115,
+      priceCurrencyCode: 'EUR',
+      priceRangeMatched: null,
+      steamApiResultJson: null,
+      durationMilliseconds: 1,
+    }];
+    component.automatedRun = completed;
+    (component as unknown as { applyAutomatedRun(run: ManualCheckRunDetail): void }).applyAutomatedRun(completed);
+
+    component.openAutomatedMatches(5);
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      ManualCheckMatchesDialogComponent,
+      jasmine.objectContaining({
+        data: jasmine.objectContaining({
+          match: completed.results.matches[0],
+          criteria: completed.setup.criteria,
+          trace: completed.results.productTraces[0],
+        }),
+      }),
+    );
+  });
+
   it('keeps the product membership state unchanged when an update fails', () => {
     const product = {
       productId: 6,
@@ -750,10 +783,44 @@ describe('ManualModeV2 external link disclosure', () => {
       { productId: 2, productName: 'Alpha', currentStock: -1 },
       { productId: 1, productName: 'Alpha', currentStock: -1 },
     ] as GameUrlProduct[];
-    component.stockSortControl.setValue('ascending');
+    component.productSortControl.setValue('stock-ascending');
 
     expect(component.productsFiltered.map((product) => product.productId)).toEqual([1, 2, 3]);
   });
+
+  it('orders checked prices in both directions and keeps unavailable prices last', fakeAsync(() => {
+    component.ngOnInit();
+    const completed = runDetail('Succeeded', 0, 0);
+    completed.totalProducts = 3;
+    completed.checkedProducts = 3;
+    completed.setup.products = [
+      { productId: 1, productName: 'Mid', gameUrlId: 2, gameUrlName: 'Market', fullUrl: '', tags: [], rating: null },
+      { productId: 2, productName: 'Unavailable', gameUrlId: 2, gameUrlName: 'Market', fullUrl: '', tags: [], rating: null },
+      { productId: 3, productName: 'Low', gameUrlId: 2, gameUrlName: 'Market', fullUrl: '', tags: [], rating: null },
+    ];
+    completed.results.productTraces = [
+      { productId: 1, productName: 'Mid', fullUrl: '', matchEvaluated: true, matched: false, matchedAssetCount: 0, lowestCheckedPriceMinorUnits: 250, priceCurrencyCode: 'EUR', priceRangeMatched: null, steamApiResultJson: null, durationMilliseconds: 1 },
+      { productId: 2, productName: 'Unavailable', fullUrl: '', matchEvaluated: true, matched: false, matchedAssetCount: 0, lowestCheckedPriceMinorUnits: null, priceCurrencyCode: null, priceRangeMatched: null, steamApiResultJson: null, durationMilliseconds: 1 },
+      { productId: 3, productName: 'Low', fullUrl: '', matchEvaluated: true, matched: false, matchedAssetCount: 0, lowestCheckedPriceMinorUnits: 100, priceCurrencyCode: 'EUR', priceRangeMatched: null, steamApiResultJson: null, durationMilliseconds: 1 },
+    ];
+    dialog.open.and.returnValue({ afterClosed: () => of(77) });
+    manualCheckService.getRun.and.returnValue(of(completed));
+
+    component.automatedCheckHistoryButtonClicked();
+    tick(0);
+    component.productSortControl.setValue('price-ascending');
+    expect(component.productsFiltered.map((product) => product.productId)).toEqual([3, 1, 2]);
+
+    component.productSortControl.setValue('price-descending');
+    expect(component.productsFiltered.map((product) => product.productId)).toEqual([1, 3, 2]);
+
+    component.productSortControl.setValue('name-ascending');
+    expect(component.productsFiltered.map((product) => product.productId)).toEqual([3, 1, 2]);
+
+    component.productSortControl.setValue('name-descending');
+    expect(component.productsFiltered.map((product) => product.productId)).toEqual([2, 1, 3]);
+    component.ngOnDestroy();
+  }));
 
   it('updates one card from the authoritative increment response', () => {
     const product = {
@@ -852,7 +919,7 @@ describe('ManualModeV2 external link disclosure', () => {
     component.onProductHover(2, new MouseEvent('mouseenter', { shiftKey: true }));
     expect([...component.productPreviewIds]).toEqual([3, 1, 2]);
     expect(component.isProductSelected(99)).toBeFalse();
-    component.stockSortControl.setValue('descending');
+    component.productSortControl.setValue('stock-descending');
     expect(component.productPreviewIds.size).toBe(0);
     component.ngOnDestroy();
   });
@@ -936,7 +1003,7 @@ describe('ManualModeV2 external link disclosure', () => {
       rating: null,
     }));
     running.results.productTraces = [
-      { productId: 5, productName: 'Matched', fullUrl: '', matchEvaluated: true, matched: true, matchedAssetCount: 1, steamApiResultJson: null, durationMilliseconds: 1 },
+      { productId: 5, productName: 'Matched', fullUrl: '', matchEvaluated: true, matched: true, matchedAssetCount: 1, lowestCheckedPriceMinorUnits: 115, priceCurrencyCode: 'EUR', priceRangeMatched: null, steamApiResultJson: null, durationMilliseconds: 1 },
       { productId: 6, productName: 'Failed', fullUrl: '', matchEvaluated: false, matched: false, matchedAssetCount: 0, steamApiResultJson: null, durationMilliseconds: 1 },
       { productId: 7, productName: 'No match', fullUrl: '', matchEvaluated: true, matched: false, matchedAssetCount: 0, steamApiResultJson: null, durationMilliseconds: 1 },
     ];
@@ -950,6 +1017,8 @@ describe('ManualModeV2 external link disclosure', () => {
     expect(component.getAutomatedProductOutcome(6)).toBe('Failed');
     expect(component.getAutomatedProductOutcome(7)).toBe('No match');
     expect(component.getAutomatedProductOutcome(8)).toBe('Pending');
+    expect(component.getAutomatedPriceTrace(5)?.priceRangeMatched).toBeNull();
+    expect(component.formatAutomatedPrice(component.getAutomatedPriceTrace(5)!)).toContain('1.15');
     expect(component.automatedRunActive).toBeTrue();
 
     component.setAutomatedOutcomeFilter('Matched');

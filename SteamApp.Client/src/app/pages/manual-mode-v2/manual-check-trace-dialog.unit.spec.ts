@@ -6,6 +6,7 @@ import { of, throwError } from 'rxjs';
 import { ManualCheckRunDetail } from '../../models';
 import { ExternalLinkDisclosureService, ManualCheckService } from '../../services';
 import { ManualCheckSteamResultDialogComponent } from './manual-check-steam-result-dialog.component';
+import { ManualCheckMatchesDialogComponent } from './manual-check-matches-dialog.component';
 import {
   ManualCheckTraceDialogComponent,
   ManualCheckTraceDialogData,
@@ -45,6 +46,34 @@ describe('ManualCheckTraceDialogComponent', () => {
     productName: 'Unmatched Item',
     matchEvaluated: true,
     matched: false,
+  };
+
+  const matchedResult = {
+    productId: 2,
+    productName: 'Matched Item',
+    gameUrlId: 8,
+    gameUrlName: 'Steam Market',
+    fullUrl: matchedProductTrace.fullUrl,
+    tags: [],
+    rating: null,
+    matchedAssets: [{
+      appId: '440',
+      contextId: '2',
+      assetId: 'matched-asset',
+      classId: 'matched-class',
+      instanceId: '0',
+      marketName: 'Matched Item',
+      iconUrl: '',
+      priceMinorUnits: 125,
+      priceCurrencyCode: 'EUR',
+      priceRangeMatched: true,
+      descriptions: [{
+        name: 'attribute',
+        value: 'Mean Green',
+        color: '',
+        matchedCriterionIndexes: [0],
+      }],
+    }],
   };
 
   const detail: ManualCheckRunDetail = {
@@ -205,6 +234,51 @@ describe('ManualCheckTraceDialogComponent', () => {
     expect(actions).not.toBeNull();
   });
 
+  it('shows the historical price rule and out-of-range checked price', () => {
+    dialogData = {
+      detail: {
+        ...detail,
+        setup: {
+          ...detail.setup,
+          priceRange: {
+            mode: 'Above',
+            minimumPriceMinorUnits: 200,
+            maximumPriceMinorUnits: null,
+          },
+        },
+        results: {
+          ...detail.results,
+          productTraces: [{
+            ...matchedProductTrace,
+            lowestCheckedPriceMinorUnits: 115,
+            priceCurrencyCode: 'EUR',
+            priceRangeMatched: false,
+          }],
+        },
+      },
+      initialView: 'setup',
+    };
+    createComponent();
+
+    expect(fixture.nativeElement.textContent).toContain('Price check: Above €2.00');
+
+    const checksTab = Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Checks'));
+    checksTab?.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('€1.15');
+    expect(fixture.nativeElement.textContent).toContain('Out of range');
+    expect(fixture.nativeElement.querySelector('.manual-check-trace__price--failed')).not.toBeNull();
+  });
+
+  it('keeps legacy traces readable when no price was stored', () => {
+    dialogData = { detail, initialView: 'results' };
+    createComponent();
+
+    expect(fixture.nativeElement.textContent).toContain('Price unavailable');
+    expect(fixture.nativeElement.textContent).toContain('Unavailable');
+  });
+
   it('filters product checks by matched and unmatched results while excluding failed checks', () => {
     dialogData = {
       detail: {
@@ -245,6 +319,33 @@ describe('ManualCheckTraceDialogComponent', () => {
     expect(openDialog).toHaveBeenCalledWith(
       ManualCheckSteamResultDialogComponent,
       jasmine.objectContaining({ data: productTrace }),
+    );
+  });
+
+  it('opens all historical matches with the snapshotted criteria and matching trace', () => {
+    const historicalDetail: ManualCheckRunDetail = {
+      ...detail,
+      results: {
+        ...detail.results,
+        matches: [matchedResult],
+        productTraces: [matchedProductTrace],
+      },
+    };
+    dialogData = { detail: historicalDetail, initialView: 'results' };
+    createComponent();
+
+    component.openMatches(matchedResult);
+
+    expect(component.getMatch(matchedResult.productId)).toBe(matchedResult);
+    expect(openDialog).toHaveBeenCalledWith(
+      ManualCheckMatchesDialogComponent,
+      jasmine.objectContaining({
+        data: jasmine.objectContaining({
+          match: matchedResult,
+          criteria: historicalDetail.setup.criteria,
+          trace: matchedProductTrace,
+        }),
+      }),
     );
   });
 

@@ -22,6 +22,8 @@ import { finalize } from 'rxjs';
 
 import { formatDuration } from '../../common';
 import {
+  ManualCheckPriceRange,
+  ManualCheckProductResult,
   ManualCheckProductTrace,
   ManualCheckRunDetail,
 } from '../../models';
@@ -32,6 +34,10 @@ import {
   parseManualCheckExpression,
 } from './manual-check-expression';
 import { ManualCheckSteamResultDialogComponent } from './manual-check-steam-result-dialog.component';
+import {
+  ManualCheckMatchesDialogComponent,
+  ManualCheckMatchesDialogData,
+} from './manual-check-matches-dialog.component';
 
 export type ManualCheckTraceView = 'setup' | 'results' | 'errors';
 type ManualCheckResultFilter = 'all' | 'matched' | 'unmatched';
@@ -96,6 +102,7 @@ export interface ManualCheckTraceDialogData {
                 <span>{{ run.setup.cooldownMinutes }}m {{ run.setup.cooldownSeconds }}s</span>
               }
             </p>
+            <p>Price check: {{ formatPriceRange(run.setup.priceRange) }}</p>
             <p>Steam data: {{ run.setup.bypassCache ? 'fresh fetch requested; cache bypassed' : '20-minute cache allowed' }}.</p>
             <p>{{ run.setup.products.length }} product(s) captured from {{ run.setup.gameUrlName || ('Source #' + run.setup.gameUrlId) }}.</p>
             @if (setupExpression) {
@@ -120,6 +127,7 @@ export interface ManualCheckTraceDialogData {
                 <article class="manual-check-trace__record">
                   <h3>{{ match.productName }}</h3>
                   <p>{{ match.matchedAssets.length }} matched asset(s). Steam result trace unavailable.</p>
+                  <button mat-stroked-button type="button" (click)="openMatches(match)">Inspect all matches</button>
                 </article>
               }
             } @else {
@@ -167,6 +175,8 @@ export interface ManualCheckTraceDialogData {
                         <th>Product</th>
                         <th>Match result</th>
                         <th>Matched assets</th>
+                        <th>Cheapest price</th>
+                        <th>Price check</th>
                         <th>Duration</th>
                         <th>Actions</th>
                       </tr>
@@ -187,9 +197,17 @@ export interface ManualCheckTraceDialogData {
                             </span>
                           </td>
                           <td>{{ trace.matchedAssetCount }}</td>
+                          <td>{{ formatPrice(trace) }}</td>
+                          <td>
+                            <span
+                              [class.manual-check-trace__price--matched]="trace.priceRangeMatched === true"
+                              [class.manual-check-trace__price--failed]="trace.priceRangeMatched === false">
+                              {{ priceRangeStatus(trace) }}
+                            </span>
+                          </td>
                           <td>{{ formatDuration(trace.durationMilliseconds) }}</td>
                           <td>
-                            @if (trace.steamApiResultJson || trace.fullUrl) {
+                            @if (trace.steamApiResultJson || trace.fullUrl || getMatch(trace.productId)) {
                               <div class="table-actions-cell">
                                 <button
                                   type="button"
@@ -200,6 +218,11 @@ export interface ManualCheckTraceDialogData {
                                   <mat-icon>more_horiz</mat-icon>
                                 </button>
                                 <mat-menu #steamResultActionsMenu="matMenu" xPosition="before" panelClass="table-actions-menu">
+                                  @if (getMatch(trace.productId); as match) {
+                                    <button type="button" mat-menu-item (click)="openMatches(match)">
+                                      <span>Inspect all matches</span>
+                                    </button>
+                                  }
                                   @if (trace.steamApiResultJson) {
                                     <button type="button" mat-menu-item (click)="openSteamResult(trace)">
                                       <span>View Steam API result</span>
@@ -286,6 +309,8 @@ export interface ManualCheckTraceDialogData {
     small, .manual-check-trace__muted { color: #64748b; }
     .manual-check-trace__result-status { display: inline-block; border-radius: 999px; background: #e2e8f0; padding: .2rem .5rem; color: #475569; }
     .manual-check-trace__result-status--matched { background: #dcfce7; color: #166534; }
+    .manual-check-trace__price--matched { color: #166534; font-weight: 600; }
+    .manual-check-trace__price--failed { color: #b91c1c; font-weight: 600; }
     .manual-check-trace__result-status--failed { background: #fee2e2; color: #991b1b; }
     .table-actions-cell { display: flex; justify-content: center; }
     .manual-check-trace__expression { display: flex; flex-direction: column; gap: .4rem; border-left: 4px solid #60a5fa; border-radius: .25rem; background: #eff6ff; padding: .75rem; }
@@ -328,6 +353,61 @@ export class ManualCheckTraceDialogComponent implements OnInit {
     return traces.filter((trace) =>
       trace.matchEvaluated && trace.matched === (filter === 'matched'));
   });
+
+  formatPrice(trace: ManualCheckProductTrace): string {
+    if (trace.lowestCheckedPriceMinorUnits == null) {
+      return 'Price unavailable';
+    }
+
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: trace.priceCurrencyCode || 'EUR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(trace.lowestCheckedPriceMinorUnits / 100);
+  }
+
+  priceRangeStatus(trace: ManualCheckProductTrace): string {
+    if (trace.lowestCheckedPriceMinorUnits == null) {
+      return 'Unavailable';
+    }
+    if (trace.priceRangeMatched === true) {
+      return 'In range';
+    }
+    if (trace.priceRangeMatched === false) {
+      return 'Out of range';
+    }
+    return 'Not configured';
+  }
+
+  formatPriceRange(priceRange: ManualCheckPriceRange | null | undefined): string {
+    if (!priceRange) {
+      return 'Any price';
+    }
+
+    const minimum = priceRange.minimumPriceMinorUnits == null
+      ? null
+      : this.formatMinorUnits(priceRange.minimumPriceMinorUnits);
+    const maximum = priceRange.maximumPriceMinorUnits == null
+      ? null
+      : this.formatMinorUnits(priceRange.maximumPriceMinorUnits);
+
+    switch (priceRange.mode) {
+      case 'Above': return `Above ${minimum}`;
+      case 'Between': return `${minimum} to ${maximum} (inclusive)`;
+      case 'Below': return `Below ${maximum}`;
+    }
+  }
+
+  private formatMinorUnits(value: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value / 100);
+  }
+
   setupExpression: ManualCheckGroupNode | null = null;
   setupExpressionValid = true;
   view: ManualCheckTraceView = 'results';
@@ -388,6 +468,28 @@ export class ManualCheckTraceDialogComponent implements OnInit {
   productDuration(detail: ManualCheckRunDetail, productId: number): number | null {
     return detail.results.productTraces.find((trace) => trace.productId === productId)
       ?.durationMilliseconds ?? null;
+  }
+
+  getMatch(productId: number): ManualCheckProductResult | null {
+    return this.detail()?.results.matches.find((match) => match.productId === productId) ?? null;
+  }
+
+  openMatches(match: ManualCheckProductResult): void {
+    const detail = this.detail();
+    const data: ManualCheckMatchesDialogData = {
+      match,
+      criteria: detail?.setup.criteria ?? [],
+      trace: detail?.results.productTraces.find((trace) => trace.productId === match.productId) ?? null,
+    };
+    this.dialog.open<ManualCheckMatchesDialogComponent, ManualCheckMatchesDialogData>(
+      ManualCheckMatchesDialogComponent,
+      {
+        data,
+        width: 'min(48rem, 96vw)',
+        maxWidth: '96vw',
+        maxHeight: '92vh',
+      },
+    );
   }
 
   openProductPage(trace: ManualCheckProductTrace): void {

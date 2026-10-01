@@ -70,6 +70,11 @@ import {
   ManualCheckTraceView,
 } from './manual-check-trace-dialog.component';
 import { ManualCheckSteamResultDialogComponent } from './manual-check-steam-result-dialog.component';
+import { ManualCheckMatchTreeComponent } from './manual-check-match-tree.component';
+import {
+  ManualCheckMatchesDialogComponent,
+  ManualCheckMatchesDialogData,
+} from './manual-check-matches-dialog.component';
 import { groupByItemGroup, ItemGroupSection } from '../../common/item-grouping';
 import {
   AdvancedStockDialogComponent,
@@ -77,7 +82,14 @@ import {
 } from './advanced-stock-dialog.component';
 
 type StockStateFilter = 'all' | 'negative' | 'zero' | 'positive';
-type StockSort = 'default' | 'ascending' | 'descending';
+type ProductSort =
+  | 'default'
+  | 'price-ascending'
+  | 'price-descending'
+  | 'stock-ascending'
+  | 'stock-descending'
+  | 'name-ascending'
+  | 'name-descending';
 type AutomatedOutcomeFilter = 'All' | 'Matched' | 'Failed' | 'Pending' | 'No match';
 
 @Component({
@@ -92,7 +104,8 @@ type AutomatedOutcomeFilter = 'All' | 'Matched' | 'Failed' | 'Pending' | 'No mat
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
-    ExternalLinkDirective
+    ExternalLinkDirective,
+    ManualCheckMatchTreeComponent,
 ],
   templateUrl: './manual-mode-v2.html',
   styleUrl: './manual-mode-v2.scss',
@@ -201,7 +214,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   readonly searchByRatingFilterControl = new FormControl<number | null>(null);
   readonly searchByStockFilterControl = new FormControl<number | null>(null);
   readonly stockStateFilterControl = new FormControl<StockStateFilter>('all', { nonNullable: true });
-  readonly stockSortControl = new FormControl<StockSort>('default', { nonNullable: true });
+  readonly productSortControl = new FormControl<ProductSort>('default', { nonNullable: true });
 
   readonly tagSelectControl = new FormControl<Tag | null>({
     value: null,
@@ -321,7 +334,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       });
 
-    this.stockSortControl.valueChanges
+    this.productSortControl.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
         this.loadFilteredProducts();
@@ -539,6 +552,56 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   getAutomatedSteamApiResult(productId: number): ManualCheckProductTrace | null {
     const trace = this.automatedProductTraces.get(productId);
     return trace?.steamApiResultJson ? trace : null;
+  }
+
+  getAutomatedPriceTrace(productId: number): ManualCheckProductTrace | null {
+    const trace = this.automatedProductTraces.get(productId);
+    return trace?.lowestCheckedPriceMinorUnits == null ? null : trace;
+  }
+
+  openAutomatedMatches(productId: number): void {
+    const match = this.getAutomatedMatch(productId);
+    if (!match) {
+      return;
+    }
+
+    const data: ManualCheckMatchesDialogData = {
+      match,
+      criteria: this.automatedRun?.setup.criteria ?? [],
+      trace: this.automatedProductTraces.get(productId) ?? null,
+    };
+    this.dialog.open<ManualCheckMatchesDialogComponent, ManualCheckMatchesDialogData>(
+      ManualCheckMatchesDialogComponent,
+      {
+        data,
+        width: 'min(48rem, 96vw)',
+        maxWidth: '96vw',
+        maxHeight: '92vh',
+      },
+    );
+  }
+
+  formatAutomatedPrice(trace: ManualCheckProductTrace): string {
+    return this.formatPriceMinorUnits(
+      trace.lowestCheckedPriceMinorUnits,
+      trace.priceCurrencyCode,
+    );
+  }
+
+  private formatPriceMinorUnits(
+    priceMinorUnits: number | null | undefined,
+    currencyCode: string | null | undefined,
+  ): string {
+    if (priceMinorUnits == null) {
+      return 'Price unavailable';
+    }
+
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currencyCode || 'EUR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(priceMinorUnits / 100);
   }
 
   openAutomatedSteamApiResult(productId: number): void {
@@ -905,7 +968,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.searchByRatingFilterControl.setValue(null, { emitEvent: false });
     this.searchByStockFilterControl.setValue(null, { emitEvent: false });
     this.stockStateFilterControl.setValue('all', { emitEvent: false });
-    this.stockSortControl.setValue('default', { emitEvent: false });
+    this.productSortControl.setValue('default', { emitEvent: false });
     this.automatedOutcomeFilter = 'All';
 
     this.tagsFilter = [];
@@ -1147,14 +1210,33 @@ export class ManualModeV2 implements OnInit, OnDestroy {
         matchesExactStock && matchesStockState;
     });
 
-    const stockSort = this.stockSortControl.value;
-    this.productsFiltered = stockSort === 'default'
+    const productSort = this.productSortControl.value;
+    this.productsFiltered = productSort === 'default'
       ? filtered
       : [...filtered].sort((left, right) => {
-          const stockComparison = stockSort === 'ascending'
-            ? left.currentStock - right.currentStock
-            : right.currentStock - left.currentStock;
-          if (stockComparison !== 0) { return stockComparison; }
+          let comparison = 0;
+          if (productSort === 'price-ascending' || productSort === 'price-descending') {
+            const leftPrice = this.getAutomatedPriceTrace(left.productId)?.lowestCheckedPriceMinorUnits ?? null;
+            const rightPrice = this.getAutomatedPriceTrace(right.productId)?.lowestCheckedPriceMinorUnits ?? null;
+
+            if (leftPrice === null && rightPrice !== null) { return 1; }
+            if (leftPrice !== null && rightPrice === null) { return -1; }
+            if (leftPrice !== null && rightPrice !== null) {
+              comparison = productSort === 'price-ascending'
+                ? leftPrice - rightPrice
+                : rightPrice - leftPrice;
+            }
+          } else if (productSort === 'stock-ascending' || productSort === 'stock-descending') {
+            comparison = productSort === 'stock-ascending'
+              ? left.currentStock - right.currentStock
+              : right.currentStock - left.currentStock;
+          } else {
+            comparison = productSort === 'name-ascending'
+              ? (left.productName ?? '').localeCompare(right.productName ?? '')
+              : (right.productName ?? '').localeCompare(left.productName ?? '');
+          }
+
+          if (comparison !== 0) { return comparison; }
 
           const nameComparison = (left.productName ?? '').localeCompare(right.productName ?? '');
           return nameComparison !== 0 ? nameComparison : left.productId - right.productId;

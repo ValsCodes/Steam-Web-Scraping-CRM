@@ -121,6 +121,9 @@ public sealed class ManualCheckDataService(
             ItemGroupId = normalized.ItemGroupId,
             Name = normalized.Name,
             ListingLimit = normalized.ListingLimit,
+            PriceRangeMode = normalized.PriceRange?.Mode,
+            MinimumPriceMinorUnits = normalized.PriceRange?.MinimumPriceMinorUnits,
+            MaximumPriceMinorUnits = normalized.PriceRange?.MaximumPriceMinorUnits,
             CooldownMinutes = normalized.CooldownMinutes,
             CooldownSeconds = normalized.CooldownSeconds,
             Criteria = CreateCriterionEntities(normalized.Criteria),
@@ -175,6 +178,9 @@ public sealed class ManualCheckDataService(
         entity.ItemGroupId = normalized.ItemGroupId;
         entity.Name = normalized.Name;
         entity.ListingLimit = normalized.ListingLimit;
+        entity.PriceRangeMode = normalized.PriceRange?.Mode;
+        entity.MinimumPriceMinorUnits = normalized.PriceRange?.MinimumPriceMinorUnits;
+        entity.MaximumPriceMinorUnits = normalized.PriceRange?.MaximumPriceMinorUnits;
         entity.CooldownMinutes = normalized.CooldownMinutes;
         entity.CooldownSeconds = normalized.CooldownSeconds;
         var existingCriteria = entity.Criteria.OrderBy(x => x.SortOrder).ToList();
@@ -267,6 +273,7 @@ public sealed class ManualCheckDataService(
             original.PresetName,
             original.GameId,
             setup.ListingLimit,
+            setup.PriceRange,
             setup.CooldownMinutes,
             setup.CooldownSeconds,
             false,
@@ -342,6 +349,7 @@ public sealed class ManualCheckDataService(
                 preset.Name,
                 preset.GameId,
                 preset.ListingLimit,
+                ToPriceRangeDto(preset),
                 preset.CooldownMinutes,
                 preset.CooldownSeconds,
                 bypassCache,
@@ -366,6 +374,7 @@ public sealed class ManualCheckDataService(
                 resolved.DisplayName,
                 resolved.GameId,
                 resolved.ListingLimit,
+                resolved.PriceRange,
                 resolved.CooldownMinutes,
                 resolved.CooldownSeconds,
                 bypassCache,
@@ -386,6 +395,7 @@ public sealed class ManualCheckDataService(
             GameId = gameId,
             Name = privateTemplate!.Name,
             ListingLimit = privateTemplate.ListingLimit,
+            PriceRange = privateTemplate.PriceRange,
             CooldownMinutes = privateTemplate.CooldownMinutes,
             CooldownSeconds = privateTemplate.CooldownSeconds,
             Criteria = privateTemplate.Criteria
@@ -399,6 +409,7 @@ public sealed class ManualCheckDataService(
             privatePreset.Name,
             privatePreset.GameId,
             privatePreset.ListingLimit,
+            privatePreset.PriceRange,
             privatePreset.CooldownMinutes,
             privatePreset.CooldownSeconds,
             bypassCache,
@@ -934,6 +945,7 @@ public sealed class ManualCheckDataService(
         string presetName,
         long presetGameId,
         int listingLimit,
+        ManualCheckPriceRangeDto? priceRange,
         int? cooldownMinutes,
         int? cooldownSeconds,
         bool bypassCache,
@@ -950,6 +962,7 @@ public sealed class ManualCheckDataService(
             presetName,
             presetGameId,
             listingLimit,
+            priceRange,
             cooldownMinutes,
             cooldownSeconds,
             bypassCache,
@@ -968,6 +981,7 @@ public sealed class ManualCheckDataService(
         string presetName,
         long presetGameId,
         int listingLimit,
+        ManualCheckPriceRangeDto? priceRange,
         int? cooldownMinutes,
         int? cooldownSeconds,
         bool bypassCache,
@@ -977,6 +991,7 @@ public sealed class ManualCheckDataService(
         CancellationToken cancellationToken)
     {
         var cooldown = NormalizeCooldown(cooldownMinutes, cooldownSeconds);
+        var normalizedPriceRange = NormalizePriceRange(priceRange);
         var normalizedProductIds = NormalizeProductIds(requestedProductIds);
         var gameUrl = await db.GameUrls
             .AsNoTracking()
@@ -1087,6 +1102,7 @@ public sealed class ManualCheckDataService(
             GameUrlId = gameUrl.Id,
             GameUrlName = gameUrl.Name,
             ListingLimit = NormalizeListingLimit(listingLimit),
+            PriceRange = normalizedPriceRange,
             CooldownMinutes = cooldown.Minutes,
             CooldownSeconds = cooldown.Seconds,
             BypassCache = bypassCache,
@@ -1168,6 +1184,7 @@ public sealed class ManualCheckDataService(
             ItemGroupId = input.ItemGroupId,
             Name = name,
             ListingLimit = NormalizeListingLimit(input.ListingLimit),
+            PriceRange = NormalizePriceRange(input.PriceRange),
             CooldownMinutes = cooldown.Minutes,
             CooldownSeconds = cooldown.Seconds,
             Criteria = NormalizeCriteria(input.Criteria)
@@ -1182,6 +1199,46 @@ public sealed class ManualCheckDataService(
         }
 
         return listingLimit;
+    }
+
+    private static ManualCheckPriceRangeDto? NormalizePriceRange(ManualCheckPriceRangeDto? priceRange)
+    {
+        if (priceRange is null)
+        {
+            return null;
+        }
+
+        if (!Enum.IsDefined(priceRange.Mode))
+        {
+            throw RequestError(StatusCodes.Status400BadRequest, "Choose a supported price range mode.");
+        }
+
+        if (priceRange.MinimumPriceMinorUnits < 0 || priceRange.MaximumPriceMinorUnits < 0)
+        {
+            throw RequestError(StatusCodes.Status400BadRequest, "Price range values cannot be negative.");
+        }
+
+        switch (priceRange.Mode)
+        {
+            case ManualCheckPriceRangeModeEnum.Above when
+                !priceRange.MinimumPriceMinorUnits.HasValue || priceRange.MaximumPriceMinorUnits.HasValue:
+                throw RequestError(StatusCodes.Status400BadRequest, "Above price checks require only a minimum price.");
+            case ManualCheckPriceRangeModeEnum.Below when
+                priceRange.MinimumPriceMinorUnits.HasValue || !priceRange.MaximumPriceMinorUnits.HasValue:
+                throw RequestError(StatusCodes.Status400BadRequest, "Below price checks require only a maximum price.");
+            case ManualCheckPriceRangeModeEnum.Between when
+                !priceRange.MinimumPriceMinorUnits.HasValue ||
+                !priceRange.MaximumPriceMinorUnits.HasValue ||
+                priceRange.MinimumPriceMinorUnits > priceRange.MaximumPriceMinorUnits:
+                throw RequestError(StatusCodes.Status400BadRequest, "Between price checks require an ordered minimum and maximum price.");
+        }
+
+        return new ManualCheckPriceRangeDto
+        {
+            Mode = priceRange.Mode,
+            MinimumPriceMinorUnits = priceRange.MinimumPriceMinorUnits,
+            MaximumPriceMinorUnits = priceRange.MaximumPriceMinorUnits
+        };
     }
 
     private static (int? Minutes, int? Seconds) NormalizeCooldown(int? minutes, int? seconds)
@@ -1276,6 +1333,7 @@ public sealed class ManualCheckDataService(
         }
 
         var listingLimit = NormalizeListingLimit(combination.ListingLimit);
+        var priceRange = NormalizePriceRange(combination.PriceRange);
         var cooldown = NormalizeCooldown(combination.CooldownMinutes, combination.CooldownSeconds);
         var presetIds = terms.Select(x => x.PresetId).ToList();
         var presets = await db.ManualCheckPresets
@@ -1351,12 +1409,14 @@ public sealed class ManualCheckDataService(
             GameId = gameId,
             DisplayName = displayName,
             ListingLimit = listingLimit,
+            PriceRange = priceRange,
             CooldownMinutes = cooldown.Minutes,
             CooldownSeconds = cooldown.Seconds,
             Criteria = normalizedCriteria,
             Snapshot = new ManualCheckPresetCombinationDto
             {
                 ListingLimit = listingLimit,
+                PriceRange = priceRange,
                 CooldownMinutes = cooldown.Minutes,
                 CooldownSeconds = cooldown.Seconds,
                 Terms = snapshotTerms
@@ -1420,11 +1480,27 @@ public sealed class ManualCheckDataService(
             ItemGroupName = itemGroupName,
             Name = entity.Name,
             ListingLimit = entity.ListingLimit,
+            PriceRange = ToPriceRangeDto(entity),
             CooldownMinutes = entity.CooldownMinutes,
             CooldownSeconds = entity.CooldownSeconds,
             Criteria = ToCriterionDtos(entity.Criteria),
             CreatedAtUtc = entity.CreatedAtUtc,
             UpdatedAtUtc = entity.UpdatedAtUtc
+        };
+    }
+
+    private static ManualCheckPriceRangeDto? ToPriceRangeDto(ManualCheckPreset entity)
+    {
+        if (!entity.PriceRangeMode.HasValue)
+        {
+            return null;
+        }
+
+        return new ManualCheckPriceRangeDto
+        {
+            Mode = entity.PriceRangeMode.Value,
+            MinimumPriceMinorUnits = entity.MinimumPriceMinorUnits,
+            MaximumPriceMinorUnits = entity.MaximumPriceMinorUnits
         };
     }
 
@@ -1614,6 +1690,7 @@ public sealed class ManualCheckDataService(
         public long GameId { get; init; }
         public string DisplayName { get; init; } = string.Empty;
         public int ListingLimit { get; init; }
+        public ManualCheckPriceRangeDto? PriceRange { get; init; }
         public int? CooldownMinutes { get; init; }
         public int? CooldownSeconds { get; init; }
         public List<ManualCheckCriterionDto> Criteria { get; init; } = [];

@@ -34,7 +34,7 @@ All skill paths below are relative to `.agents/skills/`.
 | `/pr-review`, standard pre-PR readiness review, or creating/recommending/approving a PR | `pr-review` | `pr-review.md`, `unit-tests.md`, `security-review.md` |
 | `/pr-review-refactor` or behavior-preserving refactor readiness review | `pr-review-refactor` | `refactoring-review.md`, `unit-tests.md`; security directive when triggered |
 | `/security-review`, security assessment, or documented high-risk change | `security-review` | `security-review.md` |
-| `/graphify`, explicit Graphify analysis/maintenance, graph-specific outputs, selected discovery fallback, or required source-change update | `graphify` | None |
+| `/graphify` or an explicit request for Graphify analysis, maintenance, or graph-specific output | `graphify` | None |
 
 For a refactor-only readiness review, use `pr-review-refactor` instead of standard `pr-review`; mixed behavior changes use standard review. Apply other matching skills in either case.
 
@@ -57,10 +57,9 @@ High-risk changes require `security-review`: authentication/Identity/JWT/roles/a
 
 - Exact, locally understandable edits permit direct inspection without invoking discovery.
 - For repository discovery, use `codebase-discovery` and codebase-memory-mcp first. Check freshness and re-index only when missing or stale.
+- For `detect_changes`, pass an existing repository base ref explicitly; do not rely on its default `main` branch.
 - Verify implementation-sensitive, negative, exhaustive, and security-sensitive conclusions against source and project files.
-- Use Graphify for explicit graph work or a selected fallback when the primary index is unavailable or insufficient. Do not routinely use both graph systems.
-- Read `graphify-out/wiki/index.md` for broad Graphify navigation; read `GRAPH_REPORT.md` only for broad graph analysis or insufficient scoped queries.
-- Dirty `graphify-out/` files are expected. After source-code changes, follow the Graphify update procedure and run `graphify update .` once per task. If that update still fails after any sandbox escalation required by the host, report it as `Not Verified` and do not invoke Graphify again during the task unless the user explicitly requests a retry. Do not update for read-only reviews or instruction/configuration-only changes unless requested.
+- If codebase-memory-mcp is unavailable or insufficient, use scoped source inspection with `rg` and project files. Use Graphify only when the user explicitly requests it.
 
 ## Validation policy
 
@@ -76,4 +75,4 @@ Run only validation relevant to the affected scope, plus checks required by appl
 
 ## Completion
 
-Confirm the requested behavior or configuration exists. Inspect the final diff for readability, scope, structure, security, and accidental changes. Complete applicable skill checks and relevant validation; update Graphify after source changes. Report skills followed, exact commands and outcomes, unmet requirements, applicable `Not Verified` checks, and residual risk.
+Confirm the requested behavior or configuration exists. Inspect the final diff for readability, scope, structure, security, and accidental changes. Complete applicable skill checks and relevant validation. Report skills followed, exact commands and outcomes, unmet requirements, applicable `Not Verified` checks, and residual risk.

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using SteamApp.Domain.Enums;
 
 namespace SteamApp.Domain.Entities;
 
@@ -33,6 +34,15 @@ public sealed class ManualCheckPreset
 
     [Column("listing_limit")]
     public int ListingLimit { get; set; } = DefaultListingLimit;
+
+    [Column("price_range_mode")]
+    public ManualCheckPriceRangeModeEnum? PriceRangeMode { get; set; }
+
+    [Column("minimum_price_minor_units")]
+    public long? MinimumPriceMinorUnits { get; set; }
+
+    [Column("maximum_price_minor_units")]
+    public long? MaximumPriceMinorUnits { get; set; }
 
     [Column("cooldown_minutes")]
     public int? CooldownMinutes { get; set; }

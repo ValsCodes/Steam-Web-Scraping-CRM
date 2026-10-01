@@ -9,5 +9,8 @@ public sealed class ManualCheckAssetMatchDto
     public string InstanceId { get; set; } = string.Empty;
     public string MarketName { get; set; } = string.Empty;
     public string IconUrl { get; set; } = string.Empty;
+    public long? PriceMinorUnits { get; set; }
+    public string? PriceCurrencyCode { get; set; }
+    public bool? PriceRangeMatched { get; set; }
     public List<ManualCheckDescriptionMatchDto> Descriptions { get; set; } = [];
 }

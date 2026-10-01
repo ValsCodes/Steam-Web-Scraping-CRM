@@ -41,6 +41,11 @@ public sealed class AutomaticQueueDataServiceTests
                         {
                             Name = "Private",
                             ListingLimit = 20,
+                            PriceRange = new ManualCheckPriceRangeDto
+                            {
+                                Mode = ManualCheckPriceRangeModeEnum.Below,
+                                MaximumPriceMinorUnits = 250
+                            },
                             Criteria = [new ManualCheckCriterionDto { ValueContains = "Unusual" }]
                         }
                     }
@@ -55,6 +60,7 @@ public sealed class AutomaticQueueDataServiceTests
             Assert.That(created.Blocks[0].PresetName, Is.EqualTo("Saved"));
             Assert.That(created.Blocks[0].ProductIds, Is.EqualTo(new long[] { 1 }));
             Assert.That(created.Blocks[1].PrivateTemplate!.Name, Is.EqualTo("Private"));
+            Assert.That(created.Blocks[1].PrivateTemplate!.PriceRange!.MaximumPriceMinorUnits, Is.EqualTo(250));
             Assert.That(created.Blocks[1].GameName, Is.EqualTo("Alpha Game"));
         });
     }
@@ -205,6 +211,12 @@ public sealed class AutomaticQueueDataServiceTests
             PresetCombination = new ManualCheckPresetCombinationWriteDto
             {
                 ListingLimit = 20,
+                PriceRange = new ManualCheckPriceRangeDto
+                {
+                    Mode = ManualCheckPriceRangeModeEnum.Between,
+                    MinimumPriceMinorUnits = 100,
+                    MaximumPriceMinorUnits = 300
+                },
                 Terms =
                 [
                     new ManualCheckPresetCombinationTermWriteDto { PresetId = first.Id },
@@ -234,7 +246,9 @@ public sealed class AutomaticQueueDataServiceTests
         {
             Assert.That(definition.Blocks[0].TemplateMode, Is.EqualTo(AutomaticQueueTemplateModeEnum.PresetCombination));
             Assert.That(definition.Blocks[0].PresetCombination!.Terms.Select(x => x.PresetId), Is.EqualTo(new[] { first.Id, second.Id }));
+            Assert.That(definition.Blocks[0].PresetCombination!.PriceRange!.MinimumPriceMinorUnits, Is.EqualTo(100));
             Assert.That(snapshot.ManualCheckSetup!.ListingLimit, Is.EqualTo(20));
+            Assert.That(snapshot.ManualCheckSetup.PriceRange!.MaximumPriceMinorUnits, Is.EqualTo(300));
             Assert.That(snapshot.ManualCheckSetup.Criteria[^1].ValueContains, Is.EqualTo("Changed before start"));
             Assert.That(snapshot.ManualCheckSetup.PresetCombination!.Terms.Select(x => x.PresetName), Is.EqualTo(new[] { "Paints", "Effects" }));
         });

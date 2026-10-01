@@ -1,4 +1,4 @@
-import { ManualCheckCriterion, ManualCheckPresetCombinationWrite } from './manual-check.model';
+import { ManualCheckCriterion, ManualCheckPresetCombinationWrite, ManualCheckPriceRange } from './manual-check.model';
 
 export type AutomaticQueueBlockType = 'ManualCheck' | 'Delay';
 export type AutomaticQueueTemplateMode = 'SavedPreset' | 'PrivateTemplate' | 'PresetCombination';
@@ -12,6 +12,7 @@ export type AutomaticQueueBlockRunStatus =
 export interface AutomaticQueuePrivateTemplate {
   name: string;
   listingLimit: number;
+  priceRange?: ManualCheckPriceRange | null;
   cooldownMinutes: number | null;
   cooldownSeconds: number | null;
   criteria: ManualCheckCriterion[];

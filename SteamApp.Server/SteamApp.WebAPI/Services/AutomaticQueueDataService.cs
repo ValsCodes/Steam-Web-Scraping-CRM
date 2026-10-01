@@ -941,6 +941,7 @@ public sealed class AutomaticQueueDataService(
                 ? new ManualCheckPresetCombinationWriteDto
                 {
                     ListingLimit = setup.PresetCombination.ListingLimit,
+                    PriceRange = setup.PresetCombination.PriceRange,
                     CooldownMinutes = setup.PresetCombination.CooldownMinutes,
                     CooldownSeconds = setup.PresetCombination.CooldownSeconds,
                     Terms = setup.PresetCombination.Terms.Select(x => new ManualCheckPresetCombinationTermWriteDto
@@ -955,6 +956,7 @@ public sealed class AutomaticQueueDataService(
                 {
                     Name = setup.PresetName,
                     ListingLimit = setup.ListingLimit,
+                    PriceRange = setup.PriceRange,
                     CooldownMinutes = setup.CooldownMinutes,
                     CooldownSeconds = setup.CooldownSeconds,
                     Criteria = setup.Criteria

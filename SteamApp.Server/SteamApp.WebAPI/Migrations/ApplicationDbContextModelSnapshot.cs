@@ -1027,11 +1027,23 @@ namespace SteamApp.WebAPI.Migrations
                         .HasDefaultValue(10)
                         .HasColumnName("listing_limit");
 
+                    b.Property<long?>("MaximumPriceMinorUnits")
+                        .HasColumnType("bigint")
+                        .HasColumnName("maximum_price_minor_units");
+
+                    b.Property<long?>("MinimumPriceMinorUnits")
+                        .HasColumnType("bigint")
+                        .HasColumnName("minimum_price_minor_units");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("name");
+
+                    b.Property<int?>("PriceRangeMode")
+                        .HasColumnType("int")
+                        .HasColumnName("price_range_mode");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("datetime2")

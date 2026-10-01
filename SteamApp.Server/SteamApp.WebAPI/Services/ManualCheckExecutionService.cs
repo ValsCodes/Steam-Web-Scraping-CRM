@@ -96,12 +96,24 @@ public sealed class ManualCheckExecutionService(
                         product,
                         listing,
                         setup.Criteria,
-                        setup.ListingLimit);
+                        setup.ListingLimit,
+                        out var lowestCheckedPriceMinorUnits);
+                    productTrace.LowestCheckedPriceMinorUnits = lowestCheckedPriceMinorUnits;
+                    productTrace.PriceCurrencyCode = lowestCheckedPriceMinorUnits.HasValue ? "EUR" : null;
+                    productTrace.PriceRangeMatched = setup.PriceRange is not null && lowestCheckedPriceMinorUnits.HasValue
+                        ? ManualCheckMatcher.MatchesPriceRange(lowestCheckedPriceMinorUnits.Value, setup.PriceRange)
+                        : null;
                     productTrace.MatchEvaluated = true;
                     productTrace.Matched = match is not null;
                     productTrace.MatchedAssetCount = match?.MatchedAssets.Count ?? 0;
                     if (match is not null)
                     {
+                        foreach (var matchedAsset in match.MatchedAssets)
+                        {
+                            matchedAsset.PriceRangeMatched = setup.PriceRange is not null && matchedAsset.PriceMinorUnits.HasValue
+                                ? ManualCheckMatcher.MatchesPriceRange(matchedAsset.PriceMinorUnits.Value, setup.PriceRange)
+                                : null;
+                        }
                         results.Matches.Add(match);
                     }
                 }

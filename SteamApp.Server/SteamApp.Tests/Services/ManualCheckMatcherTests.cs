@@ -175,6 +175,79 @@ public sealed class ManualCheckMatcherTests
         Assert.That(
             result!.MatchedAssets.Select(x => x.AssetId),
             Is.EqualTo(new[] { "asset-c", "asset-a", "asset-b" }));
+        Assert.That(
+            result.MatchedAssets.Select(x => x.PriceMinorUnits),
+            Is.EqualTo(new long?[] { 25, 50, 50 }));
+    }
+
+    [Test]
+    public void MatchProduct_ReturnsCheapestCheckedPriceRegardlessOfCriterionMatch()
+    {
+        var listing = ListingWithPricedAssets(
+            ("listing-cheapest", "asset-cheapest", 80, 10, "Other"),
+            ("listing-match", "asset-match", 90, 10, "Mean Green"));
+
+        var result = ManualCheckMatcher.MatchProduct(
+            Product(),
+            listing,
+            [new ManualCheckCriterionDto { ValueContains = "Mean Green" }],
+            10,
+            out var lowestCheckedPriceMinorUnits);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result!.MatchedAssets.Select(x => x.AssetId), Is.EqualTo(new[] { "asset-match" }));
+            Assert.That(result.MatchedAssets[0].PriceMinorUnits, Is.EqualTo(100));
+            Assert.That(result.MatchedAssets[0].PriceCurrencyCode, Is.EqualTo("EUR"));
+            Assert.That(lowestCheckedPriceMinorUnits, Is.EqualTo(90));
+        });
+    }
+
+    [Test]
+    public void MatchProduct_CheapestUnresolvedAsset_UsesFirstListingActuallyChecked()
+    {
+        var listing = ListingWithPricedAssets(
+            ("listing-unresolved", "asset-unresolved", 50, 5, "Other"),
+            ("listing-checked", "asset-checked", 80, 10, "Mean Green"));
+        listing.Assets["440"]["2"].Remove("asset-unresolved");
+
+        var result = ManualCheckMatcher.MatchProduct(
+            Product(),
+            listing,
+            [new ManualCheckCriterionDto { ValueContains = "Mean Green" }],
+            10,
+            out var lowestCheckedPriceMinorUnits);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.Not.Null);
+            Assert.That(lowestCheckedPriceMinorUnits, Is.EqualTo(90));
+        });
+    }
+
+    [TestCase(ManualCheckPriceRangeModeEnum.Above, 101, 100, null, true)]
+    [TestCase(ManualCheckPriceRangeModeEnum.Above, 100, 100, null, false)]
+    [TestCase(ManualCheckPriceRangeModeEnum.Between, 100, 100, 200, true)]
+    [TestCase(ManualCheckPriceRangeModeEnum.Between, 200, 100, 200, true)]
+    [TestCase(ManualCheckPriceRangeModeEnum.Between, 201, 100, 200, false)]
+    [TestCase(ManualCheckPriceRangeModeEnum.Below, 99, null, 100, true)]
+    [TestCase(ManualCheckPriceRangeModeEnum.Below, 100, null, 100, false)]
+    public void MatchesPriceRange_UsesConfiguredBoundaryRules(
+        ManualCheckPriceRangeModeEnum mode,
+        long price,
+        long? minimum,
+        long? maximum,
+        bool expected)
+    {
+        var result = ManualCheckMatcher.MatchesPriceRange(price, new ManualCheckPriceRangeDto
+        {
+            Mode = mode,
+            MinimumPriceMinorUnits = minimum,
+            MaximumPriceMinorUnits = maximum
+        });
+
+        Assert.That(result, Is.EqualTo(expected));
     }
 
     [Test]
@@ -208,6 +281,28 @@ public sealed class ManualCheckMatcherTests
             10));
 
         Assert.That(exception!.Message, Does.Contain("usable price and asset information"));
+    }
+
+    [Test]
+    public void MatchProduct_NoListings_ReturnsNoMatchWithoutAZeroPrice()
+    {
+        var result = ManualCheckMatcher.MatchProduct(
+            Product(),
+            new Listing
+            {
+                Success = true,
+                TotalCount = 0,
+                ListingInfo = new Dictionary<string, ListingInfo>()
+            },
+            [new ManualCheckCriterionDto { ValueContains = "Mean Green" }],
+            10,
+            out var lowestCheckedPriceMinorUnits);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.Null);
+            Assert.That(lowestCheckedPriceMinorUnits, Is.Null);
+        });
     }
 
     [TestCase(ManualCheckConditionOperatorEnum.And, "Present", "Present", true)]

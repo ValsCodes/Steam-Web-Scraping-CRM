@@ -28,6 +28,8 @@ import {
   ManualCheckPreset,
   ManualCheckPresetCombinationOperator,
   ManualCheckPresetCombinationWrite,
+  ManualCheckPriceRange,
+  ManualCheckPriceRangeMode,
   ManualCheckPresetWrite,
   ScrapingModeEnum,
 } from '../../models';
@@ -299,6 +301,56 @@ interface ManualCheckPresetCombinationRow {
           }
         </section>
 
+        <section class="manual-check-dialog__price-check" aria-labelledby="manualCheckPriceCheckLabel">
+          <div>
+            <strong id="manualCheckPriceCheckLabel">Price check</strong>
+            <p>Compare the cheapest checked Steam listing, including fees, in EUR.</p>
+          </div>
+          <div class="manual-check-dialog__price-check-controls">
+            <label>
+              <span>Range</span>
+              <select
+                name="manualCheckPriceRangeMode"
+                [(ngModel)]="priceRangeMode"
+                (ngModelChange)="priceRangeChanged()">
+                <option value="Any">Any price</option>
+                <option value="Above">Above (&gt;)</option>
+                <option value="Between">Between (inclusive)</option>
+                <option value="Below">Below (&lt;)</option>
+              </select>
+            </label>
+            @if (priceRangeMode === 'Above' || priceRangeMode === 'Between') {
+              <label>
+                <span>{{ priceRangeMode === 'Above' ? 'Above €' : 'Minimum €' }}</span>
+                <input
+                  type="number"
+                  name="manualCheckMinimumPrice"
+                  min="0"
+                  step="0.01"
+                  [(ngModel)]="minimumPriceEuros"
+                  (ngModelChange)="priceRangeChanged()" />
+              </label>
+            }
+            @if (priceRangeMode === 'Below' || priceRangeMode === 'Between') {
+              <label>
+                <span>{{ priceRangeMode === 'Below' ? 'Below €' : 'Maximum €' }}</span>
+                <input
+                  type="number"
+                  name="manualCheckMaximumPrice"
+                  min="0"
+                  step="0.01"
+                  [(ngModel)]="maximumPriceEuros"
+                  (ngModelChange)="priceRangeChanged()" />
+              </label>
+            }
+          </div>
+          @if (!isPriceRangeValid) {
+            <p class="manual-check-dialog__validation" role="alert">
+              Enter non-negative EUR values with no more than two decimals, and keep the minimum at or below the maximum.
+            </p>
+          }
+        </section>
+
         <section class="manual-check-dialog__cooldown" aria-labelledby="manualCheckCooldownLabel">
           <label class="manual-check-dialog__radio">
             <input
@@ -486,6 +538,10 @@ interface ManualCheckPresetCombinationRow {
     .manual-check-dialog__listing-limit p { margin: .2rem 0 0; color: #64748b; }
     .manual-check-dialog__listing-limit-controls { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; }
     .manual-check-dialog__listing-limit-controls label { min-width: 9rem; }
+    .manual-check-dialog__price-check { display: flex; flex-direction: column; gap: .65rem; border: 1px solid #e2e8f0; border-radius: .375rem; padding: .75rem; }
+    .manual-check-dialog__price-check p { margin: .2rem 0 0; color: #64748b; }
+    .manual-check-dialog__price-check-controls { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; }
+    .manual-check-dialog__price-check-controls label { min-width: 9rem; }
     .manual-check-dialog__cooldown { display: flex; flex-direction: column; gap: .65rem; border: 1px solid #e2e8f0; border-radius: .375rem; padding: .75rem; }
     .manual-check-dialog__cooldown-controls { display: flex; flex-wrap: wrap; gap: .6rem; }
     .manual-check-dialog__cooldown-controls label { width: 8rem; }
@@ -536,6 +592,9 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   creatingItemGroup = false;
   name = '';
   listingLimit: number | null = 10;
+  priceRangeMode: ManualCheckPriceRangeMode | 'Any' = 'Any';
+  minimumPriceEuros: number | null = null;
+  maximumPriceEuros: number | null = null;
   customCooldown = false;
   cooldownMinutes: number | null = 0;
   cooldownSeconds: number | null = 0;
@@ -635,12 +694,14 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     if (this.presetMode === 'Combination') {
       return this.combinationValidation.isValid
         && this.isListingLimitValid
+        && this.isPriceRangeValid
         && this.isCooldownValid;
     }
 
     return this.name.trim().length >= 1
       && this.name.trim().length <= 100
       && this.isListingLimitValid
+      && this.isPriceRangeValid
       && this.isCooldownValid
       && this.expressionValidation.isValid;
   }
@@ -741,6 +802,24 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     return this.dirty ? 'Save & start' : 'Start check';
   }
 
+  get isPriceRangeValid(): boolean {
+    if (this.priceRangeMode === 'Any') {
+      return true;
+    }
+
+    if (this.priceRangeMode === 'Above') {
+      return this.isEuroAmountValid(this.minimumPriceEuros);
+    }
+
+    if (this.priceRangeMode === 'Below') {
+      return this.isEuroAmountValid(this.maximumPriceEuros);
+    }
+
+    return this.isEuroAmountValid(this.minimumPriceEuros)
+      && this.isEuroAmountValid(this.maximumPriceEuros)
+      && this.minimumPriceEuros! <= this.maximumPriceEuros!;
+  }
+
   setPresetMode(mode: ManualCheckPresetMode): void {
     if (mode === 'Combination') {
       if (this.presets.length < 2) return;
@@ -815,6 +894,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.itemGroupId = preset.itemGroupId;
     this.name = preset.name;
     this.listingLimit = preset.listingLimit;
+    this.applyPriceRange(preset.priceRange);
     this.customCooldown = preset.cooldownMinutes !== null && preset.cooldownSeconds !== null;
     this.cooldownMinutes = preset.cooldownMinutes ?? 0;
     this.cooldownSeconds = preset.cooldownSeconds ?? 0;
@@ -832,6 +912,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.itemGroupId = null;
     this.name = '';
     this.listingLimit = 10;
+    this.applyPriceRange(null);
     this.customCooldown = false;
     this.cooldownMinutes = 0;
     this.cooldownSeconds = 0;
@@ -850,6 +931,10 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.dirty = true;
     this.errorMessage = '';
     this.successMessage = '';
+  }
+
+  priceRangeChanged(): void {
+    this.markDirty();
   }
 
   createItemGroup(): void {
@@ -1020,6 +1105,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
       itemGroupId: this.itemGroupId,
       name: this.name.trim(),
       listingLimit: this.listingLimit!,
+      priceRange: this.toPriceRange(),
       cooldownMinutes: this.customCooldown ? this.cooldownMinutes! : null,
       cooldownSeconds: this.customCooldown ? this.cooldownSeconds! : null,
       criteria: flattenManualCheckExpression(this.expressionRoot).map((criterion) => ({
@@ -1105,6 +1191,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.selectedPresetId = null;
     this.name = template.name;
     this.listingLimit = template.listingLimit;
+    this.applyPriceRange(template.priceRange);
     this.customCooldown = template.cooldownMinutes !== null && template.cooldownSeconds !== null;
     this.cooldownMinutes = template.cooldownMinutes ?? 0;
     this.cooldownSeconds = template.cooldownSeconds ?? 0;
@@ -1128,6 +1215,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
       operator: index === 0 ? null : term.operator ?? 'And',
     }));
     this.listingLimit = combination.listingLimit;
+    this.applyPriceRange(combination.priceRange);
     this.customCooldown = combination.cooldownMinutes !== null && combination.cooldownSeconds !== null;
     this.cooldownMinutes = combination.cooldownMinutes ?? 0;
     this.cooldownSeconds = combination.cooldownSeconds ?? 0;
@@ -1157,6 +1245,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
         privateTemplate: this.templateMode === 'PrivateTemplate' ? {
           name: write!.name,
           listingLimit: write!.listingLimit,
+          priceRange: write!.priceRange,
           cooldownMinutes: write!.cooldownMinutes,
           cooldownSeconds: write!.cooldownSeconds,
           criteria: write!.criteria,
@@ -1172,6 +1261,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   private toPresetCombination(): ManualCheckPresetCombinationWrite {
     return {
       listingLimit: this.listingLimit!,
+      priceRange: this.toPriceRange(),
       cooldownMinutes: this.customCooldown ? this.cooldownMinutes! : null,
       cooldownSeconds: this.customCooldown ? this.cooldownSeconds! : null,
       terms: this.combinationRows.map((row, index) => ({
@@ -1183,9 +1273,43 @@ export class ManualCheckSetupDialogComponent implements OnInit {
 
   private applyCombinationSettings(preset: ManualCheckPreset): void {
     this.listingLimit = preset.listingLimit;
+    this.applyPriceRange(preset.priceRange);
     this.customCooldown = preset.cooldownMinutes !== null && preset.cooldownSeconds !== null;
     this.cooldownMinutes = preset.cooldownMinutes ?? 0;
     this.cooldownSeconds = preset.cooldownSeconds ?? 0;
+  }
+
+  private toPriceRange(): ManualCheckPriceRange | null {
+    if (this.priceRangeMode === 'Any') {
+      return null;
+    }
+
+    return {
+      mode: this.priceRangeMode,
+      minimumPriceMinorUnits: this.priceRangeMode === 'Above' || this.priceRangeMode === 'Between'
+        ? Math.round(this.minimumPriceEuros! * 100)
+        : null,
+      maximumPriceMinorUnits: this.priceRangeMode === 'Below' || this.priceRangeMode === 'Between'
+        ? Math.round(this.maximumPriceEuros! * 100)
+        : null,
+    };
+  }
+
+  private applyPriceRange(priceRange: ManualCheckPriceRange | null | undefined): void {
+    this.priceRangeMode = priceRange?.mode ?? 'Any';
+    this.minimumPriceEuros = priceRange?.minimumPriceMinorUnits == null
+      ? null
+      : priceRange.minimumPriceMinorUnits / 100;
+    this.maximumPriceEuros = priceRange?.maximumPriceMinorUnits == null
+      ? null
+      : priceRange.maximumPriceMinorUnits / 100;
+  }
+
+  private isEuroAmountValid(value: number | null): boolean {
+    return value !== null
+      && Number.isFinite(value)
+      && value >= 0
+      && Math.abs(value * 100 - Math.round(value * 100)) < Number.EPSILON * 100;
   }
 
   private normalizeCombinationOperators(): void {

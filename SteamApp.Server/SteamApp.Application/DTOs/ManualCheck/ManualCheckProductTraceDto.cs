@@ -8,6 +8,9 @@ public sealed class ManualCheckProductTraceDto
     public bool MatchEvaluated { get; set; }
     public bool Matched { get; set; }
     public int MatchedAssetCount { get; set; }
+    public long? LowestCheckedPriceMinorUnits { get; set; }
+    public string? PriceCurrencyCode { get; set; }
+    public bool? PriceRangeMatched { get; set; }
     public string? SteamApiResultJson { get; set; }
     public long? DurationMilliseconds { get; set; }
 }

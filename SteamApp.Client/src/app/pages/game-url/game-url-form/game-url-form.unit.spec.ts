@@ -198,6 +198,26 @@ describe('GameUrlForm item groups', () => {
     expect(fixture.nativeElement.querySelector('.relation-empty').textContent).toContain('No products available');
   });
 
+  it('renders the Game URL product selector expanded and allows it to collapse', async () => {
+    const { component, fixture } = await setup(undefined, [
+      product(1, 'Rocket'),
+      product(2, 'Scattergun'),
+    ]);
+    component.form.controls.gameId.setValue(1);
+    component.selectedProductIds.set([1]);
+    fixture.detectChanges();
+
+    const section: HTMLDetailsElement = fixture.nativeElement.querySelector('.product-relation-section');
+    const summary: HTMLElement = section.querySelector('.product-relation-summary')!;
+    expect(section.open).toBeTrue();
+    expect(summary.textContent).toContain('Products for this Game URL');
+    expect(summary.textContent).toContain('1 selected · 2 available');
+
+    section.open = false;
+    section.dispatchEvent(new Event('toggle'));
+    expect(section.open).toBeFalse();
+  });
+
 
   it('previews forward and reverse ranges without selecting, then applies the previewed range', async () => {
     const { component } = await setup(undefined, [3, 1, 4, 2].map(id => product(id, 'Product ' + id)));

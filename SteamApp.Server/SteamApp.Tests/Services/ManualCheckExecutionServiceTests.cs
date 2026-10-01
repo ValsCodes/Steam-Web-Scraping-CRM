@@ -55,6 +55,36 @@ public sealed class ManualCheckExecutionServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_NoListings_DoesNotRecordZeroAsAPriceRangeMatch()
+    {
+        var handler = new HttpMessageHandlerStub((_, _) =>
+            JsonResponse(new Listing { Success = true, TotalCount = 0 }));
+        var setup = Setup(Product(1, "First"));
+        setup.PriceRange = new ManualCheckPriceRangeDto
+        {
+            Mode = ManualCheckPriceRangeModeEnum.Between,
+            MinimumPriceMinorUnits = 0,
+            MaximumPriceMinorUnits = 100
+        };
+        var data = DataServiceMock(setup);
+        var service = CreateService(handler, data.Object, maxAttempts: 1);
+
+        await service.ExecuteAsync(16, CancellationToken.None, CancellationToken.None);
+
+        data.Verify(x => x.CompleteAsync(
+            16,
+            ManualCheckRunStatusEnum.Succeeded,
+            It.Is<ManualCheckRunResultsDto>(results =>
+                results.Errors.Count == 0 &&
+                results.ProductTraces.Count == 1 &&
+                results.ProductTraces[0].MatchEvaluated &&
+                results.ProductTraces[0].LowestCheckedPriceMinorUnits == null &&
+                results.ProductTraces[0].PriceCurrencyCode == null &&
+                results.ProductTraces[0].PriceRangeMatched == null),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
     public async Task ExecuteAsync_ContinuesAfterProductFailureAndCompletesWithPartialResults()
     {
         var matchingListing = new Listing { Success = true };
@@ -178,7 +208,13 @@ public sealed class ManualCheckExecutionServiceTests
                     Encoding.UTF8,
                     "text/html")
             });
-        var data = DataServiceMock(Setup(Product(1, "First")));
+        var setup = Setup(Product(1, "First"));
+        setup.PriceRange = new ManualCheckPriceRangeDto
+        {
+            Mode = ManualCheckPriceRangeModeEnum.Above,
+            MinimumPriceMinorUnits = 200
+        };
+        var data = DataServiceMock(setup);
         var service = CreateService(handler, data.Object, maxAttempts: 1);
 
         await service.ExecuteAsync(14, CancellationToken.None, CancellationToken.None);
@@ -193,7 +229,13 @@ public sealed class ManualCheckExecutionServiceTests
                 results.ProductTraces[0].MatchEvaluated &&
                 results.ProductTraces[0].Matched &&
                 results.ProductTraces[0].MatchedAssetCount == 1 &&
+                results.ProductTraces[0].LowestCheckedPriceMinorUnits == 115 &&
+                results.ProductTraces[0].PriceCurrencyCode == "EUR" &&
+                results.ProductTraces[0].PriceRangeMatched == false &&
                 results.Matches[0].MatchedAssets.Count == 1 &&
+                results.Matches[0].MatchedAssets[0].PriceMinorUnits == 115 &&
+                results.Matches[0].MatchedAssets[0].PriceCurrencyCode == "EUR" &&
+                results.Matches[0].MatchedAssets[0].PriceRangeMatched == false &&
                 results.Matches[0].MatchedAssets[0].Descriptions[0].Value == "Sheen: Mean Green"),
             It.IsAny<CancellationToken>()), Times.Once);
     }

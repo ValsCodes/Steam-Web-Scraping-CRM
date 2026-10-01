@@ -12,6 +12,7 @@ public sealed class ManualCheckSetupDto
     public string? GameUrlName { get; set; }
 
     public int ListingLimit { get; set; } = ManualCheckPreset.DefaultListingLimit;
+    public ManualCheckPriceRangeDto? PriceRange { get; set; }
     public int? CooldownMinutes { get; set; }
     public int? CooldownSeconds { get; set; }
     public bool BypassCache { get; set; }

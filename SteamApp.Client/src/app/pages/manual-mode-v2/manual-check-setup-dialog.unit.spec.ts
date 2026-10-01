@@ -188,6 +188,36 @@ describe('ManualCheckSetupDialogComponent', () => {
     expect(component.isCooldownValid).toBeFalse();
   });
 
+  it('validates and serializes EUR price ranges as minor units', () => {
+    component.priceRangeMode = 'Between';
+    component.minimumPriceEuros = 1.25;
+    component.maximumPriceEuros = 3.5;
+    component.priceRangeChanged();
+    service.updatePreset.and.returnValue(of({
+      ...presets[1],
+      priceRange: {
+        mode: 'Between',
+        minimumPriceMinorUnits: 125,
+        maximumPriceMinorUnits: 350,
+      },
+    }));
+
+    component.savePreset();
+
+    expect(service.updatePreset).toHaveBeenCalledWith(2, jasmine.objectContaining({
+      priceRange: {
+        mode: 'Between',
+        minimumPriceMinorUnits: 125,
+        maximumPriceMinorUnits: 350,
+      },
+    }));
+    component.minimumPriceEuros = 3.501;
+    expect(component.isPriceRangeValid).toBeFalse();
+    component.minimumPriceEuros = 4;
+    component.maximumPriceEuros = 3;
+    expect(component.isPriceRangeValid).toBeFalse();
+  });
+
   it('assigns and requires an operator after the first criterion', () => {
     component.addCriterion();
     component.criteria[0].valueContains = 'Mean Green';
@@ -268,6 +298,7 @@ describe('ManualCheckSetupDialogComponent', () => {
       presetId: null,
       presetCombination: {
         listingLimit: 20,
+        priceRange: null,
         cooldownMinutes: 1,
         cooldownSeconds: 5,
         terms: [

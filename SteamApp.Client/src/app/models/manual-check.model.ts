@@ -22,11 +22,20 @@ export interface ManualCheckConditionOperator {
   name: string;
 }
 
+export type ManualCheckPriceRangeMode = 'Above' | 'Between' | 'Below';
+
+export interface ManualCheckPriceRange {
+  mode: ManualCheckPriceRangeMode;
+  minimumPriceMinorUnits: number | null;
+  maximumPriceMinorUnits: number | null;
+}
+
 export interface ManualCheckPresetWrite {
   gameId: number;
   itemGroupId: number | null;
   name: string;
   listingLimit: number;
+  priceRange?: ManualCheckPriceRange | null;
   cooldownMinutes: number | null;
   cooldownSeconds: number | null;
   criteria: ManualCheckCriterion[];
@@ -49,6 +58,7 @@ export interface ManualCheckPresetCombinationTermWrite {
 
 export interface ManualCheckPresetCombinationWrite {
   listingLimit: number;
+  priceRange?: ManualCheckPriceRange | null;
   cooldownMinutes: number | null;
   cooldownSeconds: number | null;
   terms: ManualCheckPresetCombinationTermWrite[];
@@ -125,6 +135,7 @@ export interface ManualCheckSetup {
   gameUrlId: number;
   gameUrlName: string | null;
   listingLimit: number;
+  priceRange?: ManualCheckPriceRange | null;
   cooldownMinutes: number | null;
   cooldownSeconds: number | null;
   bypassCache: boolean;
@@ -150,6 +161,9 @@ export interface ManualCheckAssetMatch {
   instanceId: string;
   marketName: string;
   iconUrl: string;
+  priceMinorUnits?: number | null;
+  priceCurrencyCode?: string | null;
+  priceRangeMatched?: boolean | null;
   descriptions: ManualCheckDescriptionMatch[];
 }
 
@@ -164,6 +178,9 @@ export interface ManualCheckProductTrace {
   matchEvaluated: boolean;
   matched: boolean;
   matchedAssetCount: number;
+  lowestCheckedPriceMinorUnits?: number | null;
+  priceCurrencyCode?: string | null;
+  priceRangeMatched?: boolean | null;
   steamApiResultJson: string | null;
   durationMilliseconds: number | null;
 }

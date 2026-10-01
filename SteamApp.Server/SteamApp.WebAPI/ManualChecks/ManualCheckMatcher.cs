@@ -1,5 +1,6 @@
 using SteamApp.Application.DTOs.ManualCheck;
 using SteamApp.Application.JsonObjects;
+using SteamApp.Domain.Enums;
 
 namespace SteamApp.WebAPI.ManualChecks;
 
@@ -38,6 +39,17 @@ public static class ManualCheckMatcher
         IReadOnlyList<ManualCheckCriterionDto> criteria,
         int listingLimit)
     {
+        return MatchProduct(product, listing, criteria, listingLimit, out _);
+    }
+
+    public static ManualCheckProductResultDto? MatchProduct(
+        ManualCheckProductInputDto product,
+        Listing listing,
+        IReadOnlyList<ManualCheckCriterionDto> criteria,
+        int listingLimit,
+        out long? lowestCheckedPriceMinorUnits)
+    {
+        lowestCheckedPriceMinorUnits = null;
         if (listingLimit < 1)
         {
             throw new ArgumentOutOfRangeException(nameof(listingLimit), "Listing limit must be positive.");
@@ -87,6 +99,10 @@ public static class ManualCheckMatcher
                 continue;
             }
 
+            if (checkedAssets == 0)
+            {
+                lowestCheckedPriceMinorUnits = pricedListing.BuyerTotal;
+            }
             checkedAssets++;
 
             var criterionMatches = new bool[criteria.Count];
@@ -136,6 +152,8 @@ public static class ManualCheckMatcher
                 IconUrl = !string.IsNullOrWhiteSpace(asset.IconUrlLarge)
                     ? asset.IconUrlLarge
                     : asset.IconUrl ?? string.Empty,
+                PriceMinorUnits = pricedListing.BuyerTotal,
+                PriceCurrencyCode = "EUR",
                 Descriptions = descriptions
             });
         }
@@ -161,6 +179,21 @@ public static class ManualCheckMatcher
             Tags = product.Tags,
             Rating = product.Rating,
             MatchedAssets = matchedAssets
+        };
+    }
+
+    public static bool MatchesPriceRange(
+        long priceMinorUnits,
+        ManualCheckPriceRangeDto priceRange)
+    {
+        return priceRange.Mode switch
+        {
+            ManualCheckPriceRangeModeEnum.Above => priceMinorUnits > priceRange.MinimumPriceMinorUnits!.Value,
+            ManualCheckPriceRangeModeEnum.Between =>
+                priceMinorUnits >= priceRange.MinimumPriceMinorUnits!.Value &&
+                priceMinorUnits <= priceRange.MaximumPriceMinorUnits!.Value,
+            ManualCheckPriceRangeModeEnum.Below => priceMinorUnits < priceRange.MaximumPriceMinorUnits!.Value,
+            _ => throw new ArgumentOutOfRangeException(nameof(priceRange), "Unsupported price range mode.")
         };
     }
 

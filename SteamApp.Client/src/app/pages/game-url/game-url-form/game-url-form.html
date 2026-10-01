@@ -118,8 +118,13 @@
     }
 
     @if (isManualMode()) {
-      <div class="relation-section">
-        <h3>Products for this Game URL</h3>
+      <details class="relation-section product-relation-section" open>
+        <summary class="product-relation-summary">
+          <span>Products for this Game URL</span>
+          <span class="product-relation-count">
+            {{ selectedProductIds().length }} selected · {{ availableProducts.length }} available
+          </span>
+        </summary>
         <div class="product-filter-toolbar">
           <div class="form-group">
             <label for="game-url-product-filter-name">Product Name</label>
@@ -191,7 +196,7 @@
             }
           </div>
         }
-      </div>
+      </details>
     }
 
     <!-- @if (isPixelMode()) {
