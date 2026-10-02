@@ -9,7 +9,6 @@ import {
   ScrapeHistoryDetail,
   ScrapeJobAccepted,
   ScrapeHistoryRerunResponse,
-  WhishListResponse,
 } from '../../models';
 
 @Injectable({
@@ -73,13 +72,6 @@ export class SteamService {
   queueScrapeForPixels(gameUrlId: number, page: number): Observable<ScrapeJobAccepted> {
     const url = `${this.baseUrl}scrape-jobs/scrape-pixels/gameUrl/${gameUrlId}/page/${page}`;
     return this.http.post<ScrapeJobAccepted>(url, {}).pipe(
-      catchError(handleError)
-    );
-  }
-
-  checkWishlistItem(wishlistId: number): Observable<WhishListResponse> {
-    const url = `${this.baseUrl}check-wishlist/${wishlistId}`;
-    return this.http.get<any>(url).pipe(
       catchError(handleError)
     );
   }

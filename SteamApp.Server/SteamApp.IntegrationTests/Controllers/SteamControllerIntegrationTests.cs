@@ -117,23 +117,27 @@ public sealed class SteamControllerIntegrationTests
     }
 
     [Test]
-    public async Task WishlistCheckEndpointCachesPriceReachedResult()
+    public async Task WishlistCheckEndpointPersistsEachFreshResult()
     {
         using var factory = new SteamAppFactory();
         using var client = factory.CreateAuthenticatedClient();
         await factory.ResetDatabaseAsync();
 
-        var first = await client.GetAsync("/steam/check-wishlist/1");
-        var second = await client.GetAsync("/steam/check-wishlist/1");
+        var first = await client.PostAsync("/api/wish-list/1/checks", null);
+        var second = await client.PostAsync("/api/wish-list/1/checks", null);
+        var history = await client.GetAsync("/api/wish-list/1/checks?pageSize=25");
         var json = await first.ReadJsonElementAsync();
+        var historyJson = await history.ReadJsonElementAsync();
 
         Assert.Multiple(() =>
         {
             Assert.That(first.StatusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(second.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(history.StatusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(json.GetProperty("isPriceReached").GetBoolean(), Is.True);
-            Assert.That(json.GetProperty("gameName").GetString(), Is.EqualTo("Active Game"));
-            Assert.That(factory.WishlistService.CheckCalls, Is.EqualTo(1));
+            Assert.That(json.GetProperty("gameName").GetString(), Is.EqualTo("Alpha Game"));
+            Assert.That(historyJson.GetProperty("totalCount").GetInt32(), Is.EqualTo(2));
+            Assert.That(factory.WishlistService.CheckCalls, Is.EqualTo(2));
         });
     }
 }

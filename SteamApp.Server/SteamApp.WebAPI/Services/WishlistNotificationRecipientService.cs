@@ -14,7 +14,23 @@ public sealed class WishlistNotificationRecipientService(
     {
         await using var db = dbContextFactory.CreateDbContext();
 
-        return await db.WishLists
+        return await ActiveRecipients(db)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<WishlistNotificationRecipient?> GetActiveRecipientAsync(
+        long wishlistId,
+        CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+
+        return await ActiveRecipients(db)
+            .SingleOrDefaultAsync(recipient => recipient.WishlistId == wishlistId, cancellationToken);
+    }
+
+    private static IQueryable<WishlistNotificationRecipient> ActiveRecipients(ApplicationDbContext db)
+    {
+        return db.WishLists
             .AsNoTracking()
             .Where(wishlist => wishlist.IsActive && wishlist.UserId != null)
             .Join(
@@ -24,7 +40,6 @@ public sealed class WishlistNotificationRecipientService(
                 (wishlist, user) => new WishlistNotificationRecipient(
                     wishlist.Id,
                     wishlist.Name,
-                    user.Email!))
-            .ToListAsync(cancellationToken);
+                    user.Email!));
     }
 }

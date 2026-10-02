@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using SteamApp.Application.DTOs.WishListItem;
+using SteamApp.Application.OperationResults;
 using SteamApp.Interfaces.Services;
 
 namespace SteamApp.IntegrationTests.Support;
@@ -38,11 +39,13 @@ public sealed class FakeWishlistService : IWishlistService
         };
     }
 
-    public Task<WhishListResponse> CheckWishlistItem(long id)
+    public Task<Result<WhishListResponse>> CheckWishlistItem(
+        long id,
+        CancellationToken cancellationToken)
     {
         CheckCalls++;
 
-        return Task.FromResult(
+        return Task.FromResult(Result<WhishListResponse>.Success(
             responses.TryGetValue(id, out var response)
                 ? response
                 : new WhishListResponse
@@ -50,7 +53,7 @@ public sealed class FakeWishlistService : IWishlistService
                     GameName = $"Game {id}",
                     CurrentPrice = 99,
                     IsPriceReached = false
-                });
+                }));
     }
 
     public Task<IEnumerable<WishListDto>> GetAllAsync(CancellationToken ct)

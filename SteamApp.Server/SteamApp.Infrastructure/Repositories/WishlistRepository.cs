@@ -26,12 +26,10 @@ public class WishlistRepository(
             .Include(x => x.Game)
             .FirstOrDefaultAsync(g => g.Id == id, ct);
 
-        if (wishList is null)
+        if (wishList is not null)
         {
-            throw new Exception($"WishList with id {id} not found.");
+            cache.Set(cacheKey, wishList, TimeSpan.FromMinutes(1));
         }
-
-        cache.Set(cacheKey, wishList, TimeSpan.FromMinutes(1));
 
         return wishList;
     }

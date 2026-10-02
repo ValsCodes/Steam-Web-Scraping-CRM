@@ -37,11 +37,11 @@ public sealed class WishlistServiceTests
     {
         Assert.That(
             () => WishlistService.SelectFinalPrice(null, null),
-            Throws.Exception.With.Message.Contains("No Price element"));
+            Throws.InvalidOperationException.With.Message.Contains("No price element"));
     }
 
     [Test]
-    public void CheckWishlistItem_ThrowsWhenWishlistIsMissing()
+    public async Task CheckWishlistItem_ReturnsNotFoundWhenWishlistIsMissing()
     {
         var repository = new Mock<IWishlistRepository>();
         repository
@@ -50,13 +50,17 @@ public sealed class WishlistServiceTests
 
         var service = new WishlistService(repository.Object, Mock.Of<IMapper>());
 
-        Assert.That(
-            async () => await service.CheckWishlistItem(42),
-            Throws.Exception.With.Message.Contains("Wishlist not found"));
+        var result = await service.CheckWishlistItem(42, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsFailure, Is.True);
+            Assert.That(result.Error?.Code, Is.EqualTo("WishlistCheck.NotFound"));
+        });
     }
 
     [Test]
-    public void CheckWishlistItem_ThrowsWhenGameUrlIsMissing()
+    public async Task CheckWishlistItem_ReturnsValidationWhenGameUrlIsMissing()
     {
         var repository = new Mock<IWishlistRepository>();
         repository
@@ -70,9 +74,13 @@ public sealed class WishlistServiceTests
 
         var service = new WishlistService(repository.Object, Mock.Of<IMapper>());
 
-        Assert.That(
-            async () => await service.CheckWishlistItem(42),
-            Throws.Exception.With.Message.Contains("Game URL is null or empty"));
+        var result = await service.CheckWishlistItem(42, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsFailure, Is.True);
+            Assert.That(result.Error?.Code, Is.EqualTo("WishlistCheck.MissingGameUrl"));
+        });
     }
 
     [Test]

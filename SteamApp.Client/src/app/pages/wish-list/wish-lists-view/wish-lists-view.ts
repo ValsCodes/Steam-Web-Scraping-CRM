@@ -19,13 +19,21 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 
-import { UpdateWishListStatus, WishList } from '../../../models/wish-list.model';
+import {
+  UpdateWishListStatus,
+  WishList,
+  WishListCheckHistory,
+} from '../../../models/wish-list.model';
 import { WishListService } from '../../../services/wish-list/wish-list.service';
-import { GameService, SteamService } from '../../../services';
-import { Game, WhishListResponse } from '../../../models';
+import { GameService } from '../../../services';
+import { Game } from '../../../models';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import { StatusDialogComponent } from '../../../components/status-dialog.component';
 import { ExternalLinkDirective, openableExternalUrl } from '../../../common';
+import {
+  WishListCheckHistoryDialogComponent,
+  WishListCheckHistoryDialogData,
+} from './wish-list-check-history-dialog.component';
 
 import * as XLSX from 'xlsx';
 
@@ -95,7 +103,6 @@ export class WishListsView implements OnInit, OnDestroy {
   constructor(
     private readonly wishListService: WishListService,
     private readonly gameService: GameService,
-    private readonly steamService: SteamService,
     private readonly router: Router,
     private readonly cdr: ChangeDetectorRef,
     private readonly dialog: MatDialog,
@@ -232,6 +239,19 @@ export class WishListsView implements OnInit, OnDestroy {
     this.router.navigate(['/wishlist/edit', id]);
   }
 
+  viewCheckHistoryButtonClicked(item: WishList): void {
+    const data: WishListCheckHistoryDialogData = {
+      wishListId: item.id,
+      alertName: item.name,
+      gameName: item.gameName,
+    };
+
+    this.dialog.open<WishListCheckHistoryDialogComponent, WishListCheckHistoryDialogData>(
+      WishListCheckHistoryDialogComponent,
+      { data, maxWidth: '96vw' },
+    );
+  }
+
   activeButtonClicked(item: WishList): void {
     if (this.isStatusUpdating(item.id)) {
       return;
@@ -312,8 +332,8 @@ export class WishListsView implements OnInit, OnDestroy {
     this.isChecking = true;
     this.checkingId = whishListItemId;
 
-    this.steamService
-      .checkWishlistItem(whishListItemId)
+    this.wishListService
+      .check(whishListItemId)
       .pipe(
         takeUntil(this.cancelCheck$),
         finalize(() => {
@@ -326,7 +346,7 @@ export class WishListsView implements OnInit, OnDestroy {
         }),
       )
       .subscribe({
-        next: (response: WhishListResponse) => {
+        next: (response: WishListCheckHistory) => {
           if (response.isPriceReached === true) {
             this.openStatusDialog({
               title: 'Target Price Reached',
@@ -382,7 +402,11 @@ export class WishListsView implements OnInit, OnDestroy {
       this.dataSource.data.length === 0;
   }
 
-  private formatCurrentPrice(price: number): string {
+  private formatCurrentPrice(price: number | null): string {
+    if (price === null) {
+      return 'Unavailable';
+    }
+
     return price === 0 ? 'Free' : this.euroPriceFormatter.format(price);
   }
 

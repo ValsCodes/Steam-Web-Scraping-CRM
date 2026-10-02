@@ -1,5 +1,41 @@
 /* Shared form relation styles live in src/scss/main.scss. */
 
+.tag-relation-summary {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  cursor: pointer;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  list-style: none;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1e293b;
+
+  &::before {
+    content: '▸';
+    transition: transform 150ms ease;
+  }
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+}
+
+.tag-relation-count {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.tag-relation-section:not([open]) .tag-relation-summary {
+  margin-bottom: 0;
+}
+
+.tag-relation-section[open] .tag-relation-summary::before {
+  transform: rotate(90deg);
+}
+
 .item-group-sections {
   display: grid;
   gap: 1rem;

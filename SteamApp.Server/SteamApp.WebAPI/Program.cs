@@ -358,6 +358,7 @@ public class Program
         builder.Services.AddScoped<IAutomaticQueueDataService, AutomaticQueueDataService>();
         builder.Services.AddSingleton<IManualCheckDelay, ManualCheckDelay>();
         builder.Services.AddScoped<IWishlistNotificationRecipientService, WishlistNotificationRecipientService>();
+        builder.Services.AddScoped<IWishlistCheckExecutionService, WishlistCheckExecutionService>();
         builder.Services.AddScoped<ISteamRepository, SteamRepository>();
         builder.Services.AddScoped<ISteamService, SteamService>();
         builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();

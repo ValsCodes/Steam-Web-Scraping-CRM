@@ -6,4 +6,8 @@ public interface IWishlistNotificationRecipientService
 {
     Task<IReadOnlyList<WishlistNotificationRecipient>> GetActiveRecipientsAsync(
         CancellationToken cancellationToken);
+
+    Task<WishlistNotificationRecipient?> GetActiveRecipientAsync(
+        long wishlistId,
+        CancellationToken cancellationToken);
 }

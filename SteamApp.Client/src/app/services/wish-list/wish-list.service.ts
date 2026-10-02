@@ -8,6 +8,8 @@ import {
   CreateWishList,
   UpdateWishList,
   UpdateWishListStatus,
+  WishListCheckHistory,
+  WishListCheckHistoryPage,
 } from '../../models/wish-list.model';
 
 import { handleError } from '../error-handler';
@@ -55,6 +57,24 @@ export class WishListService {
   delete(id: number): Observable<void> {
     return this.http
       .delete<void>(`${this.baseUrl}/${id}`)
+      .pipe(catchError(handleError));
+  }
+
+  check(id: number): Observable<WishListCheckHistory> {
+    return this.http
+      .post<WishListCheckHistory>(`${this.baseUrl}/${id}/checks`, {})
+      .pipe(catchError(handleError));
+  }
+
+  getCheckHistory(
+    id: number,
+    pageNumber = 1,
+    pageSize = 25,
+  ): Observable<WishListCheckHistoryPage> {
+    return this.http
+      .get<WishListCheckHistoryPage>(`${this.baseUrl}/${id}/checks`, {
+        params: { pageNumber, pageSize },
+      })
       .pipe(catchError(handleError));
   }
 }

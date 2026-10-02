@@ -17,6 +17,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Pixel> Pixels { get; set; }
     public DbSet<WatchList> WatchList { get; set; }
     public DbSet<WishList> WishLists { get; set; }
+    public DbSet<WishListCheckHistory> WishListCheckHistories { get; set; }
     public DbSet<GameUrlProducts> GameUrlsProducts { get; set; }
     public DbSet<GameUrlPixels> GameUrlsPixels { get; set; }
     public DbSet<GameAddOn> GameAddOns { get; set; }
@@ -58,6 +59,29 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   .OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<WishList>(ConfigureUserOwnedEntity);
+        modelBuilder.Entity<WishListCheckHistory>(entity =>
+        {
+            ConfigureUserOwnedEntity(entity);
+
+            entity.Property(x => x.GameName)
+                  .HasMaxLength(WishListCheckHistory.GameNameMaxLength);
+
+            entity.Property(x => x.CorrelationId)
+                  .HasMaxLength(WishListCheckHistory.CorrelationIdMaxLength);
+
+            entity.Property(x => x.ErrorCode)
+                  .HasMaxLength(WishListCheckHistory.ErrorCodeMaxLength);
+
+            entity.Property(x => x.ErrorText)
+                  .HasMaxLength(WishListCheckHistory.ErrorTextMaxLength);
+
+            entity.HasOne(x => x.WishList)
+                  .WithMany()
+                  .HasForeignKey(x => x.WishListId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(x => new { x.UserId, x.WishListId, x.StartedAtUtc });
+        });
         modelBuilder.Entity<FeedbackRequest>(entity =>
         {
             ConfigureUserOwnedEntity(entity);

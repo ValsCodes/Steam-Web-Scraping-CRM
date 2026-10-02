@@ -3,14 +3,17 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Moq;
 using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.WishListItem;
+using SteamApp.Application.OperationResults;
 using SteamApp.IntegrationTests.Support;
 using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI.Jobs;
 using SteamApp.WebAPI.MessageBrokers.Handlers.Wishlist;
 using SteamApp.WebAPI.MessageBrokers.Messages.Wishlist;
 using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options;
+using SteamApp.WebAPI.Services;
 
 namespace SteamApp.IntegrationTests.Jobs;
 
@@ -44,8 +47,6 @@ public sealed class WishlistJobIntegrationTests
         {
             Assert.That(messages, Has.Count.EqualTo(1));
             Assert.That(messages.Single().WishlistId, Is.EqualTo(1));
-            Assert.That(messages.Single().WishlistName, Is.EqualTo("Active Wish"));
-            Assert.That(messages.Single().Email, Is.EqualTo("owner@example.com"));
             Assert.That(messages.Single().CorrelationId, Is.Not.Empty);
             Assert.That(queuedMarker, Is.Not.Null);
         });
@@ -163,6 +164,43 @@ public sealed class WishlistJobIntegrationTests
     }
 
     [Test]
+    public async Task WishlistCheckHandlerSkipsCachedNotificationWithoutRunningCheck()
+    {
+        var cache = CreateCache();
+        await cache.SetStringAsync(
+            string.Format(CacheKeys.WishListBackgroundJob, 1),
+            "cached");
+        var publisher = new CapturingMessagePublisher();
+        var wishlist = new FakeWishlistService();
+        var handler = CreateCheckHandler(cache, publisher, wishlist);
+
+        await handler.HandleAsync(CheckMessage(), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(publisher.Messages, Is.Empty);
+            Assert.That(wishlist.CheckCalls, Is.Zero);
+        });
+    }
+
+    [Test]
+    public async Task WishlistCheckHandlerSkipsDeletedOrInactiveAlertWithoutRunningCheck()
+    {
+        var cache = CreateCache();
+        var publisher = new CapturingMessagePublisher();
+        var wishlist = new FakeWishlistService();
+        var handler = CreateCheckHandler(cache, publisher, wishlist, hasRecipient: false);
+
+        await handler.HandleAsync(CheckMessage(), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(publisher.Messages, Is.Empty);
+            Assert.That(wishlist.CheckCalls, Is.Zero);
+        });
+    }
+
+    [Test]
     public async Task WishlistNotificationHandlerSendsEmailAndSetsCache()
     {
         var cache = CreateCache();
@@ -227,13 +265,59 @@ public sealed class WishlistJobIntegrationTests
     private static WishlistCheckMessageHandler CreateCheckHandler(
         IDistributedCache cache,
         CapturingMessagePublisher publisher,
-        FakeWishlistService wishlist)
+        FakeWishlistService wishlist,
+        bool hasRecipient = true)
     {
+        var execution = new Mock<IWishlistCheckExecutionService>();
+        execution
+            .Setup(x => x.ExecuteScheduledAsync(
+                It.IsAny<long>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(async (
+                long id,
+                DateTime requestedAtUtc,
+                string correlationId,
+                CancellationToken cancellationToken) =>
+            {
+                var checkResult = await wishlist.CheckWishlistItem(id, cancellationToken);
+                if (checkResult.IsFailure)
+                {
+                    return Result<WishlistCheckExecutionOutcome>.Failure(checkResult.Error!);
+                }
+
+                var response = checkResult.Value!;
+                var trace = new WishListCheckHistoryDto
+                {
+                    Id = 1,
+                    WishListId = id,
+                    GameName = response.GameName,
+                    Source = "Scheduled",
+                    Status = "Succeeded",
+                    CurrentPrice = response.CurrentPrice,
+                    IsPriceReached = response.IsPriceReached,
+                    RequestedAtUtc = requestedAtUtc,
+                    StartedAtUtc = requestedAtUtc,
+                    CompletedAtUtc = requestedAtUtc,
+                    CorrelationId = correlationId
+                };
+
+                return Result<WishlistCheckExecutionOutcome>.Success(
+                    new WishlistCheckExecutionOutcome(trace, CheckError: null));
+            });
+
         return new WishlistCheckMessageHandler(
             NullLogger<WishlistCheckMessageHandler>.Instance,
             Options.Create(CreateRabbitMqOptions()),
             cache,
-            wishlist,
+            execution.Object,
+            hasRecipient
+                ? RecipientService(new WishlistNotificationRecipient(
+                    1,
+                    "Active Wish",
+                    "owner@example.com"))
+                : RecipientService(),
             publisher);
     }
 
@@ -267,8 +351,6 @@ public sealed class WishlistJobIntegrationTests
     {
         return new WishlistCheckRequested(
             1,
-            "Active Wish",
-            "owner@example.com",
             DateTime.UtcNow,
             "correlation-1");
     }
@@ -300,6 +382,15 @@ public sealed class WishlistJobIntegrationTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(recipients);
+        }
+
+        public Task<WishlistNotificationRecipient?> GetActiveRecipientAsync(
+            long wishlistId,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(recipients.SingleOrDefault(
+                recipient => recipient.WishlistId == wishlistId));
         }
     }
 }

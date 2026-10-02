@@ -219,45 +219,6 @@ public sealed class SteamControllerTests
     }
 
     [Test]
-    public async Task CheckWishlistItem_ReturnsCachedValueWithoutCallingService()
-    {
-        using var cache = TestDb.CreateMemoryCache();
-        var cached = new WhishListResponse
-        {
-            GameName = "Cached",
-            CurrentPrice = 1,
-            IsPriceReached = true
-        };
-        cache.Set(string.Format(CacheKeys.WishListItem, 1), cached);
-
-        var wishlistService = new Mock<IWishlistService>(MockBehavior.Strict);
-        var controller = CreateController(wishlistService: wishlistService, cache: cache);
-
-        var result = await controller.CheckWithlistItem(1);
-
-        var ok = result as OkObjectResult;
-        Assert.That(ok?.Value, Is.SameAs(cached));
-        wishlistService.VerifyNoOtherCalls();
-    }
-
-    [Test]
-    public async Task CheckWishlistItem_ReturnsBadRequestForJsonSerializationException()
-    {
-        var wishlistService = new Mock<IWishlistService>();
-        wishlistService
-            .Setup(x => x.CheckWishlistItem(1))
-            .ThrowsAsync(new JsonSerializationException("bad wishlist"));
-        var logger = new Mock<ILogger<SteamController>>();
-        var controller = CreateController(wishlistService: wishlistService, logger: logger);
-
-        var result = await controller.CheckWithlistItem(1);
-
-        var objectResult = result as ObjectResult;
-        Assert.That(objectResult?.StatusCode, Is.EqualTo(400));
-        VerifyLogged(logger, LogLevel.Warning);
-    }
-
-    [Test]
     public async Task RerunScrapeHistoryAsync_BypassesCacheAndRecordsNewHistory()
     {
         using var database = TestDb.CreateSeededDatabase();
@@ -605,7 +566,6 @@ public sealed class SteamControllerTests
 
     private static SteamController CreateController(
         Mock<ISteamService>? steamService = null,
-        Mock<IWishlistService>? wishlistService = null,
         Mock<ILogger<SteamController>>? logger = null,
         Mock<IMessagePublisher>? messagePublisher = null,
         RabbitMqOptions? rabbitMqOptions = null,
@@ -617,9 +577,7 @@ public sealed class SteamControllerTests
         var steamServiceInstance = (steamService ?? new Mock<ISteamService>()).Object;
 
         var controller = new SteamController(
-            (wishlistService ?? new Mock<IWishlistService>()).Object,
             (logger ?? new Mock<ILogger<SteamController>>()).Object,
-            dbFactory,
             scrapeHistoryData,
             new ScrapeExecutionService(steamServiceInstance),
             (messagePublisher ?? new Mock<IMessagePublisher>()).Object,

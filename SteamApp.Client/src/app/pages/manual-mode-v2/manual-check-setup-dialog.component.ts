@@ -223,21 +223,35 @@ interface ManualCheckPresetCombinationRow {
               </button>
             </section>
 
-            <fieldset class="manual-check-dialog__assignments">
-              <legend>Available for Game URLs</legend>
-              @for (gameUrl of presetAssignmentGameUrls; track gameUrl.id) {
-                <label class="manual-check-dialog__radio">
-                  <input
-                    type="checkbox"
-                    [checked]="selectedPresetGameUrlIds.has(gameUrl.id)"
-                    (change)="setPresetGameUrlAssigned(gameUrl.id, $any($event.target).checked)" />
-                  <span>{{ gameUrl.name || ('Game URL #' + gameUrl.id) }}{{ gameUrl.isActive ? '' : ' (inactive)' }}</span>
-                </label>
-              }
-              @if (selectedPresetGameUrlIds.size === 0) {
-                <p class="manual-check-dialog__validation" role="alert">Assign the preset to at least one Manual Batch URL.</p>
-              }
-            </fieldset>
+            <details class="manual-check-dialog__assignments">
+              <summary>
+                <strong>Available for Game URLs</strong>
+                <span class="manual-check-dialog__assignment-summary">
+                  @for (gameUrl of selectedPresetAssignmentGameUrls; track gameUrl.id) {
+                    <span class="manual-check-dialog__assignment-chip">
+                      {{ gameUrl.name || ('Game URL #' + gameUrl.id) }}{{ gameUrl.isActive ? '' : ' (inactive)' }}
+                    </span>
+                  } @empty {
+                    <span class="manual-check-dialog__assignment-empty">No URLs selected</span>
+                  }
+                </span>
+              </summary>
+              <fieldset class="manual-check-dialog__assignment-options">
+                <legend>Select Game URLs</legend>
+                @for (gameUrl of presetAssignmentGameUrls; track gameUrl.id) {
+                  <label class="manual-check-dialog__radio">
+                    <input
+                      type="checkbox"
+                      [checked]="selectedPresetGameUrlIds.has(gameUrl.id)"
+                      (change)="setPresetGameUrlAssigned(gameUrl.id, $any($event.target).checked)" />
+                    <span>{{ gameUrl.name || ('Game URL #' + gameUrl.id) }}{{ gameUrl.isActive ? '' : ' (inactive)' }}</span>
+                  </label>
+                }
+                @if (selectedPresetGameUrlIds.size === 0) {
+                  <p class="manual-check-dialog__validation" role="alert">Assign the preset to at least one Manual Batch URL.</p>
+                }
+              </fieldset>
+            </details>
           }
         } @else {
           <section class="manual-check-dialog__combination" aria-labelledby="manualCheckCombinationLabel">
@@ -572,7 +586,13 @@ interface ManualCheckPresetCombinationRow {
     .manual-check-dialog__spacer { flex: 1; }
     .manual-check-dialog__queue-source { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
     .manual-check-dialog__products { flex-direction: column !important; }
-    .manual-check-dialog__assignments { flex-direction: column !important; }
+    .manual-check-dialog__assignments { border: 1px solid #e2e8f0; border-radius: .375rem; padding: .75rem; }
+    .manual-check-dialog__assignments summary { cursor: pointer; }
+    .manual-check-dialog__assignments summary strong { margin-right: .5rem; }
+    .manual-check-dialog__assignment-summary { display: inline-flex; flex-wrap: wrap; gap: .35rem; vertical-align: middle; }
+    .manual-check-dialog__assignment-chip { border-radius: 999px; background: #e2e8f0; padding: .2rem .55rem; color: #334155; font-size: .8rem; }
+    .manual-check-dialog__assignment-empty { color: #64748b; font-size: .85rem; }
+    .manual-check-dialog__assignment-options { flex-direction: column !important; margin-top: .75rem; }
     .manual-check-dialog__product-list { display: grid; max-height: 14rem; overflow: auto; gap: .35rem; border: 1px solid #e2e8f0; border-radius: .375rem; padding: .6rem; }
     @media (max-width: 700px) { .manual-check-dialog__queue-source, .manual-check-dialog__combination-row { grid-template-columns: 1fr; } }
     @keyframes manual-check-spin { to { transform: rotate(360deg); } }
@@ -651,6 +671,10 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   get presetAssignmentGameUrls(): GameUrl[] {
     return this.gameUrls.filter((x) =>
       x.gameId === this.selectedGameId && x.scrapingModeId === ScrapingModeEnum.ManualBatch);
+  }
+
+  get selectedPresetAssignmentGameUrls(): GameUrl[] {
+    return this.presetAssignmentGameUrls.filter((x) => this.selectedPresetGameUrlIds.has(x.id));
   }
 
   get selectedGameName(): string {

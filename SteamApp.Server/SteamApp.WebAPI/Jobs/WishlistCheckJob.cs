@@ -43,8 +43,6 @@ public class WishlistCheckJob(
 
                 var message = new WishlistCheckRequested(
                     recipient.WishlistId,
-                    recipient.WishlistName,
-                    recipient.Email,
                     DateTime.UtcNow,
                     Guid.NewGuid().ToString("N"));
 
@@ -56,9 +54,8 @@ public class WishlistCheckJob(
                 await cache.SetMarkerAsync(queuedCacheKey, QueuedMarkerTtl, ct);
 
                 log.LogInformation(
-                    "WishlistCheckJob queued wishlist item {WishlistId} for {Email}.",
-                    recipient.WishlistId,
-                    recipient.Email);
+                    "WishlistCheckJob queued wishlist item {WishlistId}.",
+                    recipient.WishlistId);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {

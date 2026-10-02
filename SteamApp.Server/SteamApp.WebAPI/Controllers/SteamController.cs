@@ -1,14 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.ScrapeHistory;
 using SteamApp.Domain.Entities;
-using SteamApp.Infrastructure.Context;
 using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI.MessageBrokers.Abstractions;
 using SteamApp.WebAPI.MessageBrokers.Messages.Scraping;
@@ -23,9 +20,7 @@ namespace SteamApp.WebAPI.Controllers;
 [Authorize(Policy = SecurityPolicies.ApiUser)]
 [EnableRateLimiting(SecurityPolicies.ExpensiveApiRateLimit)]
 public class SteamController(
-    IWishlistService wishlistService,
     ILogger<SteamController> logger,
-    IDbContextFactory<ApplicationDbContext> dbContextFactory,
     IScrapeHistoryDataService scrapeHistoryData,
     IScrapeExecutionService scrapeExecution,
     IMessagePublisher messagePublisher,
@@ -265,43 +260,6 @@ public class SteamController(
             original.Endpoint,
             original.ScrapeType,
             cancellationToken);
-    }
-
-    [HttpGet("check-wishlist/{wishlistId}")]
-    public async Task<IActionResult> CheckWithlistItem(long wishlistId)
-    {
-        using (logger.BeginScope("{Controller}.{Action}", nameof(SteamController), nameof(CheckWithlistItem)))
-        {
-            try
-            {
-                if (!await CurrentUserOwnsWishlistItemAsync(wishlistId))
-                {
-                    return NotFound();
-                }
-
-                var cacheKey = string.Format(CacheKeys.WishListItem, wishlistId);
-
-                if (cache.TryGetValue(cacheKey, out var cached))
-                {
-                    return Ok(cached);
-                }
-
-                var result = await wishlistService.CheckWishlistItem(wishlistId);
-
-                cache.Set(cacheKey, result, TimeSpan.FromMinutes(5));
-                return Ok(result);
-            }
-            catch (JsonSerializationException ex)
-            {
-                logger.LogWarning(ex, "Invalid listing.");
-                return StatusCode(400, "Error: Invalid Wishlisting");
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Request failed.");
-                return StatusCode(500, ex.Message);
-            }
-        }
     }
 
     #region Not Done
@@ -582,22 +540,6 @@ public class SteamController(
             logger.LogError(ex, "Failed to record automated scrape history.");
             return null;
         }
-    }
-
-    private async Task<bool> CurrentUserOwnsWishlistItemAsync(long wishlistId)
-    {
-        var userId = User.GetUserId();
-        if (userId is null)
-        {
-            return false;
-        }
-
-        await using var db = dbContextFactory.CreateDbContext();
-
-        return userId is not null &&
-               await db.WishLists
-                   .AsNoTracking()
-                   .AnyAsync(x => x.Id == wishlistId && x.UserId == userId);
     }
 
     private static ScrapeHistorySummaryDto ToSummaryDto(AutomatedScrapeHistory history, string? gameUrlName)

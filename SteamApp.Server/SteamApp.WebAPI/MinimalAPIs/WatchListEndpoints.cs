@@ -118,14 +118,15 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 WatchListCreateDto input,
                 HttpContext httpContext,
                 ApplicationDbContext db,
-                IMapper mapper) =>
+                IMapper mapper,
+                TimeProvider timeProvider) =>
             {
                 var userId = httpContext.User.GetUserId();
                 if (userId is null) { return Results.Unauthorized(); }
 
-                input.RegistrationDate ??= new DateOnly();
                 var entity = mapper.Map<WatchList>(input);
                 entity.UserId = userId;
+                entity.RegistrationDate = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
 
                 db.WatchList.Add(entity);
                 await db.SaveChangesAsync();
@@ -151,8 +152,6 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                 var entity = await db.WatchList.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
                 if (entity is null) { return Results.NotFound(); }
-
-                input.RegistrationDate ??= new DateOnly();
 
                 mapper.Map(input, entity);
 

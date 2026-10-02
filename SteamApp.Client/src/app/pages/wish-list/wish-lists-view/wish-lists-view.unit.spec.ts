@@ -7,28 +7,26 @@ import { from, of, throwError } from 'rxjs';
 import { WishListsView } from './wish-lists-view';
 import { WishList } from '../../../models/wish-list.model';
 import { WishListService } from '../../../services/wish-list/wish-list.service';
-import { GameService, SteamService } from '../../../services';
+import { GameService } from '../../../services';
 import { StatusDialogComponent } from '../../../components/status-dialog.component';
+import { WishListCheckHistoryDialogComponent } from './wish-list-check-history-dialog.component';
 
 describe('WishListsView', () => {
   async function setup(items: WishList[] = []) {
     const wishListService = jasmine.createSpyObj<WishListService>('WishListService', [
       'delete',
+      'check',
       'getAll',
+      'getCheckHistory',
       'updateStatus',
     ]);
     const gameService = jasmine.createSpyObj<GameService>('GameService', ['getAll']);
-    const steamService = jasmine.createSpyObj<SteamService>('SteamService', ['checkWishlistItem']);
     const router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     const dialog = jasmine.createSpyObj<MatDialog>('MatDialog', ['open']);
 
     wishListService.getAll.and.returnValue(from(Promise.resolve(items)));
     gameService.getAll.and.returnValue(of([]));
-    steamService.checkWishlistItem.and.returnValue(of({
-      isPriceReached: true,
-      currentPrice: 4.99,
-      gameName: 'Portal',
-    }));
+    wishListService.check.and.returnValue(of(createCheckTrace()));
     dialog.open.and.returnValue({ afterClosed: () => of(false) } as never);
 
     await TestBed.configureTestingModule({
@@ -37,7 +35,6 @@ describe('WishListsView', () => {
         provideNoopAnimations(),
         { provide: WishListService, useValue: wishListService },
         { provide: GameService, useValue: gameService },
-        { provide: SteamService, useValue: steamService },
         { provide: Router, useValue: router },
         { provide: MatDialog, useValue: dialog },
       ],
@@ -49,7 +46,7 @@ describe('WishListsView', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    return { component, dialog, fixture, steamService };
+    return { component, dialog, fixture, wishListService };
   }
 
   it('renders the Price Alerts intro and clarified table headings', async () => {
@@ -87,13 +84,12 @@ describe('WishListsView', () => {
   });
 
   it('opens clarified success, info, and error dialogs for price checks', async () => {
-    const { component, dialog, steamService } = await setup([createWishList()]);
+    const { component, dialog, wishListService } = await setup([createWishList()]);
 
-    steamService.checkWishlistItem.and.returnValue(of({
+    wishListService.check.and.returnValue(of(createCheckTrace({
       isPriceReached: true,
       currentPrice: 0,
-      gameName: 'Portal',
-    }));
+    })));
     component.checkButtonClicked(1);
 
     expect(dialog.open).toHaveBeenCalledWith(StatusDialogComponent, jasmine.objectContaining({
@@ -104,11 +100,10 @@ describe('WishListsView', () => {
       }),
     }));
 
-    steamService.checkWishlistItem.and.returnValue(of({
+    wishListService.check.and.returnValue(of(createCheckTrace({
       isPriceReached: false,
       currentPrice: 12.5,
-      gameName: 'Portal',
-    }));
+    })));
     component.checkButtonClicked(1);
 
     expect(dialog.open).toHaveBeenCalledWith(StatusDialogComponent, jasmine.objectContaining({
@@ -119,7 +114,7 @@ describe('WishListsView', () => {
       }),
     }));
 
-    steamService.checkWishlistItem.and.returnValue(throwError(() => new Error('Steam failed')));
+    wishListService.check.and.returnValue(throwError(() => new Error('Steam failed')));
     component.checkButtonClicked(1);
 
     expect(dialog.open).toHaveBeenCalledWith(StatusDialogComponent, jasmine.objectContaining({
@@ -129,6 +124,24 @@ describe('WishListsView', () => {
         variant: 'error',
       }),
     }));
+  });
+
+  it('opens check history for the selected price alert', async () => {
+    const item = createWishList();
+    const { component, dialog } = await setup([item]);
+
+    component.viewCheckHistoryButtonClicked(item);
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      WishListCheckHistoryDialogComponent,
+      jasmine.objectContaining({
+        data: {
+          wishListId: item.id,
+          alertName: item.name,
+          gameName: item.gameName,
+        },
+      }),
+    );
   });
 });
 
@@ -141,6 +154,32 @@ function createWishList(): WishList {
     pageUrl: 'https://store.steampowered.com/app/400/Portal/',
     price: 4.99,
     isActive: true,
+  };
+}
+
+function createCheckTrace(
+  overrides: Partial<ReturnType<typeof createCheckTraceBase>> = {},
+) {
+  return { ...createCheckTraceBase(), ...overrides };
+}
+
+function createCheckTraceBase() {
+  return {
+    id: 1,
+    wishListId: 1,
+    gameName: 'Portal',
+    source: 'Manual' as const,
+    status: 'Succeeded' as const,
+    targetPrice: 4.99,
+    currentPrice: 4.99,
+    isPriceReached: true,
+    requestedAtUtc: '2026-10-02T12:00:00Z',
+    startedAtUtc: '2026-10-02T12:00:00Z',
+    completedAtUtc: '2026-10-02T12:00:01Z',
+    durationMilliseconds: 1000,
+    correlationId: 'trace-1',
+    errorCode: null,
+    errorText: null,
   };
 }
 

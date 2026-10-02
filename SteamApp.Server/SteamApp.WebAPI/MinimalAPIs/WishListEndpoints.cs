@@ -4,10 +4,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.WishListItem;
+using SteamApp.Application.OperationResults;
 using SteamApp.Domain.Entities;
 using SteamApp.Infrastructure.Context;
 using SteamApp.WebAPI.Contracts.Pagination;
 using SteamApp.WebAPI.Security;
+using SteamApp.WebAPI.Services;
 
 namespace SteamApp.WebAPI.MinimalAPIs
 {
@@ -138,6 +140,65 @@ namespace SteamApp.WebAPI.MinimalAPIs
             .Produces<WishListDto>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
+            group.MapPost("/{id:long}/checks", async (
+                long id,
+                HttpContext httpContext,
+                IWishlistCheckExecutionService checkExecution,
+                CancellationToken ct) =>
+            {
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var result = await checkExecution.ExecuteManualAsync(
+                    id,
+                    userId,
+                    httpContext.TraceIdentifier,
+                    ct);
+                if (result.IsFailure)
+                {
+                    return ToProblem(result.Error!);
+                }
+
+                var outcome = result.Value!;
+                if (outcome.CheckError is not null)
+                {
+                    return Results.Problem(
+                        title: "Price check failed.",
+                        detail: outcome.CheckError.Description,
+                        statusCode: ToStatusCode(outcome.CheckError.Type),
+                        extensions: new Dictionary<string, object?>
+                        {
+                            ["checkHistoryId"] = outcome.Trace.Id,
+                            ["correlationId"] = outcome.Trace.CorrelationId
+                        });
+                }
+
+                return Results.Ok(outcome.Trace);
+            })
+            .WithName("CheckWishListItem")
+            .RequireRateLimiting(SecurityPolicies.ExpensiveApiRateLimit)
+            .Produces<WishListCheckHistoryDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
+            .Produces<ProblemDetails>(StatusCodes.Status503ServiceUnavailable);
+
+            group.MapGet("/{id:long}/checks", async (
+                long id,
+                HttpContext httpContext,
+                [AsParameters] WishListCheckHistoryPageQuery request,
+                IWishlistCheckExecutionService checkExecution,
+                CancellationToken ct) =>
+            {
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var result = await checkExecution.GetHistoryAsync(id, userId, request, ct);
+                return result.Match<IResult>(Results.Ok, ToProblem);
+            })
+            .WithName("GetWishListCheckHistory")
+            .Produces<WishListCheckHistoryPageDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
+
             // POST: /api/wish-list
             group.MapPost("/", async (
                 WishListCreateDto input,
@@ -254,6 +315,37 @@ namespace SteamApp.WebAPI.MinimalAPIs
             .Produces(StatusCodes.Status404NotFound);
 
             return app;
+        }
+
+        private static IResult ToProblem(Error error)
+        {
+            return Results.Problem(
+                title: error.Type switch
+                {
+                    ErrorType.NotFound => "Price alert not found.",
+                    ErrorType.Validation => "Invalid price alert.",
+                    ErrorType.Conflict => "Price alert conflict.",
+                    ErrorType.Unauthorized => "Authentication required.",
+                    ErrorType.Forbidden => "Access denied.",
+                    ErrorType.Unavailable => "Price check unavailable.",
+                    _ => "Request failed."
+                },
+                detail: error.Description,
+                statusCode: ToStatusCode(error.Type));
+        }
+
+        private static int ToStatusCode(ErrorType errorType)
+        {
+            return errorType switch
+            {
+                ErrorType.Validation => StatusCodes.Status400BadRequest,
+                ErrorType.NotFound => StatusCodes.Status404NotFound,
+                ErrorType.Conflict => StatusCodes.Status409Conflict,
+                ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
+                ErrorType.Forbidden => StatusCodes.Status403Forbidden,
+                ErrorType.Unavailable => StatusCodes.Status503ServiceUnavailable,
+                _ => StatusCodes.Status500InternalServerError
+            };
         }
     }
 }

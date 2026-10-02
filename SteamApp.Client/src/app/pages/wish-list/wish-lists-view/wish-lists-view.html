@@ -134,6 +134,11 @@
                 <span>Check Price Now</span>
               </button>
 
+              <button type="button" mat-menu-item (click)="viewCheckHistoryButtonClicked(row)"
+                [disabled]="isDeleting(row.id) || checkingId === row.id || isStatusUpdating(row.id)">
+                <span>View Check History</span>
+              </button>
+
               <button type="button" mat-menu-item (click)="editButtonClicked(row.id)"
                 [disabled]="isDeleting(row.id) || checkingId === row.id || isStatusUpdating(row.id)">
                 <span>Edit</span>

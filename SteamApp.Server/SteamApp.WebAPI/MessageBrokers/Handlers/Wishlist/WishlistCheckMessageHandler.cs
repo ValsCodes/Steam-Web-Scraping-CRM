@@ -6,6 +6,7 @@ using SteamApp.WebAPI.Caching;
 using SteamApp.WebAPI.MessageBrokers.Abstractions;
 using SteamApp.WebAPI.MessageBrokers.Messages.Wishlist;
 using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options;
+using SteamApp.WebAPI.Services;
 
 namespace SteamApp.WebAPI.MessageBrokers.Handlers.Wishlist;
 
@@ -21,7 +22,8 @@ public sealed class WishlistCheckMessageHandler(
     ILogger<WishlistCheckMessageHandler> logger,
     IOptions<RabbitMqOptions> options,
     IDistributedCache cache,
-    IWishlistService wishlistService,
+    IWishlistCheckExecutionService checkExecution,
+    IWishlistNotificationRecipientService recipientService,
     IMessagePublisher messagePublisher)
 {
     private readonly RabbitMqOptions _options = options.Value;
@@ -47,9 +49,51 @@ public sealed class WishlistCheckMessageHandler(
             return;
         }
 
-        var result = await wishlistService.CheckWishlistItem(message.WishlistId);
+        var recipient = await recipientService.GetActiveRecipientAsync(
+            message.WishlistId,
+            cancellationToken);
+        if (recipient is null)
+        {
+            await cache.RemoveAsync(queuedCacheKey, cancellationToken);
+            logger.LogInformation(
+                "Wishlist check message {CorrelationId} skipped because wishlist item {WishlistId} is no longer active.",
+                message.CorrelationId,
+                message.WishlistId);
+            return;
+        }
 
-        if (!result.IsPriceReached)
+        var executionResult = await checkExecution.ExecuteScheduledAsync(
+            message.WishlistId,
+            message.RequestedAtUtc,
+            message.CorrelationId,
+            cancellationToken);
+
+        if (executionResult.IsFailure)
+        {
+            await cache.RemoveAsync(queuedCacheKey, cancellationToken);
+            logger.LogWarning(
+                "Wishlist check message {CorrelationId} skipped for wishlist item {WishlistId}: {ErrorCode}.",
+                message.CorrelationId,
+                message.WishlistId,
+                executionResult.Error!.Code);
+            return;
+        }
+
+        var outcome = executionResult.Value!;
+        if (outcome.CheckError is not null)
+        {
+            await cache.RemoveAsync(queuedCacheKey, cancellationToken);
+            logger.LogWarning(
+                "Wishlist check message {CorrelationId} failed for wishlist item {WishlistId}: {ErrorCode}.",
+                message.CorrelationId,
+                message.WishlistId,
+                outcome.CheckError.Code);
+            return;
+        }
+
+        var result = outcome.Trace;
+
+        if (result.IsPriceReached != true)
         {
             await cache.RemoveAsync(queuedCacheKey, cancellationToken);
             logger.LogInformation(
@@ -63,10 +107,10 @@ public sealed class WishlistCheckMessageHandler(
             _options.WishlistNotificationQueueName,
             new WishlistNotificationRequested(
                 message.WishlistId,
-                message.WishlistName,
-                message.Email,
+                recipient.WishlistName,
+                recipient.Email,
                 result.GameName,
-                result.CurrentPrice,
+                result.CurrentPrice!.Value,
                 DateTime.UtcNow,
                 message.CorrelationId),
             cancellationToken);

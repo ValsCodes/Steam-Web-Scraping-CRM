@@ -224,6 +224,20 @@ describe('ManualCheckSetupDialogComponent', () => {
     }));
   });
 
+  it('collapses URL assignments by default and summarizes only selected URLs', () => {
+    const assignments = fixture.nativeElement.querySelector(
+      '.manual-check-dialog__assignments',
+    ) as HTMLDetailsElement;
+    const summary = assignments.querySelector('summary') as HTMLElement;
+    const options = assignments.querySelector('.manual-check-dialog__assignment-options') as HTMLElement;
+
+    expect(assignments.open).toBeFalse();
+    expect(summary.textContent).toContain('Steam Market');
+    expect(summary.textContent).not.toContain('Archived Market');
+    expect(options.textContent).toContain('Steam Market');
+    expect(options.textContent).toContain('Archived Market');
+  });
+
   it('validates and serializes EUR price ranges as minor units', () => {
     component.priceRangeMode = 'Between';
     component.minimumPriceEuros = 1.25;

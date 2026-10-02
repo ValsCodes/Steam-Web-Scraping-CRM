@@ -44,15 +44,15 @@ public sealed class WishlistRepositoryTests
     }
 
     [Test]
-    public void GetAsync_ThrowsWhenMissing()
+    public async Task GetAsync_ReturnsNullWhenMissing()
     {
         using var database = TestDb.CreateDatabase();
         using var cache = TestDb.CreateMemoryCache();
         var repository = new WishlistRepository(database.Factory, cache);
 
-        Assert.That(
-            async () => await repository.GetAsync(404, CancellationToken.None),
-            Throws.Exception.With.Message.Contains("WishList with id 404 not found"));
+        var result = await repository.GetAsync(404, CancellationToken.None);
+
+        Assert.That(result, Is.Null);
     }
 
     [Test]

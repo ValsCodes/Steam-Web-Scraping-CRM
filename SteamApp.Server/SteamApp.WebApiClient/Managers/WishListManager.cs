@@ -18,5 +18,24 @@ namespace SteamApp.WebApiClient.Managers
         {
             return await api.PostAsync<WishListDto>("api/wish-list", dto, ct);
         }
+
+        public async Task<WishListCheckHistoryDto> CheckAsync(long id, CancellationToken ct)
+        {
+            return await api.PostAsync<WishListCheckHistoryDto>(
+                $"api/wish-list/{id}/checks",
+                new { },
+                ct);
+        }
+
+        public async Task<WishListCheckHistoryPageDto?> GetCheckHistoryAsync(
+            long id,
+            int pageNumber = 1,
+            int pageSize = 25,
+            CancellationToken ct = default)
+        {
+            return await api.GetAsync<WishListCheckHistoryPageDto>(
+                $"api/wish-list/{id}/checks?pageNumber={pageNumber}&pageSize={pageSize}",
+                ct);
+        }
     }
 }

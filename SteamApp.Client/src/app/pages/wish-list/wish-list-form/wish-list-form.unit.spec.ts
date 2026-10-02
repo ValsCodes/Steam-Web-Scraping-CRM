@@ -69,6 +69,7 @@ describe('WishListForm', () => {
     expect(text).toContain('Alert Name');
     expect(text).toContain('Target Price');
     expect(text).toContain("Check Price Now uses the selected game's Steam page URL");
+    expect(text).toContain('Manual and scheduled check results are saved');
     expect(text).toContain('Enable monitoring for this alert');
     expect(text).toContain('Create price alert');
   });

@@ -40,8 +40,13 @@
       </label>
     </div>
 
-    <div class="relation-section">
-      <h3>Tags for this Product</h3>
+    <details class="relation-section tag-relation-section" open>
+      <summary class="tag-relation-summary">
+        <span>Tags for this Product</span>
+        <span class="tag-relation-count">
+          {{ selectedTagIds().length }} selected · {{ filteredTags.length }} available
+        </span>
+      </summary>
 
       @if (filteredTags.length === 0) {
         <p class="relation-empty">No tags available for this game.</p>
@@ -78,7 +83,7 @@
           }
         </div>
       }
-    </div>
+    </details>
   </div>
 
   <div class="form-actions">

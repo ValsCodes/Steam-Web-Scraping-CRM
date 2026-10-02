@@ -10,11 +10,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
+using Moq;
 using SteamApp.Application.Mapper;
 using SteamApp.Infrastructure.Context;
 using SteamApp.Infrastructure.Identity;
 using SteamApp.WebAPI.MinimalAPIs;
 using SteamApp.WebAPI.Security;
+using SteamApp.WebAPI.Services;
 
 namespace SteamApp.Tests.TestSupport;
 
@@ -31,7 +33,10 @@ public sealed class MinimalApiTestApp : IAsyncDisposable
     public HttpClient Client { get; }
     public string DatabaseName { get; }
 
-    public static async Task<MinimalApiTestApp> CreateAsync(Action<ApplicationDbContext>? seed = null)
+    public static async Task<MinimalApiTestApp> CreateAsync(
+        Action<ApplicationDbContext>? seed = null,
+        TimeProvider? timeProvider = null,
+        IWishlistCheckExecutionService? wishlistCheckExecution = null)
     {
         var databaseName = Guid.NewGuid().ToString("N");
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
@@ -44,6 +49,9 @@ public sealed class MinimalApiTestApp : IAsyncDisposable
 
         builder.Services.AddRouting();
         builder.Services.AddMemoryCache();
+        builder.Services.AddSingleton(timeProvider ?? TimeProvider.System);
+        builder.Services.AddSingleton<IWishlistCheckExecutionService>(
+            wishlistCheckExecution ?? Mock.Of<IWishlistCheckExecutionService>());
         builder.Services.AddDbContext<ApplicationDbContext>(opts =>
             opts.UseInMemoryDatabase(databaseName));
         builder.Services.AddAutoMapper(_ => { }, typeof(BaseProfile));
@@ -85,6 +93,15 @@ public sealed class MinimalApiTestApp : IAsyncDisposable
                     _ => new FixedWindowRateLimiterOptions
                     {
                         PermitLimit = 120,
+                        QueueLimit = 0,
+                        Window = TimeSpan.FromMinutes(1)
+                    }));
+            opts.AddPolicy(SecurityPolicies.ExpensiveApiRateLimit, context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    context.User.Identity?.Name ?? "anonymous",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 30,
                         QueueLimit = 0,
                         Window = TimeSpan.FromMinutes(1)
                     }));

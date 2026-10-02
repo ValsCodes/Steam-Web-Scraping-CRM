@@ -36,7 +36,6 @@ export class WatchListForm implements OnInit, OnDestroy {
   form = this.fb.nonNullable.group({
     url: ['', Validators.required],
     name: ['', Validators.required],
-    registrationDate: [''],
     isActive: [true],
   });
 
@@ -71,7 +70,6 @@ export class WatchListForm implements OnInit, OnDestroy {
         this.form.patchValue({
           url: item.url ?? '',
           name: item.name ?? '',
-          registrationDate: item.registrationDate,
           isActive: item.isActive,
         });
 
