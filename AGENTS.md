@@ -27,6 +27,7 @@ All skill paths below are relative to `.agents/skills/`.
 |---|---|---|
 | Create, modify, move, refactor, or review C# code or .NET project references, including tests | `csharp-conventions` | None |
 | Create, modify, move, refactor, or review Angular components, templates, styles, services, models, routes, or client tests | `ui-conventions` | None |
+| Create, modify, or review API endpoints, HTTP clients or contracts, expected-error result flows, ProblemDetails, exception handling, or custom HTTP methods | `api-conventions` | None |
 | Repository discovery, callers, dependencies, routes, architecture, or change-impact analysis | `codebase-discovery` | None |
 | Direct SQL Server/LocalDB inspection or mutation, including preset creation and catalog data operations | `steamapp-database-operations` | None |
 | Join-table selection or batch relation mutations | `bulk-relations` | None |

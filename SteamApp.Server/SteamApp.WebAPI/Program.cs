@@ -175,6 +175,9 @@ public class Program
                     new CamelCasePropertyNamesContractResolver();
             });
 
+        builder.Services.AddProblemDetails();
+        builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
         var allowedOrigins = builder.Configuration
             .GetSection("Cors:AllowedOrigins")
             .Get<string[]>() ?? [];
@@ -204,7 +207,8 @@ public class Program
                           HttpMethods.Post,
                           HttpMethods.Put,
                           HttpMethods.Patch,
-                          HttpMethods.Delete)
+                          HttpMethods.Delete,
+                          ApiHttpMethods.Query)
                       .WithHeaders(
                           HeaderNames.Accept,
                           HeaderNames.Authorization,
@@ -416,6 +420,8 @@ public class Program
                 .GetAwaiter()
                 .GetResult();
         }
+
+        app.UseExceptionHandler();
 
         if (app.Environment.IsDevelopment())
         {

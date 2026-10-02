@@ -1,0 +1,4 @@
+interface:
+  display_name: "API Conventions"
+  short_description: "Apply SteamApp HTTP and error contract rules"
+  default_prompt: "Use $api-conventions to implement or review a SteamApp API contract and its error handling."

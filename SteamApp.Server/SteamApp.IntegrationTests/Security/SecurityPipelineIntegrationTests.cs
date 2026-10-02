@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using SteamApp.Infrastructure.Identity;
 using SteamApp.IntegrationTests.Support;
+using SteamApp.WebAPI;
 using SteamApp.WebAPI.Security;
 
 namespace SteamApp.IntegrationTests.Security;
@@ -86,8 +87,18 @@ public sealed class SecurityPipelineIntegrationTests
         denied.Headers.Add("Origin", "https://evil.example.test");
         denied.Headers.Add("Access-Control-Request-Method", "GET");
 
+        using var allowedQuery = new HttpRequestMessage(HttpMethod.Options, "/api/games/");
+        allowedQuery.Headers.Add("Origin", "https://spa.example.test");
+        allowedQuery.Headers.Add("Access-Control-Request-Method", ApiHttpMethods.Query);
+
+        using var deniedQuery = new HttpRequestMessage(HttpMethod.Options, "/api/games/");
+        deniedQuery.Headers.Add("Origin", "https://evil.example.test");
+        deniedQuery.Headers.Add("Access-Control-Request-Method", ApiHttpMethods.Query);
+
         var allowedResponse = await client.SendAsync(allowed);
         var deniedResponse = await client.SendAsync(denied);
+        var allowedQueryResponse = await client.SendAsync(allowedQuery);
+        var deniedQueryResponse = await client.SendAsync(deniedQuery);
 
         Assert.Multiple(() =>
         {
@@ -96,6 +107,14 @@ public sealed class SecurityPipelineIntegrationTests
                 allowedResponse.Headers.GetValues("Access-Control-Allow-Origin").Single(),
                 Is.EqualTo("https://spa.example.test"));
             Assert.That(deniedResponse.Headers.Contains("Access-Control-Allow-Origin"), Is.False);
+            Assert.That(allowedQueryResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(
+                allowedQueryResponse.Headers.GetValues("Access-Control-Allow-Origin").Single(),
+                Is.EqualTo("https://spa.example.test"));
+            Assert.That(
+                allowedQueryResponse.Headers.GetValues("Access-Control-Allow-Methods").Single(),
+                Does.Contain(ApiHttpMethods.Query));
+            Assert.That(deniedQueryResponse.Headers.Contains("Access-Control-Allow-Origin"), Is.False);
         });
     }
 
