@@ -26,13 +26,16 @@ public sealed class ManualChecksController(
     [HttpGet("presets")]
     public async Task<IActionResult> GetPresets(
         [FromQuery] long? gameId,
+        [FromQuery] long? gameUrlId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var userId = User.GetUserId();
             if (userId is null) return Unauthorized();
-            return Ok(await dataService.GetPresetsAsync(userId, gameId, cancellationToken));
+            if (gameUrlId.HasValue &&
+                !await dataService.UserOwnsGameUrlAsync(userId, gameUrlId.Value, cancellationToken)) return NotFound();
+            return Ok(await dataService.GetPresetsAsync(userId, gameId, gameUrlId, cancellationToken));
         }
         catch (ManualCheckRequestException exception)
         {
@@ -282,6 +285,27 @@ public sealed class ManualChecksController(
         catch (ManualCheckRequestException exception)
         {
             logger.LogWarning(exception, "Manual-check run {RunId} continuation failed.", id);
+            return Problem(
+                statusCode: exception.StatusCode,
+                title: "Manual check request failed",
+                detail: exception.Message);
+        }
+    }
+
+    [HttpPut("runs/{id:long}/listing-limit")]
+    public async Task<IActionResult> UpdateListingLimit(
+        long id,
+        [FromBody] ManualCheckListingLimitUpdateDto input,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await EnsureStandaloneRunAsync(id, cancellationToken);
+            return Ok(await dataService.UpdateListingLimitAsync(id, input.ListingLimit, cancellationToken));
+        }
+        catch (ManualCheckRequestException exception)
+        {
+            logger.LogWarning(exception, "Manual-check run {RunId} listing limit update failed.", id);
             return Problem(
                 statusCode: exception.StatusCode,
                 title: "Manual check request failed",

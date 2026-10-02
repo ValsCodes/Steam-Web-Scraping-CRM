@@ -213,6 +213,31 @@
                             {{ formatDuration(automatedRun.durationMilliseconds) }}
                         </p>
                         }
+                        <p class="mt-1 text-sm text-slate-600">
+                            Top {{ automatedRun.setup.listingLimit }} cheapest listings per product
+                        </p>
+                        @if (automatedRun.status === 'Paused') {
+                        <div class="mt-2 flex flex-wrap items-end gap-2">
+                            <label class="flex flex-col gap-1 text-xs font-medium text-slate-700">
+                                <span>Change Top X for remaining products</span>
+                                <input type="number" min="1" step="1"
+                                    class="w-36 rounded border border-slate-300 bg-white px-3 py-2 text-sm"
+                                    [ngModel]="automatedListingLimitDraft"
+                                    (ngModelChange)="setAutomatedListingLimitDraft($event)"
+                                    [attr.aria-invalid]="!isAutomatedListingLimitValid" />
+                            </label>
+                            <button type="button" class="button button-small-primary"
+                                [disabled]="!automatedListingLimitDirty || !isAutomatedListingLimitValid || automatedListingLimitPending"
+                                (click)="applyAutomatedListingLimit()">
+                                {{ automatedListingLimitPending ? 'Applying...' : 'Apply' }}
+                            </button>
+                        </div>
+                        @if (!isAutomatedListingLimitValid) {
+                        <p class="mt-1 text-xs text-red-700">Enter a positive whole number.</p>
+                        } @else if (automatedListingLimitDirty) {
+                        <p class="mt-1 text-xs text-amber-700">Apply this change before continuing.</p>
+                        }
+                        }
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="text-sm text-slate-500">{{ automatedRun.presetName }}</span>
@@ -229,7 +254,7 @@
                         </button>
                         } @else if (canContinueAutomatedRun) {
                         <button type="button" class="button button-small-success"
-                            [disabled]="automatedContinuePending || automatedCancelPending"
+                            [disabled]="automatedContinuePending || automatedCancelPending || automatedListingLimitPending || automatedListingLimitDirty || !isAutomatedListingLimitValid"
                             (click)="continueAutomatedRun()">
                             {{ automatedContinuePending ? 'Continuing...' : 'Continue check' }}
                         </button>
@@ -501,10 +526,10 @@
                                         View Steam API result
                                     </button>
                                     }
-                                    @if (getAutomatedMatch(product.productId)) {
+                                    @if (canInspectAutomatedListings(product.productId)) {
                                     <button type="button" mat-menu-item
                                         (click)="openAutomatedMatches(product.productId)">
-                                        Inspect all matches
+                                        Inspect checked listings
                                     </button>
                                     }
                                     <button type="button" mat-menu-item
@@ -527,7 +552,7 @@
                             </div>
 
                             <a [steamExternalLink]="getProductOpenUrl(product.fullUrl)"
-                                class="flex flex-1 flex-col justify-center"
+                                class="flex flex-1 flex-col justify-start"
                                 [matTooltip]="getProductOpenTooltip(product.fullUrl)">
                                 <strong class="text-sm text-slate-800">
                                     {{ i + 1 }}. {{ product.productName }}

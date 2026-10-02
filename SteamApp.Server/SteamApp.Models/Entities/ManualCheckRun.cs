@@ -62,6 +62,12 @@ public sealed class ManualCheckRun
     [Column("completed_at_utc")]
     public DateTime? CompletedAtUtc { get; set; }
 
+    [Column("paused_at_utc")]
+    public DateTime? PausedAtUtc { get; set; }
+
+    [Column("accumulated_paused_milliseconds")]
+    public long AccumulatedPausedMilliseconds { get; set; }
+
     [Column("error_text")]
     public string? ErrorText { get; set; }
 

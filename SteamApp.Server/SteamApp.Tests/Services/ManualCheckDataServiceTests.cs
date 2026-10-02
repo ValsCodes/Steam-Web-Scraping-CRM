@@ -68,6 +68,58 @@ public sealed class ManualCheckDataServiceTests
     }
 
     [Test]
+    public async Task PresetGameUrlAssignments_FilterReconcileAndEnforceRunCreation()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        database.Context.GameUrls.Add(new GameUrl
+        {
+            Id = 3,
+            Name = "Inactive Manual URL",
+            GameId = 1,
+            ScrapingModeId = (long)ScrapingModeEnum.ManualBatch,
+            PartialUrl = "https://steamcommunity.com/market/listings/440/",
+            IsActive = false,
+            UserId = TestDb.TestUserId
+        });
+        database.Context.SaveChanges();
+        var service = new ManualCheckDataService(database.Factory);
+        var input = PresetInput("Assigned");
+        var created = await service.CreatePresetAsync(input, CancellationToken.None);
+
+        var visibleForFirst = await service.GetPresetsAsync(
+            TestDb.TestUserId, 1, 1, CancellationToken.None);
+        input.GameUrlIds = [3];
+        var updated = await service.UpdatePresetAsync(created.Id, input, CancellationToken.None);
+        var noLongerVisibleForFirst = await service.GetPresetsAsync(
+            TestDb.TestUserId, 1, 1, CancellationToken.None);
+        var visibleForInactive = await service.GetPresetsAsync(
+            TestDb.TestUserId, 1, 3, CancellationToken.None);
+        var unassignedRun = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.CreateRunAsync(
+                TestDb.TestUserId, 1, created.Id, null, false, null, CancellationToken.None));
+
+        var duplicateInput = PresetInput("Duplicate URLs");
+        duplicateInput.GameUrlIds = [1, 1];
+        var duplicate = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.CreatePresetAsync(duplicateInput, CancellationToken.None));
+        var wrongModeInput = PresetInput("Wrong mode");
+        wrongModeInput.GameUrlIds = [2];
+        var wrongMode = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.CreatePresetAsync(wrongModeInput, CancellationToken.None));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(visibleForFirst.Select(x => x.Id), Does.Contain(created.Id));
+            Assert.That(updated.GameUrlIds, Is.EqualTo(new long[] { 3 }));
+            Assert.That(noLongerVisibleForFirst, Is.Empty);
+            Assert.That(visibleForInactive.Select(x => x.Id), Does.Contain(created.Id));
+            Assert.That(unassignedRun!.StatusCode, Is.EqualTo(409));
+            Assert.That(duplicate!.StatusCode, Is.EqualTo(400));
+            Assert.That(wrongMode!.StatusCode, Is.EqualTo(400));
+        });
+    }
+
+    [Test]
     public async Task CreateAndUpdatePresetAsync_PriceRange_PersistsAndRoundTrips()
     {
         using var database = TestDb.CreateSeededDatabase();
@@ -204,6 +256,7 @@ public sealed class ManualCheckDataServiceTests
         var updated = await service.UpdatePresetAsync(created.Id, new ManualCheckPresetWriteDto
         {
             GameId = created.GameId,
+            GameUrlIds = created.GameUrlIds,
             Name = created.Name,
             ListingLimit = created.ListingLimit,
             Criteria = created.Criteria
@@ -369,6 +422,8 @@ public sealed class ManualCheckDataServiceTests
         var service = new ManualCheckDataService(database.Factory);
         var preset = await service.CreatePresetAsync(PresetInput("Check"), CancellationToken.None);
 
+        source.ScrapingModeId = (long)ScrapingModeEnum.Batch;
+        database.Context.SaveChanges();
         var invalid = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreateRunAsync(TestDb.TestUserId, source.Id, preset.Id, null, false, null, CancellationToken.None));
         source.ScrapingModeId = (long)ScrapingModeEnum.ManualBatch;
@@ -930,6 +985,71 @@ public sealed class ManualCheckDataServiceTests
     }
 
     [Test]
+    public async Task Duration_ExcludesRepeatedPausedIntervalsAndCountsPauseRequestedWork()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var startedAt = new DateTimeOffset(2026, 10, 2, 8, 0, 0, TimeSpan.Zero);
+        var clock = new MutableTimeProvider(startedAt);
+        var row = Run(101, ManualCheckRunStatusEnum.Running);
+        row.StartedAtUtc = startedAt.UtcDateTime;
+        database.Context.ManualCheckRuns.Add(row);
+        database.Context.SaveChanges();
+        var service = new ManualCheckDataService(database.Factory, clock);
+
+        clock.Advance(TimeSpan.FromSeconds(5));
+        await service.PauseAsync(row.Id, CancellationToken.None);
+        clock.Advance(TimeSpan.FromSeconds(2));
+        await service.MarkPausedAsync(row.Id, CancellationToken.None);
+        var firstPause = await service.GetRunAsync(row.Id, CancellationToken.None);
+        clock.Advance(TimeSpan.FromSeconds(10));
+        var stillPaused = await service.GetRunAsync(row.Id, CancellationToken.None);
+        await service.ContinueAsync(row.Id, CancellationToken.None);
+        await service.MarkRunningAndGetRunAsync(row.Id, CancellationToken.None);
+        clock.Advance(TimeSpan.FromSeconds(3));
+        await service.PauseAsync(row.Id, CancellationToken.None);
+        clock.Advance(TimeSpan.FromSeconds(1));
+        await service.MarkPausedAsync(row.Id, CancellationToken.None);
+        clock.Advance(TimeSpan.FromSeconds(5));
+        var canceled = await service.CancelAsync(row.Id, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(firstPause!.DurationMilliseconds, Is.EqualTo(7000));
+            Assert.That(stillPaused!.DurationMilliseconds, Is.EqualTo(7000));
+            Assert.That(canceled.DurationMilliseconds, Is.EqualTo(11000));
+        });
+    }
+
+    [Test]
+    public async Task UpdateListingLimit_RequiresPausedRunAndDoesNotModifyPreset()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var source = database.Context.GameUrls.Single(x => x.Id == 1);
+        source.PartialUrl = "https://steamcommunity.com/market/listings/440/";
+        database.Context.SaveChanges();
+        var service = new ManualCheckDataService(database.Factory);
+        var preset = await service.CreatePresetAsync(PresetInput("Editable limit"), CancellationToken.None);
+        var run = await service.CreateRunAsync(
+            TestDb.TestUserId, source.Id, preset.Id, null, false, [1], CancellationToken.None);
+
+        var notPaused = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.UpdateListingLimitAsync(run.Id, 20, CancellationToken.None));
+        await service.PauseAsync(run.Id, CancellationToken.None);
+        var updated = await service.UpdateListingLimitAsync(run.Id, 20, CancellationToken.None);
+        var invalid = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.UpdateListingLimitAsync(run.Id, 0, CancellationToken.None));
+        var storedPreset = database.Context.ManualCheckPresets.Single(x => x.Id == preset.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(notPaused!.StatusCode, Is.EqualTo(409));
+            Assert.That(invalid!.StatusCode, Is.EqualTo(400));
+            Assert.That(updated.Setup.ListingLimit, Is.EqualTo(20));
+            Assert.That(storedPreset.ListingLimit, Is.EqualTo(10));
+        });
+    }
+
+    [Test]
     public async Task StartupReconciliationMarksQueuedAndRunningJobsAsInterruptedFailures()
     {
         using var database = TestDb.CreateSeededDatabase();
@@ -963,6 +1083,7 @@ public sealed class ManualCheckDataServiceTests
         return new ManualCheckPresetWriteDto
         {
             GameId = 1,
+            GameUrlIds = [1],
             Name = name,
             ListingLimit = 10,
             Criteria =
@@ -1006,5 +1127,14 @@ public sealed class ManualCheckDataServiceTests
             Date = DateTime.UtcNow,
             CorrelationId = Guid.NewGuid().ToString("N")
         };
+    }
+
+    private sealed class MutableTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
+        private DateTimeOffset current = utcNow;
+
+        public override DateTimeOffset GetUtcNow() => current;
+
+        public void Advance(TimeSpan duration) => current = current.Add(duration);
     }
 }

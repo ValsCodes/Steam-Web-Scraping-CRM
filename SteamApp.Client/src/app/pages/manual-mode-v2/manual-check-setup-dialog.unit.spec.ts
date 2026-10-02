@@ -73,8 +73,28 @@ describe('ManualCheckSetupDialogComponent', () => {
           provide: MAT_DIALOG_DATA,
           useValue: {
             gameId: 440,
+            gameUrlId: 7,
             gameName: 'Team Fortress 2',
             gameUrlName: 'Steam Market',
+            gameUrls: [{
+              id: 7,
+              gameId: 440,
+              gameName: 'Team Fortress 2',
+              name: 'Steam Market',
+              itemGroupId: null,
+              itemGroupName: null,
+              scrapingModeId: 1,
+              isActive: true,
+            }, {
+              id: 8,
+              gameId: 440,
+              gameName: 'Team Fortress 2',
+              name: 'Archived Market',
+              itemGroupId: null,
+              itemGroupName: null,
+              scrapingModeId: 1,
+              isActive: false,
+            }],
             preselectedPresetId: 2,
           },
         },
@@ -87,7 +107,7 @@ describe('ManualCheckSetupDialogComponent', () => {
   });
 
   it('preselects and prefills the requested game preset', () => {
-    expect(service.getPresets).toHaveBeenCalledWith(440);
+    expect(service.getPresets).toHaveBeenCalledWith(440, 7);
     expect(component.selectedPresetId).toBe(2);
     expect(component.itemGroupId).toBe(10);
     expect(component.name).toBe('Preferred');
@@ -186,6 +206,22 @@ describe('ManualCheckSetupDialogComponent', () => {
     }));
     component.cooldownSeconds = 60;
     expect(component.isCooldownValid).toBeFalse();
+  });
+
+  it('defaults new presets to the current URL and saves additional URL assignments', () => {
+    component.newPreset();
+    expect([...component.selectedPresetGameUrlIds]).toEqual([7]);
+    component.name = 'Multi URL';
+    component.criteria[0].valueContains = 'Mean Green';
+    component.setPresetGameUrlAssigned(8, true);
+    const saved = { ...preset(3, 'Multi URL'), gameUrlIds: [7, 8] };
+    service.createPreset.and.returnValue(of(saved));
+
+    component.savePreset();
+
+    expect(service.createPreset).toHaveBeenCalledWith(jasmine.objectContaining({
+      gameUrlIds: [7, 8],
+    }));
   });
 
   it('validates and serializes EUR price ranges as minor units', () => {
@@ -356,6 +392,7 @@ describe('ManualCheckSetupDialogComponent', () => {
     return {
       id,
       gameId: 440,
+      gameUrlIds: [7],
       gameName: 'Team Fortress 2',
       itemGroupId,
       itemGroupName,

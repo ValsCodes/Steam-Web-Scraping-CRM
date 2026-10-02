@@ -192,7 +192,8 @@ public sealed class ManualCheckMatcherTests
             listing,
             [new ManualCheckCriterionDto { ValueContains = "Mean Green" }],
             10,
-            out var lowestCheckedPriceMinorUnits);
+            out var lowestCheckedPriceMinorUnits,
+            out var checkedAssets);
 
         Assert.Multiple(() =>
         {
@@ -201,6 +202,11 @@ public sealed class ManualCheckMatcherTests
             Assert.That(result.MatchedAssets[0].PriceMinorUnits, Is.EqualTo(100));
             Assert.That(result.MatchedAssets[0].PriceCurrencyCode, Is.EqualTo("EUR"));
             Assert.That(lowestCheckedPriceMinorUnits, Is.EqualTo(90));
+            Assert.That(checkedAssets.Select(x => x.AssetId), Is.EqualTo(new[] { "asset-cheapest", "asset-match" }));
+            Assert.That(checkedAssets.Select(x => x.PriceMinorUnits), Is.EqualTo(new long?[] { 90, 100 }));
+            Assert.That(checkedAssets.Select(x => x.Matched), Is.EqualTo(new[] { false, true }));
+            Assert.That(checkedAssets[0].Descriptions, Has.Count.EqualTo(1));
+            Assert.That(checkedAssets[1].Descriptions[0].MatchedCriterionIndexes, Is.EqualTo(new[] { 0 }));
         });
     }
 

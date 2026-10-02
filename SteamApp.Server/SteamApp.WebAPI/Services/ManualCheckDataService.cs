@@ -1,3 +1,4 @@
+using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -14,10 +15,17 @@ using SteamApp.WebAPI.ManualChecks;
 namespace SteamApp.WebAPI.Services;
 
 public sealed class ManualCheckDataService(
-    IDbContextFactory<ApplicationDbContext> dbContextFactory) : IManualCheckDataService
+    IDbContextFactory<ApplicationDbContext> dbContextFactory,
+    TimeProvider timeProvider) : IManualCheckDataService
 {
     private const int MaxCriteria = 50;
     private const int MaxCombinationPresets = 10;
+    private const int MaxPresetGameUrls = 1000;
+
+    public ManualCheckDataService(IDbContextFactory<ApplicationDbContext> dbContextFactory)
+        : this(dbContextFactory, TimeProvider.System)
+    {
+    }
 
     public async Task<IReadOnlyList<ManualCheckConditionOperatorDto>> GetConditionOperatorsAsync(
         CancellationToken cancellationToken)
@@ -38,7 +46,7 @@ public sealed class ManualCheckDataService(
         long? gameId,
         CancellationToken cancellationToken)
     {
-        return await GetPresetsInternalAsync(null, gameId, cancellationToken);
+        return await GetPresetsInternalAsync(null, gameId, null, cancellationToken);
     }
 
     public async Task<IReadOnlyList<ManualCheckPresetDto>> GetPresetsAsync(
@@ -46,12 +54,22 @@ public sealed class ManualCheckDataService(
         long? gameId,
         CancellationToken cancellationToken)
     {
-        return await GetPresetsInternalAsync(userId, gameId, cancellationToken);
+        return await GetPresetsInternalAsync(userId, gameId, null, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ManualCheckPresetDto>> GetPresetsAsync(
+        string userId,
+        long? gameId,
+        long? gameUrlId,
+        CancellationToken cancellationToken)
+    {
+        return await GetPresetsInternalAsync(userId, gameId, gameUrlId, cancellationToken);
     }
 
     private async Task<IReadOnlyList<ManualCheckPresetDto>> GetPresetsInternalAsync(
         string? userId,
         long? gameId,
+        long? gameUrlId,
         CancellationToken cancellationToken)
     {
         await using var db = dbContextFactory.CreateDbContext();
@@ -60,6 +78,7 @@ public sealed class ManualCheckDataService(
             .AsNoTracking()
             .Include(x => x.Game)
             .Include(x => x.ItemGroup)
+            .Include(x => x.GameUrls)
             .Include(x => x.Criteria)
             .ThenInclude(x => x.ConditionOperator);
         if (userId is not null)
@@ -69,6 +88,10 @@ public sealed class ManualCheckDataService(
         if (gameId.HasValue)
         {
             query = query.Where(x => x.GameId == gameId.Value);
+        }
+        if (gameUrlId.HasValue)
+        {
+            query = query.Where(x => x.GameUrls.Any(y => y.GameUrlId == gameUrlId.Value));
         }
 
         var presets = await query
@@ -87,34 +110,47 @@ public sealed class ManualCheckDataService(
         CancellationToken cancellationToken)
     {
         var normalized = NormalizePreset(input);
-        await using var db = dbContextFactory.CreateDbContext();
+        await using var strategyDb = dbContextFactory.CreateDbContext();
+        var strategy = strategyDb.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(() => CreatePresetInternalAsync(normalized, cancellationToken));
+    }
 
-        var gameName = await db.Games
-            .AsNoTracking()
+    public async Task<ManualCheckPresetDto> UpdatePresetAsync(
+        long id,
+        ManualCheckPresetWriteDto input,
+        CancellationToken cancellationToken)
+    {
+        var normalized = NormalizePreset(input);
+        await using var strategyDb = dbContextFactory.CreateDbContext();
+        var strategy = strategyDb.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(() => UpdatePresetInternalAsync(id, normalized, cancellationToken));
+    }
+
+    private async Task<ManualCheckPresetDto> CreatePresetInternalAsync(
+        ManualCheckPresetWriteDto normalized,
+        CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        await using var transaction = db.Database.IsRelational()
+            ? await db.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+
+        var gameName = await db.Games.AsNoTracking()
             .Where(x => x.Id == normalized.GameId)
             .Select(x => x.Name)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (gameName is null)
-        {
-            throw RequestError(StatusCodes.Status400BadRequest, "Game was not found.");
-        }
-
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw RequestError(StatusCodes.Status400BadRequest, "Game was not found.");
+        await ValidatePresetGameUrlsAsync(db, normalized.GameId, normalized.GameUrlIds, cancellationToken);
         var itemGroupName = await GetItemGroupNameAsync(
-            db,
-            normalized.GameId,
-            normalized.ItemGroupId,
-            cancellationToken);
-
-        var duplicate = await db.ManualCheckPresets.AnyAsync(
-            x => x.GameId == normalized.GameId && x.Name == normalized.Name,
-            cancellationToken);
-        if (duplicate)
+            db, normalized.GameId, normalized.ItemGroupId, cancellationToken);
+        if (await db.ManualCheckPresets.AnyAsync(
+                x => x.GameId == normalized.GameId && x.Name == normalized.Name,
+                cancellationToken))
         {
             throw RequestError(StatusCodes.Status409Conflict, "A preset with this name already exists for the game.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = UtcNow();
         var entity = new ManualCheckPreset
         {
             GameId = normalized.GameId,
@@ -130,46 +166,47 @@ public sealed class ManualCheckDataService(
             CreatedAtUtc = now,
             UpdatedAtUtc = now
         };
-
         db.ManualCheckPresets.Add(entity);
         await db.SaveChangesAsync(cancellationToken);
 
-        return ToPresetDto(entity, gameName, itemGroupName);
+        var relations = normalized.GameUrlIds.Select(gameUrlId => new ManualCheckPresetGameUrl
+        {
+            ManualCheckPresetId = entity.Id,
+            GameUrlId = gameUrlId
+        }).ToList();
+        await InsertPresetGameUrlsAsync(db, relations, cancellationToken);
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+        return ToPresetDto(entity, gameName, itemGroupName, normalized.GameUrlIds);
     }
 
-    public async Task<ManualCheckPresetDto> UpdatePresetAsync(
+    private async Task<ManualCheckPresetDto> UpdatePresetInternalAsync(
         long id,
-        ManualCheckPresetWriteDto input,
+        ManualCheckPresetWriteDto normalized,
         CancellationToken cancellationToken)
     {
-        var normalized = NormalizePreset(input);
         await using var db = dbContextFactory.CreateDbContext();
-
+        await using var transaction = db.Database.IsRelational()
+            ? await db.Database.BeginTransactionAsync(cancellationToken)
+            : null;
         var entity = await db.ManualCheckPresets
             .Include(x => x.Criteria)
+            .Include(x => x.GameUrls)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
             ?? throw RequestError(StatusCodes.Status404NotFound, "Preset was not found.");
-
-        var gameName = await db.Games
-            .AsNoTracking()
+        var gameName = await db.Games.AsNoTracking()
             .Where(x => x.Id == normalized.GameId)
             .Select(x => x.Name)
-            .FirstOrDefaultAsync(cancellationToken);
-        if (gameName is null)
-        {
-            throw RequestError(StatusCodes.Status400BadRequest, "Game was not found.");
-        }
-
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw RequestError(StatusCodes.Status400BadRequest, "Game was not found.");
+        await ValidatePresetGameUrlsAsync(db, normalized.GameId, normalized.GameUrlIds, cancellationToken);
         var itemGroupName = await GetItemGroupNameAsync(
-            db,
-            normalized.GameId,
-            normalized.ItemGroupId,
-            cancellationToken);
-
-        var duplicate = await db.ManualCheckPresets.AnyAsync(
-            x => x.Id != id && x.GameId == normalized.GameId && x.Name == normalized.Name,
-            cancellationToken);
-        if (duplicate)
+            db, normalized.GameId, normalized.ItemGroupId, cancellationToken);
+        if (await db.ManualCheckPresets.AnyAsync(
+                x => x.Id != id && x.GameId == normalized.GameId && x.Name == normalized.Name,
+                cancellationToken))
         {
             throw RequestError(StatusCodes.Status409Conflict, "A preset with this name already exists for the game.");
         }
@@ -183,37 +220,129 @@ public sealed class ManualCheckDataService(
         entity.MaximumPriceMinorUnits = normalized.PriceRange?.MaximumPriceMinorUnits;
         entity.CooldownMinutes = normalized.CooldownMinutes;
         entity.CooldownSeconds = normalized.CooldownSeconds;
+        UpdateCriteria(db, entity, normalized.Criteria);
+        entity.UpdatedAtUtc = UtcNow();
+        await db.SaveChangesAsync(cancellationToken);
+        await ReconcilePresetGameUrlsAsync(db, entity, normalized.GameUrlIds, cancellationToken);
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+        return ToPresetDto(entity, gameName, itemGroupName, normalized.GameUrlIds);
+    }
+
+    private static void UpdateCriteria(
+        ApplicationDbContext db,
+        ManualCheckPreset entity,
+        IReadOnlyList<ManualCheckCriterionDto> criteria)
+    {
         var existingCriteria = entity.Criteria.OrderBy(x => x.SortOrder).ToList();
-        for (var index = 0; index < normalized.Criteria.Count; index++)
+        for (var index = 0; index < criteria.Count; index++)
         {
             var criterion = index < existingCriteria.Count
                 ? existingCriteria[index]
                 : new ManualCheckCriterion { ManualCheckPreset = entity };
-            criterion.ConditionOperatorId = normalized.Criteria[index].ConditionOperatorId;
+            criterion.ConditionOperatorId = criteria[index].ConditionOperatorId;
             criterion.SortOrder = index;
-            criterion.OpenGroupCount = normalized.Criteria[index].OpenGroupCount;
-            criterion.CloseGroupCount = normalized.Criteria[index].CloseGroupCount;
-            criterion.NameContains = normalized.Criteria[index].NameContains;
-            criterion.ValueContains = normalized.Criteria[index].ValueContains;
+            criterion.OpenGroupCount = criteria[index].OpenGroupCount;
+            criterion.CloseGroupCount = criteria[index].CloseGroupCount;
+            criterion.NameContains = criteria[index].NameContains;
+            criterion.ValueContains = criteria[index].ValueContains;
             if (index >= existingCriteria.Count)
             {
                 entity.Criteria.Add(criterion);
             }
         }
-        if (existingCriteria.Count > normalized.Criteria.Count)
-        {
-            var removedCriteria = existingCriteria.Skip(normalized.Criteria.Count).ToList();
-            db.ManualCheckCriteria.RemoveRange(removedCriteria);
-            foreach (var removedCriterion in removedCriteria)
-            {
-                entity.Criteria.Remove(removedCriterion);
-            }
-        }
-        entity.UpdatedAtUtc = DateTime.UtcNow;
 
-        await db.SaveChangesAsync(cancellationToken);
-        return ToPresetDto(entity, gameName, itemGroupName);
+        if (existingCriteria.Count <= criteria.Count)
+        {
+            return;
+        }
+
+        var removedCriteria = existingCriteria.Skip(criteria.Count).ToList();
+        db.ManualCheckCriteria.RemoveRange(removedCriteria);
+        foreach (var removedCriterion in removedCriteria)
+        {
+            entity.Criteria.Remove(removedCriterion);
+        }
     }
+
+    private static async Task ValidatePresetGameUrlsAsync(
+        ApplicationDbContext db,
+        long gameId,
+        IReadOnlyCollection<long> gameUrlIds,
+        CancellationToken cancellationToken)
+    {
+        var validCount = await db.GameUrls.AsNoTracking().CountAsync(x =>
+            gameUrlIds.Contains(x.Id) &&
+            x.GameId == gameId &&
+            x.UserId != null &&
+            x.UserId == x.Game.UserId &&
+            x.ScrapingModeId == (long)ScrapingModeEnum.ManualBatch,
+            cancellationToken);
+        if (validCount != gameUrlIds.Count)
+        {
+            throw RequestError(
+                StatusCodes.Status400BadRequest,
+                "Every assigned Game URL must belong to the preset's game and owner and use Manual Batch mode.");
+        }
+    }
+
+    private static async Task InsertPresetGameUrlsAsync(
+        ApplicationDbContext db,
+        List<ManualCheckPresetGameUrl> relations,
+        CancellationToken cancellationToken)
+    {
+        if (db.Database.IsRelational())
+        {
+            await db.BulkInsertAsync(relations, CreateRelationBulkConfig(), cancellationToken: cancellationToken);
+            return;
+        }
+
+        db.ManualCheckPresetGameUrls.AddRange(relations);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static async Task ReconcilePresetGameUrlsAsync(
+        ApplicationDbContext db,
+        ManualCheckPreset entity,
+        IReadOnlyCollection<long> desiredGameUrlIds,
+        CancellationToken cancellationToken)
+    {
+        var desired = desiredGameUrlIds.ToHashSet();
+        var existing = entity.GameUrls.ToList();
+        var existingIds = existing.Select(x => x.GameUrlId).ToHashSet();
+        var deletes = existing.Where(x => !desired.Contains(x.GameUrlId)).ToList();
+        var inserts = desired.Where(x => !existingIds.Contains(x))
+            .Select(gameUrlId => new ManualCheckPresetGameUrl
+            {
+                ManualCheckPresetId = entity.Id,
+                GameUrlId = gameUrlId
+            })
+            .ToList();
+
+        if (db.Database.IsRelational())
+        {
+            if (deletes.Count > 0)
+            {
+                await db.BulkDeleteAsync(deletes, cancellationToken: cancellationToken);
+            }
+            if (inserts.Count > 0)
+            {
+                await db.BulkInsertAsync(inserts, CreateRelationBulkConfig(), cancellationToken: cancellationToken);
+            }
+            return;
+        }
+
+        db.ManualCheckPresetGameUrls.RemoveRange(deletes);
+        db.ManualCheckPresetGameUrls.AddRange(inserts);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static BulkConfig CreateRelationBulkConfig() => new()
+    {
+        SqlBulkCopyOptions = SqlBulkCopyOptions.CheckConstraints | SqlBulkCopyOptions.FireTriggers
+    };
 
     public async Task DeletePresetAsync(long id, CancellationToken cancellationToken)
     {
@@ -336,10 +465,17 @@ public sealed class ManualCheckDataService(
                 .AsNoTracking()
                 .Include(x => x.Criteria)
                 .ThenInclude(x => x.ConditionOperator)
+                .Include(x => x.GameUrls)
                 .FirstOrDefaultAsync(
                     x => x.Id == presetId.Value && x.Game.UserId == userId,
                     cancellationToken)
                 ?? throw RequestError(StatusCodes.Status404NotFound, "Preset was not found.");
+            if (preset.GameUrls.All(x => x.GameUrlId != gameUrlId))
+            {
+                throw RequestError(
+                    StatusCodes.Status409Conflict,
+                    "The selected preset is not assigned to this Game URL.");
+            }
 
             return await PrepareRunSetupInternalAsync(
                 db,
@@ -364,6 +500,7 @@ public sealed class ManualCheckDataService(
             var resolved = await ResolvePresetCombinationAsync(
                 db,
                 userId,
+                gameUrlId,
                 presetCombination,
                 cancellationToken);
             return await PrepareRunSetupInternalAsync(
@@ -399,7 +536,7 @@ public sealed class ManualCheckDataService(
             CooldownMinutes = privateTemplate.CooldownMinutes,
             CooldownSeconds = privateTemplate.CooldownSeconds,
             Criteria = privateTemplate.Criteria
-        });
+        }, requireGameUrls: false);
 
         return await PrepareRunSetupInternalAsync(
             db,
@@ -432,6 +569,7 @@ public sealed class ManualCheckDataService(
         CancellationToken cancellationToken)
     {
         await using var db = dbContextFactory.CreateDbContext();
+        var now = UtcNow();
         if (!db.Database.IsRelational())
         {
             var inMemoryRow = await db.ManualCheckRuns
@@ -449,6 +587,10 @@ public sealed class ManualCheckDataService(
                         StatusCodes.Status409Conflict,
                         $"Run #{runId} is already {inMemoryRow.Status} and cannot be paused.")
                 };
+                if (inMemoryRow.Status == ManualCheckRunStatusEnum.Paused)
+                {
+                    inMemoryRow.PausedAtUtc = now;
+                }
                 await db.SaveChangesAsync(cancellationToken);
             }
 
@@ -458,7 +600,9 @@ public sealed class ManualCheckDataService(
         var updated = await db.ManualCheckRuns
             .Where(x => x.Id == runId && x.Status == ManualCheckRunStatusEnum.Queued)
             .ExecuteUpdateAsync(
-                setters => setters.SetProperty(x => x.Status, ManualCheckRunStatusEnum.Paused),
+                setters => setters
+                    .SetProperty(x => x.Status, ManualCheckRunStatusEnum.Paused)
+                    .SetProperty(x => x.PausedAtUtc, now),
                 cancellationToken);
         if (updated == 0)
         {
@@ -490,6 +634,7 @@ public sealed class ManualCheckDataService(
         CancellationToken cancellationToken)
     {
         await using var db = dbContextFactory.CreateDbContext();
+        var now = UtcNow();
         if (!db.Database.IsRelational())
         {
             var inMemoryRow = await db.ManualCheckRuns
@@ -502,15 +647,28 @@ public sealed class ManualCheckDataService(
                     $"Run #{runId} is {inMemoryRow.Status} and cannot be continued.");
             }
 
+            inMemoryRow.AccumulatedPausedMilliseconds += GetCurrentPauseMilliseconds(inMemoryRow, now);
+            inMemoryRow.PausedAtUtc = null;
             inMemoryRow.Status = ManualCheckRunStatusEnum.Queued;
             await db.SaveChangesAsync(cancellationToken);
             return ToRunSummary(inMemoryRow);
         }
 
+        var pausedRow = await db.ManualCheckRuns.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == runId, cancellationToken)
+            ?? throw RequestError(StatusCodes.Status404NotFound, "Run was not found.");
+        var accumulatedPausedMilliseconds = pausedRow.AccumulatedPausedMilliseconds +
+            GetCurrentPauseMilliseconds(pausedRow, now);
         var updated = await db.ManualCheckRuns
-            .Where(x => x.Id == runId && x.Status == ManualCheckRunStatusEnum.Paused)
+            .Where(x =>
+                x.Id == runId &&
+                x.Status == ManualCheckRunStatusEnum.Paused &&
+                x.PausedAtUtc == pausedRow.PausedAtUtc)
             .ExecuteUpdateAsync(
-                setters => setters.SetProperty(x => x.Status, ManualCheckRunStatusEnum.Queued),
+                setters => setters
+                    .SetProperty(x => x.Status, ManualCheckRunStatusEnum.Queued)
+                    .SetProperty(x => x.PausedAtUtc, (DateTime?)null)
+                    .SetProperty(x => x.AccumulatedPausedMilliseconds, accumulatedPausedMilliseconds),
                 cancellationToken);
         var row = await db.ManualCheckRuns
             .AsNoTracking()
@@ -524,6 +682,56 @@ public sealed class ManualCheckDataService(
         }
 
         return ToRunSummary(row);
+    }
+
+    public async Task<ManualCheckRunDetailDto> UpdateListingLimitAsync(
+        long runId,
+        int listingLimit,
+        CancellationToken cancellationToken)
+    {
+        var normalizedListingLimit = NormalizeListingLimit(listingLimit);
+        await using var db = dbContextFactory.CreateDbContext();
+        var row = await db.ManualCheckRuns.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == runId, cancellationToken)
+            ?? throw RequestError(StatusCodes.Status404NotFound, "Run was not found.");
+        if (row.Status != ManualCheckRunStatusEnum.Paused)
+        {
+            throw RequestError(
+                StatusCodes.Status409Conflict,
+                $"Run #{runId} is {row.Status} and its listing limit cannot be changed.");
+        }
+
+        var setup = DeserializeSetup(row.SetupJson);
+        setup.ListingLimit = normalizedListingLimit;
+        var setupJson = JsonConvert.SerializeObject(setup);
+        if (db.Database.IsRelational())
+        {
+            var updated = await db.ManualCheckRuns
+                .Where(x => x.Id == runId && x.Status == ManualCheckRunStatusEnum.Paused)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(x => x.SetupJson, setupJson),
+                    cancellationToken);
+            if (updated == 0)
+            {
+                throw RequestError(
+                    StatusCodes.Status409Conflict,
+                    $"Run #{runId} is no longer paused.");
+            }
+            row.SetupJson = setupJson;
+        }
+        else
+        {
+            var tracked = await db.ManualCheckRuns.FirstAsync(x => x.Id == runId, cancellationToken);
+            if (tracked.Status != ManualCheckRunStatusEnum.Paused)
+            {
+                throw RequestError(StatusCodes.Status409Conflict, $"Run #{runId} is no longer paused.");
+            }
+            tracked.SetupJson = setupJson;
+            await db.SaveChangesAsync(cancellationToken);
+            row = tracked;
+        }
+
+        return ToRunDetail(row);
     }
 
     public async Task<ManualCheckRunDetailDto> CancelAsync(
@@ -546,11 +754,14 @@ public sealed class ManualCheckDataService(
                 $"Run #{runId} is already {row.Status} and cannot be canceled.");
         }
 
+        var now = UtcNow();
+        row.AccumulatedPausedMilliseconds += GetCurrentPauseMilliseconds(row, now);
+        row.PausedAtUtc = null;
         row.Status = ManualCheckRunStatusEnum.Canceled;
         row.ErrorText = row.CheckedProducts == 0
             ? "Canceled by the user before any products were checked."
             : $"Canceled by the user after checking {row.CheckedProducts} of {row.TotalProducts} products.";
-        row.CompletedAtUtc = DateTime.UtcNow;
+        row.CompletedAtUtc = now;
         await db.SaveChangesAsync(cancellationToken);
 
         return ToRunDetail(row);
@@ -672,12 +883,12 @@ public sealed class ManualCheckDataService(
             }
 
             inMemoryRow.Status = ManualCheckRunStatusEnum.Running;
-            inMemoryRow.StartedAtUtc ??= DateTime.UtcNow;
+            inMemoryRow.StartedAtUtc ??= UtcNow();
             await db.SaveChangesAsync(cancellationToken);
             return ToRunDetail(inMemoryRow);
         }
 
-        var now = DateTime.UtcNow;
+        var now = UtcNow();
         var updated = await db.ManualCheckRuns
             .Where(x => x.Id == id && x.Status == ManualCheckRunStatusEnum.Queued)
             .ExecuteUpdateAsync(
@@ -701,6 +912,7 @@ public sealed class ManualCheckDataService(
         CancellationToken cancellationToken)
     {
         await using var db = dbContextFactory.CreateDbContext();
+        var now = UtcNow();
         if (!db.Database.IsRelational())
         {
             var inMemoryRow = await db.ManualCheckRuns.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
@@ -712,6 +924,7 @@ public sealed class ManualCheckDataService(
             if (inMemoryRow.Status == ManualCheckRunStatusEnum.PauseRequested)
             {
                 inMemoryRow.Status = ManualCheckRunStatusEnum.Paused;
+                inMemoryRow.PausedAtUtc = now;
                 await db.SaveChangesAsync(cancellationToken);
             }
 
@@ -721,7 +934,9 @@ public sealed class ManualCheckDataService(
         await db.ManualCheckRuns
             .Where(x => x.Id == id && x.Status == ManualCheckRunStatusEnum.PauseRequested)
             .ExecuteUpdateAsync(
-                setters => setters.SetProperty(x => x.Status, ManualCheckRunStatusEnum.Paused),
+                setters => setters
+                    .SetProperty(x => x.Status, ManualCheckRunStatusEnum.Paused)
+                    .SetProperty(x => x.PausedAtUtc, now),
                 cancellationToken);
         return await db.ManualCheckRuns
             .AsNoTracking()
@@ -833,7 +1048,7 @@ public sealed class ManualCheckDataService(
             ? $"{results.Errors.Count} product check(s) failed."
             : null;
         var resultsJson = JsonConvert.SerializeObject(results);
-        var completedAtUtc = DateTime.UtcNow;
+        var completedAtUtc = UtcNow();
         if (!db.Database.IsRelational())
         {
             var inMemoryRow = await db.ManualCheckRuns.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
@@ -893,8 +1108,9 @@ public sealed class ManualCheckDataService(
         row.MatchedProducts = results?.Matches.Count ?? row.MatchedProducts;
         row.FailedProducts = results?.Errors.Count ?? row.FailedProducts;
         row.ErrorText = errorText;
-        row.StartedAtUtc ??= DateTime.UtcNow;
-        row.CompletedAtUtc = DateTime.UtcNow;
+        var now = UtcNow();
+        row.StartedAtUtc ??= now;
+        row.CompletedAtUtc = now;
         await db.SaveChangesAsync(cancellationToken);
     }
 
@@ -914,18 +1130,20 @@ public sealed class ManualCheckDataService(
             return;
         }
 
-        var now = DateTime.UtcNow;
+        var now = UtcNow();
         foreach (var row in interrupted)
         {
             if (row.AutomaticQueueRunBlock is not null)
             {
                 row.Status = ManualCheckRunStatusEnum.Paused;
+                row.PausedAtUtc = now;
                 continue;
             }
 
             if (row.Status == ManualCheckRunStatusEnum.PauseRequested)
             {
                 row.Status = ManualCheckRunStatusEnum.Paused;
+                row.PausedAtUtc = now;
                 continue;
             }
 
@@ -938,7 +1156,7 @@ public sealed class ManualCheckDataService(
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    private static async Task<ManualCheckRunSummaryDto> CreateRunInternalAsync(
+    private async Task<ManualCheckRunSummaryDto> CreateRunInternalAsync(
         ApplicationDbContext db,
         long gameUrlId,
         long? presetId,
@@ -1114,12 +1332,12 @@ public sealed class ManualCheckDataService(
         };
     }
 
-    private static async Task<ManualCheckRunSummaryDto> CreateRunRowAsync(
+    private async Task<ManualCheckRunSummaryDto> CreateRunRowAsync(
         ApplicationDbContext db,
         ManualCheckSetupDto setup,
         CancellationToken cancellationToken)
     {
-        var now = DateTime.UtcNow;
+        var now = UtcNow();
         var row = new ManualCheckRun
         {
             ManualCheckPresetId = setup.PresetId,
@@ -1163,7 +1381,9 @@ public sealed class ManualCheckDataService(
         return productIds.Distinct().ToList();
     }
 
-    private static ManualCheckPresetWriteDto NormalizePreset(ManualCheckPresetWriteDto input)
+    private static ManualCheckPresetWriteDto NormalizePreset(
+        ManualCheckPresetWriteDto input,
+        bool requireGameUrls = true)
     {
         if (input.GameId <= 0)
         {
@@ -1177,6 +1397,17 @@ public sealed class ManualCheckDataService(
         }
 
         var cooldown = NormalizeCooldown(input.CooldownMinutes, input.CooldownSeconds);
+        var requestedGameUrlIds = input.GameUrlIds ?? [];
+        if ((requireGameUrls && requestedGameUrlIds.Count < 1) ||
+            requestedGameUrlIds.Count > MaxPresetGameUrls ||
+            requestedGameUrlIds.Any(x => x <= 0) ||
+            requestedGameUrlIds.Distinct().Count() != requestedGameUrlIds.Count)
+        {
+            throw RequestError(
+                StatusCodes.Status400BadRequest,
+                $"Choose between 1 and {MaxPresetGameUrls} distinct, positive Game URLs for the preset.");
+        }
+        var gameUrlIds = requestedGameUrlIds.Order().ToList();
 
         return new ManualCheckPresetWriteDto
         {
@@ -1187,6 +1418,7 @@ public sealed class ManualCheckDataService(
             PriceRange = NormalizePriceRange(input.PriceRange),
             CooldownMinutes = cooldown.Minutes,
             CooldownSeconds = cooldown.Seconds,
+            GameUrlIds = gameUrlIds,
             Criteria = NormalizeCriteria(input.Criteria)
         };
     }
@@ -1307,6 +1539,7 @@ public sealed class ManualCheckDataService(
     private static async Task<ResolvedPresetCombination> ResolvePresetCombinationAsync(
         ApplicationDbContext db,
         string userId,
+        long gameUrlId,
         ManualCheckPresetCombinationWriteDto combination,
         CancellationToken cancellationToken)
     {
@@ -1340,12 +1573,19 @@ public sealed class ManualCheckDataService(
             .AsNoTracking()
             .Include(x => x.Criteria)
             .ThenInclude(x => x.ConditionOperator)
+            .Include(x => x.GameUrls)
             .Where(x => presetIds.Contains(x.Id) && x.Game.UserId == userId)
             .ToListAsync(cancellationToken);
 
         if (presets.Count != presetIds.Count)
         {
             throw RequestError(StatusCodes.Status404NotFound, "One or more presets were not found.");
+        }
+        if (presets.Any(x => x.GameUrls.All(y => y.GameUrlId != gameUrlId)))
+        {
+            throw RequestError(
+                StatusCodes.Status409Conflict,
+                "Every combined preset must be assigned to the selected Game URL.");
         }
 
         var presetsById = presets.ToDictionary(x => x.Id);
@@ -1469,7 +1709,8 @@ public sealed class ManualCheckDataService(
     private static ManualCheckPresetDto ToPresetDto(
         ManualCheckPreset entity,
         string? gameName,
-        string? itemGroupName)
+        string? itemGroupName,
+        IReadOnlyCollection<long>? gameUrlIds = null)
     {
         return new ManualCheckPresetDto
         {
@@ -1483,6 +1724,7 @@ public sealed class ManualCheckDataService(
             PriceRange = ToPriceRangeDto(entity),
             CooldownMinutes = entity.CooldownMinutes,
             CooldownSeconds = entity.CooldownSeconds,
+            GameUrlIds = (gameUrlIds ?? entity.GameUrls.Select(x => x.GameUrlId)).Order().ToList(),
             Criteria = ToCriterionDtos(entity.Criteria),
             CreatedAtUtc = entity.CreatedAtUtc,
             UpdatedAtUtc = entity.UpdatedAtUtc
@@ -1504,7 +1746,7 @@ public sealed class ManualCheckDataService(
         };
     }
 
-    private static ManualCheckRunSummaryDto ToRunSummary(ManualCheckRun row)
+    private ManualCheckRunSummaryDto ToRunSummary(ManualCheckRun row)
     {
         var setup = DeserializeSetup(row.SetupJson);
         return new ManualCheckRunSummaryDto
@@ -1540,7 +1782,7 @@ public sealed class ManualCheckDataService(
         };
     }
 
-    private static ManualCheckRunDetailDto ToRunDetail(ManualCheckRun row)
+    private ManualCheckRunDetailDto ToRunDetail(ManualCheckRun row)
     {
         var summary = ToRunSummary(row);
         return new ManualCheckRunDetailDto
@@ -1622,15 +1864,33 @@ public sealed class ManualCheckDataService(
                Enum.IsDefined(typeof(ManualCheckConditionOperatorEnum), (int)conditionOperatorId);
     }
 
-    private static long? GetRunDurationMilliseconds(ManualCheckRun row)
+    private long? GetRunDurationMilliseconds(ManualCheckRun row)
     {
         if (!row.StartedAtUtc.HasValue)
         {
             return null;
         }
 
-        var end = row.CompletedAtUtc ?? DateTime.UtcNow;
-        return Math.Max(0, (long)Math.Round((end - row.StartedAtUtc.Value).TotalMilliseconds));
+        var end = row.CompletedAtUtc ?? UtcNow();
+        var pausedMilliseconds = row.AccumulatedPausedMilliseconds + GetCurrentPauseMilliseconds(row, end);
+        return Math.Max(
+            0,
+            (long)Math.Round((end - row.StartedAtUtc.Value).TotalMilliseconds) - pausedMilliseconds);
+    }
+
+    private static long GetCurrentPauseMilliseconds(ManualCheckRun row, DateTime end)
+    {
+        if (!row.StartedAtUtc.HasValue || !row.PausedAtUtc.HasValue || end <= row.PausedAtUtc.Value)
+        {
+            return 0;
+        }
+
+        return Math.Max(0, (long)Math.Round((end - row.PausedAtUtc.Value).TotalMilliseconds));
+    }
+
+    private DateTime UtcNow()
+    {
+        return timeProvider.GetUtcNow().UtcDateTime;
     }
 
     private static ManualCheckSetupDto DeserializeSetup(string json)

@@ -63,6 +63,8 @@ namespace SteamApp.Domain.Entities
 
         public ICollection<GameUrlProducts> GameUrlsProducts { get; set; } = [];
 
+        public ICollection<ManualCheckPresetGameUrl> ManualCheckPresets { get; set; } = [];
+
         public ICollection<WatchList> WatchLists { get; set; } = [];
     }
 }

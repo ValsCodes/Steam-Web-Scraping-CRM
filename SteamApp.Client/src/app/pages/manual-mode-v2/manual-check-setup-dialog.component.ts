@@ -58,8 +58,10 @@ import { ManualCheckExpressionEditorComponent } from './manual-check-expression-
 
 export interface ManualCheckSetupDialogData {
   gameId?: number;
+  gameUrlId?: number;
   gameName?: string;
   gameUrlName?: string;
+  gameUrls?: GameUrl[];
   preselectedPresetId?: number | null;
   queueBuilder?: boolean;
   initialBlock?: AutomaticQueueBlock | null;
@@ -220,6 +222,22 @@ interface ManualCheckPresetCombinationRow {
                 {{ creatingItemGroup ? 'Creating...' : 'Create group' }}
               </button>
             </section>
+
+            <fieldset class="manual-check-dialog__assignments">
+              <legend>Available for Game URLs</legend>
+              @for (gameUrl of presetAssignmentGameUrls; track gameUrl.id) {
+                <label class="manual-check-dialog__radio">
+                  <input
+                    type="checkbox"
+                    [checked]="selectedPresetGameUrlIds.has(gameUrl.id)"
+                    (change)="setPresetGameUrlAssigned(gameUrl.id, $any($event.target).checked)" />
+                  <span>{{ gameUrl.name || ('Game URL #' + gameUrl.id) }}{{ gameUrl.isActive ? '' : ' (inactive)' }}</span>
+                </label>
+              }
+              @if (selectedPresetGameUrlIds.size === 0) {
+                <p class="manual-check-dialog__validation" role="alert">Assign the preset to at least one Manual Batch URL.</p>
+              }
+            </fieldset>
           }
         } @else {
           <section class="manual-check-dialog__combination" aria-labelledby="manualCheckCombinationLabel">
@@ -554,6 +572,7 @@ interface ManualCheckPresetCombinationRow {
     .manual-check-dialog__spacer { flex: 1; }
     .manual-check-dialog__queue-source { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
     .manual-check-dialog__products { flex-direction: column !important; }
+    .manual-check-dialog__assignments { flex-direction: column !important; }
     .manual-check-dialog__product-list { display: grid; max-height: 14rem; overflow: auto; gap: .35rem; border: 1px solid #e2e8f0; border-radius: .375rem; padding: .6rem; }
     @media (max-width: 700px) { .manual-check-dialog__queue-source, .manual-check-dialog__combination-row { grid-template-columns: 1fr; } }
     @keyframes manual-check-spin { to { transform: rotate(360deg); } }
@@ -578,6 +597,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   products: GameUrlProduct[] = [];
   selectedGameId: number | null = null;
   selectedGameUrlId: number | null = null;
+  selectedPresetGameUrlIds = new Set<number>();
   templateMode: AutomaticQueueTemplateMode = 'SavedPreset';
   productSelectionMode: 'all' | 'selected' = 'all';
   productSearch = '';
@@ -612,6 +632,8 @@ export class ManualCheckSetupDialogComponent implements OnInit {
       this.loadQueueBuilder();
     } else {
       this.selectedGameId = this.data.gameId ?? null;
+      this.selectedGameUrlId = this.data.gameUrlId ?? null;
+      this.gameUrls = this.data.gameUrls ?? [];
       this.loadPresets();
     }
   }
@@ -624,6 +646,11 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   get filteredProducts(): GameUrlProduct[] {
     const search = this.productSearch.trim().toLowerCase();
     return search ? this.products.filter((x) => (x.productName ?? '').toLowerCase().includes(search)) : this.products;
+  }
+
+  get presetAssignmentGameUrls(): GameUrl[] {
+    return this.gameUrls.filter((x) =>
+      x.gameId === this.selectedGameId && x.scrapingModeId === ScrapingModeEnum.ManualBatch);
   }
 
   get selectedGameName(): string {
@@ -649,7 +676,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.successMessage = '';
 
     forkJoin({
-      presets: this.manualCheckService.getPresets(this.selectedGameId!),
+      presets: this.manualCheckService.getPresets(this.selectedGameId!, this.selectedGameUrlId ?? undefined),
       itemGroups: this.itemGroupService.getByGame(this.selectedGameId!),
       conditionOperators: this.manualCheckService.getConditionOperators(),
     }).pipe(
@@ -665,7 +692,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
         this.conditionOperators = conditionOperators;
         const preferredPresetId = this.data.initialBlock?.presetId ?? this.data.preselectedPresetId;
         const preferred = presets.find((x) => x.id === preferredPresetId)
-          ?? presets[0];
+          ?? (preferredPresetId === null || preferredPresetId === undefined ? presets[0] : undefined);
         if (
           this.data.queueBuilder &&
           this.data.initialBlock?.templateMode === 'PresetCombination' &&
@@ -679,6 +706,9 @@ export class ManualCheckSetupDialogComponent implements OnInit {
           this.selectPreset(preferred.id);
         } else {
           this.newPreset();
+          if (preferredPresetId !== null && preferredPresetId !== undefined) {
+            this.errorMessage = 'The selected preset is no longer assigned to this Game URL.';
+          }
         }
         this.cdr.markForCheck();
       },
@@ -703,11 +733,15 @@ export class ManualCheckSetupDialogComponent implements OnInit {
       && this.isListingLimitValid
       && this.isPriceRangeValid
       && this.isCooldownValid
+      && (this.data.queueBuilder || this.selectedPresetGameUrlIds.size > 0)
       && this.expressionValidation.isValid;
   }
 
   get isQueueSelectionValid(): boolean {
-    if (!this.data.queueBuilder) return true;
+    if (!this.data.queueBuilder) {
+      return this.presetMode === 'Combination'
+        || (this.selectedGameUrlId !== null && this.selectedPresetGameUrlIds.has(this.selectedGameUrlId));
+    }
     return this.selectedGameId !== null
       && this.selectedGameUrlId !== null
       && (this.productSelectionMode === 'all' || this.selectedProductIds.size > 0)
@@ -892,6 +926,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.presetMode = 'Single';
     if (this.data.queueBuilder) this.templateMode = 'SavedPreset';
     this.itemGroupId = preset.itemGroupId;
+    this.selectedPresetGameUrlIds = new Set(preset.gameUrlIds);
     this.name = preset.name;
     this.listingLimit = preset.listingLimit;
     this.applyPriceRange(preset.priceRange);
@@ -910,6 +945,9 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.selectedPresetId = null;
     if (this.data.queueBuilder) this.templateMode = 'PrivateTemplate';
     this.itemGroupId = null;
+    this.selectedPresetGameUrlIds = new Set(
+      this.selectedGameUrlId === null ? [] : [this.selectedGameUrlId],
+    );
     this.name = '';
     this.listingLimit = 10;
     this.applyPriceRange(null);
@@ -931,6 +969,15 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.dirty = true;
     this.errorMessage = '';
     this.successMessage = '';
+  }
+
+  setPresetGameUrlAssigned(gameUrlId: number, assigned: boolean): void {
+    if (assigned) {
+      this.selectedPresetGameUrlIds.add(gameUrlId);
+    } else {
+      this.selectedPresetGameUrlIds.delete(gameUrlId);
+    }
+    this.markDirty();
   }
 
   priceRangeChanged(): void {
@@ -1021,14 +1068,22 @@ export class ManualCheckSetupDialogComponent implements OnInit {
       this.cdr.markForCheck();
     })).subscribe({
       next: (saved) => {
+        const remainsAvailable = this.selectedGameUrlId !== null
+          && saved.gameUrlIds.includes(this.selectedGameUrlId);
         const index = this.presets.findIndex((x) => x.id === saved.id);
-        if (index >= 0) {
+        if (!remainsAvailable) {
+          this.presets = this.presets.filter((preset) => preset.id !== saved.id);
+        } else if (index >= 0) {
           this.presets = this.presets.map((preset) => preset.id === saved.id ? saved : preset);
         } else {
           this.presets = [...this.presets, saved];
         }
         this.selectedPresetId = saved.id;
-        this.selectPreset(saved.id);
+        if (remainsAvailable) {
+          this.selectPreset(saved.id);
+        } else {
+          this.newPreset();
+        }
         if (startAfterSave) {
           this.closeForStart(saved.id, null);
           return;
@@ -1070,7 +1125,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   }
 
   startOrSave(): void {
-    if (!this.isDraftValid || this.busy || this.creatingItemGroup) {
+    if (!this.isDraftValid || !this.isQueueSelectionValid || this.busy || this.creatingItemGroup) {
       return;
     }
 
@@ -1102,6 +1157,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   private toWriteModel(): ManualCheckPresetWrite {
     return {
       gameId: this.selectedGameId!,
+      gameUrlIds: [...this.selectedPresetGameUrlIds].sort((left, right) => left - right),
       itemGroupId: this.itemGroupId,
       name: this.name.trim(),
       listingLimit: this.listingLimit!,
@@ -1121,7 +1177,6 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.selectedGameUrlId = first?.id ?? null;
     this.selectedProductIds.clear();
     this.productSelectionMode = 'all';
-    this.loadPresets();
     this.queueGameUrlChanged();
   }
 
@@ -1133,6 +1188,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
       this.cdr.markForCheck();
       return;
     }
+    this.loadPresets();
     this.gameUrlProductService.existsByGameUrl(gameUrlId).subscribe({
       next: (products) => {
         this.products = products.filter((x) => x.isActive === true);

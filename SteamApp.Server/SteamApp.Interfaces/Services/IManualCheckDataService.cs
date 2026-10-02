@@ -9,6 +9,7 @@ public interface IManualCheckDataService
     Task<IReadOnlyList<ManualCheckConditionOperatorDto>> GetConditionOperatorsAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<ManualCheckPresetDto>> GetPresetsAsync(long? gameId, CancellationToken cancellationToken);
     Task<IReadOnlyList<ManualCheckPresetDto>> GetPresetsAsync(string userId, long? gameId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<ManualCheckPresetDto>> GetPresetsAsync(string userId, long? gameId, long? gameUrlId, CancellationToken cancellationToken);
     Task<ManualCheckPresetDto> CreatePresetAsync(ManualCheckPresetWriteDto input, CancellationToken cancellationToken);
     Task<ManualCheckPresetDto> UpdatePresetAsync(long id, ManualCheckPresetWriteDto input, CancellationToken cancellationToken);
     Task DeletePresetAsync(long id, CancellationToken cancellationToken);
@@ -35,6 +36,7 @@ public interface IManualCheckDataService
     Task<ManualCheckRunSummaryDto> RerunAsync(long runId, CancellationToken cancellationToken);
     Task<ManualCheckRunDetailDto> PauseAsync(long runId, CancellationToken cancellationToken);
     Task<ManualCheckRunSummaryDto> ContinueAsync(long runId, CancellationToken cancellationToken);
+    Task<ManualCheckRunDetailDto> UpdateListingLimitAsync(long runId, int listingLimit, CancellationToken cancellationToken);
     Task<ManualCheckRunDetailDto> CancelAsync(long runId, CancellationToken cancellationToken);
     Task<IReadOnlyList<ManualCheckRunSummaryDto>> GetRunsAsync(long? gameId, int take, CancellationToken cancellationToken);
     Task<IReadOnlyList<ManualCheckRunSummaryDto>> GetRunsAsync(string userId, long? gameId, int take, CancellationToken cancellationToken);

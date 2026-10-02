@@ -97,12 +97,20 @@ public sealed class ManualCheckExecutionService(
                         listing,
                         setup.Criteria,
                         setup.ListingLimit,
-                        out var lowestCheckedPriceMinorUnits);
+                        out var lowestCheckedPriceMinorUnits,
+                        out var checkedAssets);
                     productTrace.LowestCheckedPriceMinorUnits = lowestCheckedPriceMinorUnits;
                     productTrace.PriceCurrencyCode = lowestCheckedPriceMinorUnits.HasValue ? "EUR" : null;
                     productTrace.PriceRangeMatched = setup.PriceRange is not null && lowestCheckedPriceMinorUnits.HasValue
                         ? ManualCheckMatcher.MatchesPriceRange(lowestCheckedPriceMinorUnits.Value, setup.PriceRange)
                         : null;
+                    productTrace.CheckedAssets = checkedAssets;
+                    foreach (var checkedAsset in checkedAssets)
+                    {
+                        checkedAsset.PriceRangeMatched = setup.PriceRange is not null && checkedAsset.PriceMinorUnits.HasValue
+                            ? ManualCheckMatcher.MatchesPriceRange(checkedAsset.PriceMinorUnits.Value, setup.PriceRange)
+                            : null;
+                    }
                     productTrace.MatchEvaluated = true;
                     productTrace.Matched = match is not null;
                     productTrace.MatchedAssetCount = match?.MatchedAssets.Count ?? 0;

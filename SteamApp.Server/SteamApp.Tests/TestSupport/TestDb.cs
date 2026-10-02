@@ -110,7 +110,7 @@ public static class TestDb
                 Id = 1,
                 Name = "Batch URL",
                 GameId = 1,
-                ScrapingModeId = (long)ScrapingModeEnum.Batch,
+                ScrapingModeId = (long)ScrapingModeEnum.ManualBatch,
                 PartialUrl = "https://steam.example/search?p={0}",
                 StartPage = 1,
                 EndPage = 5,

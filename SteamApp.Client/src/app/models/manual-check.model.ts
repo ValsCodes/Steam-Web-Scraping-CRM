@@ -32,6 +32,7 @@ export interface ManualCheckPriceRange {
 
 export interface ManualCheckPresetWrite {
   gameId: number;
+  gameUrlIds: number[];
   itemGroupId: number | null;
   name: string;
   listingLimit: number;
@@ -167,6 +168,10 @@ export interface ManualCheckAssetMatch {
   descriptions: ManualCheckDescriptionMatch[];
 }
 
+export interface ManualCheckAssetCheck extends ManualCheckAssetMatch {
+  matched: boolean;
+}
+
 export interface ManualCheckProductResult extends ManualCheckProductInput {
   matchedAssets: ManualCheckAssetMatch[];
 }
@@ -181,6 +186,7 @@ export interface ManualCheckProductTrace {
   lowestCheckedPriceMinorUnits?: number | null;
   priceCurrencyCode?: string | null;
   priceRangeMatched?: boolean | null;
+  checkedAssets?: ManualCheckAssetCheck[];
   steamApiResultJson: string | null;
   durationMilliseconds: number | null;
 }

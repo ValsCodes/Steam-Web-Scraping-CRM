@@ -12,5 +12,6 @@ public class ManualCheckPresetWriteDto
     public ManualCheckPriceRangeDto? PriceRange { get; set; }
     public int? CooldownMinutes { get; set; }
     public int? CooldownSeconds { get; set; }
+    public List<long> GameUrlIds { get; set; } = [];
     public List<ManualCheckCriterionDto> Criteria { get; set; } = [];
 }

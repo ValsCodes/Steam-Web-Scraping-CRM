@@ -26,6 +26,7 @@ describe('ManualCheckSetupDialogComponent queue-builder mode', () => {
     const preset: ManualCheckPreset = {
       id: 3,
       gameId: 1,
+      gameUrlIds: [7],
       gameName: 'Alpha Game',
       itemGroupId: null,
       itemGroupName: null,

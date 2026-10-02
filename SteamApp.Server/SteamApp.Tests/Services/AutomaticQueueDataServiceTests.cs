@@ -509,6 +509,7 @@ public sealed class AutomaticQueueDataServiceTests
         return new ManualCheckPresetWriteDto
         {
             GameId = 1,
+            GameUrlIds = [1],
             Name = name,
             ListingLimit = 10,
             Criteria = [new ManualCheckCriterionDto { ValueContains = "Unusual" }]

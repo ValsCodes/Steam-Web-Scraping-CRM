@@ -26,6 +26,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<ProductTags> ProductTags { get; set; }
     public DbSet<AutomatedScrapeHistory> AutomatedScrapeHistories { get; set; }
     public DbSet<ManualCheckPreset> ManualCheckPresets { get; set; }
+    public DbSet<ManualCheckPresetGameUrl> ManualCheckPresetGameUrls { get; set; }
     public DbSet<ManualCheckCriterion> ManualCheckCriteria { get; set; }
     public DbSet<ManualCheckConditionOperator> ManualCheckConditionOperators { get; set; }
     public DbSet<ManualCheckRun> ManualCheckRuns { get; set; }
@@ -312,6 +313,20 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasIndex(x => x.Status);
             entity.HasIndex(x => x.GameId);
             entity.HasIndex(x => x.GameUrlId);
+        });
+        modelBuilder.Entity<ManualCheckPresetGameUrl>(entity =>
+        {
+            entity.HasKey(x => new { x.ManualCheckPresetId, x.GameUrlId });
+
+            entity.HasOne(x => x.ManualCheckPreset)
+                  .WithMany(x => x.GameUrls)
+                  .HasForeignKey(x => x.ManualCheckPresetId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.GameUrl)
+                  .WithMany(x => x.ManualCheckPresets)
+                  .HasForeignKey(x => x.GameUrlId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
         modelBuilder.Entity<AutomaticQueueDefinition>(entity =>
         {

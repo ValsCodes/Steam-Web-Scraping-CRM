@@ -207,7 +207,7 @@ export interface ManualCheckTraceDialogData {
                           </td>
                           <td>{{ formatDuration(trace.durationMilliseconds) }}</td>
                           <td>
-                            @if (trace.steamApiResultJson || trace.fullUrl || getMatch(trace.productId)) {
+                            @if (trace.steamApiResultJson || trace.fullUrl || trace.matchEvaluated) {
                               <div class="table-actions-cell">
                                 <button
                                   type="button"
@@ -218,9 +218,9 @@ export interface ManualCheckTraceDialogData {
                                   <mat-icon>more_horiz</mat-icon>
                                 </button>
                                 <mat-menu #steamResultActionsMenu="matMenu" xPosition="before" panelClass="table-actions-menu">
-                                  @if (getMatch(trace.productId); as match) {
-                                    <button type="button" mat-menu-item (click)="openMatches(match)">
-                                      <span>Inspect all matches</span>
+                                  @if (trace.matchEvaluated) {
+                                    <button type="button" mat-menu-item (click)="openMatches(getMatch(trace.productId), trace)">
+                                      <span>Inspect checked listings</span>
                                     </button>
                                   }
                                   @if (trace.steamApiResultJson) {
@@ -474,12 +474,16 @@ export class ManualCheckTraceDialogComponent implements OnInit {
     return this.detail()?.results.matches.find((match) => match.productId === productId) ?? null;
   }
 
-  openMatches(match: ManualCheckProductResult): void {
+  openMatches(match: ManualCheckProductResult | null, trace: ManualCheckProductTrace | null = null): void {
     const detail = this.detail();
+    const resolvedTrace = trace
+      ?? detail?.results.productTraces.find((item) => item.productId === match?.productId)
+      ?? null;
     const data: ManualCheckMatchesDialogData = {
+      productName: match?.productName ?? resolvedTrace?.productName ?? 'Product result',
       match,
       criteria: detail?.setup.criteria ?? [],
-      trace: detail?.results.productTraces.find((trace) => trace.productId === match.productId) ?? null,
+      trace: resolvedTrace,
     };
     this.dialog.open<ManualCheckMatchesDialogComponent, ManualCheckMatchesDialogData>(
       ManualCheckMatchesDialogComponent,

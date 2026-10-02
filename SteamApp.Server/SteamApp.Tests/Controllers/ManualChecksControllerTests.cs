@@ -137,7 +137,7 @@ public sealed class ManualChecksControllerTests
         };
         data.Setup(x => x.CreatePresetAsync(input, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ManualCheckPresetDto { Id = 9, GameId = 440, Name = "Shared" });
-        data.Setup(x => x.GetPresetsAsync("test-user", 440, It.IsAny<CancellationToken>()))
+        data.Setup(x => x.GetPresetsAsync("test-user", 440, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync([new ManualCheckPresetDto { Id = 9, GameId = 440, Name = "Shared" }]);
         var controller = Controller(data, queue);
 
@@ -150,7 +150,7 @@ public sealed class ManualChecksControllerTests
             Assert.That((list as OkObjectResult)?.Value, Is.AssignableTo<IReadOnlyList<ManualCheckPresetDto>>());
             Assert.That(typeof(ManualCheckPresetWriteDto).GetProperty("UserId"), Is.Null);
         });
-        data.Verify(x => x.GetPresetsAsync("test-user", 440, It.IsAny<CancellationToken>()), Times.Once);
+        data.Verify(x => x.GetPresetsAsync("test-user", 440, null, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
@@ -234,6 +234,53 @@ public sealed class ManualChecksControllerTests
         });
         queue.Verify(x => x.TryPause(12), Times.Once);
         queue.Verify(x => x.EnqueueAsync(12, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task UpdateListingLimit_UpdatesOnlyAnOwnedStandaloneRun()
+    {
+        var data = new Mock<IManualCheckDataService>();
+        var queue = new Mock<IManualCheckQueue>();
+        data.Setup(x => x.UpdateListingLimitAsync(12, 25, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ManualCheckRunDetailDto
+            {
+                Id = 12,
+                PresetName = "Historical",
+                Status = ManualCheckRunStatusEnum.Paused,
+                Setup = new ManualCheckSetupDto { ListingLimit = 25 }
+            });
+        var controller = Controller(data, queue);
+
+        var result = await controller.UpdateListingLimit(
+            12,
+            new ManualCheckListingLimitUpdateDto { ListingLimit = 25 });
+
+        Assert.That((result as OkObjectResult)?.Value, Is.TypeOf<ManualCheckRunDetailDto>());
+        data.Verify(x => x.UserOwnsRunAsync("test-user", 12, It.IsAny<CancellationToken>()), Times.Once);
+        data.Verify(x => x.UpdateListingLimitAsync(12, 25, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task UpdateListingLimit_RejectsAQueueOwnedRun()
+    {
+        var data = new Mock<IManualCheckDataService>();
+        var queue = new Mock<IManualCheckQueue>();
+        var controller = Controller(data, queue);
+        data.Setup(x => x.IsQueueOwnedRunAsync(12, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await controller.UpdateListingLimit(
+            12,
+            new ManualCheckListingLimitUpdateDto { ListingLimit = 25 });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.TypeOf<ObjectResult>());
+            Assert.That((result as ObjectResult)?.StatusCode, Is.EqualTo(409));
+        });
+        data.Verify(
+            x => x.UpdateListingLimitAsync(It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Test]

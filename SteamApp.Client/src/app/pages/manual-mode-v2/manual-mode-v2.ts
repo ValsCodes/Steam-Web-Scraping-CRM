@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import {
   BehaviorSubject,
   finalize,
@@ -98,6 +98,7 @@ type AutomatedOutcomeFilter = 'All' | 'Matched' | 'Failed' | 'Pending' | 'No mat
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     MatTooltip,
     MatDialogModule,
@@ -151,6 +152,9 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   automatedCancelPending = false;
   automatedPausePending = false;
   automatedContinuePending = false;
+  automatedListingLimitDraft: number | null = null;
+  automatedListingLimitDirty = false;
+  automatedListingLimitPending = false;
   hasAutomatedCheckResult = false;
   automatedOutcomeFilter: AutomatedOutcomeFilter = 'All';
   automatedCheckWarning = '';
@@ -234,7 +238,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   private readonly automatedProductTraces = new Map<number, ManualCheckProductTrace>();
   private readonly automatedProductErrors = new Map<number, ManualCheckProductError>();
   private readonly automatedTargetProductIds = new Set<number>();
-  private readonly lastPresetByGame = new Map<number, number>();
+  private readonly lastPresetByGameUrl = new Map<number, number>();
   readonly stockUpdatingProductIds = new Set<number>();
 
   constructor(
@@ -463,9 +467,11 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     const gameName = this.games.find((x) => x.id === gameId)?.name ?? `Game #${gameId}`;
     const data: ManualCheckSetupDialogData = {
       gameId,
+      gameUrlId: source.id,
       gameName,
       gameUrlName: source.name ?? `Game URL #${source.id}`,
-      preselectedPresetId: this.lastPresetByGame.get(gameId),
+      gameUrls: this.gameUrlsAll.filter((x) => x.gameId === gameId),
+      preselectedPresetId: this.lastPresetByGameUrl.get(source.id),
     };
 
     this.dialog.open<ManualCheckSetupDialogComponent, ManualCheckSetupDialogData, ManualCheckSetupDialogResult>(
@@ -483,7 +489,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
         return;
       }
       if (result.presetId !== null) {
-        this.lastPresetByGame.set(gameId, result.presetId);
+        this.lastPresetByGameUrl.set(source.id, result.presetId);
       }
       this.startAutomatedRun(
         source.id,
@@ -559,16 +565,22 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     return trace?.lowestCheckedPriceMinorUnits == null ? null : trace;
   }
 
+  canInspectAutomatedListings(productId: number): boolean {
+    return this.automatedProductTraces.get(productId)?.matchEvaluated === true;
+  }
+
   openAutomatedMatches(productId: number): void {
     const match = this.getAutomatedMatch(productId);
-    if (!match) {
+    const trace = this.automatedProductTraces.get(productId) ?? null;
+    if (!trace?.matchEvaluated) {
       return;
     }
 
     const data: ManualCheckMatchesDialogData = {
+      productName: trace.productName,
       match,
       criteria: this.automatedRun?.setup.criteria ?? [],
-      trace: this.automatedProductTraces.get(productId) ?? null,
+      trace,
     };
     this.dialog.open<ManualCheckMatchesDialogComponent, ManualCheckMatchesDialogData>(
       ManualCheckMatchesDialogComponent,
@@ -769,6 +781,56 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     return this.automatedRun?.status === 'Paused';
   }
 
+  get isAutomatedListingLimitValid(): boolean {
+    return this.automatedListingLimitDraft !== null
+      && Number.isInteger(this.automatedListingLimitDraft)
+      && this.automatedListingLimitDraft > 0;
+  }
+
+  setAutomatedListingLimitDraft(value: number | null): void {
+    this.automatedListingLimitDraft = value;
+    this.automatedListingLimitDirty = value !== this.automatedRun?.setup.listingLimit;
+    this.automatedCheckError = '';
+  }
+
+  applyAutomatedListingLimit(): void {
+    const runId = this.automatedRunId;
+    const listingLimit = this.automatedListingLimitDraft;
+    if (
+      runId === null ||
+      !this.canContinueAutomatedRun ||
+      !this.automatedListingLimitDirty ||
+      !this.isAutomatedListingLimitValid ||
+      this.automatedListingLimitPending
+    ) {
+      return;
+    }
+
+    this.automatedListingLimitPending = true;
+    this.automatedCheckError = '';
+    this.manualCheckService.updateListingLimit(runId, listingLimit!)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.automatedListingLimitPending = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: (run) => {
+          this.automatedRun = run;
+          this.automatedListingLimitDraft = run.setup.listingLimit;
+          this.automatedListingLimitDirty = false;
+          this.applyAutomatedRun(run);
+          this.cdr.markForCheck();
+        },
+        error: (error) => {
+          this.automatedCheckError = this.getRequestError(error, 'Unable to update the listings limit.');
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
   pauseAutomatedRun(): void {
     const runId = this.automatedRunId;
     if (runId === null || !this.canPauseAutomatedRun || this.automatedPausePending) {
@@ -800,7 +862,14 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
   continueAutomatedRun(): void {
     const runId = this.automatedRunId;
-    if (runId === null || !this.canContinueAutomatedRun || this.automatedContinuePending) {
+    if (
+      runId === null ||
+      !this.canContinueAutomatedRun ||
+      this.automatedContinuePending ||
+      this.automatedListingLimitPending ||
+      this.automatedListingLimitDirty ||
+      !this.isAutomatedListingLimitValid
+    ) {
       return;
     }
 
@@ -1360,6 +1429,10 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     const isTerminal = this.isTerminalStatus(run);
     this.automatedRunActive = !isTerminal;
     this.hasAutomatedCheckResult = isTerminal;
+    if (!this.automatedListingLimitDirty || run.status !== 'Paused') {
+      this.automatedListingLimitDraft = run.setup.listingLimit;
+      this.automatedListingLimitDirty = false;
+    }
 
     if (
       run.setup.products.length > 0 &&
@@ -1418,6 +1491,9 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.automatedCancelPending = false;
     this.automatedPausePending = false;
     this.automatedContinuePending = false;
+    this.automatedListingLimitDraft = null;
+    this.automatedListingLimitDirty = false;
+    this.automatedListingLimitPending = false;
     this.hasAutomatedCheckResult = false;
     this.automatedOutcomeFilter = 'All';
     this.automatedCheckWarning = '';

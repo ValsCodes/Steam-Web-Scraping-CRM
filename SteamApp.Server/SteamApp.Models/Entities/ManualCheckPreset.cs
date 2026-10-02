@@ -58,4 +58,5 @@ public sealed class ManualCheckPreset
 
     public ICollection<ManualCheckRun> Runs { get; set; } = [];
     public ICollection<ManualCheckCriterion> Criteria { get; set; } = [];
+    public ICollection<ManualCheckPresetGameUrl> GameUrls { get; set; } = [];
 }

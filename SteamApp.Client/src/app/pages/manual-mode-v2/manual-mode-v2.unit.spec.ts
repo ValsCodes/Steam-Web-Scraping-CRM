@@ -50,6 +50,7 @@ describe('ManualModeV2 external link disclosure', () => {
       'cancelRun',
       'pauseRun',
       'continueRun',
+      'updateListingLimit',
     ]);
     dialog = { open: jasmine.createSpy('open') };
 
@@ -1109,6 +1110,35 @@ describe('ManualModeV2 external link disclosure', () => {
 
     expect(manualCheckService.continueRun).toHaveBeenCalledOnceWith(77);
     expect(component.automatedRun?.status).toBe('Queued');
+  });
+
+  it('applies a valid paused Top X change before allowing the run to continue', () => {
+    const paused = runDetail('Paused', 0, 0);
+    const updated = {
+      ...paused,
+      setup: { ...paused.setup, listingLimit: 25 },
+    };
+    component.automatedRun = paused;
+    component.automatedRunId = paused.id;
+    component.automatedRunActive = true;
+    component.automatedListingLimitDraft = paused.setup.listingLimit;
+    manualCheckService.updateListingLimit.and.returnValue(of(updated));
+    manualCheckService.continueRun.and.returnValue(of({
+      runId: paused.id,
+      run: { ...updated, status: 'Queued' },
+    }));
+
+    component.setAutomatedListingLimitDraft(25);
+    component.continueAutomatedRun();
+    expect(manualCheckService.continueRun).not.toHaveBeenCalled();
+
+    component.applyAutomatedListingLimit();
+    expect(manualCheckService.updateListingLimit).toHaveBeenCalledOnceWith(paused.id, 25);
+    expect(component.automatedRun?.setup.listingLimit).toBe(25);
+    expect(component.automatedListingLimitDirty).toBeFalse();
+
+    component.continueAutomatedRun();
+    expect(manualCheckService.continueRun).toHaveBeenCalledOnceWith(paused.id);
   });
 
   it('includes the resolved product URL in warning tooltips', () => {

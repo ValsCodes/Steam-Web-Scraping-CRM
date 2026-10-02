@@ -1059,6 +1059,23 @@ namespace SteamApp.WebAPI.Migrations
                     b.ToTable("manual_check_preset");
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckPresetGameUrl", b =>
+                {
+                    b.Property<long>("ManualCheckPresetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("manual_check_preset_id");
+
+                    b.Property<long>("GameUrlId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("game_url_id");
+
+                    b.HasKey("ManualCheckPresetId", "GameUrlId");
+
+                    b.HasIndex("GameUrlId");
+
+                    b.ToTable("manual_check_preset_game_url");
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckRun", b =>
                 {
                     b.Property<long>("Id")
@@ -1067,6 +1084,10 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnName("id");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AccumulatedPausedMilliseconds")
+                        .HasColumnType("bigint")
+                        .HasColumnName("accumulated_paused_milliseconds");
 
                     b.Property<int>("CheckedProducts")
                         .HasColumnType("int")
@@ -1105,6 +1126,10 @@ namespace SteamApp.WebAPI.Migrations
                     b.Property<long?>("ManualCheckPresetId")
                         .HasColumnType("bigint")
                         .HasColumnName("manual_check_preset_id");
+
+                    b.Property<DateTime?>("PausedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("paused_at_utc");
 
                     b.Property<int>("MatchedProducts")
                         .HasColumnType("int")
@@ -1752,6 +1777,25 @@ namespace SteamApp.WebAPI.Migrations
                     b.Navigation("ItemGroup");
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckPresetGameUrl", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.GameUrl", "GameUrl")
+                        .WithMany("ManualCheckPresets")
+                        .HasForeignKey("GameUrlId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SteamApp.Domain.Entities.ManualCheckPreset", "ManualCheckPreset")
+                        .WithMany("GameUrls")
+                        .HasForeignKey("ManualCheckPresetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("GameUrl");
+
+                    b.Navigation("ManualCheckPreset");
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckRun", b =>
                 {
                     b.HasOne("SteamApp.Domain.Entities.Game", "Game")
@@ -1923,6 +1967,8 @@ namespace SteamApp.WebAPI.Migrations
 
                     b.Navigation("GameUrlsProducts");
 
+                    b.Navigation("ManualCheckPresets");
+
                     b.Navigation("WatchLists");
                 });
 
@@ -1943,6 +1989,8 @@ namespace SteamApp.WebAPI.Migrations
             modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckPreset", b =>
                 {
                     b.Navigation("Criteria");
+
+                    b.Navigation("GameUrls");
 
                     b.Navigation("Runs");
                 });

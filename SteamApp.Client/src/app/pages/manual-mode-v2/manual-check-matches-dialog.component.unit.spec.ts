@@ -7,6 +7,7 @@ describe('ManualCheckMatchesDialogComponent', () => {
   let fixture: ComponentFixture<ManualCheckMatchesDialogComponent>;
 
   const data: ManualCheckMatchesDialogData = {
+    productName: 'Matched Item',
     match: {
       productId: 5,
       productName: 'Matched Item',
@@ -45,6 +46,25 @@ describe('ManualCheckMatchesDialogComponent', () => {
       lowestCheckedPriceMinorUnits: 75,
       priceCurrencyCode: 'EUR',
       priceRangeMatched: null,
+      checkedAssets: [{
+        appId: '440',
+        contextId: '2',
+        assetId: 'checked-unmatched',
+        classId: 'class-unmatched',
+        instanceId: '0',
+        marketName: 'Unmatched listing',
+        iconUrl: '',
+        priceMinorUnits: 75,
+        priceCurrencyCode: 'EUR',
+        priceRangeMatched: true,
+        matched: false,
+        descriptions: [{
+          name: 'Exterior',
+          value: 'Factory New',
+          color: '',
+          matchedCriterionIndexes: [],
+        }],
+      }],
       steamApiResultJson: null,
       durationMilliseconds: 1,
     },
@@ -67,8 +87,31 @@ describe('ManualCheckMatchesDialogComponent', () => {
     expect(text).toContain('Matched Item');
     expect(text).toContain('Matched · 3 assets');
     expect(text).toContain('Cheapest checked: €0.75');
-    const details = fixture.nativeElement.querySelectorAll('details') as NodeListOf<HTMLDetailsElement>;
+    const details = fixture.nativeElement.querySelectorAll('steam-manual-check-match-tree details') as NodeListOf<HTMLDetailsElement>;
     expect(details.length).toBe(3);
     expect([...details].every((match) => match.open)).toBeTrue();
+  });
+
+  it('shows matched and unmatched checked-listing details in the collapsed advanced section', () => {
+    const advanced = fixture.nativeElement.querySelector('.matches-dialog__advanced') as HTMLDetailsElement;
+    expect(advanced.open).toBeFalse();
+    expect(advanced.textContent).toContain('Unmatched listing');
+    expect(advanced.textContent).toContain('No match');
+    expect(advanced.textContent).toContain('Exterior');
+    expect(advanced.textContent).toContain('Factory New');
+  });
+
+  it('shows a historical-data fallback when checked listings were not stored', () => {
+    fixture.destroy();
+    const originalTrace = data.trace;
+    data.trace = {
+      ...originalTrace!,
+      checkedAssets: undefined,
+    };
+    fixture = TestBed.createComponent(ManualCheckMatchesDialogComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('may predate advanced listing inspection');
+    data.trace = originalTrace;
   });
 });

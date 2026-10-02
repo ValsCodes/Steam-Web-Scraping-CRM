@@ -27,10 +27,14 @@ export class ManualCheckService {
       .pipe(catchError(handleError));
   }
 
-  getPresets(gameId?: number): Observable<ManualCheckPreset[]> {
-    const params = gameId === undefined
-      ? undefined
-      : new HttpParams().set('gameId', gameId);
+  getPresets(gameId?: number, gameUrlId?: number): Observable<ManualCheckPreset[]> {
+    let params = new HttpParams();
+    if (gameId !== undefined) {
+      params = params.set('gameId', gameId);
+    }
+    if (gameUrlId !== undefined) {
+      params = params.set('gameUrlId', gameUrlId);
+    }
     return this.http
       .get<ManualCheckPreset[]>(`${this.baseUrl}/presets`, { params })
       .pipe(catchError(handleError));
@@ -91,6 +95,12 @@ export class ManualCheckService {
   continueRun(id: number): Observable<ManualCheckRunAccepted> {
     return this.http
       .post<ManualCheckRunAccepted>(`${this.baseUrl}/runs/${id}/continue`, {})
+      .pipe(catchError(handleError));
+  }
+
+  updateListingLimit(id: number, listingLimit: number): Observable<ManualCheckRunDetail> {
+    return this.http
+      .put<ManualCheckRunDetail>(`${this.baseUrl}/runs/${id}/listing-limit`, { listingLimit })
       .pipe(catchError(handleError));
   }
 

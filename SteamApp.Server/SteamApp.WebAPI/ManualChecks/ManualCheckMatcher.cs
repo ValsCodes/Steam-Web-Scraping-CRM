@@ -49,7 +49,25 @@ public static class ManualCheckMatcher
         int listingLimit,
         out long? lowestCheckedPriceMinorUnits)
     {
+        return MatchProduct(
+            product,
+            listing,
+            criteria,
+            listingLimit,
+            out lowestCheckedPriceMinorUnits,
+            out _);
+    }
+
+    public static ManualCheckProductResultDto? MatchProduct(
+        ManualCheckProductInputDto product,
+        Listing listing,
+        IReadOnlyList<ManualCheckCriterionDto> criteria,
+        int listingLimit,
+        out long? lowestCheckedPriceMinorUnits,
+        out List<ManualCheckAssetCheckDto> checkedAssets)
+    {
         lowestCheckedPriceMinorUnits = null;
+        checkedAssets = [];
         if (listingLimit < 1)
         {
             throw new ArgumentOutOfRangeException(nameof(listingLimit), "Listing limit must be positive.");
@@ -87,7 +105,7 @@ public static class ManualCheckMatcher
             return null;
         }
 
-        var checkedAssets = 0;
+        var checkedAssetCount = 0;
         foreach (var pricedListing in pricedListings)
         {
             var assetReference = pricedListing.Info.Asset!;
@@ -99,11 +117,11 @@ public static class ManualCheckMatcher
                 continue;
             }
 
-            if (checkedAssets == 0)
+            if (checkedAssetCount == 0)
             {
                 lowestCheckedPriceMinorUnits = pricedListing.BuyerTotal;
             }
-            checkedAssets++;
+            checkedAssetCount++;
 
             var criterionMatches = new bool[criteria.Count];
             var descriptions = new List<ManualCheckDescriptionMatchDto>();
@@ -122,26 +140,18 @@ public static class ManualCheckMatcher
                     matchedIndexes.Add(index);
                 }
 
-                if (matchedIndexes.Count > 0)
+                descriptions.Add(new ManualCheckDescriptionMatchDto
                 {
-                    descriptions.Add(new ManualCheckDescriptionMatchDto
-                    {
-                        Name = description.Name ?? string.Empty,
-                        Value = description.Value ?? string.Empty,
-                        Color = description.Color ?? string.Empty,
-                        MatchedCriterionIndexes = matchedIndexes
-                    });
-                }
+                    Name = description.Name ?? string.Empty,
+                    Value = description.Value ?? string.Empty,
+                    Color = description.Color ?? string.Empty,
+                    MatchedCriterionIndexes = matchedIndexes
+                });
             }
 
             var qualifies = ManualCheckExpression.Evaluate(criterionMatches, criteria);
 
-            if (!qualifies)
-            {
-                continue;
-            }
-
-            matchedAssets.Add(new ManualCheckAssetMatchDto
+            var checkedAsset = new ManualCheckAssetCheckDto
             {
                 AppId = appId,
                 ContextId = contextId,
@@ -154,11 +164,20 @@ public static class ManualCheckMatcher
                     : asset.IconUrl ?? string.Empty,
                 PriceMinorUnits = pricedListing.BuyerTotal,
                 PriceCurrencyCode = "EUR",
+                Matched = qualifies,
                 Descriptions = descriptions
-            });
+            };
+            checkedAssets.Add(checkedAsset);
+
+            if (!qualifies)
+            {
+                continue;
+            }
+
+            matchedAssets.Add(ToMatchedAsset(checkedAsset));
         }
 
-        if (checkedAssets == 0)
+        if (checkedAssetCount == 0)
         {
             throw new InvalidOperationException(
                 "Steam returned listings, but none contained usable price and asset information.");
@@ -179,6 +198,24 @@ public static class ManualCheckMatcher
             Tags = product.Tags,
             Rating = product.Rating,
             MatchedAssets = matchedAssets
+        };
+    }
+
+    private static ManualCheckAssetMatchDto ToMatchedAsset(ManualCheckAssetCheckDto asset)
+    {
+        return new ManualCheckAssetMatchDto
+        {
+            AppId = asset.AppId,
+            ContextId = asset.ContextId,
+            AssetId = asset.AssetId,
+            ClassId = asset.ClassId,
+            InstanceId = asset.InstanceId,
+            MarketName = asset.MarketName,
+            IconUrl = asset.IconUrl,
+            PriceMinorUnits = asset.PriceMinorUnits,
+            PriceCurrencyCode = asset.PriceCurrencyCode,
+            PriceRangeMatched = asset.PriceRangeMatched,
+            Descriptions = asset.Descriptions
         };
     }
 
