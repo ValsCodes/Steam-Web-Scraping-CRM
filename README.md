@@ -16,6 +16,7 @@ SteamApp is not a traditional customer-relationship CRM. It is an operations wor
 - [Getting Started](docs/GETTING_STARTED.md)
 - [Architecture Overview](docs/ARCHITECTURE.md)
 - [API Reference](docs/API_REFERENCE.md)
+- [Local Observability](docs/OBSERVABILITY.md)
 - [Self-Hosted Mailserver](docs/MAILSERVER.md)
 - [Contributing Guide](docs/CONTRIBUTING.md)
 - [Extended Project Description](docs/PROJECT_DESCRIPTION_ENG.md)

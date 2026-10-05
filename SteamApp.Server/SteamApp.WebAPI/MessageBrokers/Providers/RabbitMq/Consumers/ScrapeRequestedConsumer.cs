@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -5,8 +8,7 @@ using SteamApp.WebAPI.MessageBrokers.Handlers.Scraping;
 using SteamApp.WebAPI.MessageBrokers.Messages.Scraping;
 using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Connection;
 using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options;
-using System.Text;
-using System.Text.Json;
+using SteamApp.WebAPI.Observability;
 
 namespace SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Consumers;
 
@@ -48,9 +50,17 @@ public sealed class ScrapeRequestedConsumer(
 
         consumer.ReceivedAsync += async (_, eventArgs) =>
         {
+            const string operation = "rabbitmq.scrape-request.process";
+            var startedAt = Stopwatch.GetTimestamp();
+            using var activity = SteamAppTelemetry.StartOperation(operation);
+            var outcome = SteamAppTelemetry.SuccessOutcome;
             try
             {
                 var message = DeserializeMessage(eventArgs.Body.ToArray());
+                SteamAppTelemetry.RecordQueueDelay(
+                    _options.ScrapeRequestQueueName,
+                    message.RequestedAtUtc,
+                    DateTime.UtcNow);
 
                 using var scope = scopeFactory.CreateScope();
                 var handler = scope.ServiceProvider.GetRequiredService<ScrapeRequestedMessageHandler>();
@@ -64,9 +74,12 @@ public sealed class ScrapeRequestedConsumer(
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
+                outcome = SteamAppTelemetry.CancelledOutcome;
             }
             catch (Exception exception)
             {
+                outcome = SteamAppTelemetry.ErrorOutcome;
+                SteamAppTelemetry.MarkError(activity);
                 logger.LogError(exception, "Scrape request message processing failed.");
 
                 await channel.BasicNackAsync(
@@ -74,6 +87,14 @@ public sealed class ScrapeRequestedConsumer(
                     multiple: false,
                     requeue: false,
                     cancellationToken: stoppingToken);
+            }
+            finally
+            {
+                SteamAppTelemetry.CompleteOperation(
+                    activity,
+                    operation,
+                    outcome,
+                    Stopwatch.GetElapsedTime(startedAt));
             }
         };
 

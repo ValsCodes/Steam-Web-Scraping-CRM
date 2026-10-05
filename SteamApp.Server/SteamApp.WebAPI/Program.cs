@@ -21,6 +21,7 @@ using SteamApp.WebAPI.Jobs.Base;
 using SteamApp.WebAPI.ManualChecks;
 using SteamApp.WebAPI.MinimalAPIs;
 using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.DependencyInjection;
+using SteamApp.WebAPI.Observability;
 using SteamApp.WebAPI.Security;
 using SteamApp.WebAPI.Services;
 using System.Net.Mail;
@@ -54,6 +55,8 @@ public class Program
         // Environment variables must remain the final provider so a launcher or
         // deployment can override user-secrets without modifying stored secrets.
         builder.Configuration.AddEnvironmentVariables();
+
+        builder.AddSteamAppObservability();
 
         string[] required =
         [

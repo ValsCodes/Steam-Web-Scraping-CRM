@@ -1,4 +1,5 @@
 using System.Data;
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using SteamApp.Application.DTOs.AutomaticQueue;
@@ -8,6 +9,7 @@ using SteamApp.Domain.Enums;
 using SteamApp.Infrastructure.Context;
 using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI.Exceptions;
+using SteamApp.WebAPI.Observability;
 
 namespace SteamApp.WebAPI.Services;
 
@@ -484,16 +486,22 @@ public sealed class AutomaticQueueDataService(
 
         foreach (var run in runs)
         {
+            const string operation = "automatic-queue.process-run";
+            var startedAt = Stopwatch.GetTimestamp();
+            using var activity = SteamAppTelemetry.StartOperation(operation);
+            var outcome = SteamAppTelemetry.SuccessOutcome;
             try
             {
                 await ProcessRunAsync(db, run, cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                outcome = SteamAppTelemetry.CancelledOutcome;
                 throw;
             }
             catch (DbUpdateConcurrencyException)
             {
+                outcome = SteamAppTelemetry.SkippedOutcome;
                 db.ChangeTracker.Clear();
                 logger.LogDebug(
                     "Automatic queue run {QueueRunId} changed while block {BlockIndex} was being advanced.",
@@ -502,6 +510,8 @@ public sealed class AutomaticQueueDataService(
             }
             catch (Exception exception)
             {
+                outcome = SteamAppTelemetry.ErrorOutcome;
+                SteamAppTelemetry.MarkError(activity);
                 logger.LogError(
                     exception,
                     "Automatic queue run {QueueRunId} failed at block {BlockIndex} with correlation {CorrelationId}.",
@@ -523,6 +533,14 @@ public sealed class AutomaticQueueDataService(
                     remaining.Status = AutomaticQueueBlockRunStatusEnum.Skipped;
                 }
                 await db.SaveChangesAsync(cancellationToken);
+            }
+            finally
+            {
+                SteamAppTelemetry.CompleteOperation(
+                    activity,
+                    operation,
+                    outcome,
+                    Stopwatch.GetElapsedTime(startedAt));
             }
         }
     }

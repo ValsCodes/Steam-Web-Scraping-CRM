@@ -82,7 +82,7 @@ public class AuthController(
             return ValidationProblem(CreateModelState(result));
         }
 
-        logger.LogInformation("User with email {Email} has successfully registered.", user.Email);
+        logger.LogInformation("User registration completed successfully.");
 
         return Ok(await CreateUserTokenResponseAsync(user, timeProvider.GetUtcNow()));
     }
@@ -109,7 +109,7 @@ public class AuthController(
         if (!result.Succeeded)
             return Unauthorized("Invalid user credentials.");
 
-        logger.LogInformation("User with email {Email} has successfully logged in.", user.Email);
+        logger.LogInformation("User login completed successfully.");
 
         return Ok(await CreateUserTokenResponseAsync(user, timeProvider.GetUtcNow()));
     }
@@ -177,7 +177,7 @@ public class AuthController(
             return ValidationProblem(CreateModelState(result));
         }
 
-        logger.LogInformation("User {UserId} updated their profile.", user.Id);
+        logger.LogInformation("User profile update completed successfully.");
 
         return Ok(CreateUserProfileResponse(user));
     }
@@ -202,7 +202,7 @@ public class AuthController(
             return ValidationProblem(CreateModelState(result));
         }
 
-        logger.LogInformation("User {UserId} changed their password.", user.Id);
+        logger.LogInformation("User password change completed successfully.");
 
         return NoContent();
     }
@@ -228,7 +228,7 @@ public class AuthController(
             return ValidationProblem(CreateModelState(result));
         }
 
-        logger.LogInformation("User {UserId} deleted their account.", user.Id);
+        logger.LogInformation("User account deletion completed successfully.");
 
         return NoContent();
     }

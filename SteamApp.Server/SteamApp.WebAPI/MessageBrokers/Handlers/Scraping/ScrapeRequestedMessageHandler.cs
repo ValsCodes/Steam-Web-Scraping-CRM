@@ -1,9 +1,11 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Caching.Distributed;
 using SteamApp.Application.DTOs.WatchItem;
 using SteamApp.Domain.Enums;
 using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI.Caching;
 using SteamApp.WebAPI.MessageBrokers.Messages.Scraping;
+using SteamApp.WebAPI.Observability;
 using SteamApp.WebAPI.Scraping;
 
 namespace SteamApp.WebAPI.MessageBrokers.Handlers.Scraping;
@@ -23,6 +25,7 @@ public sealed class ScrapeRequestedMessageHandler(
         var job = await scrapeHistoryData.GetJobAsync(message.HistoryId, cancellationToken);
         if (job is null)
         {
+            SteamAppTelemetry.MarkSkipped(Activity.Current);
             logger.LogWarning(
                 "Scrape message {CorrelationId} skipped because history row {HistoryId} was not found.",
                 message.CorrelationId,
@@ -32,6 +35,7 @@ public sealed class ScrapeRequestedMessageHandler(
 
         if (job.Status is ScrapeJobStatusEnum.Succeeded or ScrapeJobStatusEnum.Failed)
         {
+            SteamAppTelemetry.MarkSkipped(Activity.Current);
             logger.LogInformation(
                 "Scrape message {CorrelationId} skipped because history row {HistoryId} is already {Status}.",
                 message.CorrelationId,
@@ -46,6 +50,7 @@ public sealed class ScrapeRequestedMessageHandler(
 
         if (runningStatus is ScrapeJobStatusEnum.Succeeded or ScrapeJobStatusEnum.Failed)
         {
+            SteamAppTelemetry.MarkSkipped(Activity.Current);
             logger.LogInformation(
                 "Scrape message {CorrelationId} skipped because history row {HistoryId} is already {Status}.",
                 message.CorrelationId,
@@ -101,6 +106,7 @@ public sealed class ScrapeRequestedMessageHandler(
         }
         catch (Exception exception)
         {
+            SteamAppTelemetry.MarkError(Activity.Current);
             var mapped = ScrapeEndpointDefinitions.MapError(message.Endpoint, exception);
 
             if (mapped.LogLevel == LogLevel.Warning)

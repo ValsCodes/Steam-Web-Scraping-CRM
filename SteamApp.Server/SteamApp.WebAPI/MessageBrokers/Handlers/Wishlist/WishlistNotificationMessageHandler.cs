@@ -1,9 +1,11 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Caching.Distributed;
 using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.WishListItem;
 using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI.Caching;
 using SteamApp.WebAPI.MessageBrokers.Messages.Wishlist;
+using SteamApp.WebAPI.Observability;
 
 namespace SteamApp.WebAPI.MessageBrokers.Handlers.Wishlist;
 
@@ -25,11 +27,11 @@ public sealed class WishlistNotificationMessageHandler(
 
         if (await cache.ExistsAsync(notificationCacheKey, cancellationToken))
         {
+            SteamAppTelemetry.MarkSkipped(Activity.Current);
             await cache.RemoveAsync(queuedCacheKey, cancellationToken);
             logger.LogInformation(
-                "Wishlist notification message {CorrelationId} skipped because wishlist item {WishlistId} is already cached.",
-                message.CorrelationId,
-                message.WishlistId);
+                "Wishlist notification message {CorrelationId} skipped because the item is already cached.",
+                message.CorrelationId);
             return;
         }
 
@@ -51,9 +53,7 @@ public sealed class WishlistNotificationMessageHandler(
         await cache.RemoveAsync(queuedCacheKey, cancellationToken);
 
         logger.LogInformation(
-            "Wishlist notification message {CorrelationId} sent email for wishlist item {WishlistId} to {Email}.",
-            message.CorrelationId,
-            message.WishlistId,
-            message.Email);
+            "Wishlist notification message {CorrelationId} sent an email.",
+            message.CorrelationId);
     }
 }

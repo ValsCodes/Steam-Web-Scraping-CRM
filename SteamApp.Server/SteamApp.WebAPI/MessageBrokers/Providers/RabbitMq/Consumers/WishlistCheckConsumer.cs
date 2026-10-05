@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -5,8 +8,7 @@ using SteamApp.WebAPI.MessageBrokers.Handlers.Wishlist;
 using SteamApp.WebAPI.MessageBrokers.Messages.Wishlist;
 using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Connection;
 using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options;
-using System.Text;
-using System.Text.Json;
+using SteamApp.WebAPI.Observability;
 
 namespace SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Consumers;
 
@@ -48,9 +50,17 @@ public sealed class WishlistCheckConsumer(
 
         consumer.ReceivedAsync += async (_, eventArgs) =>
         {
+            const string operation = "rabbitmq.wishlist-check.process";
+            var startedAt = Stopwatch.GetTimestamp();
+            using var activity = SteamAppTelemetry.StartOperation(operation);
+            var outcome = SteamAppTelemetry.SuccessOutcome;
             try
             {
                 var message = DeserializeMessage(eventArgs.Body.ToArray());
+                SteamAppTelemetry.RecordQueueDelay(
+                    _options.WishlistCheckQueueName,
+                    message.RequestedAtUtc,
+                    DateTime.UtcNow);
 
                 using var scope = scopeFactory.CreateScope();
                 var handler = scope.ServiceProvider.GetRequiredService<WishlistCheckMessageHandler>();
@@ -69,9 +79,12 @@ public sealed class WishlistCheckConsumer(
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
+                outcome = SteamAppTelemetry.CancelledOutcome;
             }
             catch (Exception exception)
             {
+                outcome = SteamAppTelemetry.ErrorOutcome;
+                SteamAppTelemetry.MarkError(activity);
                 logger.LogError(exception, "Wishlist check message processing failed.");
 
                 await channel.BasicNackAsync(
@@ -79,6 +92,14 @@ public sealed class WishlistCheckConsumer(
                     multiple: false,
                     requeue: false,
                     cancellationToken: stoppingToken);
+            }
+            finally
+            {
+                SteamAppTelemetry.CompleteOperation(
+                    activity,
+                    operation,
+                    outcome,
+                    Stopwatch.GetElapsedTime(startedAt));
             }
         };
 
