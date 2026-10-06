@@ -377,7 +377,7 @@ public sealed class AuthControllerTests
     [Test]
     public async Task Renew_ValidUserSession_PreservesAuthenticationTimeAndCapsExpiration()
     {
-        var authenticationTime = DefaultNow.AddHours(-3).AddMinutes(-55);
+        var authenticationTime = DefaultNow.AddMinutes(-55);
         var user = new ApplicationUser
         {
             Id = "user-id",
@@ -407,7 +407,7 @@ public sealed class AuthControllerTests
                 token.Claims.Single(x => x.Type == JwtRegisteredClaimNames.Iat).Value,
                 Is.EqualTo(DefaultNow.ToUnixTimeSeconds().ToString()));
             Assert.That(token.Claims.Single(x => x.Type == JwtRegisteredClaimNames.Jti).Value, Is.Not.Empty);
-            Assert.That(token.ValidTo, Is.EqualTo(authenticationTime.AddHours(4).UtcDateTime));
+            Assert.That(token.ValidTo, Is.EqualTo(authenticationTime.AddHours(1).UtcDateTime));
             Assert.That(token.Claims.Any(x => x.Type == ClaimTypes.Name && x.Value == "updated-user"), Is.True);
             Assert.That(token.Claims.Any(x => x.Type == ClaimTypes.Role && x.Value == SecurityPolicies.AdminRole), Is.True);
         });
@@ -423,7 +423,7 @@ public sealed class AuthControllerTests
         Authenticate(invalidController, authenticationTimeClaim: "invalid");
 
         var expiredController = CreateController();
-        Authenticate(expiredController, authenticationTime: DefaultNow.AddHours(-4));
+        Authenticate(expiredController, authenticationTime: DefaultNow.AddHours(-1));
 
         var legacyResult = await legacyController.Renew();
         var invalidResult = await invalidController.Renew();
@@ -441,7 +441,7 @@ public sealed class AuthControllerTests
     public async Task Renew_MissingCurrentUser_RejectsRenewal()
     {
         var controller = CreateController();
-        Authenticate(controller, authenticationTime: DefaultNow.AddHours(-1));
+        Authenticate(controller, authenticationTime: DefaultNow.AddMinutes(-30));
 
         var result = await controller.Renew();
 

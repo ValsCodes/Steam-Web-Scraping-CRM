@@ -30,7 +30,7 @@ public class AuthController(
 {
     private const string AuthenticationTimeClaim = "auth_time";
     private static readonly TimeSpan MaximumClockSkew = TimeSpan.FromMinutes(1);
-    private static readonly TimeSpan MaximumUserSessionDuration = TimeSpan.FromHours(4);
+    private static readonly TimeSpan MaximumUserSessionDuration = TimeSpan.FromHours(1);
 
     [HttpPost("token")]
     [AllowAnonymous]
