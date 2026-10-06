@@ -344,12 +344,30 @@ public sealed class ManualCheckDataService(
         SqlBulkCopyOptions = SqlBulkCopyOptions.CheckConstraints | SqlBulkCopyOptions.FireTriggers
     };
 
-    public async Task DeletePresetAsync(long id, CancellationToken cancellationToken)
+    public async Task DeletePresetAsync(string userId, long id, CancellationToken cancellationToken)
     {
         await using var db = dbContextFactory.CreateDbContext();
         var entity = await db.ManualCheckPresets
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            .FirstOrDefaultAsync(x => x.Id == id && x.Game.UserId == userId, cancellationToken)
             ?? throw RequestError(StatusCodes.Status404NotFound, "Preset was not found.");
+
+        var definitions = await db.AutomaticQueueDefinitions
+            .Include(x => x.Blocks)
+            .Where(x => x.UserId == userId)
+            .ToListAsync(cancellationToken);
+        foreach (var definition in definitions)
+        {
+            var referencedBlocks = definition.Blocks
+                .Where(block => AutomaticQueueBlockReferencesPreset(block, id))
+                .ToList();
+            if (referencedBlocks.Count == 0)
+            {
+                continue;
+            }
+
+            db.AutomaticQueueBlocks.RemoveRange(referencedBlocks);
+            definition.UpdatedAtUtc = UtcNow();
+        }
 
         db.ManualCheckPresets.Remove(entity);
         await db.SaveChangesAsync(cancellationToken);
@@ -1891,6 +1909,19 @@ public sealed class ManualCheckDataService(
     private DateTime UtcNow()
     {
         return timeProvider.GetUtcNow().UtcDateTime;
+    }
+
+    private static bool AutomaticQueueBlockReferencesPreset(AutomaticQueueBlock block, long presetId)
+    {
+        var configuration = JsonConvert.DeserializeObject<AutomaticQueueBlockDto>(block.ConfigurationJson)
+            ?? throw new InvalidOperationException("Automatic queue block configuration is invalid.");
+        return configuration.TemplateMode switch
+        {
+            AutomaticQueueTemplateModeEnum.SavedPreset => configuration.PresetId == presetId,
+            AutomaticQueueTemplateModeEnum.PresetCombination =>
+                configuration.PresetCombination?.Terms.Any(term => term.PresetId == presetId) == true,
+            _ => false
+        };
     }
 
     private static ManualCheckSetupDto DeserializeSetup(string json)

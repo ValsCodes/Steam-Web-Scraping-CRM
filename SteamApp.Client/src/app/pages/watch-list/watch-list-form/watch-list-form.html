@@ -1,10 +1,16 @@
-<form [formGroup]="form" (ngSubmit)="onSubmit()" class="general-form app-form">
+<form
+  [formGroup]="form"
+  (ngSubmit)="onSubmit()"
+  class="general-form app-form"
+  [class.watch-list-form--embedded]="embedded">
   <div class="app-form__header">
     <span class="app-form__eyebrow">Monitoring</span>
     <h2 class="app-form__title">{{ isEditMode ? 'Edit Watch List Item' : 'Create Watch List Item' }}</h2>
-    <p class="app-form__description">
-      Save a custom URL, name, and active state for pages you want to monitor outside the main catalog.
-    </p>
+    @if (!embedded) {
+      <p class="app-form__description">
+        Save a custom URL, name, and active state for pages you want to monitor outside the main catalog.
+      </p>
+    }
   </div>
 
   <div class="app-form__grid">
@@ -43,6 +49,8 @@
       {{ isSubmitting ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save changes' : 'Create watch item') }}
     </button>
 
-    <button type="button" class="form-back-button" (click)="cancel()">Back</button>
+    <button type="button" class="form-back-button" (click)="cancel()">
+      {{ embedded ? 'Cancel' : 'Back' }}
+    </button>
   </div>
 </form>

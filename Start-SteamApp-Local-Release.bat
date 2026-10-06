@@ -71,11 +71,13 @@ set "ASPNETCORE_ENVIRONMENT=Development"
 set "DOTNET_ENVIRONMENT=Development"
 set "ASPNETCORE_URLS=https://localhost:7443;http://localhost:5136"
 set "LOCAL_DB_NAME=db_steam_app2"
+set "CLIENT_HOST=127.0.0.1"
+set "CLIENT_PORT=4300"
 set "ConnectionStrings__DefaultConnection=Server=(localdb)\MSSQLLocalDB;Database=%LOCAL_DB_NAME%;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
 set "Database__ApplyMigrationsOnStartup=true"
 set "Database__EnsureIdentitySchemaOnStartup=true"
 set "API_URL=https://localhost:7443/swagger/index.html"
-set "CLIENT_URL=http://localhost:4200/"
+set "CLIENT_URL=http://%CLIENT_HOST%:%CLIENT_PORT%/"
 
 sqllocaldb.exe start MSSQLLocalDB >nul 2>&1
 
@@ -95,12 +97,12 @@ echo Starting the Release API with existing LocalDB database "%LOCAL_DB_NAME%"..
 start "SteamApp API - Release + LocalDB" /D "%SERVER_DIR%" cmd.exe /d /k "dotnet run --project SteamApp.WebAPI.csproj --configuration Release --no-launch-profile"
 
 :prepare_client
-call :stop_owned_listener 4200 "%CLIENT_DIR%" "SteamApp.Client"
+call :stop_owned_listener %CLIENT_PORT% "%CLIENT_DIR%" "SteamApp.Client"
 if errorlevel 2 goto client_port_in_use
 if errorlevel 1 goto client_stop_failed
 
 echo Starting the optimized local-release Angular client...
-start "SteamApp Client - Local Release" /D "%CLIENT_DIR%" cmd.exe /d /k "if exist node_modules\.bin\ng.cmd (npm.cmd run start -- --configuration local-release --host 127.0.0.1 --port 4200) else (npm.cmd ci && npm.cmd run start -- --configuration local-release --host 127.0.0.1 --port 4200)"
+start "SteamApp Client - Local Release" /D "%CLIENT_DIR%" cmd.exe /d /k "if exist node_modules\.bin\ng.cmd (npm.cmd run start -- --configuration local-release --host %CLIENT_HOST% --port %CLIENT_PORT%) else (npm.cmd ci && npm.cmd run start -- --configuration local-release --host %CLIENT_HOST% --port %CLIENT_PORT%)"
 
 :wait_for_services
 echo Waiting for the API and client to become ready...
@@ -119,7 +121,7 @@ start "" "%CLIENT_URL%"
 
 echo.
 echo SteamApp is ready.
-echo Client:  http://localhost:4200
+echo Client:  %CLIENT_URL%
 echo API:     https://localhost:7443
 echo Swagger: https://localhost:7443/swagger
 echo Database: %LOCAL_DB_NAME% on ^(localdb^)\MSSQLLocalDB
@@ -137,8 +139,8 @@ exit /b 1
 
 :client_port_in_use
 echo.
-echo ERROR: Port 4200 is owned by a process outside this SteamApp checkout.
-call :show_port_owner 4200
+echo ERROR: Port %CLIENT_PORT% is owned by a process outside this SteamApp checkout.
+call :show_port_owner %CLIENT_PORT%
 pause
 exit /b 1
 
@@ -151,8 +153,8 @@ exit /b 1
 
 :client_stop_failed
 echo.
-echo ERROR: The existing SteamApp client on port 4200 could not be stopped.
-call :show_port_owner 4200
+echo ERROR: The existing SteamApp client on port %CLIENT_PORT% could not be stopped.
+call :show_port_owner %CLIENT_PORT%
 pause
 exit /b 1
 

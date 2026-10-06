@@ -1,6 +1,6 @@
 <div class="p-4">
     <header class="mb-6">
-        <h1 class="text-2xl font-semibold text-gray-700">Manual Mode</h1>
+        <h1 class="text-2xl font-semibold text-gray-700">Manual Checks</h1>
         <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
             Load configured products for a source and step through manual validation or batch workflows when operator
             control is needed.
@@ -474,6 +474,13 @@
                             (click)="automatedCheckSelectedProducts()">
                             Check selected ({{ selectedProductCount }})
                         </button>
+                        @if (selectedProductCount > 0) {
+                        <button type="button" class="button button-small-danger"
+                            [disabled]="productRelationUpdatingIds.size > 0"
+                            (click)="removeSelectedProductsFromGameUrl()">
+                            {{ productRelationUpdatingIds.size > 0 ? 'Removing...' : 'Remove from Game URL (' + selectedProductCount + ')' }}
+                        </button>
+                        }
                     </div>
                 </div>
 

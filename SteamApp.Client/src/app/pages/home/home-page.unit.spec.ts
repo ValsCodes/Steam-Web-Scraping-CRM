@@ -37,7 +37,7 @@ describe('HomePage', () => {
       'Open Automated Queue',
     ]);
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
-      '/manual-mode-v2',
+      '/manual-checks',
       '/automatic-queue',
     ]);
   });

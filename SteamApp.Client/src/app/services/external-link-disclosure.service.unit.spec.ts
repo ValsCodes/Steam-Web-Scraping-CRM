@@ -14,7 +14,7 @@ describe('ExternalLinkDisclosureService', () => {
     localStorage.removeItem(EXTERNAL_LINK_DISCLOSURE_STORAGE_KEY);
 
     router = {
-      url: '/manual-mode-v2',
+      url: '/manual-checks',
       navigateByUrl: jasmine.createSpy('navigateByUrl').and.resolveTo(true),
     };
 
@@ -44,39 +44,39 @@ describe('ExternalLinkDisclosureService', () => {
   it('builds a disclosure route with a safe target and internal return URL', () => {
     const disclosureUrl = service.getDisclosureUrl(
       'https://backpack.tf/stats',
-      '/manual-mode-v2?tab=items',
+      '/manual-checks?tab=items',
     );
     const params = new URLSearchParams(disclosureUrl.split('?')[1]);
 
     expect(disclosureUrl.startsWith('/external-link-disclosure?')).toBeTrue();
     expect(params.get('target')).toBe('https://backpack.tf/stats');
-    expect(params.get('returnTo')).toBe('/manual-mode-v2?tab=items');
+    expect(params.get('returnTo')).toBe('/manual-checks?tab=items');
   });
 
   it('routes untrusted web URLs to disclosure before acceptance', () => {
-    const result = service.openTrustedUrl('https://evil.example/market', '/manual-mode-v2');
+    const result = service.openTrustedUrl('https://evil.example/market', '/manual-checks');
     const disclosureUrl = router.navigateByUrl.calls.mostRecent().args[0] as string;
     const params = new URLSearchParams(disclosureUrl.split('?')[1]);
 
     expect(result).toBe('needs-disclosure');
     expect(params.get('target')).toBe('https://evil.example/market');
-    expect(params.get('returnTo')).toBe('/manual-mode-v2');
+    expect(params.get('returnTo')).toBe('/manual-checks');
   });
 
   it('routes custom scheme URLs to disclosure before acceptance', () => {
-    const result = service.openTrustedUrl('javascript:alert(1)', '/manual-mode-v2');
+    const result = service.openTrustedUrl('javascript:alert(1)', '/manual-checks');
     const disclosureUrl = router.navigateByUrl.calls.mostRecent().args[0] as string;
     const params = new URLSearchParams(disclosureUrl.split('?')[1]);
 
     expect(result).toBe('needs-disclosure');
     expect(params.get('target')).toBe('javascript:alert(1)');
-    expect(params.get('returnTo')).toBe('/manual-mode-v2');
+    expect(params.get('returnTo')).toBe('/manual-checks');
   });
 
   it('blocks empty targets without navigating or opening a window', () => {
     const openSpy = spyOn(window, 'open').and.returnValue(null);
 
-    const result = service.openTrustedUrl('   ', '/manual-mode-v2');
+    const result = service.openTrustedUrl('   ', '/manual-checks');
 
     expect(result).toBe('blocked');
     expect(openSpy).not.toHaveBeenCalled();
@@ -84,21 +84,21 @@ describe('ExternalLinkDisclosureService', () => {
   });
 
   it('routes to disclosure before the user has accepted', () => {
-    const result = service.openTrustedUrl('https://steamcommunity.com/market/', '/manual-mode-v2');
+    const result = service.openTrustedUrl('https://steamcommunity.com/market/', '/manual-checks');
     const disclosureUrl = router.navigateByUrl.calls.mostRecent().args[0] as string;
     const params = new URLSearchParams(disclosureUrl.split('?')[1]);
 
     expect(result).toBe('needs-disclosure');
     expect(disclosureUrl.startsWith('/external-link-disclosure?')).toBeTrue();
     expect(params.get('target')).toBe('https://steamcommunity.com/market/');
-    expect(params.get('returnTo')).toBe('/manual-mode-v2');
+    expect(params.get('returnTo')).toBe('/manual-checks');
   });
 
   it('opens trusted URLs after the user has accepted', () => {
     const openSpy = spyOn(window, 'open').and.returnValue(null);
     service.accept();
 
-    const result = service.openTrustedUrl('https://backpack.tf/stats', '/manual-mode-v2');
+    const result = service.openTrustedUrl('https://backpack.tf/stats', '/manual-checks');
 
     expect(result).toBe('opened');
     expect(openSpy).toHaveBeenCalledWith(
@@ -113,7 +113,7 @@ describe('ExternalLinkDisclosureService', () => {
     const openSpy = spyOn(window, 'open').and.returnValue(null);
     service.accept();
 
-    const result = service.openTrustedUrl('http://evil.example/market', '/manual-mode-v2');
+    const result = service.openTrustedUrl('http://evil.example/market', '/manual-checks');
 
     expect(result).toBe('opened');
     expect(openSpy).toHaveBeenCalledWith(
@@ -127,7 +127,7 @@ describe('ExternalLinkDisclosureService', () => {
     const openSpy = spyOn(window, 'open').and.returnValue(null);
     service.accept();
 
-    const result = service.openTrustedUrl('steam://openurl/https://steamcommunity.com/market/', '/manual-mode-v2');
+    const result = service.openTrustedUrl('steam://openurl/https://steamcommunity.com/market/', '/manual-checks');
 
     expect(result).toBe('opened');
     expect(openSpy).toHaveBeenCalledWith(

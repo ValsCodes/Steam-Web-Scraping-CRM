@@ -60,7 +60,7 @@ if not exist "%SERVER_DIR%\SteamApp.WebAPI.csproj" (
 )
 
 rem Keep the Development runtime environment for user-secrets, development CORS,
-rem and compatibility with the Angular development frontend on localhost:4200.
+rem and compatibility with the Angular development frontend on 127.0.0.1:4300.
 set "ASPNETCORE_ENVIRONMENT=Development"
 set "DOTNET_ENVIRONMENT=Development"
 set "ASPNETCORE_URLS=https://localhost:7443;http://localhost:5136"
@@ -95,7 +95,7 @@ echo.
 echo SteamApp API is ready.
 echo API:      https://localhost:7443
 echo Swagger:  https://localhost:7443/swagger
-echo Frontend: compatible with the Angular development server on http://localhost:4200
+echo Frontend: compatible with the Angular development server on http://127.0.0.1:4300
 echo Database: %LOCAL_DB_NAME% on ^(localdb^)\MSSQLLocalDB
 echo Close the API terminal window to stop the server.
 

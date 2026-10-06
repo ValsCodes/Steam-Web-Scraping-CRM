@@ -733,6 +733,61 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     });
   }
 
+  removeSelectedProductsFromGameUrl(): void {
+    const gameUrlId = this.selectedGameUrl?.id;
+    if (gameUrlId === undefined || this.productRelationUpdatingIds.size > 0) {
+      return;
+    }
+
+    const productIds = this.products
+      .filter((product) =>
+        product.gameUrlId === gameUrlId &&
+        this.selectedProductIds.has(product.productId) &&
+        !this.isProductRemoved(product.productId))
+      .map((product) => product.productId);
+    if (productIds.length === 0) {
+      return;
+    }
+
+    this.productRelationError = '';
+    for (const productId of productIds) {
+      this.productRelationUpdatingIds.add(productId);
+    }
+    this.cdr.markForCheck();
+
+    this.gameUrlProductService.bulkUpdate(gameUrlId, [], productIds).pipe(
+      takeUntil(this.destroy$),
+      finalize(() => {
+        for (const productId of productIds) {
+          this.productRelationUpdatingIds.delete(productId);
+        }
+        this.cdr.markForCheck();
+      }),
+    ).subscribe({
+      next: () => {
+        if (this.selectedGameUrl?.id !== gameUrlId) {
+          return;
+        }
+
+        for (const productId of productIds) {
+          this.removedProductIds.add(productId);
+          this.selectedProductIds.delete(productId);
+        }
+        this.loadFilteredProducts();
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        if (this.selectedGameUrl?.id === gameUrlId) {
+          this.productRelationError = this.getRequestError(
+            error,
+            'Unable to remove the selected products from the Game URL.',
+          );
+          this.cdr.markForCheck();
+        }
+      },
+    });
+  }
+
   setProductSelected(productId: number, selected: boolean, shiftKey = false): void {
     if (this.isProductRemoved(productId) || this.isProductRelationUpdating(productId)) {
       return;
@@ -953,7 +1008,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
         const result = this.externalLinkDisclosure.openTrustedUrl(
           openableSteamUrl(url, this.openInSteamMode),
-          '/manual-mode-v2',
+          '/manual-checks',
         );
         if (result === 'needs-disclosure') {
           break;
@@ -971,7 +1026,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
             this.productsFiltered[productIndex].fullUrl,
             this.openInSteamMode,
           ),
-          '/manual-mode-v2',
+          '/manual-checks',
         );
         if (result === 'needs-disclosure') {
           break;
@@ -1108,7 +1163,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     for (const url of urls) {
       const result = this.externalLinkDisclosure.openTrustedUrl(
         openableSteamUrl(url, this.openInSteamMode),
-        '/manual-mode-v2',
+        '/manual-checks',
       );
 
       if (result === 'blocked') {

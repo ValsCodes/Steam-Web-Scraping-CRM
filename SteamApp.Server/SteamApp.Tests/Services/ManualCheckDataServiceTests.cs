@@ -1,10 +1,13 @@
+using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using SteamApp.Application.DTOs.AutomaticQueue;
 using SteamApp.Application.DTOs.ManualCheck;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
 using SteamApp.Tests.TestSupport;
 using SteamApp.WebAPI.Exceptions;
 using SteamApp.WebAPI.Services;
-using Newtonsoft.Json.Linq;
 
 namespace SteamApp.Tests.Services;
 
@@ -64,6 +67,113 @@ public sealed class ManualCheckDataServiceTests
             Assert.That(storedCriteria.Select(x => x.SortOrder), Is.EqualTo(new[] { 0, 1 }));
             Assert.That(storedCriteria[1].ConditionOperatorId, Is.EqualTo((long)ManualCheckConditionOperatorEnum.AndNot));
             Assert.That(operators.Select(x => x.Name), Is.EqualTo(new[] { "AND", "OR", "AND NOT", "OR NOT", "XOR", "NAND", "NOR" }));
+        });
+    }
+
+    [Test]
+    public async Task DeletePresetAsync_OwnedPreset_RemovesReferencingQueueBlocksOnly()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var now = new DateTimeOffset(2026, 10, 6, 9, 0, 0, TimeSpan.Zero);
+        var service = new ManualCheckDataService(database.Factory, new MutableTimeProvider(now));
+        var deletedPreset = await service.CreatePresetAsync(PresetInput("Delete me"), CancellationToken.None);
+        var retainedPreset = await service.CreatePresetAsync(PresetInput("Keep me"), CancellationToken.None);
+        var deletedSingleKey = Guid.NewGuid();
+        var retainedSingleKey = Guid.NewGuid();
+        var deletedCombinationKey = Guid.NewGuid();
+        var retainedDelayKey = Guid.NewGuid();
+        database.Context.AutomaticQueueDefinitions.AddRange(
+            new AutomaticQueueDefinition
+            {
+                Id = 101,
+                UserId = TestDb.TestUserId,
+                Name = "Owned queue",
+                CreatedAtUtc = now.UtcDateTime.AddDays(-1),
+                UpdatedAtUtc = now.UtcDateTime.AddDays(-1),
+                Blocks =
+                [
+                    QueueBlock(0, deletedSingleKey, new AutomaticQueueBlockWriteDto
+                    {
+                        Key = deletedSingleKey,
+                        Type = AutomaticQueueBlockTypeEnum.ManualCheck,
+                        TemplateMode = AutomaticQueueTemplateModeEnum.SavedPreset,
+                        PresetId = deletedPreset.Id
+                    }),
+                    QueueBlock(1, retainedSingleKey, new AutomaticQueueBlockWriteDto
+                    {
+                        Key = retainedSingleKey,
+                        Type = AutomaticQueueBlockTypeEnum.ManualCheck,
+                        TemplateMode = AutomaticQueueTemplateModeEnum.SavedPreset,
+                        PresetId = retainedPreset.Id
+                    }),
+                    QueueBlock(2, deletedCombinationKey, new AutomaticQueueBlockWriteDto
+                    {
+                        Key = deletedCombinationKey,
+                        Type = AutomaticQueueBlockTypeEnum.ManualCheck,
+                        TemplateMode = AutomaticQueueTemplateModeEnum.PresetCombination,
+                        PresetCombination = Combination(deletedPreset.Id, retainedPreset.Id)
+                    }),
+                    QueueBlock(3, retainedDelayKey, new AutomaticQueueBlockWriteDto
+                    {
+                        Key = retainedDelayKey,
+                        Type = AutomaticQueueBlockTypeEnum.Delay,
+                        DelaySeconds = 30
+                    })
+                ]
+            },
+            new AutomaticQueueDefinition
+            {
+                Id = 102,
+                UserId = "other-user",
+                Name = "Other user's queue",
+                CreatedAtUtc = now.UtcDateTime.AddDays(-1),
+                UpdatedAtUtc = now.UtcDateTime.AddDays(-1),
+                Blocks =
+                [
+                    QueueBlock(0, Guid.NewGuid(), new AutomaticQueueBlockWriteDto
+                    {
+                        Key = Guid.NewGuid(),
+                        Type = AutomaticQueueBlockTypeEnum.ManualCheck,
+                        TemplateMode = AutomaticQueueTemplateModeEnum.SavedPreset,
+                        PresetId = deletedPreset.Id
+                    })
+                ]
+            });
+        await database.Context.SaveChangesAsync();
+
+        await service.DeletePresetAsync(TestDb.TestUserId, deletedPreset.Id, CancellationToken.None);
+
+        await using var verification = database.Factory.CreateDbContext();
+        var ownedQueue = await verification.AutomaticQueueDefinitions
+            .Include(x => x.Blocks)
+            .SingleAsync(x => x.Id == 101);
+        var otherQueue = await verification.AutomaticQueueDefinitions
+            .Include(x => x.Blocks)
+            .SingleAsync(x => x.Id == 102);
+        Assert.Multiple(() =>
+        {
+            Assert.That(verification.ManualCheckPresets.Any(x => x.Id == deletedPreset.Id), Is.False);
+            Assert.That(ownedQueue.Blocks.Select(x => x.BlockKey), Is.EquivalentTo(new[] { retainedSingleKey, retainedDelayKey }));
+            Assert.That(ownedQueue.UpdatedAtUtc, Is.EqualTo(now.UtcDateTime));
+            Assert.That(otherQueue.Blocks, Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task DeletePresetAsync_WrongOwner_ReturnsNotFoundWithoutDeletingPreset()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var service = new ManualCheckDataService(database.Factory);
+        var preset = await service.CreatePresetAsync(PresetInput("Owned preset"), CancellationToken.None);
+
+        var exception = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.DeletePresetAsync("other-user", preset.Id, CancellationToken.None));
+
+        await using var verification = database.Factory.CreateDbContext();
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.StatusCode, Is.EqualTo(404));
+            Assert.That(verification.ManualCheckPresets.Any(x => x.Id == preset.Id), Is.True);
         });
     }
 
@@ -1126,6 +1236,21 @@ public sealed class ManualCheckDataServiceTests
             Status = status,
             Date = DateTime.UtcNow,
             CorrelationId = Guid.NewGuid().ToString("N")
+        };
+    }
+
+    private static AutomaticQueueBlock QueueBlock(
+        int sortOrder,
+        Guid blockKey,
+        AutomaticQueueBlockWriteDto configuration)
+    {
+        configuration.Key = blockKey;
+        return new AutomaticQueueBlock
+        {
+            BlockKey = blockKey,
+            SortOrder = sortOrder,
+            BlockType = configuration.Type,
+            ConfigurationJson = JsonConvert.SerializeObject(configuration)
         };
     }
 

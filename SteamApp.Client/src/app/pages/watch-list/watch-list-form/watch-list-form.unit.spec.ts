@@ -59,4 +59,28 @@ describe('WatchListForm', () => {
     });
     expect(router.navigate).toHaveBeenCalledOnceWith(['/watch-list']);
   });
+
+  it('emits completion instead of navigating when embedded', () => {
+    const saved = jasmine.createSpy('saved');
+    watchListService.update.and.returnValue(of(void 0));
+    component.saved.subscribe(saved);
+    fixture.componentRef.setInput('embedded', true);
+    fixture.componentRef.setInput('watchList', {
+      id: 7,
+      name: 'Watch Delta',
+      url: 'https://steam.example/watch/7',
+      registrationDate: '2026-10-06',
+      isActive: false,
+    });
+
+    component.onSubmit();
+
+    expect(watchListService.update).toHaveBeenCalledOnceWith(7, {
+      name: 'Watch Delta',
+      url: 'https://steam.example/watch/7',
+      isActive: false,
+    });
+    expect(saved).toHaveBeenCalledTimes(1);
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
 });

@@ -11,7 +11,7 @@ Disallow: /login
 Disallow: /session-expired
 Disallow: /profile
 Disallow: /web-scraper
-Disallow: /manual-mode-v2
+Disallow: /manual-checks
 Disallow: /games
 Disallow: /game-urls
 Disallow: /products

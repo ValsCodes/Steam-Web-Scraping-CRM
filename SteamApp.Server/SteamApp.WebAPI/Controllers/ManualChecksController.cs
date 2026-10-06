@@ -104,7 +104,7 @@ public sealed class ManualChecksController(
             var userId = User.GetUserId();
             if (userId is null) return Unauthorized();
             if (!await dataService.UserOwnsPresetAsync(userId, id, cancellationToken)) return NotFound();
-            await dataService.DeletePresetAsync(id, cancellationToken);
+            await dataService.DeletePresetAsync(userId, id, cancellationToken);
             return NoContent();
         }
         catch (ManualCheckRequestException exception)

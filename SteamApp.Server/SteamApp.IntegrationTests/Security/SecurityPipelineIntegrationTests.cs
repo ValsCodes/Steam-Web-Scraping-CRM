@@ -75,27 +75,39 @@ public sealed class SecurityPipelineIntegrationTests
     [Test]
     public async Task CorsAllowsConfiguredOriginAndRejectsUnconfiguredOrigin()
     {
-        using var factory = new SteamAppFactory();
+        var configuration = new Dictionary<string, string?>
+        {
+            ["Cors__AllowedOrigins__0"] = "http://127.0.0.1:4300",
+            ["Cors__AllowedOrigins__1"] = "http://localhost:4300"
+        };
+        using var factory = new SteamAppFactory(
+            environmentName: "Development",
+            overrides: configuration);
         using var client = factory.CreateAnonymousClient();
         await factory.ResetDatabaseAsync();
 
         using var allowed = new HttpRequestMessage(HttpMethod.Options, "/api/games/");
-        allowed.Headers.Add("Origin", "https://spa.example.test");
+        allowed.Headers.Add("Origin", "http://127.0.0.1:4300");
         allowed.Headers.Add("Access-Control-Request-Method", "GET");
 
+        using var allowedLocalhost = new HttpRequestMessage(HttpMethod.Options, "/api/games/");
+        allowedLocalhost.Headers.Add("Origin", "http://localhost:4300");
+        allowedLocalhost.Headers.Add("Access-Control-Request-Method", "GET");
+
         using var denied = new HttpRequestMessage(HttpMethod.Options, "/api/games/");
-        denied.Headers.Add("Origin", "https://evil.example.test");
+        denied.Headers.Add("Origin", "http://127.0.0.1:4200");
         denied.Headers.Add("Access-Control-Request-Method", "GET");
 
         using var allowedQuery = new HttpRequestMessage(HttpMethod.Options, "/api/games/");
-        allowedQuery.Headers.Add("Origin", "https://spa.example.test");
+        allowedQuery.Headers.Add("Origin", "http://127.0.0.1:4300");
         allowedQuery.Headers.Add("Access-Control-Request-Method", ApiHttpMethods.Query);
 
         using var deniedQuery = new HttpRequestMessage(HttpMethod.Options, "/api/games/");
-        deniedQuery.Headers.Add("Origin", "https://evil.example.test");
+        deniedQuery.Headers.Add("Origin", "http://127.0.0.1:4200");
         deniedQuery.Headers.Add("Access-Control-Request-Method", ApiHttpMethods.Query);
 
         var allowedResponse = await client.SendAsync(allowed);
+        var allowedLocalhostResponse = await client.SendAsync(allowedLocalhost);
         var deniedResponse = await client.SendAsync(denied);
         var allowedQueryResponse = await client.SendAsync(allowedQuery);
         var deniedQueryResponse = await client.SendAsync(deniedQuery);
@@ -105,12 +117,15 @@ public sealed class SecurityPipelineIntegrationTests
             Assert.That(allowedResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
             Assert.That(
                 allowedResponse.Headers.GetValues("Access-Control-Allow-Origin").Single(),
-                Is.EqualTo("https://spa.example.test"));
+                Is.EqualTo("http://127.0.0.1:4300"));
+            Assert.That(
+                allowedLocalhostResponse.Headers.GetValues("Access-Control-Allow-Origin").Single(),
+                Is.EqualTo("http://localhost:4300"));
             Assert.That(deniedResponse.Headers.Contains("Access-Control-Allow-Origin"), Is.False);
             Assert.That(allowedQueryResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
             Assert.That(
                 allowedQueryResponse.Headers.GetValues("Access-Control-Allow-Origin").Single(),
-                Is.EqualTo("https://spa.example.test"));
+                Is.EqualTo("http://127.0.0.1:4300"));
             Assert.That(
                 allowedQueryResponse.Headers.GetValues("Access-Control-Allow-Methods").Single(),
                 Does.Contain(ApiHttpMethods.Query));

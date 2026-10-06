@@ -10,6 +10,7 @@ import {
 } from '../../models';
 import { AutomaticQueueService } from '../../services';
 import { ManualCheckTraceDialogComponent } from '../manual-mode-v2/manual-check-trace-dialog.component';
+import { AutomaticQueueCombinationDialogComponent } from './automatic-queue-combination-dialog.component';
 import { AutomaticQueueDelayDialogComponent } from './automatic-queue-delay-dialog.component';
 import { AutomaticQueuePage } from './automatic-queue-page';
 
@@ -59,6 +60,70 @@ describe('AutomaticQueuePage', () => {
 
     component.removeBlock(0);
     expect(component.blocks.map((block) => block.key)).toEqual([firstKey]);
+  });
+
+  it('combines copied queue blocks in selected order into a fresh unsaved draft', () => {
+    const first = savedDefinition(manualBlock(), 11, 'A'.repeat(60));
+    const second = savedDefinition(delayBlock(15), 12, 'B'.repeat(60));
+    const sourceSnapshot = structuredClone([first, second]);
+    const sourceKeys = new Set([first.blocks[0].key, second.blocks[0].key]);
+    const selectedRun = queueRun('Succeeded', first.blocks[0]);
+    component.definitions.set([first, second]);
+    component.selectedDefinitionId.set(first.id);
+    component.selectedRun.set(selectedRun);
+    component.runs.set([selectedRun]);
+    dialog.open.and.returnValue({ afterClosed: () => of({ queueIds: [second.id, first.id] }) } as never);
+
+    component.combineQueues();
+
+    expect(dialog.open.calls.mostRecent().args[0]).toBe(AutomaticQueueCombinationDialogComponent);
+    expect(dialog.open.calls.mostRecent().args[1]?.data).toEqual({
+      definitions: [first, second],
+      preferredQueueId: first.id,
+    });
+    expect(component.selectedDefinitionId()).toBeNull();
+    expect(component.selectedRun()).toBeNull();
+    expect(component.runs()).toEqual([]);
+    expect(component.blocks.map((block) => block.type)).toEqual(['Delay', 'ManualCheck']);
+    expect(component.blocks.every((block) => !sourceKeys.has(block.key))).toBeTrue();
+    expect(new Set(component.blocks.map((block) => block.key)).size).toBe(component.blocks.length);
+    expect(component.name).toBe(`${second.name} + ${first.name}`.slice(0, 100));
+    expect(component.name.length).toBe(100);
+    expect(component.definitions()).toEqual(sourceSnapshot);
+    expect(component.successMessage).toBe('Queues combined. Review and save the new definition.');
+  });
+
+  it('keeps the current editor unchanged when queue combination is canceled', () => {
+    const first = savedDefinition(manualBlock(), 11, 'First');
+    const second = savedDefinition(delayBlock(15), 12, 'Second');
+    component.definitions.set([first, second]);
+    component.selectedDefinitionId.set(first.id);
+    component.name = first.name;
+    component.blocks = [...first.blocks];
+    dialog.open.and.returnValue({ afterClosed: () => of(undefined) } as never);
+
+    component.combineQueues();
+
+    expect(component.selectedDefinitionId()).toBe(first.id);
+    expect(component.name).toBe(first.name);
+    expect(component.blocks).toEqual(first.blocks);
+  });
+
+  it('keeps the current editor unchanged when a combined source is stale', () => {
+    const first = savedDefinition(manualBlock(), 11, 'First');
+    const second = savedDefinition(delayBlock(15), 12, 'Second');
+    component.definitions.set([first, second]);
+    component.selectedDefinitionId.set(first.id);
+    component.name = first.name;
+    component.blocks = [...first.blocks];
+    dialog.open.and.returnValue({ afterClosed: () => of({ queueIds: [first.id, 999] }) } as never);
+
+    component.combineQueues();
+
+    expect(component.selectedDefinitionId()).toBe(first.id);
+    expect(component.name).toBe(first.name);
+    expect(component.blocks).toEqual(first.blocks);
+    expect(component.errorMessage).toContain('no longer valid');
   });
 
   it('saves the visible definition before starting a run', () => {
@@ -292,16 +357,20 @@ describe('AutomaticQueuePage', () => {
     };
   }
 
-  function savedDefinition(block: AutomaticQueueBlockWrite): AutomaticQueueDefinition {
+  function savedDefinition(
+    block: AutomaticQueueBlockWrite,
+    id = 11,
+    name = 'Nightly checks',
+  ): AutomaticQueueDefinition {
     return {
-      id: 11,
-      name: 'Nightly checks',
+      id,
+      name,
       createdAtUtc: '2026-09-27T08:00:00Z',
       updatedAtUtc: '2026-09-27T08:00:00Z',
       activeRunId: null,
       blocks: [{
         ...block,
-        id: 101,
+        id: id * 10 + 1,
         sortOrder: 0,
         gameId: 1,
         gameName: 'Alpha Game',

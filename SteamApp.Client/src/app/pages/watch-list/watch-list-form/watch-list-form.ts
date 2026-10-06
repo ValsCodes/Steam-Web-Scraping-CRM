@@ -1,8 +1,11 @@
 import {
   ChangeDetectorRef,
   Component,
+  EventEmitter,
+  Input,
   OnDestroy,
   OnInit,
+  Output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -16,6 +19,7 @@ import { finalize, Observable, Subject, takeUntil } from 'rxjs';
 import {
   CreateWatchList,
   UpdateWatchList,
+  WatchList,
 } from '../../../models';
 import { WatchListService } from '../../../services';
 
@@ -28,6 +32,27 @@ import { WatchListService } from '../../../services';
 })
 export class WatchListForm implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
+
+  @Input() embedded = false;
+  @Input() set watchList(value: WatchList | null) {
+    if (value === null) {
+      this.isEditMode = false;
+      this.watchListId = undefined;
+      this.form.reset({ url: '', name: '', isActive: true });
+      return;
+    }
+
+    this.isEditMode = true;
+    this.watchListId = value.id;
+    this.form.reset({
+      url: value.url ?? '',
+      name: value.name ?? '',
+      isActive: value.isActive,
+    });
+  }
+
+  @Output() readonly saved = new EventEmitter<void>();
+  @Output() readonly cancelled = new EventEmitter<void>();
 
   isEditMode = false;
   watchListId?: number;
@@ -48,6 +73,10 @@ export class WatchListForm implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    if (this.embedded) {
+      return;
+    }
+
     const idParam = this.route.snapshot.paramMap.get('id');
 
     if (idParam !== null) {
@@ -96,11 +125,21 @@ export class WatchListForm implements OnInit, OnDestroy {
         }),
       )
       .subscribe(() => {
-        this.router.navigate(['/watch-list']);
+        if (this.embedded) {
+          this.saved.emit();
+          return;
+        }
+
+        void this.router.navigate(['/watch-list']);
       });
   }
 
   cancel(): void {
-    this.router.navigate(['/watch-list']);
+    if (this.embedded) {
+      this.cancelled.emit();
+      return;
+    }
+
+    void this.router.navigate(['/watch-list']);
   }
 }

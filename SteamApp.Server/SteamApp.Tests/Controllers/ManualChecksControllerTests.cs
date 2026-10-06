@@ -154,6 +154,21 @@ public sealed class ManualChecksControllerTests
     }
 
     [Test]
+    public async Task DeletePreset_AuthenticatedOwner_PassesUserScopeToCascade()
+    {
+        var data = new Mock<IManualCheckDataService>();
+        var queue = new Mock<IManualCheckQueue>();
+        data.Setup(x => x.UserOwnsPresetAsync("test-user", 9, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var controller = Controller(data, queue);
+
+        var result = await controller.DeletePreset(9);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        data.Verify(x => x.DeletePresetAsync("test-user", 9, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
     public async Task DetailAndRerunUseTheHistoryRunId()
     {
         var data = new Mock<IManualCheckDataService>();

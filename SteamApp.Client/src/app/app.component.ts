@@ -12,6 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { SiteHeaderComponent } from './components/site-header/site-header.component';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { SiteFooter } from "./components/site-footer/site-footer";
+import { WatchListPanelComponent } from './components/watch-list-panel/watch-list-panel.component';
 import { ErrorDialogService } from './services/error-dialog.service';
 import { ErrorDialogBridge } from './services/error-dialog-bridge';
 import { LoadingStateService } from './services/loading/loading-state.service';
@@ -26,7 +27,8 @@ import { AuthService } from './services/auth/auth.service';
     FormsModule,
     SiteHeaderComponent,
     MatPaginatorModule,
-    SiteFooter
+    SiteFooter,
+    WatchListPanelComponent,
 ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',

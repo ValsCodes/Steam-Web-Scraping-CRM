@@ -30,6 +30,11 @@ import {
   ManualCheckTraceDialogData,
 } from '../manual-mode-v2/manual-check-trace-dialog.component';
 import { AutomaticQueueDelayDialogComponent } from './automatic-queue-delay-dialog.component';
+import {
+  AutomaticQueueCombinationDialogComponent,
+  AutomaticQueueCombinationDialogData,
+  AutomaticQueueCombinationDialogResult,
+} from './automatic-queue-combination-dialog.component';
 import { AutomaticQueueConfigurationDialogComponent } from './automatic-queue-configuration-dialog.component';
 
 type EditorBlock = AutomaticQueueBlockWrite & Partial<AutomaticQueueBlock>;
@@ -130,6 +135,28 @@ export class AutomaticQueuePage implements OnInit, OnDestroy {
     this.successMessage = 'Queue copied. Save it to create the new definition.';
     this.errorMessage = '';
     this.cdr.markForCheck();
+  }
+
+  combineQueues(): void {
+    const definitions = this.definitions();
+    if (this.busy || definitions.length < 2) return;
+    const data: AutomaticQueueCombinationDialogData = {
+      definitions,
+      preferredQueueId: this.selectedDefinitionId(),
+    };
+    this.dialog.open<
+      AutomaticQueueCombinationDialogComponent,
+      AutomaticQueueCombinationDialogData,
+      AutomaticQueueCombinationDialogResult
+    >(AutomaticQueueCombinationDialogComponent, {
+      data,
+      width: 'min(48rem, 96vw)',
+      maxWidth: '96vw',
+      maxHeight: '92vh',
+    }).afterClosed().pipe(takeUntil(this.destroy$)).subscribe((result) => {
+      if (!result) return;
+      this.applyQueueCombination(result.queueIds);
+    });
   }
 
   selectDefinition(definition: AutomaticQueueDefinition): void {
@@ -438,6 +465,33 @@ export class AutomaticQueuePage implements OnInit, OnDestroy {
     this.selectedDefinitionId.set(saved.id);
     this.name = saved.name;
     this.blocks = saved.blocks.map((x) => ({ ...x, productIds: x.productIds ? [...x.productIds] : null }));
+  }
+
+  private applyQueueCombination(queueIds: number[]): void {
+    const definitions = this.definitions();
+    const selected = queueIds.map((id) => definitions.find((definition) => definition.id === id));
+    const isValid = queueIds.length >= 2
+      && queueIds.length <= 10
+      && new Set(queueIds).size === queueIds.length
+      && selected.every((definition) => definition !== undefined)
+      && selected.reduce((total, definition) => total + (definition?.blocks.length ?? 0), 0) <= 100;
+    if (!isValid) {
+      this.errorMessage = 'Unable to combine queues because the selected definitions are no longer valid.';
+      this.cdr.markForCheck();
+      return;
+    }
+
+    const resolved = selected as AutomaticQueueDefinition[];
+    this.pollStop$.next();
+    this.selectedDefinitionId.set(null);
+    this.selectedRun.set(null);
+    this.runs.set([]);
+    this.name = resolved.map((definition) => definition.name).join(' + ').slice(0, 100);
+    this.blocks = resolved.flatMap((definition) => structuredClone(definition.blocks)
+      .map((block) => ({ ...block, key: crypto.randomUUID() })));
+    this.errorMessage = '';
+    this.successMessage = 'Queues combined. Review and save the new definition.';
+    this.cdr.markForCheck();
   }
 
   private updateActiveRunReference(run: AutomaticQueueRun): void {

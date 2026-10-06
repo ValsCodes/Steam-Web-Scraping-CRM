@@ -5,7 +5,12 @@
       <h1>Automatic Queue</h1>
       <p>Build a reusable sequence of Steam manual checks and timeout blocks.</p>
     </div>
-    <button mat-flat-button type="button" (click)="createNew()"><mat-icon>add</mat-icon>New queue</button>
+    <div class="queue-page__header-actions">
+      <button mat-stroked-button type="button" (click)="combineQueues()" [disabled]="busy || definitions().length < 2">
+        <mat-icon>merge</mat-icon>Combine queues
+      </button>
+      <button mat-flat-button type="button" (click)="createNew()"><mat-icon>add</mat-icon>New queue</button>
+    </div>
   </header>
 
   @if (errorMessage) { <div class="queue-page__message queue-page__message--error" role="alert">{{ errorMessage }}</div> }

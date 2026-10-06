@@ -28,7 +28,7 @@ export class HomePage {
   readonly spotlightCards: readonly HomeSectionCard[] = [
     {
       title: 'Manual Checks',
-      route: '/manual-mode-v2',
+      route: '/manual-checks',
       category: 'Rules and Analysis',
       description:
         'Run reusable criteria against Steam listings, combine presets, and review outcomes while the check is still running.',
@@ -106,7 +106,7 @@ export class HomePage {
     },
     {
       title: 'Manual Checks',
-      route: '/manual-mode-v2',
+      route: '/manual-checks',
       category: 'Analysis',
       description: 'Run presets or preset combinations with live progress, outcome filters, pause, and rerun controls.',
       cta: 'Open Manual Checks',

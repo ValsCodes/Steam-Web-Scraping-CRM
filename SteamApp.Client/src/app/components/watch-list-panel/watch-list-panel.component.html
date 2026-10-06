@@ -1,0 +1,115 @@
+@if (isLoggedIn()) {
+  <button
+    type="button"
+    class="watch-list-launcher"
+    [class.watch-list-launcher--open]="isOpen()"
+    [attr.aria-expanded]="isOpen()"
+    aria-controls="watch-list-panel"
+    (click)="isOpen() ? close() : open()">
+    <span>Watch list</span>
+    @if (activeCount() > 0) {
+      <span class="watch-list-launcher__count" aria-label="active watch list items">
+        {{ activeCount() }}
+      </span>
+    }
+  </button>
+
+  @if (isOpen()) {
+    <button
+      type="button"
+      class="watch-list-panel__backdrop"
+      aria-label="Close custom watch list panel"
+      (click)="close()">
+    </button>
+
+    <aside
+      id="watch-list-panel"
+      class="watch-list-panel"
+      role="dialog"
+      aria-modal="true"
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
+      aria-labelledby="watch-list-panel-title">
+      <header class="watch-list-panel__header">
+        <div>
+          <span class="watch-list-panel__eyebrow">Quick access</span>
+          <h2 id="watch-list-panel-title">Custom Watch List</h2>
+        </div>
+        <button type="button" class="watch-list-panel__close" aria-label="Close watch list" (click)="close()">
+          &times;
+        </button>
+      </header>
+
+      <div class="watch-list-panel__body">
+        @if (view() === 'list') {
+          <div class="watch-list-panel__toolbar">
+            <button type="button" class="watch-list-panel__primary" [disabled]="isLoading()" (click)="showCreateForm()">
+              + Add item
+            </button>
+            <button type="button" class="watch-list-panel__secondary" [disabled]="isLoading()" (click)="refresh()">
+              {{ isLoading() ? 'Refreshing…' : 'Refresh' }}
+            </button>
+          </div>
+
+          @if (isLoading() && items().length === 0) {
+            <div class="watch-list-panel__state" role="status">Loading watch list…</div>
+          } @else if (items().length === 0) {
+            <div class="watch-list-panel__state">
+              <strong>No watch list items yet</strong>
+              <span>Add a custom URL to start monitoring it.</span>
+            </div>
+          } @else {
+            <ul class="watch-list-panel__items" aria-label="Custom watch list items">
+              @for (item of items(); track item.id) {
+                <li class="watch-list-item" [class.watch-list-item--inactive]="!item.isActive">
+                  <label class="watch-list-item__check">
+                    <input
+                      type="checkbox"
+                      [checked]="item.isActive"
+                      [disabled]="isLoading() || isUpdating(item.id) || isDeleting(item.id)"
+                      (change)="toggleActive(item)" />
+                    <span class="sr-only">{{ item.isActive ? 'Deactivate' : 'Activate' }} {{ item.name ?? 'watch list item' }}</span>
+                  </label>
+
+                  @if (openableExternalUrl(item.url); as url) {
+                    <a class="watch-list-item__content watch-list-item__link" [steamExternalLink]="url">
+                      <strong>{{ item.name || 'Unnamed item' }}</strong>
+                      <span>{{ url }}</span>
+                    </a>
+                  } @else {
+                    <div class="watch-list-item__content">
+                      <strong>{{ item.name || 'Unnamed item' }}</strong>
+                      <span>No URL</span>
+                    </div>
+                  }
+
+                  <div class="watch-list-item__actions">
+                    <button
+                      type="button"
+                      [disabled]="isLoading() || isUpdating(item.id) || isDeleting(item.id)"
+                      (click)="showEditForm(item)">
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      class="watch-list-item__delete"
+                      [disabled]="isLoading() || isUpdating(item.id) || isDeleting(item.id)"
+                      (click)="delete(item)">
+                      {{ isDeleting(item.id) ? 'Removing…' : 'Remove' }}
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        } @else {
+          <steam-watch-list-form
+            [embedded]="true"
+            [watchList]="selectedItem()"
+            (saved)="handleSaved()"
+            (cancelled)="showList()" />
+        }
+      </div>
+    </aside>
+  }
+}

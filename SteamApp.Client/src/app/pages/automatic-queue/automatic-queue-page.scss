@@ -1,6 +1,7 @@
 :host { display: block; min-height: 100%; background: #f8fafc; }
 .queue-page { max-width: 92rem; margin: 0 auto; padding: 1.5rem; color: #0f172a; }
 .queue-page__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.queue-page__header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
 .queue-page__header h1 { margin: .15rem 0; font-size: clamp(1.8rem, 3vw, 2.6rem); }
 .queue-page__header p { margin: 0; color: #64748b; }
 .queue-page__eyebrow { color: #2563eb !important; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }

@@ -255,7 +255,7 @@ public sealed class AutomaticQueueDataServiceTests
     }
 
     [Test]
-    public async Task PresetCombination_DeletedReferenceRejectsRunWithoutCreatingSnapshot()
+    public async Task DeletePreset_PresetCombinationReference_RemovesDefinitionBlock()
     {
         using var database = TestDb.CreateSeededDatabase();
         PrepareManualSource(database);
@@ -287,14 +287,12 @@ public sealed class AutomaticQueueDataServiceTests
             TestDb.TestUserId,
             Definition("Stale combination", block),
             CancellationToken.None);
-        await manualChecks.DeletePresetAsync(second.Id, CancellationToken.None);
-
-        var exception = Assert.ThrowsAsync<AutomaticQueueRequestException>(() =>
-            service.StartRunAsync(definition.Id, TestDb.TestUserId, CancellationToken.None));
+        await manualChecks.DeletePresetAsync(TestDb.TestUserId, second.Id, CancellationToken.None);
+        var updated = await service.GetDefinitionAsync(definition.Id, TestDb.TestUserId, CancellationToken.None);
 
         Assert.Multiple(() =>
         {
-            Assert.That(exception!.StatusCode, Is.EqualTo(404));
+            Assert.That(updated!.Blocks, Is.Empty);
             Assert.That(database.Context.AutomaticQueueRuns, Is.Empty);
             Assert.That(database.Context.AutomaticQueueRunBlocks, Is.Empty);
         });

@@ -90,7 +90,7 @@ describe('ManualModeV2 external link disclosure', () => {
 
     expect(disclosure.openTrustedUrl).toHaveBeenCalledOnceWith(
       'https://backpack.tf/stats',
-      '/manual-mode-v2',
+      '/manual-checks',
     );
   });
 
@@ -106,8 +106,8 @@ describe('ManualModeV2 external link disclosure', () => {
     component.startBatchButtonClicked();
 
     expect(disclosure.openTrustedUrl.calls.allArgs()).toEqual([
-      ['https://steamcommunity.com/market/search?q=1', '/manual-mode-v2'],
-      ['https://steamcommunity.com/market/search?q=2', '/manual-mode-v2'],
+      ['https://steamcommunity.com/market/search?q=1', '/manual-checks'],
+      ['https://steamcommunity.com/market/search?q=2', '/manual-checks'],
     ]);
     expect(component.currentIndex).toBe(1);
     expect(cdr.markForCheck).toHaveBeenCalled();
@@ -128,7 +128,7 @@ describe('ManualModeV2 external link disclosure', () => {
     expect(disclosure.openTrustedUrl.calls.allArgs()).toEqual([
       [
         'steam://openurl/https://steamcommunity.com/market/search?q=1',
-        '/manual-mode-v2',
+        '/manual-checks',
       ],
     ]);
     expect(component.currentIndex).toBe(1);
@@ -153,7 +153,7 @@ describe('ManualModeV2 external link disclosure', () => {
     expect(disclosure.openTrustedUrl.calls.allArgs()).toEqual([
       [
         'steam://openurl/https://backpack.tf/stats/Unique/Hat/Tradable/Craftable',
-        '/manual-mode-v2',
+        '/manual-checks',
       ],
     ]);
     expect(component.currentIndex).toBe(1);
@@ -187,8 +187,8 @@ describe('ManualModeV2 external link disclosure', () => {
     component.runPreviousBatchButtonClicked();
 
     expect(disclosure.openTrustedUrl.calls.allArgs()).toEqual([
-      ['https://steamcommunity.com/market/search?q=1', '/manual-mode-v2'],
-      ['https://steamcommunity.com/market/search?q=2', '/manual-mode-v2'],
+      ['https://steamcommunity.com/market/search?q=1', '/manual-checks'],
+      ['https://steamcommunity.com/market/search?q=2', '/manual-checks'],
     ]);
     expect(component.currentIndex).toBe(1);
   });
@@ -205,8 +205,8 @@ describe('ManualModeV2 external link disclosure', () => {
     component.runNextBatchButtonClicked();
 
     expect(disclosure.openTrustedUrl.calls.allArgs()).toEqual([
-      ['https://steamcommunity.com/market/search?q=3', '/manual-mode-v2'],
-      ['https://steamcommunity.com/market/search?q=4', '/manual-mode-v2'],
+      ['https://steamcommunity.com/market/search?q=3', '/manual-checks'],
+      ['https://steamcommunity.com/market/search?q=4', '/manual-checks'],
     ]);
     expect(component.currentIndex).toBe(3);
   });
@@ -392,7 +392,7 @@ describe('ManualModeV2 external link disclosure', () => {
 
     expect(disclosure.openTrustedUrl).toHaveBeenCalledOnceWith(
       'https://steamcommunity.com/market/listings/440/Matched%20Item',
-      '/manual-mode-v2',
+      '/manual-checks',
     );
 
     component.clearFiltersButtonClicked();
@@ -650,6 +650,50 @@ describe('ManualModeV2 external link disclosure', () => {
     expect(gameUrlProductService.bulkUpdate).toHaveBeenCalledOnceWith(2, [6], []);
     expect(component.products).toEqual([product]);
     expect(component.isProductRemoved(6)).toBeFalse();
+  });
+
+  it('removes all selected products from the Game URL in one bulk request', () => {
+    const products = [
+      { productId: 6, gameUrlId: 2, productName: 'Second', isActive: true },
+      { productId: 7, gameUrlId: 2, productName: 'Third', isActive: true },
+    ] as GameUrlProduct[];
+    component.selectedGameUrl = { id: 2 } as GameUrl;
+    component.products = products;
+    component.productsFiltered = products;
+    component.setProductSelected(6, true);
+    component.setProductSelected(7, true, true);
+
+    component.removeSelectedProductsFromGameUrl();
+
+    expect(gameUrlProductService.bulkUpdate).toHaveBeenCalledOnceWith(2, [], [6, 7]);
+    expect(component.isProductRemoved(6)).toBeTrue();
+    expect(component.isProductRemoved(7)).toBeTrue();
+    expect(component.selectedProductCount).toBe(0);
+    expect(component.isProductRelationUpdating(6)).toBeFalse();
+    expect(component.isProductRelationUpdating(7)).toBeFalse();
+  });
+
+  it('keeps the selected products attached when a bulk removal fails', () => {
+    const products = [
+      { productId: 6, gameUrlId: 2, productName: 'Second', isActive: true },
+      { productId: 7, gameUrlId: 2, productName: 'Third', isActive: true },
+    ] as GameUrlProduct[];
+    component.selectedGameUrl = { id: 2 } as GameUrl;
+    component.products = products;
+    component.productsFiltered = products;
+    component.setFilteredProductsSelected(true);
+    gameUrlProductService.bulkUpdate.and.returnValue(
+      throwError(() => new Error('Could not remove the relations.')),
+    );
+
+    component.removeSelectedProductsFromGameUrl();
+
+    expect(component.isProductRemoved(6)).toBeFalse();
+    expect(component.isProductRemoved(7)).toBeFalse();
+    expect(component.selectedProductCount).toBe(2);
+    expect(component.productRelationError).toBe('Could not remove the relations.');
+    expect(component.isProductRelationUpdating(6)).toBeFalse();
+    expect(component.isProductRelationUpdating(7)).toBeFalse();
   });
 
   it('opens all matches for a product with the run criteria and checked-price trace', () => {

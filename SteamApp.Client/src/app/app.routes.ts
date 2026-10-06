@@ -250,11 +250,11 @@ export const routes: Routes = [
     },
     children: [
       {
-        path: 'manual-mode-v2',
+        path: 'manual-checks',
         loadComponent: () =>
           import('./pages/manual-mode-v2/manual-mode-v2').then((m) => m.ManualModeV2),
-        title: 'Manual Mode',
-        data: { seo: { title: 'Manual Mode', canonicalPath: '/manual-mode-v2' } },
+        title: 'Manual Checks',
+        data: { seo: { title: 'Manual Checks', canonicalPath: '/manual-checks' } },
       },
       {
         path: 'automatic-queue',

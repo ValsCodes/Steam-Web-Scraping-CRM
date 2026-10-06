@@ -12,7 +12,7 @@ public interface IManualCheckDataService
     Task<IReadOnlyList<ManualCheckPresetDto>> GetPresetsAsync(string userId, long? gameId, long? gameUrlId, CancellationToken cancellationToken);
     Task<ManualCheckPresetDto> CreatePresetAsync(ManualCheckPresetWriteDto input, CancellationToken cancellationToken);
     Task<ManualCheckPresetDto> UpdatePresetAsync(long id, ManualCheckPresetWriteDto input, CancellationToken cancellationToken);
-    Task DeletePresetAsync(long id, CancellationToken cancellationToken);
+    Task DeletePresetAsync(string userId, long id, CancellationToken cancellationToken);
     Task<ManualCheckRunSummaryDto> CreateRunAsync(
         string userId,
         long gameUrlId,

@@ -14,7 +14,7 @@ describe('ExternalLinkDisclosurePage', () => {
     localStorage.removeItem(EXTERNAL_LINK_DISCLOSURE_STORAGE_KEY);
     queryParams = {
       target: 'https://steamcommunity.com/market/',
-      returnTo: '/manual-mode-v2',
+      returnTo: '/manual-checks',
     };
 
     router = {
@@ -62,7 +62,7 @@ describe('ExternalLinkDisclosurePage', () => {
   it('warns for untrusted web targets without blocking them', () => {
     queryParams = {
       target: 'https://evil.example/market',
-      returnTo: '/manual-mode-v2',
+      returnTo: '/manual-checks',
     };
 
     createComponent();
@@ -75,7 +75,7 @@ describe('ExternalLinkDisclosurePage', () => {
   it('warns for custom scheme targets without blocking them', () => {
     queryParams = {
       target: 'javascript:alert(1)',
-      returnTo: '/manual-mode-v2',
+      returnTo: '/manual-checks',
     };
 
     createComponent();
@@ -88,7 +88,7 @@ describe('ExternalLinkDisclosurePage', () => {
   it('blocks empty targets from being opened', () => {
     queryParams = {
       target: ' ',
-      returnTo: '/manual-mode-v2',
+      returnTo: '/manual-checks',
     };
 
     createComponent();
@@ -120,7 +120,7 @@ describe('ExternalLinkDisclosurePage', () => {
       '_blank',
       'noopener,noreferrer',
     );
-    expect(router.navigateByUrl).toHaveBeenCalledWith('/manual-mode-v2');
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/manual-checks');
   });
 
   it('cancels back to the normalized return URL', () => {
@@ -128,6 +128,6 @@ describe('ExternalLinkDisclosurePage', () => {
 
     component.cancel();
 
-    expect(router.navigateByUrl).toHaveBeenCalledWith('/manual-mode-v2');
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/manual-checks');
   });
 });
