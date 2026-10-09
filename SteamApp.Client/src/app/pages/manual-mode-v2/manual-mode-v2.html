@@ -7,6 +7,10 @@
         </p>
     </header>
 
+    <div class="mb-4 rounded-md border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-700" role="status">
+        {{ automationUsageText }}
+    </div>
+
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
         <!-- Left Rail -->
         <aside class="flex flex-col gap-4">
@@ -62,7 +66,7 @@
 
                         <div class="flex flex-wrap justify-end gap-2">
                             <button class="button button-small-success" (click)="automatedCheckButtonClicked()"
-                                [disabled]="!isAutomatedCheckEligible(selectedGameUrl) || automatedRunActive">
+                                [disabled]="!isAutomatedCheckEligible(selectedGameUrl) || automatedRunActive || automationUnavailable">
                                 Check all products
                             </button>
 
@@ -217,6 +221,9 @@
                             Top {{ automatedRun.setup.listingLimit }} cheapest listings per product
                         </p>
                         @if (automatedRun.status === 'Paused') {
+                        @if (automationPauseMessage) {
+                        <p class="mt-1 text-sm font-medium text-amber-700">{{ automationPauseMessage }}</p>
+                        }
                         <div class="mt-2 flex flex-wrap items-end gap-2">
                             <label class="flex flex-col gap-1 text-xs font-medium text-slate-700">
                                 <span>Change Top X for remaining products</span>
@@ -254,7 +261,7 @@
                         </button>
                         } @else if (canContinueAutomatedRun) {
                         <button type="button" class="button button-small-success"
-                            [disabled]="automatedContinuePending || automatedCancelPending || automatedListingLimitPending || automatedListingLimitDirty || !isAutomatedListingLimitValid"
+                            [disabled]="automatedContinuePending || automatedCancelPending || automatedListingLimitPending || automatedListingLimitDirty || !isAutomatedListingLimitValid || automationUnavailable"
                             (click)="continueAutomatedRun()">
                             {{ automatedContinuePending ? 'Continuing...' : 'Continue check' }}
                         </button>
@@ -470,7 +477,7 @@
                             Select All
                         </label>
                         <button type="button" class="button button-small-success"
-                            [disabled]="selectedProductCount === 0 || automatedRunActive"
+                            [disabled]="selectedProductCount === 0 || automatedRunActive || automationUnavailable"
                             (click)="automatedCheckSelectedProducts()">
                             Check selected ({{ selectedProductCount }})
                         </button>
@@ -523,7 +530,7 @@
                                 <mat-menu #productAutomatedActionsMenu="matMenu" xPosition="before"
                                     panelClass="table-actions-menu">
                                     <button type="button" mat-menu-item
-                                        [disabled]="automatedRunActive || isProductRemoved(product.productId)"
+                                        [disabled]="automatedRunActive || automationUnavailable || isProductRemoved(product.productId)"
                                         (click)="automatedCheckProduct(product)">
                                         Automated check
                                     </button>

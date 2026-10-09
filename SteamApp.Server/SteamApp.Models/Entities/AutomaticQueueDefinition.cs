@@ -12,10 +12,9 @@ public sealed class AutomaticQueueDefinition
     [Column("id")]
     public long Id { get; set; }
 
-    [Required]
     [MaxLength(450)]
     [Column("user_id")]
-    public string UserId { get; set; } = string.Empty;
+    public string? UserId { get; set; }
 
     [Required]
     [MaxLength(NameMaxLength)]

@@ -64,6 +64,10 @@ describe('ManualModeV2 external link disclosure', () => {
       dialog as never,
       cdr,
       disclosure,
+      {
+        usage: () => ({ unlimited: true }),
+        refreshUsage: () => undefined,
+      } as never,
     );
   });
 

@@ -13,6 +13,9 @@ public sealed class AutomaticQueueRunDto
     [JsonConverter(typeof(StringEnumConverter))]
     public AutomaticQueueRunStatusEnum Status { get; set; }
 
+    [JsonConverter(typeof(StringEnumConverter))]
+    public AutomationPauseReasonEnum? PauseReason { get; set; }
+
     public int CurrentBlockIndex { get; set; }
     public int TotalBlocks { get; set; }
     public int CompletedBlocks { get; set; }

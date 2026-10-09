@@ -120,6 +120,7 @@ public sealed class MinimalApiTestApp : IAsyncDisposable
         app.UseAuthentication();
         app.UseRateLimiter();
         app.UseAuthorization();
+        app.UseMiddleware<CatalogMutationAuthorizationMiddleware>();
 
         app.MapGameEndpoints();
         app.MapGameUrlEndpoints();
@@ -142,6 +143,9 @@ public sealed class MinimalApiTestApp : IAsyncDisposable
         client.DefaultRequestHeaders.Add(
             FakeAuthenticationHandler.ScopeHeader,
             SecurityPolicies.UserScope);
+        client.DefaultRequestHeaders.Add(
+            FakeAuthenticationHandler.RoleHeader,
+            SecurityPolicies.AdminRole);
         client.DefaultRequestHeaders.Accept.Add(
             new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
 

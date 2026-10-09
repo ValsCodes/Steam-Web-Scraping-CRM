@@ -20,6 +20,7 @@ import { Game, UpdateGameStatus } from '../../../models/game.model';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { GameService } from '../../../services/game/game.service';
+import { AuthService } from '../../../services/auth/auth.service';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import * as XLSX from 'xlsx';
 import { finalize } from 'rxjs';
@@ -43,9 +44,12 @@ import { ExternalLinkDirective, openableExternalUrl } from '../../../common';
   styleUrl: './games-view.scss',
 })
 export class GamesView implements OnInit {
+  readonly isAdmin = inject(AuthService).getCurrentUser()?.isAdmin === true;
   readonly openableExternalUrl = openableExternalUrl;
 
-  displayedColumns: string[] = ['name', 'internalId', 'isActive', 'actions'];
+  displayedColumns: string[] = this.isAdmin
+    ? ['name', 'internalId', 'isActive', 'actions']
+    : ['name', 'internalId', 'isActive'];
 
   searchByName = new FormControl<string>('', { nonNullable: true });
 

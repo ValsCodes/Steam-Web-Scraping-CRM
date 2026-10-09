@@ -1,3 +1,5 @@
+import { AutomationPauseReason } from './automation.model';
+
 export type ManualCheckRunStatus =
   | 'Queued'
   | 'Running'
@@ -48,6 +50,10 @@ export interface ManualCheckPreset extends ManualCheckPresetWrite {
   itemGroupName: string | null;
   createdAtUtc: string;
   updatedAtUtc: string;
+  scope?: 'global' | 'personal';
+  canEdit?: boolean;
+  canClone?: boolean;
+  canRun?: boolean;
 }
 
 export type ManualCheckPresetCombinationOperator = 'And' | 'Or';
@@ -108,6 +114,7 @@ export interface ManualCheckRunSummary {
   durationMilliseconds: number | null;
   correlationId: string;
   errorText: string | null;
+  pauseReason?: AutomationPauseReason | null;
   automaticQueueRunId?: number | null;
   automaticQueueName?: string | null;
   automaticQueueBlockIndex?: number | null;

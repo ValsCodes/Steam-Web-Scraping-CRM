@@ -107,16 +107,18 @@ describe('FeedbackRequestForm', () => {
       title: 'Improve filters',
       description: 'Make filters easier to scan.',
       area: 'Catalog',
+      targetResourceType: null,
+      targetResourceId: null,
     });
     expect(router.navigate).toHaveBeenCalledWith(['/feedback']);
   });
 
-  it('loads an existing request and saves details with status', () => {
+  it('loads an existing request and saves details without changing status', () => {
     routeId = '7';
     createComponent();
 
     expect(component.isEditMode).toBeTrue();
-    expect(component.form.controls.status.enabled).toBeTrue();
+    expect(component.form.controls.status.disabled).toBeTrue();
     expect(component.form.controls.title.value).toBe('Export bug');
     expect(service.getHistory).toHaveBeenCalledWith(7);
 
@@ -128,17 +130,16 @@ describe('FeedbackRequestForm', () => {
     expect(text).toContain('Active');
     expect(text).toContain('Processed');
 
-    component.form.patchValue({
-      status: FeedbackRequestStatus.Closed,
-      title: 'Updated export bug',
-    });
+    component.form.patchValue({ title: 'Updated export bug' });
 
     component.onSubmit();
 
     expect(service.update).toHaveBeenCalledWith(7, jasmine.objectContaining({
       title: 'Updated export bug',
-      status: FeedbackRequestStatus.Closed,
     }));
+    expect(service.update.calls.mostRecent().args[1]).not.toEqual(
+      jasmine.objectContaining({ status: jasmine.anything() }),
+    );
     expect(router.navigate).toHaveBeenCalledWith(['/feedback']);
   });
 });

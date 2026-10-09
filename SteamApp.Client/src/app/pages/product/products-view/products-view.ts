@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, computed, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -12,7 +12,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { finalize, Subject, takeUntil } from 'rxjs';
 
-import { GameService, ProductService, TagService } from '../../../services';
+import { AuthService, GameService, ProductService, TagService } from '../../../services';
 import { Game, Product, Tag, UpdateProductStatus } from '../../../models';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
 import * as XLSX from 'xlsx';
@@ -36,13 +36,14 @@ import { groupByItemGroup } from '../../../common/item-grouping';
   styleUrl: './products-view.scss',
 })
 export class ProductsView implements OnInit, OnDestroy {
+  readonly isAdmin = inject(AuthService).getCurrentUser()?.isAdmin === true;
   displayedColumns: string[] = [
     'gameName',
     'name',
     'tags',
     'rating',
     'isActive',
-    'actions',
+    ...(this.isAdmin ? ['actions'] : []),
   ];
 
   readonly safeExternalUrl = safeExternalUrl;

@@ -30,7 +30,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                 var entities = await db.Pixels
                     .AsNoTracking()
-                    .Where(e => e.UserId == userId)
+                    .Where(e => e.UserId == null)
                     .Select(e => new
                     {
                         e.Id,
@@ -61,7 +61,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                 var query = db.Pixels
                     .AsNoTracking()
-                    .Where(x => x.UserId == userId);
+                    .Where(x => x.UserId == null);
 
                 if (request.GameId.HasValue)
                 {
@@ -123,7 +123,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                 var entity = await db.Pixels
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+                    .FirstOrDefaultAsync(p => p.Id == id && p.UserId == null);
 
                 if (entity is null) { return Results.NotFound(); }
 
@@ -145,7 +145,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                 var gameExists = await db.Games
                     .AsNoTracking()
-                    .AnyAsync(g => g.Id == input.GameId && g.UserId == userId);
+                    .AnyAsync(g => g.Id == input.GameId && g.UserId == null);
 
                 if (!gameExists)
                 {
@@ -153,7 +153,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 }
 
                 var entity = mapper.Map<Pixel>(input);
-                entity.UserId = userId;
+                entity.UserId = null;
 
                 db.Pixels.Add(entity);
                 await db.SaveChangesAsync();
@@ -180,14 +180,14 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 var userId = httpContext.User.GetUserId();
                 if (userId is null) { return Results.Unauthorized(); }
 
-                var entity = await db.Pixels.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+                var entity = await db.Pixels.FirstOrDefaultAsync(x => x.Id == id && x.UserId == null);
                 if (entity is null) { return Results.NotFound(); }
 
                 if (input.GameId.HasValue)
                 {
                     var gameExists = await db.Games
                         .AsNoTracking()
-                        .AnyAsync(g => g.Id == input.GameId.Value && g.UserId == userId);
+                        .AnyAsync(g => g.Id == input.GameId.Value && g.UserId == null);
 
                     if (!gameExists)
                     {
@@ -217,7 +217,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 var userId = httpContext.User.GetUserId();
                 if (userId is null) { return Results.Unauthorized(); }
 
-                var entity = await db.Pixels.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+                var entity = await db.Pixels.FirstOrDefaultAsync(x => x.Id == id && x.UserId == null);
                 if (entity is null) { return Results.NotFound(); }
 
                 db.Pixels.Remove(entity);
@@ -242,7 +242,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 var userId = httpContext.User.GetUserId();
                 if (userId is null) { return Results.Unauthorized(); }
 
-                var entity = await db.Pixels.FirstOrDefaultAsync(x => x.Id == input.Id && x.UserId == userId);
+                var entity = await db.Pixels.FirstOrDefaultAsync(x => x.Id == input.Id && x.UserId == null);
                 if (entity is null) { return Results.NotFound(); }
 
                 if (entity.IsActive != input.IsActive)

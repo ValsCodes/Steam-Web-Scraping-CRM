@@ -25,7 +25,7 @@ public static class ProductTagsEndpoints
 
             var items = await db.ProductTags
                 .AsNoTracking()
-                .Where(x => x.Product.UserId == userId && x.Tag.UserId == userId)
+                .Where(x => x.Product.UserId == null && x.Tag.UserId == null)
                 .Select(x => new
                 {
                     x.ProductId,
@@ -53,8 +53,8 @@ public static class ProductTagsEndpoints
                 .AnyAsync(x =>
                     x.ProductId == productId &&
                     x.TagId == tagId &&
-                    x.Product.UserId == userId &&
-                    x.Tag.UserId == userId);
+                    x.Product.UserId == null &&
+                    x.Tag.UserId == null);
 
             return exists
                 ? Results.Ok()
@@ -72,7 +72,7 @@ public static class ProductTagsEndpoints
 
             var tags = await db.ProductTags
                 .AsNoTracking()
-                .Where(x => x.ProductId == productId && x.Product.UserId == userId && x.Tag.UserId == userId)
+                .Where(x => x.ProductId == productId && x.Product.UserId == null && x.Tag.UserId == null)
                 .Select(x => new
                 {
                     x.TagId,
@@ -93,10 +93,10 @@ public static class ProductTagsEndpoints
             if (userId is null) { return Results.Unauthorized(); }
 
             var productExists = await db.Products
-                .AnyAsync(p => p.Id == input.ProductId && p.UserId == userId);
+                .AnyAsync(p => p.Id == input.ProductId && p.UserId == null);
 
             var tagExists = await db.Tags
-                .AnyAsync(t => t.Id == input.TagId && t.UserId == userId);
+                .AnyAsync(t => t.Id == input.TagId && t.UserId == null);
 
             if (!productExists || !tagExists)
             {
@@ -106,8 +106,8 @@ public static class ProductTagsEndpoints
             var exists = await db.ProductTags.AnyAsync(x =>
                 x.ProductId == input.ProductId &&
                 x.TagId == input.TagId &&
-                x.Product.UserId == userId &&
-                x.Tag.UserId == userId);
+                x.Product.UserId == null &&
+                x.Tag.UserId == null);
 
             if (exists)
             {
@@ -141,8 +141,8 @@ public static class ProductTagsEndpoints
             var entity = await db.ProductTags.FirstOrDefaultAsync(x =>
                 x.ProductId == productId &&
                 x.TagId == tagId &&
-                x.Product.UserId == userId &&
-                x.Tag.UserId == userId);
+                x.Product.UserId == null &&
+                x.Tag.UserId == null);
 
             if (entity is null)
             {

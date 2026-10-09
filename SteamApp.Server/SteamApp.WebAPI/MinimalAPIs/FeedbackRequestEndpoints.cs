@@ -130,6 +130,11 @@ public static class FeedbackRequestEndpoints
             {
                 return Results.BadRequest(error);
             }
+            var targetType = NormalizeOptional(input.TargetResourceType);
+            if (!await ValidateTargetAsync(db, targetType, input.TargetResourceId, ct))
+            {
+                return Results.BadRequest("The target resource is invalid or is not globally accessible.");
+            }
 
             var now = DateTime.UtcNow;
             var entity = new FeedbackRequest
@@ -138,6 +143,8 @@ public static class FeedbackRequestEndpoints
                 Title = input.Title!.Trim(),
                 Description = input.Description!.Trim(),
                 Area = NormalizeOptional(input.Area),
+                TargetResourceType = targetType,
+                TargetResourceId = input.TargetResourceId,
                 Status = FeedbackRequestStatusEnum.Active,
                 CreatedAtUtc = now,
                 UpdatedAtUtc = now,
@@ -187,27 +194,34 @@ public static class FeedbackRequestEndpoints
             var entity = await db.FeedbackRequests
                 .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
             if (entity is null) { return Results.NotFound(); }
+            if (entity.Status != FeedbackRequestStatusEnum.Active)
+            {
+                return Results.Conflict("Only active requests can be edited.");
+            }
 
             var nextTitle = input.Title!.Trim();
             var nextDescription = input.Description!.Trim();
             var nextArea = NormalizeOptional(input.Area);
+            var nextTargetType = NormalizeOptional(input.TargetResourceType);
+            if (!await ValidateTargetAsync(db, nextTargetType, input.TargetResourceId, ct))
+            {
+                return Results.BadRequest("The target resource is invalid or is not globally accessible.");
+            }
             var now = DateTime.UtcNow;
-            var statusChanged = entity.Status != input.Status;
             var hasTrackedChange =
                 entity.Type != input.Type ||
                 entity.Title != nextTitle ||
                 entity.Description != nextDescription ||
                 entity.Area != nextArea ||
-                statusChanged;
+                entity.TargetResourceType != nextTargetType ||
+                entity.TargetResourceId != input.TargetResourceId;
 
             if (hasTrackedChange)
             {
                 db.FeedbackRequestHistories.Add(new FeedbackRequestHistory
                 {
                     FeedbackRequestId = entity.Id,
-                    Action = statusChanged && !HasDetailChange(entity, input.Type, nextTitle, nextDescription, nextArea)
-                        ? FeedbackRequestHistoryActionEnum.StatusChanged
-                        : FeedbackRequestHistoryActionEnum.Updated,
+                    Action = FeedbackRequestHistoryActionEnum.Updated,
                     CreatedAtUtc = now,
                     PreviousType = entity.Type,
                     NewType = input.Type,
@@ -218,7 +232,7 @@ public static class FeedbackRequestEndpoints
                     PreviousArea = entity.Area,
                     NewArea = nextArea,
                     PreviousStatus = entity.Status,
-                    NewStatus = input.Status,
+                    NewStatus = entity.Status,
                     UserId = userId
                 });
 
@@ -226,13 +240,9 @@ public static class FeedbackRequestEndpoints
                 entity.Title = nextTitle;
                 entity.Description = nextDescription;
                 entity.Area = nextArea;
-                entity.Status = input.Status;
+                entity.TargetResourceType = nextTargetType;
+                entity.TargetResourceId = input.TargetResourceId;
                 entity.UpdatedAtUtc = now;
-
-                if (statusChanged)
-                {
-                    entity.StatusChangedAtUtc = now;
-                }
             }
 
             await db.SaveChangesAsync(ct);
@@ -243,6 +253,7 @@ public static class FeedbackRequestEndpoints
         .Accepts<FeedbackRequestUpdateDto>("application/json")
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status409Conflict)
         .Produces(StatusCodes.Status404NotFound);
 
         group.MapPatch("/{id:long}/status", async (
@@ -261,7 +272,7 @@ public static class FeedbackRequestEndpoints
             }
 
             var entity = await db.FeedbackRequests
-                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+                .FirstOrDefaultAsync(x => x.Id == id, ct);
             if (entity is null) { return Results.NotFound(); }
 
             if (entity.Status != input.Status)
@@ -289,7 +300,24 @@ public static class FeedbackRequestEndpoints
         .Accepts<FeedbackRequestUpdateStatusDto>("application/json")
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status404NotFound);
+        .Produces(StatusCodes.Status404NotFound)
+        .RequireAuthorization(SecurityPolicies.AdminOnly);
+
+        var adminGroup = app.MapGroup("api/admin/requests")
+            .WithTags("AdminRequests")
+            .RequireAuthorization(SecurityPolicies.AdminOnly)
+            .RequireRateLimiting(SecurityPolicies.ApiRateLimit);
+
+        adminGroup.MapGet("/", async (ApplicationDbContext db, IMapper mapper, CancellationToken ct) =>
+        {
+            var entities = await db.FeedbackRequests.AsNoTracking()
+                .OrderByDescending(x => x.CreatedAtUtc)
+                .ThenByDescending(x => x.Id)
+                .ToListAsync(ct);
+            return Results.Ok(mapper.Map<List<FeedbackRequestDto>>(entities));
+        })
+        .WithName("GetAdminFeedbackRequests")
+        .Produces<List<FeedbackRequestDto>>(StatusCodes.Status200OK);
 
         return app;
     }
@@ -310,12 +338,6 @@ public static class FeedbackRequestEndpoints
         if (!IsDefined(input.Type))
         {
             error = "Invalid type.";
-            return false;
-        }
-
-        if (!IsDefined(input.Status))
-        {
-            error = "Invalid status.";
             return false;
         }
 
@@ -380,6 +402,35 @@ public static class FeedbackRequestEndpoints
     {
         var trimmed = value?.Trim();
         return string.IsNullOrEmpty(trimmed) ? null : trimmed;
+    }
+
+    private static async Task<bool> ValidateTargetAsync(
+        ApplicationDbContext db,
+        string? resourceType,
+        long? resourceId,
+        CancellationToken cancellationToken)
+    {
+        if (resourceType is null && resourceId is null)
+        {
+            return true;
+        }
+        if (resourceType is null || resourceId is null || resourceId <= 0 || resourceType.Length > FeedbackRequest.TargetResourceTypeMaxLength)
+        {
+            return false;
+        }
+
+        return resourceType.ToLowerInvariant() switch
+        {
+            "game" => await db.Games.AnyAsync(x => x.Id == resourceId && x.UserId == null, cancellationToken),
+            "gameurl" => await db.GameUrls.AnyAsync(x => x.Id == resourceId && x.UserId == null, cancellationToken),
+            "product" => await db.Products.AnyAsync(x => x.Id == resourceId && x.UserId == null, cancellationToken),
+            "pixel" => await db.Pixels.AnyAsync(x => x.Id == resourceId && x.UserId == null, cancellationToken),
+            "tag" => await db.Tags.AnyAsync(x => x.Id == resourceId && x.UserId == null, cancellationToken),
+            "itemgroup" => await db.ItemGroups.AnyAsync(x => x.Id == resourceId && x.UserId == null, cancellationToken),
+            "manualcheckpreset" => await db.ManualCheckPresets.AnyAsync(x => x.Id == resourceId && x.UserId == null, cancellationToken),
+            "automaticqueue" => await db.AutomaticQueueDefinitions.AnyAsync(x => x.Id == resourceId && x.UserId == null, cancellationToken),
+            _ => false
+        };
     }
 
     private static bool IsDefined<TEnum>(TEnum value)

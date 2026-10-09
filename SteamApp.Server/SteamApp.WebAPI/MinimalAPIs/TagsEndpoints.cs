@@ -30,7 +30,7 @@ public static class TagsEndpoints
 
             var tags = await db.Tags
                 .AsNoTracking()
-                .Where(x => x.UserId == userId)
+                .Where(x => x.UserId == null)
                 .Include(x => x.Game)
                 .Include(x => x.ItemGroup)
                 .OrderBy(x => x.ItemGroupId == null)
@@ -55,7 +55,7 @@ public static class TagsEndpoints
 
             var query = db.Tags
                 .AsNoTracking()
-                .Where(x => x.UserId == userId);
+                .Where(x => x.UserId == null);
 
             if (request.GameId.HasValue)
             {
@@ -126,7 +126,7 @@ public static class TagsEndpoints
                 .AsNoTracking()
                 .Include(x => x.Game)
                 .Include(x => x.ItemGroup)
-                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == null, ct);
 
             if (tag is null)
             {
@@ -149,7 +149,7 @@ public static class TagsEndpoints
 
             var tags = await db.Tags
                 .AsNoTracking()
-                .Where(x => x.GameId == gameId && x.UserId == userId)
+                .Where(x => x.GameId == gameId && x.UserId == null)
                 .Include(x => x.Game)
                 .Include(x => x.ItemGroup)
                 .OrderBy(x => x.ItemGroupId == null)
@@ -174,7 +174,7 @@ public static class TagsEndpoints
 
             var game = await db.Games
                 .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == input.GameId && x.UserId == userId, ct);
+                .FirstOrDefaultAsync(x => x.Id == input.GameId && x.UserId == null, ct);
 
             if (game is null)
             {
@@ -189,7 +189,7 @@ public static class TagsEndpoints
                     .FirstOrDefaultAsync(
                         x => x.Id == input.ItemGroupId.Value &&
                              x.GameId == input.GameId &&
-                             x.UserId == userId,
+                             x.UserId == null,
                         ct);
 
                 if (itemGroup is null)
@@ -199,7 +199,7 @@ public static class TagsEndpoints
             }
 
             var entity = mapper.Map<Tag>(input);
-            entity.UserId = userId;
+            entity.UserId = null;
 
             db.Tags.Add(entity);
             await db.SaveChangesAsync(ct);
@@ -230,7 +230,7 @@ public static class TagsEndpoints
             var userId = httpContext.User.GetUserId();
             if (userId is null) { return Results.Unauthorized(); }
 
-            var entity = await db.Tags.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+            var entity = await db.Tags.FirstOrDefaultAsync(x => x.Id == id && x.UserId == null, ct);
 
             if (entity is null)
             {
@@ -242,7 +242,7 @@ public static class TagsEndpoints
                 var itemGroupExists = await db.ItemGroups.AnyAsync(
                     x => x.Id == input.ItemGroupId.Value &&
                          x.GameId == entity.GameId &&
-                         x.UserId == userId,
+                         x.UserId == null,
                     ct);
 
                 if (!itemGroupExists)
@@ -266,7 +266,7 @@ public static class TagsEndpoints
             var userId = httpContext.User.GetUserId();
             if (userId is null) { return Results.Unauthorized(); }
 
-            var entity = await db.Tags.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+            var entity = await db.Tags.FirstOrDefaultAsync(x => x.Id == id && x.UserId == null);
 
             if (entity is null)
             {
@@ -288,7 +288,7 @@ public static class TagsEndpoints
             var userId = httpContext.User.GetUserId();
             if (userId is null) { return Results.Unauthorized(); }
 
-            var entity = await db.Tags.FirstOrDefaultAsync(x => x.Id == input.Id && x.UserId == userId);
+            var entity = await db.Tags.FirstOrDefaultAsync(x => x.Id == input.Id && x.UserId == null);
 
             if (entity is null)
             {

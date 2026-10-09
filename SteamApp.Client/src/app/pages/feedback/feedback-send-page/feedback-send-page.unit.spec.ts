@@ -65,6 +65,8 @@ describe('FeedbackSendPage', () => {
       title: 'Broken export',
       description: 'Export should preserve filters.',
       area: 'Exports',
+      targetResourceType: null,
+      targetResourceId: null,
     });
     expect(router.navigate).toHaveBeenCalledWith(['/feedback']);
   });

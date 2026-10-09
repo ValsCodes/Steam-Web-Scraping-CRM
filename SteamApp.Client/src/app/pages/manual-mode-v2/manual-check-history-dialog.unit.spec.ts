@@ -103,7 +103,35 @@ describe('ManualCheckHistoryDialogComponent', () => {
     );
   });
 
-  it('reopens a paused run for management', () => {
+  it('shows load for every history status, including queue-created records', () => {
+    const statuses: ManualCheckRunSummary['status'][] = [
+      'Queued',
+      'Running',
+      'PauseRequested',
+      'Paused',
+      'Succeeded',
+      'CompletedWithErrors',
+      'Failed',
+      'Canceled',
+    ];
+    const runs = statuses.map((status, index) => ({
+      ...failedRun,
+      id: index + 1,
+      status,
+      automaticQueueRunId: index === 0 ? 100 : null,
+    }));
+    service.getRuns.and.returnValue(of(runs));
+
+    component.load();
+    fixture.detectChanges();
+
+    const loadButtons = Array.from<HTMLButtonElement>(
+      fixture.nativeElement.querySelectorAll('button'),
+    ).filter((button) => button.textContent?.trim() === 'Load');
+    expect(loadButtons.length).toBe(statuses.length);
+  });
+
+  it('loads a paused run into manual mode', () => {
     const paused: ManualCheckRunSummary = {
       ...failedRun,
       status: 'Paused',
@@ -113,7 +141,7 @@ describe('ManualCheckHistoryDialogComponent', () => {
 
     expect(component.isActiveRun(paused)).toBeTrue();
 
-    component.manage(paused);
+    component.loadRun(paused);
 
     expect(closeDialog).toHaveBeenCalledOnceWith(42);
   });

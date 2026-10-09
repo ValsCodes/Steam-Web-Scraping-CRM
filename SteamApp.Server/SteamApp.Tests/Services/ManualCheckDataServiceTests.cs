@@ -15,7 +15,7 @@ namespace SteamApp.Tests.Services;
 public sealed class ManualCheckDataServiceTests
 {
     [Test]
-    public async Task PresetsAreSharedRecordsWithoutUserOwnershipAndNamesAreUniquePerGame()
+    public async Task PresetsAndRunsHaveExplicitPersonalOwnership()
     {
         using var database = TestDb.CreateSeededDatabase();
         var service = new ManualCheckDataService(database.Factory);
@@ -32,8 +32,9 @@ public sealed class ManualCheckDataServiceTests
             Assert.That(created.ListingLimit, Is.EqualTo(10));
             Assert.That(created.CooldownMinutes, Is.Null);
             Assert.That(created.Criteria[0].ValueContains, Is.EqualTo("Mean Green"));
-            Assert.That(typeof(ManualCheckPreset).GetProperty("UserId"), Is.Null);
-            Assert.That(typeof(ManualCheckRun).GetProperty("UserId"), Is.Null);
+            Assert.That(typeof(ManualCheckPreset).GetProperty("UserId"), Is.Not.Null);
+            Assert.That(typeof(ManualCheckRun).GetProperty("UserId"), Is.Not.Null);
+            Assert.That(created.Scope, Is.EqualTo("personal"));
             Assert.That(duplicate!.StatusCode, Is.EqualTo(409));
         });
     }
@@ -67,6 +68,34 @@ public sealed class ManualCheckDataServiceTests
             Assert.That(storedCriteria.Select(x => x.SortOrder), Is.EqualTo(new[] { 0, 1 }));
             Assert.That(storedCriteria[1].ConditionOperatorId, Is.EqualTo((long)ManualCheckConditionOperatorEnum.AndNot));
             Assert.That(operators.Select(x => x.Name), Is.EqualTo(new[] { "AND", "OR", "AND NOT", "OR NOT", "XOR", "NAND", "NOR" }));
+        });
+    }
+
+    [Test]
+    public async Task GlobalPreset_IsReadOnlyToUsersAndCanBeClonedPersonally()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var service = new ManualCheckDataService(database.Factory);
+        var global = await service.CreateGlobalPresetAsync(
+            TestDb.TestUserId,
+            PresetInput("Global starter"),
+            CancellationToken.None);
+
+        var visible = await service.GetPresetsAsync(TestDb.TestUserId, 1, 1, CancellationToken.None);
+        var edit = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+            service.UpdatePresetAsync(TestDb.TestUserId, global.Id, PresetInput("Changed"), CancellationToken.None));
+        var clone = await service.ClonePresetAsync(TestDb.TestUserId, global.Id, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(visible.Single(x => x.Id == global.Id).Scope, Is.EqualTo("global"));
+            Assert.That(global.CanEdit, Is.False);
+            Assert.That(global.CanClone, Is.True);
+            Assert.That(edit!.StatusCode, Is.EqualTo(404));
+            Assert.That(clone.Id, Is.Not.EqualTo(global.Id));
+            Assert.That(clone.Scope, Is.EqualTo("personal"));
+            Assert.That(clone.CanEdit, Is.True);
+            Assert.That(clone.Criteria.Select(x => x.ValueContains), Is.EqualTo(global.Criteria.Select(x => x.ValueContains)));
         });
     }
 
@@ -590,7 +619,7 @@ public sealed class ManualCheckDataServiceTests
             GameId = 1,
             Name = "New Item",
             IsActive = true,
-            UserId = "another-user"
+            UserId = null
         });
         database.Context.GameUrlsProducts.Add(new GameUrlProducts { GameUrlId = 1, ProductId = 3 });
         database.Context.SaveChanges();
@@ -717,7 +746,7 @@ public sealed class ManualCheckDataServiceTests
             GameId = 1,
             Name = "Later Item",
             IsActive = true,
-            UserId = "another-user"
+            UserId = null
         });
         database.Context.GameUrlsProducts.Add(new GameUrlProducts { GameUrlId = 1, ProductId = 4 });
         database.Context.SaveChanges();
@@ -844,6 +873,7 @@ public sealed class ManualCheckDataServiceTests
             GameId = 3,
             Name = "Other preset",
             ListingLimit = 10,
+            UserId = "other-user",
             Criteria =
             [
                 new ManualCheckCriterion { SortOrder = 0, ValueContains = "Other" }
@@ -1160,7 +1190,7 @@ public sealed class ManualCheckDataServiceTests
     }
 
     [Test]
-    public async Task StartupReconciliationMarksQueuedAndRunningJobsAsInterruptedFailures()
+    public async Task StartupReconciliationPausesQueuedAndRunningJobsForRecovery()
     {
         using var database = TestDb.CreateSeededDatabase();
         database.Context.ManualCheckRuns.AddRange(
@@ -1177,14 +1207,12 @@ public sealed class ManualCheckDataServiceTests
         var runs = await service.GetRunsAsync(null, 100, CancellationToken.None);
         Assert.Multiple(() =>
         {
-            Assert.That(runs.Single(x => x.Id == 1).Status, Is.EqualTo(ManualCheckRunStatusEnum.Failed));
-            Assert.That(runs.Single(x => x.Id == 2).Status, Is.EqualTo(ManualCheckRunStatusEnum.Failed));
+            Assert.That(runs.Single(x => x.Id == 1).Status, Is.EqualTo(ManualCheckRunStatusEnum.Paused));
+            Assert.That(runs.Single(x => x.Id == 2).Status, Is.EqualTo(ManualCheckRunStatusEnum.Paused));
             Assert.That(runs.Single(x => x.Id == 3).Status, Is.EqualTo(ManualCheckRunStatusEnum.Succeeded));
             Assert.That(runs.Single(x => x.Id == 4).Status, Is.EqualTo(ManualCheckRunStatusEnum.Paused));
             Assert.That(runs.Single(x => x.Id == 5).Status, Is.EqualTo(ManualCheckRunStatusEnum.Paused));
-            Assert.That(
-                runs.Single(x => x.Id == 1).ErrorText,
-                Is.EqualTo("The manual check was interrupted by an API restart."));
+            Assert.That(runs.Single(x => x.Id == 1).PauseReason, Is.EqualTo(AutomationPauseReasonEnum.SystemRecovery));
         });
     }
 

@@ -211,7 +211,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                 var gameExists = await db.Games
                     .AsNoTracking()
-                    .AnyAsync(g => g.Id == input.GameId && g.UserId == userId);
+                    .AnyAsync(g => g.Id == input.GameId && (g.UserId == null || g.UserId == userId));
 
                 if (!gameExists)
                 {

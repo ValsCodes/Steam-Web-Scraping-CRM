@@ -10,7 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { Game, GameUrl, ScrapingMode, UpdateGameUrlStatus } from '../../../models';
-import { GameService, GameUrlService, ScrapingModeService } from '../../../services';
+import { AuthService, GameService, GameUrlService, ScrapingModeService } from '../../../services';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { combineLatest, finalize, startWith, Subject, takeUntil } from 'rxjs';
 import * as XLSX from 'xlsx';
@@ -36,6 +36,7 @@ import { ExternalLinkDirective, openableExternalUrl } from '../../../common';
   styleUrl: './game-urls-view.scss'
 })
 export class GameUrlsView implements OnInit, OnDestroy {
+  readonly isAdmin = inject(AuthService).getCurrentUser()?.isAdmin === true;
   readonly openableExternalUrl = openableExternalUrl;
 
   displayedColumns: string[] = [
@@ -47,7 +48,7 @@ export class GameUrlsView implements OnInit, OnDestroy {
     'startPage',
     'endPage',
     'isActive',
-    'actions'
+    ...(this.isAdmin ? ['actions'] : []),
   ];
 
   readonly games = signal<readonly Game[]>([]);

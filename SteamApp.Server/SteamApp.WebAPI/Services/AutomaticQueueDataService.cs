@@ -32,7 +32,7 @@ public sealed class AutomaticQueueDataService(
         var rows = await db.AutomaticQueueDefinitions
             .AsNoTracking()
             .Include(x => x.Blocks)
-            .Where(x => x.UserId == userId)
+            .Where(x => x.UserId == null || x.UserId == userId)
             .OrderBy(x => x.Name)
             .ThenBy(x => x.Id)
             .ToListAsync(cancellationToken);
@@ -61,7 +61,7 @@ public sealed class AutomaticQueueDataService(
         var row = await db.AutomaticQueueDefinitions
             .AsNoTracking()
             .Include(x => x.Blocks)
-            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == id && (x.UserId == null || x.UserId == userId), cancellationToken);
         if (row is null)
         {
             return null;
@@ -116,6 +116,34 @@ public sealed class AutomaticQueueDataService(
         return ToDefinitionDto(row, null);
     }
 
+    public async Task<AutomaticQueueDto> CreateGlobalDefinitionAsync(
+        string administratorUserId,
+        AutomaticQueueWriteDto input,
+        CancellationToken cancellationToken)
+    {
+        var normalized = await NormalizeDefinitionAsync(administratorUserId, input, cancellationToken);
+        await using var db = dbContextFactory.CreateDbContext();
+        if (await db.AutomaticQueueDefinitions.AnyAsync(
+                x => x.UserId == null && x.Name == normalized.Name,
+                cancellationToken))
+        {
+            throw RequestError(StatusCodes.Status409Conflict, "A global queue template with this name already exists.");
+        }
+
+        var now = UtcNow();
+        var row = new AutomaticQueueDefinition
+        {
+            UserId = null,
+            Name = normalized.Name,
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now,
+            Blocks = CreateBlockEntities(normalized.Blocks)
+        };
+        db.AutomaticQueueDefinitions.Add(row);
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDefinitionDto(row, null);
+    }
+
     public async Task<AutomaticQueueDto> UpdateDefinitionAsync(
         long id,
         string userId,
@@ -151,6 +179,33 @@ public sealed class AutomaticQueueDataService(
         return ToDefinitionDto(row, null);
     }
 
+    public async Task<AutomaticQueueDto> UpdateGlobalDefinitionAsync(
+        long id,
+        string administratorUserId,
+        AutomaticQueueWriteDto input,
+        CancellationToken cancellationToken)
+    {
+        var normalized = await NormalizeDefinitionAsync(administratorUserId, input, cancellationToken);
+        await using var db = dbContextFactory.CreateDbContext();
+        var row = await db.AutomaticQueueDefinitions
+            .Include(x => x.Blocks)
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == null, cancellationToken)
+            ?? throw RequestError(StatusCodes.Status404NotFound, "Global queue template was not found.");
+        if (await db.AutomaticQueueDefinitions.AnyAsync(
+                x => x.Id != id && x.UserId == null && x.Name == normalized.Name,
+                cancellationToken))
+        {
+            throw RequestError(StatusCodes.Status409Conflict, "A global queue template with this name already exists.");
+        }
+
+        db.AutomaticQueueBlocks.RemoveRange(row.Blocks);
+        row.Blocks = CreateBlockEntities(normalized.Blocks);
+        row.Name = normalized.Name;
+        row.UpdatedAtUtc = UtcNow();
+        await db.SaveChangesAsync(cancellationToken);
+        return ToDefinitionDto(row, null);
+    }
+
     public async Task DeleteDefinitionAsync(long id, string userId, CancellationToken cancellationToken)
     {
         await using var db = dbContextFactory.CreateDbContext();
@@ -160,6 +215,46 @@ public sealed class AutomaticQueueDataService(
         await EnsureDefinitionIsIdleAsync(db, id, userId, cancellationToken);
         db.AutomaticQueueDefinitions.Remove(row);
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteGlobalDefinitionAsync(long id, CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        var row = await db.AutomaticQueueDefinitions
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == null, cancellationToken)
+            ?? throw RequestError(StatusCodes.Status404NotFound, "Global queue template was not found.");
+        db.AutomaticQueueDefinitions.Remove(row);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<AutomaticQueueDto> CloneDefinitionAsync(
+        long id,
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        var source = await db.AutomaticQueueDefinitions.AsNoTracking()
+            .Include(x => x.Blocks)
+            .FirstOrDefaultAsync(x => x.Id == id && (x.UserId == null || x.UserId == userId), cancellationToken)
+            ?? throw RequestError(StatusCodes.Status404NotFound, "Queue was not found.");
+        var name = source.Name;
+        var suffix = 1;
+        while (await db.AutomaticQueueDefinitions.AnyAsync(
+                   x => x.UserId == userId && x.Name == name,
+                   cancellationToken))
+        {
+            var suffixText = $" (copy {suffix++})";
+            var baseLength = AutomaticQueueDefinition.NameMaxLength - suffixText.Length;
+            name = $"{source.Name[..Math.Min(source.Name.Length, baseLength)]}{suffixText}";
+        }
+
+        return await CreateDefinitionAsync(userId, new AutomaticQueueWriteDto
+        {
+            Name = name,
+            Blocks = source.Blocks.OrderBy(x => x.SortOrder)
+                .Select(x => (AutomaticQueueBlockWriteDto)DeserializeConfiguration(x.ConfigurationJson))
+                .ToList()
+        }, cancellationToken);
     }
 
     public async Task<AutomaticQueueRunDto> StartRunAsync(
@@ -273,7 +368,8 @@ public sealed class AutomaticQueueDataService(
     public async Task<AutomaticQueueRunDto> PauseRunAsync(
         long id,
         string userId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        AutomationPauseReasonEnum reason = AutomationPauseReasonEnum.UserRequested)
     {
         await using var db = dbContextFactory.CreateDbContext();
         var run = await LoadRunAsync(db, id, userId, tracking: true, cancellationToken)
@@ -284,6 +380,7 @@ public sealed class AutomaticQueueDataService(
         }
 
         var block = CurrentBlock(run);
+        run.PauseReason = reason;
         if (block is null || block.Status == AutomaticQueueBlockRunStatusEnum.Pending)
         {
             if (block is not null)
@@ -303,7 +400,7 @@ public sealed class AutomaticQueueDataService(
         }
         else if (block.ManualCheckRunId.HasValue)
         {
-            var child = await manualCheckDataService.PauseAsync(block.ManualCheckRunId.Value, cancellationToken);
+            var child = await manualCheckDataService.PauseAsync(block.ManualCheckRunId.Value, cancellationToken, reason);
             manualCheckQueue.TryPause(block.ManualCheckRunId.Value);
             run.Status = child.Status == ManualCheckRunStatusEnum.Paused
                 ? AutomaticQueueRunStatusEnum.Paused
@@ -360,6 +457,7 @@ public sealed class AutomaticQueueDataService(
         }
 
         run.Status = AutomaticQueueRunStatusEnum.Running;
+        run.PauseReason = null;
         try
         {
             await db.SaveChangesAsync(cancellationToken);
@@ -467,6 +565,11 @@ public sealed class AutomaticQueueDataService(
                 }
             }
             run.Status = AutomaticQueueRunStatusEnum.Paused;
+            run.PauseReason = AutomationPauseReasonEnum.SystemRecovery;
+            if (block?.ManualCheckRun is not null)
+            {
+                block.ManualCheckRun.PauseReason = AutomationPauseReasonEnum.SystemRecovery;
+            }
         }
         await db.SaveChangesAsync(cancellationToken);
     }
@@ -1010,6 +1113,10 @@ public sealed class AutomaticQueueDataService(
             CreatedAtUtc = row.CreatedAtUtc,
             UpdatedAtUtc = row.UpdatedAtUtc,
             ActiveRunId = activeRunId,
+            Scope = row.UserId is null ? "global" : "personal",
+            CanEdit = row.UserId is not null,
+            CanClone = row.UserId is null,
+            CanRun = row.UserId is not null,
             Blocks = row.Blocks.OrderBy(x => x.SortOrder).Select(x =>
             {
                 var block = DeserializeConfiguration(x.ConfigurationJson);
@@ -1029,6 +1136,7 @@ public sealed class AutomaticQueueDataService(
             QueueId = row.AutomaticQueueDefinitionId,
             QueueName = row.QueueName,
             Status = row.Status,
+            PauseReason = row.PauseReason,
             CurrentBlockIndex = row.CurrentBlockIndex,
             TotalBlocks = blocks.Count,
             CompletedBlocks = blocks.Count(x => IsTerminalBlockStatus(x.Status)),

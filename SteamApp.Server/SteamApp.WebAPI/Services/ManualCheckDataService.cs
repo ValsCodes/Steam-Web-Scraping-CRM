@@ -83,7 +83,7 @@ public sealed class ManualCheckDataService(
             .ThenInclude(x => x.ConditionOperator);
         if (userId is not null)
         {
-            query = query.Where(x => x.Game.UserId == userId);
+            query = query.Where(x => x.UserId == null || x.UserId == userId);
         }
         if (gameId.HasValue)
         {
@@ -109,10 +109,36 @@ public sealed class ManualCheckDataService(
         ManualCheckPresetWriteDto input,
         CancellationToken cancellationToken)
     {
+        await using var db = dbContextFactory.CreateDbContext();
+        var userId = await db.Games.AsNoTracking()
+            .Where(x => x.Id == input.GameId)
+            .Select(x => x.UserId)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw RequestError(StatusCodes.Status400BadRequest, "The game must have an owner when using the legacy preset creation path.");
+        return await CreatePresetAsync(userId, input, cancellationToken);
+    }
+
+    public async Task<ManualCheckPresetDto> CreatePresetAsync(
+        string userId,
+        ManualCheckPresetWriteDto input,
+        CancellationToken cancellationToken)
+    {
         var normalized = NormalizePreset(input);
         await using var strategyDb = dbContextFactory.CreateDbContext();
         var strategy = strategyDb.Database.CreateExecutionStrategy();
-        return await strategy.ExecuteAsync(() => CreatePresetInternalAsync(normalized, cancellationToken));
+        return await strategy.ExecuteAsync(() => CreatePresetInternalAsync(userId, userId, normalized, cancellationToken));
+    }
+
+    public async Task<ManualCheckPresetDto> CreateGlobalPresetAsync(
+        string administratorUserId,
+        ManualCheckPresetWriteDto input,
+        CancellationToken cancellationToken)
+    {
+        var normalized = NormalizePreset(input);
+        await using var strategyDb = dbContextFactory.CreateDbContext();
+        var strategy = strategyDb.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(() =>
+            CreatePresetInternalAsync(null, administratorUserId, normalized, cancellationToken));
     }
 
     public async Task<ManualCheckPresetDto> UpdatePresetAsync(
@@ -120,13 +146,43 @@ public sealed class ManualCheckDataService(
         ManualCheckPresetWriteDto input,
         CancellationToken cancellationToken)
     {
+        await using var db = dbContextFactory.CreateDbContext();
+        var userId = await db.ManualCheckPresets.AsNoTracking()
+            .Where(x => x.Id == id)
+            .Select(x => x.UserId ?? x.Game.UserId)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw RequestError(StatusCodes.Status404NotFound, "Preset was not found.");
+        return await UpdatePresetAsync(userId, id, input, cancellationToken);
+    }
+
+    public async Task<ManualCheckPresetDto> UpdatePresetAsync(
+        string userId,
+        long id,
+        ManualCheckPresetWriteDto input,
+        CancellationToken cancellationToken)
+    {
         var normalized = NormalizePreset(input);
         await using var strategyDb = dbContextFactory.CreateDbContext();
         var strategy = strategyDb.Database.CreateExecutionStrategy();
-        return await strategy.ExecuteAsync(() => UpdatePresetInternalAsync(id, normalized, cancellationToken));
+        return await strategy.ExecuteAsync(() => UpdatePresetInternalAsync(userId, userId, id, normalized, cancellationToken));
+    }
+
+    public async Task<ManualCheckPresetDto> UpdateGlobalPresetAsync(
+        string administratorUserId,
+        long id,
+        ManualCheckPresetWriteDto input,
+        CancellationToken cancellationToken)
+    {
+        var normalized = NormalizePreset(input);
+        await using var strategyDb = dbContextFactory.CreateDbContext();
+        var strategy = strategyDb.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(() =>
+            UpdatePresetInternalAsync(null, administratorUserId, id, normalized, cancellationToken));
     }
 
     private async Task<ManualCheckPresetDto> CreatePresetInternalAsync(
+        string? ownerUserId,
+        string validationUserId,
         ManualCheckPresetWriteDto normalized,
         CancellationToken cancellationToken)
     {
@@ -140,11 +196,11 @@ public sealed class ManualCheckDataService(
             .Select(x => x.Name)
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw RequestError(StatusCodes.Status400BadRequest, "Game was not found.");
-        await ValidatePresetGameUrlsAsync(db, normalized.GameId, normalized.GameUrlIds, cancellationToken);
+        await ValidatePresetGameUrlsAsync(db, validationUserId, normalized.GameId, normalized.GameUrlIds, cancellationToken);
         var itemGroupName = await GetItemGroupNameAsync(
-            db, normalized.GameId, normalized.ItemGroupId, cancellationToken);
+            db, validationUserId, normalized.GameId, normalized.ItemGroupId, cancellationToken);
         if (await db.ManualCheckPresets.AnyAsync(
-                x => x.GameId == normalized.GameId && x.Name == normalized.Name,
+                x => x.UserId == ownerUserId && x.GameId == normalized.GameId && x.Name == normalized.Name,
                 cancellationToken))
         {
             throw RequestError(StatusCodes.Status409Conflict, "A preset with this name already exists for the game.");
@@ -153,6 +209,7 @@ public sealed class ManualCheckDataService(
         var now = UtcNow();
         var entity = new ManualCheckPreset
         {
+            UserId = ownerUserId,
             GameId = normalized.GameId,
             ItemGroupId = normalized.ItemGroupId,
             Name = normalized.Name,
@@ -183,6 +240,8 @@ public sealed class ManualCheckDataService(
     }
 
     private async Task<ManualCheckPresetDto> UpdatePresetInternalAsync(
+        string? ownerUserId,
+        string validationUserId,
         long id,
         ManualCheckPresetWriteDto normalized,
         CancellationToken cancellationToken)
@@ -194,18 +253,18 @@ public sealed class ManualCheckDataService(
         var entity = await db.ManualCheckPresets
             .Include(x => x.Criteria)
             .Include(x => x.GameUrls)
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == ownerUserId, cancellationToken)
             ?? throw RequestError(StatusCodes.Status404NotFound, "Preset was not found.");
         var gameName = await db.Games.AsNoTracking()
             .Where(x => x.Id == normalized.GameId)
             .Select(x => x.Name)
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw RequestError(StatusCodes.Status400BadRequest, "Game was not found.");
-        await ValidatePresetGameUrlsAsync(db, normalized.GameId, normalized.GameUrlIds, cancellationToken);
+        await ValidatePresetGameUrlsAsync(db, validationUserId, normalized.GameId, normalized.GameUrlIds, cancellationToken);
         var itemGroupName = await GetItemGroupNameAsync(
-            db, normalized.GameId, normalized.ItemGroupId, cancellationToken);
+            db, validationUserId, normalized.GameId, normalized.ItemGroupId, cancellationToken);
         if (await db.ManualCheckPresets.AnyAsync(
-                x => x.Id != id && x.GameId == normalized.GameId && x.Name == normalized.Name,
+                x => x.Id != id && x.UserId == ownerUserId && x.GameId == normalized.GameId && x.Name == normalized.Name,
                 cancellationToken))
         {
             throw RequestError(StatusCodes.Status409Conflict, "A preset with this name already exists for the game.");
@@ -269,6 +328,7 @@ public sealed class ManualCheckDataService(
 
     private static async Task ValidatePresetGameUrlsAsync(
         ApplicationDbContext db,
+        string userId,
         long gameId,
         IReadOnlyCollection<long> gameUrlIds,
         CancellationToken cancellationToken)
@@ -276,8 +336,8 @@ public sealed class ManualCheckDataService(
         var validCount = await db.GameUrls.AsNoTracking().CountAsync(x =>
             gameUrlIds.Contains(x.Id) &&
             x.GameId == gameId &&
-            x.UserId != null &&
-            x.UserId == x.Game.UserId &&
+            (x.UserId == null || x.UserId == userId) &&
+            (x.Game.UserId == null || x.Game.UserId == userId) &&
             x.ScrapingModeId == (long)ScrapingModeEnum.ManualBatch,
             cancellationToken);
         if (validCount != gameUrlIds.Count)
@@ -348,7 +408,7 @@ public sealed class ManualCheckDataService(
     {
         await using var db = dbContextFactory.CreateDbContext();
         var entity = await db.ManualCheckPresets
-            .FirstOrDefaultAsync(x => x.Id == id && x.Game.UserId == userId, cancellationToken)
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, cancellationToken)
             ?? throw RequestError(StatusCodes.Status404NotFound, "Preset was not found.");
 
         var definitions = await db.AutomaticQueueDefinitions
@@ -371,6 +431,62 @@ public sealed class ManualCheckDataService(
 
         db.ManualCheckPresets.Remove(entity);
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteGlobalPresetAsync(long id, CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        var entity = await db.ManualCheckPresets
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == null, cancellationToken)
+            ?? throw RequestError(StatusCodes.Status404NotFound, "Global preset was not found.");
+        var definitions = await db.AutomaticQueueDefinitions
+            .AsNoTracking()
+            .Include(x => x.Blocks)
+            .ToListAsync(cancellationToken);
+        if (definitions.SelectMany(x => x.Blocks).Any(block => AutomaticQueueBlockReferencesPreset(block, id)))
+        {
+            throw RequestError(StatusCodes.Status409Conflict, "The global preset is referenced by an automatic queue.");
+        }
+
+        db.ManualCheckPresets.Remove(entity);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<ManualCheckPresetDto> ClonePresetAsync(
+        string userId,
+        long id,
+        CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        var source = await db.ManualCheckPresets.AsNoTracking()
+            .Include(x => x.Criteria)
+            .ThenInclude(x => x.ConditionOperator)
+            .Include(x => x.GameUrls)
+            .FirstOrDefaultAsync(x => x.Id == id && (x.UserId == null || x.UserId == userId), cancellationToken)
+            ?? throw RequestError(StatusCodes.Status404NotFound, "Preset was not found.");
+        var name = source.Name;
+        var suffix = 1;
+        while (await db.ManualCheckPresets.AnyAsync(
+                   x => x.UserId == userId && x.GameId == source.GameId && x.Name == name,
+                   cancellationToken))
+        {
+            var suffixText = $" (copy {suffix++})";
+            var baseLength = ManualCheckPreset.NameMaxLength - suffixText.Length;
+            name = $"{source.Name[..Math.Min(source.Name.Length, baseLength)]}{suffixText}";
+        }
+
+        return await CreatePresetAsync(userId, new ManualCheckPresetWriteDto
+        {
+            GameId = source.GameId,
+            ItemGroupId = source.ItemGroupId,
+            Name = name,
+            ListingLimit = source.ListingLimit,
+            PriceRange = ToPriceRangeDto(source),
+            CooldownMinutes = source.CooldownMinutes,
+            CooldownSeconds = source.CooldownSeconds,
+            GameUrlIds = source.GameUrls.Select(x => x.GameUrlId).ToList(),
+            Criteria = ToCriterionDtos(source.Criteria)
+        }, cancellationToken);
     }
 
     public async Task<ManualCheckRunSummaryDto> CreateRunAsync(
@@ -415,6 +531,7 @@ public sealed class ManualCheckDataService(
 
         return await CreateRunInternalAsync(
             db,
+            original.UserId,
             original.GameUrlId,
             presetId,
             original.PresetName,
@@ -485,7 +602,7 @@ public sealed class ManualCheckDataService(
                 .ThenInclude(x => x.ConditionOperator)
                 .Include(x => x.GameUrls)
                 .FirstOrDefaultAsync(
-                    x => x.Id == presetId.Value && x.Game.UserId == userId,
+                    x => x.Id == presetId.Value && (x.UserId == null || x.UserId == userId),
                     cancellationToken)
                 ?? throw RequestError(StatusCodes.Status404NotFound, "Preset was not found.");
             if (preset.GameUrls.All(x => x.GameUrlId != gameUrlId))
@@ -541,7 +658,7 @@ public sealed class ManualCheckDataService(
 
         var gameId = await db.GameUrls
             .AsNoTracking()
-            .Where(x => x.Id == gameUrlId && x.UserId == userId && x.Game.UserId == userId)
+            .Where(x => x.Id == gameUrlId)
             .Select(x => (long?)x.GameId)
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw RequestError(StatusCodes.Status404NotFound, "Game URL was not found.");
@@ -584,7 +701,8 @@ public sealed class ManualCheckDataService(
 
     public async Task<ManualCheckRunDetailDto> PauseAsync(
         long runId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        AutomationPauseReasonEnum reason = AutomationPauseReasonEnum.UserRequested)
     {
         await using var db = dbContextFactory.CreateDbContext();
         var now = UtcNow();
@@ -605,6 +723,7 @@ public sealed class ManualCheckDataService(
                         StatusCodes.Status409Conflict,
                         $"Run #{runId} is already {inMemoryRow.Status} and cannot be paused.")
                 };
+                inMemoryRow.PauseReason = reason;
                 if (inMemoryRow.Status == ManualCheckRunStatusEnum.Paused)
                 {
                     inMemoryRow.PausedAtUtc = now;
@@ -620,14 +739,17 @@ public sealed class ManualCheckDataService(
             .ExecuteUpdateAsync(
                 setters => setters
                     .SetProperty(x => x.Status, ManualCheckRunStatusEnum.Paused)
-                    .SetProperty(x => x.PausedAtUtc, now),
+                    .SetProperty(x => x.PausedAtUtc, now)
+                    .SetProperty(x => x.PauseReason, reason),
                 cancellationToken);
         if (updated == 0)
         {
             updated = await db.ManualCheckRuns
                 .Where(x => x.Id == runId && x.Status == ManualCheckRunStatusEnum.Running)
                 .ExecuteUpdateAsync(
-                    setters => setters.SetProperty(x => x.Status, ManualCheckRunStatusEnum.PauseRequested),
+                    setters => setters
+                        .SetProperty(x => x.Status, ManualCheckRunStatusEnum.PauseRequested)
+                        .SetProperty(x => x.PauseReason, reason),
                     cancellationToken);
         }
 
@@ -668,6 +790,7 @@ public sealed class ManualCheckDataService(
             inMemoryRow.AccumulatedPausedMilliseconds += GetCurrentPauseMilliseconds(inMemoryRow, now);
             inMemoryRow.PausedAtUtc = null;
             inMemoryRow.Status = ManualCheckRunStatusEnum.Queued;
+            inMemoryRow.PauseReason = null;
             await db.SaveChangesAsync(cancellationToken);
             return ToRunSummary(inMemoryRow);
         }
@@ -686,6 +809,7 @@ public sealed class ManualCheckDataService(
                 setters => setters
                     .SetProperty(x => x.Status, ManualCheckRunStatusEnum.Queued)
                     .SetProperty(x => x.PausedAtUtc, (DateTime?)null)
+                    .SetProperty(x => x.PauseReason, (AutomationPauseReasonEnum?)null)
                     .SetProperty(x => x.AccumulatedPausedMilliseconds, accumulatedPausedMilliseconds),
                 cancellationToken);
         var row = await db.ManualCheckRuns
@@ -776,10 +900,12 @@ public sealed class ManualCheckDataService(
         row.AccumulatedPausedMilliseconds += GetCurrentPauseMilliseconds(row, now);
         row.PausedAtUtc = null;
         row.Status = ManualCheckRunStatusEnum.Canceled;
+        row.PauseReason = null;
         row.ErrorText = row.CheckedProducts == 0
             ? "Canceled by the user before any products were checked."
             : $"Canceled by the user after checking {row.CheckedProducts} of {row.TotalProducts} products.";
         row.CompletedAtUtc = now;
+        await CloseUsageIntervalAsync(db, runId, now, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
 
         return ToRunDetail(row);
@@ -815,7 +941,7 @@ public sealed class ManualCheckDataService(
             .ThenInclude(x => x!.AutomaticQueueRun);
         if (userId is not null)
         {
-            query = query.Where(x => x.Game.UserId == userId && x.GameUrl.UserId == userId);
+            query = query.Where(x => x.UserId == userId);
         }
         if (gameId.HasValue)
         {
@@ -834,14 +960,14 @@ public sealed class ManualCheckDataService(
     public async Task<bool> UserOwnsGameAsync(string userId, long gameId, CancellationToken cancellationToken)
     {
         await using var db = dbContextFactory.CreateDbContext();
-        return await db.Games.AsNoTracking().AnyAsync(x => x.Id == gameId && x.UserId == userId, cancellationToken);
+        return await db.Games.AsNoTracking().AnyAsync(x => x.Id == gameId, cancellationToken);
     }
 
     public async Task<bool> UserOwnsGameUrlAsync(string userId, long gameUrlId, CancellationToken cancellationToken)
     {
         await using var db = dbContextFactory.CreateDbContext();
         return await db.GameUrls.AsNoTracking().AnyAsync(
-            x => x.Id == gameUrlId && x.UserId == userId && x.Game.UserId == userId,
+            x => x.Id == gameUrlId,
             cancellationToken);
     }
 
@@ -849,7 +975,7 @@ public sealed class ManualCheckDataService(
     {
         await using var db = dbContextFactory.CreateDbContext();
         return await db.ManualCheckPresets.AsNoTracking().AnyAsync(
-            x => x.Id == presetId && x.Game.UserId == userId,
+            x => x.Id == presetId && (x.UserId == null || x.UserId == userId),
             cancellationToken);
     }
 
@@ -857,7 +983,7 @@ public sealed class ManualCheckDataService(
     {
         await using var db = dbContextFactory.CreateDbContext();
         return await db.ManualCheckRuns.AsNoTracking().AnyAsync(
-            x => x.Id == runId && x.Game.UserId == userId && x.GameUrl.UserId == userId,
+            x => x.Id == runId && x.UserId == userId,
             cancellationToken);
     }
 
@@ -891,37 +1017,52 @@ public sealed class ManualCheckDataService(
         long id,
         CancellationToken cancellationToken)
     {
+        await using var strategyDb = dbContextFactory.CreateDbContext();
+        var strategy = strategyDb.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(() => MarkRunningAttemptAsync(id, cancellationToken));
+    }
+
+    private async Task<ManualCheckRunDetailDto?> MarkRunningAttemptAsync(
+        long id,
+        CancellationToken cancellationToken)
+    {
         await using var db = dbContextFactory.CreateDbContext();
-        if (!db.Database.IsRelational())
-        {
-            var inMemoryRow = await db.ManualCheckRuns.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-            if (inMemoryRow is null || inMemoryRow.Status != ManualCheckRunStatusEnum.Queued)
-            {
-                return null;
-            }
-
-            inMemoryRow.Status = ManualCheckRunStatusEnum.Running;
-            inMemoryRow.StartedAtUtc ??= UtcNow();
-            await db.SaveChangesAsync(cancellationToken);
-            return ToRunDetail(inMemoryRow);
-        }
-
         var now = UtcNow();
-        var updated = await db.ManualCheckRuns
-            .Where(x => x.Id == id && x.Status == ManualCheckRunStatusEnum.Queued)
-            .ExecuteUpdateAsync(
-                setters => setters
-                    .SetProperty(x => x.Status, ManualCheckRunStatusEnum.Running)
-                    .SetProperty(x => x.StartedAtUtc, x => x.StartedAtUtc ?? now),
-                cancellationToken);
-        if (updated == 0)
+        await using var transaction = db.Database.IsRelational()
+            ? await db.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+        var row = await db.ManualCheckRuns.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (row is null || row.Status != ManualCheckRunStatusEnum.Queued)
         {
             return null;
         }
 
-        var row = await db.ManualCheckRuns
-            .AsNoTracking()
-            .FirstAsync(x => x.Id == id, cancellationToken);
+        row.Status = ManualCheckRunStatusEnum.Running;
+        row.PauseReason = null;
+        row.StartedAtUtc ??= now;
+        if (!await db.AutomationUsageIntervals.AnyAsync(
+                x => x.ManualCheckRunId == id && x.EndedAtUtc == null,
+                cancellationToken))
+        {
+            db.AutomationUsageIntervals.Add(new AutomationUsageInterval
+            {
+                UserId = row.UserId,
+                ManualCheckRunId = id,
+                StartedAtUtc = now
+            });
+        }
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            if (transaction is not null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return null;
+        }
         return ToRunDetail(row);
     }
 
@@ -929,38 +1070,38 @@ public sealed class ManualCheckDataService(
         long id,
         CancellationToken cancellationToken)
     {
+        await using var strategyDb = dbContextFactory.CreateDbContext();
+        var strategy = strategyDb.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(() => MarkPausedAttemptAsync(id, cancellationToken));
+    }
+
+    private async Task<ManualCheckRunStatusEnum?> MarkPausedAttemptAsync(
+        long id,
+        CancellationToken cancellationToken)
+    {
         await using var db = dbContextFactory.CreateDbContext();
         var now = UtcNow();
-        if (!db.Database.IsRelational())
+        await using var transaction = db.Database.IsRelational()
+            ? await db.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+        var row = await db.ManualCheckRuns.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (row is null)
         {
-            var inMemoryRow = await db.ManualCheckRuns.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-            if (inMemoryRow is null)
+            return null;
+        }
+        if (row.Status == ManualCheckRunStatusEnum.PauseRequested)
+        {
+            row.Status = ManualCheckRunStatusEnum.Paused;
+            row.PausedAtUtc = now;
+            await CloseUsageIntervalAsync(db, id, now, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+            if (transaction is not null)
             {
-                return null;
+                await transaction.CommitAsync(cancellationToken);
             }
-
-            if (inMemoryRow.Status == ManualCheckRunStatusEnum.PauseRequested)
-            {
-                inMemoryRow.Status = ManualCheckRunStatusEnum.Paused;
-                inMemoryRow.PausedAtUtc = now;
-                await db.SaveChangesAsync(cancellationToken);
-            }
-
-            return inMemoryRow.Status;
         }
 
-        await db.ManualCheckRuns
-            .Where(x => x.Id == id && x.Status == ManualCheckRunStatusEnum.PauseRequested)
-            .ExecuteUpdateAsync(
-                setters => setters
-                    .SetProperty(x => x.Status, ManualCheckRunStatusEnum.Paused)
-                    .SetProperty(x => x.PausedAtUtc, now),
-                cancellationToken);
-        return await db.ManualCheckRuns
-            .AsNoTracking()
-            .Where(x => x.Id == id)
-            .Select(x => (ManualCheckRunStatusEnum?)x.Status)
-            .FirstOrDefaultAsync(cancellationToken);
+        return row.Status;
     }
 
     public async Task<ManualCheckRunStatusEnum?> UpdateProgressAsync(
@@ -971,8 +1112,27 @@ public sealed class ManualCheckDataService(
         ManualCheckRunResultsDto results,
         CancellationToken cancellationToken)
     {
-        await using var db = dbContextFactory.CreateDbContext();
         var resultsJson = JsonConvert.SerializeObject(results);
+        await using var strategyDb = dbContextFactory.CreateDbContext();
+        var strategy = strategyDb.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(() => UpdateProgressAttemptAsync(
+            id,
+            checkedProducts,
+            matchedProducts,
+            failedProducts,
+            resultsJson,
+            cancellationToken));
+    }
+
+    private async Task<ManualCheckRunStatusEnum?> UpdateProgressAttemptAsync(
+        long id,
+        int checkedProducts,
+        int matchedProducts,
+        int failedProducts,
+        string resultsJson,
+        CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
         if (!db.Database.IsRelational())
         {
             var inMemoryRow = await db.ManualCheckRuns.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
@@ -997,14 +1157,21 @@ public sealed class ManualCheckDataService(
                 inMemoryRow.Status = checkedProducts < inMemoryRow.TotalProducts
                     ? ManualCheckRunStatusEnum.Paused
                     : ManualCheckRunStatusEnum.Running;
+                if (inMemoryRow.Status == ManualCheckRunStatusEnum.Paused)
+                {
+                    inMemoryRow.PausedAtUtc = UtcNow();
+                    await CloseUsageIntervalAsync(db, id, inMemoryRow.PausedAtUtc.Value, cancellationToken);
+                }
             }
 
             await db.SaveChangesAsync(cancellationToken);
             return inMemoryRow.Status;
         }
 
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         for (var attempt = 0; attempt < 2; attempt++)
         {
+            var now = UtcNow();
             var paused = await db.ManualCheckRuns
                 .Where(x =>
                     x.Id == id &&
@@ -1016,10 +1183,14 @@ public sealed class ManualCheckDataService(
                         .SetProperty(x => x.MatchedProducts, matchedProducts)
                         .SetProperty(x => x.FailedProducts, failedProducts)
                         .SetProperty(x => x.ResultsJson, resultsJson)
-                        .SetProperty(x => x.Status, ManualCheckRunStatusEnum.Paused),
+                        .SetProperty(x => x.Status, ManualCheckRunStatusEnum.Paused)
+                        .SetProperty(x => x.PausedAtUtc, now),
                     cancellationToken);
             if (paused > 0)
             {
+                await CloseUsageIntervalAsync(db, id, now, cancellationToken);
+                await db.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
                 return ManualCheckRunStatusEnum.Paused;
             }
 
@@ -1039,15 +1210,18 @@ public sealed class ManualCheckDataService(
                     cancellationToken);
             if (running > 0)
             {
+                await transaction.CommitAsync(cancellationToken);
                 return ManualCheckRunStatusEnum.Running;
             }
         }
 
-        return await db.ManualCheckRuns
+        var currentStatus = await db.ManualCheckRuns
             .AsNoTracking()
             .Where(x => x.Id == id)
             .Select(x => (ManualCheckRunStatusEnum?)x.Status)
             .FirstOrDefaultAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return currentStatus;
     }
 
     public async Task CompleteAsync(
@@ -1061,6 +1235,17 @@ public sealed class ManualCheckDataService(
             throw new ArgumentOutOfRangeException(nameof(status));
         }
 
+        await using var strategyDb = dbContextFactory.CreateDbContext();
+        var strategy = strategyDb.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(() => CompleteAttemptAsync(id, status, results, cancellationToken));
+    }
+
+    private async Task CompleteAttemptAsync(
+        long id,
+        ManualCheckRunStatusEnum status,
+        ManualCheckRunResultsDto results,
+        CancellationToken cancellationToken)
+    {
         await using var db = dbContextFactory.CreateDbContext();
         var errorText = status == ManualCheckRunStatusEnum.CompletedWithErrors
             ? $"{results.Errors.Count} product check(s) failed."
@@ -1084,10 +1269,13 @@ public sealed class ManualCheckDataService(
             inMemoryRow.ResultsJson = resultsJson;
             inMemoryRow.ErrorText = errorText;
             inMemoryRow.CompletedAtUtc = completedAtUtc;
+            inMemoryRow.PauseReason = null;
+            await CloseUsageIntervalAsync(db, id, completedAtUtc, cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
             return;
         }
 
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await db.ManualCheckRuns
             .Where(x =>
                 x.Id == id &&
@@ -1101,8 +1289,12 @@ public sealed class ManualCheckDataService(
                     .SetProperty(x => x.FailedProducts, results.Errors.Count)
                     .SetProperty(x => x.ResultsJson, resultsJson)
                     .SetProperty(x => x.ErrorText, errorText)
-                    .SetProperty(x => x.CompletedAtUtc, completedAtUtc),
+                    .SetProperty(x => x.CompletedAtUtc, completedAtUtc)
+                    .SetProperty(x => x.PauseReason, (AutomationPauseReasonEnum?)null),
                 cancellationToken);
+        await CloseUsageIntervalAsync(db, id, completedAtUtc, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     public async Task FailAsync(
@@ -1129,6 +1321,8 @@ public sealed class ManualCheckDataService(
         var now = UtcNow();
         row.StartedAtUtc ??= now;
         row.CompletedAtUtc = now;
+        row.PauseReason = null;
+        await CloseUsageIntervalAsync(db, id, now, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
     }
 
@@ -1151,24 +1345,10 @@ public sealed class ManualCheckDataService(
         var now = UtcNow();
         foreach (var row in interrupted)
         {
-            if (row.AutomaticQueueRunBlock is not null)
-            {
-                row.Status = ManualCheckRunStatusEnum.Paused;
-                row.PausedAtUtc = now;
-                continue;
-            }
-
-            if (row.Status == ManualCheckRunStatusEnum.PauseRequested)
-            {
-                row.Status = ManualCheckRunStatusEnum.Paused;
-                row.PausedAtUtc = now;
-                continue;
-            }
-
-            row.Status = ManualCheckRunStatusEnum.Failed;
-            row.ErrorText = "The manual check was interrupted by an API restart.";
-            row.StartedAtUtc ??= now;
-            row.CompletedAtUtc = now;
+            row.Status = ManualCheckRunStatusEnum.Paused;
+            row.PauseReason = AutomationPauseReasonEnum.SystemRecovery;
+            row.PausedAtUtc = now;
+            await CloseUsageIntervalAsync(db, row.Id, now, cancellationToken);
         }
 
         await db.SaveChangesAsync(cancellationToken);
@@ -1176,6 +1356,7 @@ public sealed class ManualCheckDataService(
 
     private async Task<ManualCheckRunSummaryDto> CreateRunInternalAsync(
         ApplicationDbContext db,
+        string userId,
         long gameUrlId,
         long? presetId,
         string presetName,
@@ -1192,7 +1373,7 @@ public sealed class ManualCheckDataService(
     {
         var setup = await PrepareRunSetupInternalAsync(
             db,
-            userId: null,
+            userId,
             gameUrlId,
             presetId,
             presetName,
@@ -1233,7 +1414,8 @@ public sealed class ManualCheckDataService(
             .AsNoTracking()
             .Where(x =>
                 x.Id == gameUrlId &&
-                (userId == null || (x.UserId == userId && x.Game.UserId == userId)))
+                (x.UserId == null || x.UserId == userId) &&
+                (x.Game.UserId == null || x.Game.UserId == userId))
             .Select(x => new
             {
                 x.Id,
@@ -1267,7 +1449,8 @@ public sealed class ManualCheckDataService(
             .Where(x =>
                 x.GameUrlId == gameUrlId &&
                 x.Product.IsActive &&
-                (userId == null || (x.Product.UserId == userId && x.Product.Game.UserId == userId)));
+                (x.Product.UserId == null || x.Product.UserId == userId) &&
+                (x.Product.Game.UserId == null || x.Product.Game.UserId == userId));
 
         if (normalizedProductIds is not null)
         {
@@ -1331,6 +1514,7 @@ public sealed class ManualCheckDataService(
 
         return new ManualCheckSetupDto
         {
+            UserId = userId ?? string.Empty,
             PresetId = presetId,
             PresetName = presetName,
             GameId = gameUrl.GameId,
@@ -1358,6 +1542,7 @@ public sealed class ManualCheckDataService(
         var now = UtcNow();
         var row = new ManualCheckRun
         {
+            UserId = setup.UserId,
             ManualCheckPresetId = setup.PresetId,
             GameId = setup.GameId,
             GameUrlId = setup.GameUrlId,
@@ -1592,7 +1777,7 @@ public sealed class ManualCheckDataService(
             .Include(x => x.Criteria)
             .ThenInclude(x => x.ConditionOperator)
             .Include(x => x.GameUrls)
-            .Where(x => presetIds.Contains(x.Id) && x.Game.UserId == userId)
+            .Where(x => presetIds.Contains(x.Id) && (x.UserId == null || x.UserId == userId))
             .ToListAsync(cancellationToken);
 
         if (presets.Count != presetIds.Count)
@@ -1702,6 +1887,7 @@ public sealed class ManualCheckDataService(
 
     private static async Task<string?> GetItemGroupNameAsync(
         ApplicationDbContext db,
+        string userId,
         long gameId,
         long? itemGroupId,
         CancellationToken cancellationToken)
@@ -1716,7 +1902,8 @@ public sealed class ManualCheckDataService(
             .Where(x =>
                 x.Id == itemGroupId.Value &&
                 x.GameId == gameId &&
-                x.UserId == x.Game.UserId)
+                (x.UserId == null || x.UserId == userId) &&
+                (x.Game.UserId == null || x.Game.UserId == userId))
             .Select(x => x.Name)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -1745,7 +1932,11 @@ public sealed class ManualCheckDataService(
             GameUrlIds = (gameUrlIds ?? entity.GameUrls.Select(x => x.GameUrlId)).Order().ToList(),
             Criteria = ToCriterionDtos(entity.Criteria),
             CreatedAtUtc = entity.CreatedAtUtc,
-            UpdatedAtUtc = entity.UpdatedAtUtc
+            UpdatedAtUtc = entity.UpdatedAtUtc,
+            Scope = entity.UserId is null ? "global" : "personal",
+            CanEdit = entity.UserId is not null,
+            CanClone = entity.UserId is null,
+            CanRun = true
         };
     }
 
@@ -1788,6 +1979,7 @@ public sealed class ManualCheckDataService(
                 FailedProducts = row.FailedProducts
             },
             Status = row.Status,
+            PauseReason = row.PauseReason,
             Date = row.Date,
             StartedAtUtc = row.StartedAtUtc,
             CompletedAtUtc = row.CompletedAtUtc,
@@ -1818,6 +2010,7 @@ public sealed class ManualCheckDataService(
             FailedProducts = summary.FailedProducts,
             Progress = summary.Progress,
             Status = summary.Status,
+            PauseReason = summary.PauseReason,
             Date = summary.Date,
             StartedAtUtc = summary.StartedAtUtc,
             CompletedAtUtc = summary.CompletedAtUtc,
@@ -1909,6 +2102,22 @@ public sealed class ManualCheckDataService(
     private DateTime UtcNow()
     {
         return timeProvider.GetUtcNow().UtcDateTime;
+    }
+
+    private static async Task CloseUsageIntervalAsync(
+        ApplicationDbContext db,
+        long runId,
+        DateTime endedAtUtc,
+        CancellationToken cancellationToken)
+    {
+        var interval = await db.AutomationUsageIntervals
+            .FirstOrDefaultAsync(
+                x => x.ManualCheckRunId == runId && x.EndedAtUtc == null,
+                cancellationToken);
+        if (interval is not null)
+        {
+            interval.EndedAtUtc = endedAtUtc;
+        }
     }
 
     private static bool AutomaticQueueBlockReferencesPreset(AutomaticQueueBlock block, long presetId)

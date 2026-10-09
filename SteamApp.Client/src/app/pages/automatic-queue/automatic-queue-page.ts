@@ -19,7 +19,7 @@ import {
   AutomaticQueueRunBlock,
   AutomaticQueueWrite,
 } from '../../models';
-import { AutomaticQueueService } from '../../services';
+import { AutomaticQueueService, AutomationService } from '../../services';
 import {
   ManualCheckSetupDialogComponent,
   ManualCheckSetupDialogData,
@@ -49,6 +49,7 @@ type EditorBlock = AutomaticQueueBlockWrite & Partial<AutomaticQueueBlock>;
 })
 export class AutomaticQueuePage implements OnInit, OnDestroy {
   private readonly service = inject(AutomaticQueueService);
+  readonly automationService = inject(AutomationService);
   private readonly dialog = inject(MatDialog);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroy$ = new Subject<void>();
@@ -60,7 +61,8 @@ export class AutomaticQueuePage implements OnInit, OnDestroy {
   readonly selectedRun = signal<AutomaticQueueRun | null>(null);
   readonly selectedDefinition = computed(() =>
     this.definitions().find((definition) => definition.id === this.selectedDefinitionId()) ?? null);
-  readonly locked = computed(() => (this.selectedDefinition()?.activeRunId ?? 0) > 0);
+  readonly locked = computed(() =>
+    (this.selectedDefinition()?.activeRunId ?? 0) > 0 || this.selectedDefinition()?.canEdit === false);
   readonly canPause = computed(() =>
     this.selectedRun()?.status === 'Queued' || this.selectedRun()?.status === 'Running');
   readonly canResume = computed(() => this.selectedRun()?.status === 'Paused');
@@ -77,6 +79,7 @@ export class AutomaticQueuePage implements OnInit, OnDestroy {
   readonly now = signal(Date.now());
 
   ngOnInit(): void {
+    this.automationService.refreshUsage();
     this.loadDefinitions();
     timer(0, 1000).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.now.set(Date.now());
@@ -93,6 +96,29 @@ export class AutomaticQueuePage implements OnInit, OnDestroy {
   get canSave(): boolean {
     return !this.locked() && this.name.trim().length > 0 && this.blocks.length > 0
       && this.blocks.some((x) => x.type === 'ManualCheck');
+  }
+
+  get automationUnavailable(): boolean {
+    const usage = this.automationService.usage();
+    return !usage || (!usage.unlimited && (!usage.presenceActive || (usage.remainingSeconds ?? 0) <= 0));
+  }
+
+  get automationUsageText(): string {
+    const usage = this.automationService.usage();
+    if (!usage) return 'Checking automation allowance…';
+    if (usage.unlimited) return 'Automation allowance: unlimited';
+    const remaining = Math.max(0, usage.remainingSeconds ?? 0);
+    return `Automation allowance: ${Math.floor(remaining / 60)}m ${remaining % 60}s remaining`;
+  }
+
+  pauseReasonText(): string | null {
+    switch (this.selectedRun()?.pauseReason) {
+      case 'PresenceLost': return 'Paused because no active browser tab was detected.';
+      case 'QuotaExceeded': return 'Paused because the rolling automation allowance was used.';
+      case 'SystemRecovery': return 'Paused during server recovery. Resume when ready.';
+      case 'UserRequested': return 'Paused by you.';
+      default: return null;
+    }
   }
 
   loadDefinitions(): void {
@@ -126,6 +152,20 @@ export class AutomaticQueuePage implements OnInit, OnDestroy {
   duplicateDefinition(): void {
     const definition = this.selectedDefinition();
     if (!definition) return;
+    if (definition.canClone) {
+      this.busy = true;
+      this.service.cloneDefinition(definition.id).pipe(finalize(() => {
+        this.busy = false;
+        this.cdr.markForCheck();
+      })).subscribe({
+        next: (clone) => {
+          this.applySavedDefinition(clone);
+          this.successMessage = 'Global queue cloned to your personal queues.';
+        },
+        error: (error) => this.errorMessage = this.getError(error, 'Unable to clone the queue.'),
+      });
+      return;
+    }
     this.pollStop$.next();
     this.selectedDefinitionId.set(null);
     this.selectedRun.set(null);
@@ -222,6 +262,7 @@ export class AutomaticQueuePage implements OnInit, OnDestroy {
   }
 
   run(): void {
+    if (this.automationUnavailable || this.selectedDefinition()?.canRun === false) return;
     this.persist(true);
   }
 
@@ -309,6 +350,7 @@ export class AutomaticQueuePage implements OnInit, OnDestroy {
       }),
     ).subscribe({
       next: (run) => {
+        this.automationService.refreshUsage();
         this.selectedRun.set(run);
         this.runs.update((runs) => [run, ...runs.filter((item) => item.id !== run.id)]);
         this.updateActiveRunReference(run);
@@ -422,6 +464,7 @@ export class AutomaticQueuePage implements OnInit, OnDestroy {
       takeWhile((run) => this.isActiveStatus(run.status), true),
     ).subscribe({
       next: (run) => {
+        this.automationService.refreshUsage();
         this.selectedRun.set(run);
         this.runs.update((runs) => [run, ...runs.filter((item) => item.id !== run.id)]);
         this.updateActiveRunReference(run);

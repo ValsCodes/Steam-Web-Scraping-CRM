@@ -1,0 +1,15 @@
+.automation-admin { max-width: 72rem; margin: 0 auto; padding: 2rem 1rem; color: #1e293b; }
+header { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+h1 { margin: 0; font-size: 2rem; }
+.eyebrow { margin: 0; color: #64748b; text-transform: uppercase; letter-spacing: .08em; font-size: .75rem; }
+.policy-card, .usage-card { margin-top: 1.5rem; padding: 1rem; border: 1px solid #cbd5e1; border-radius: .5rem; background: white; }
+.policy-card { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; }
+label { display: flex; flex-direction: column; gap: .35rem; }
+input, button { padding: .55rem .75rem; }
+.danger { color: #b91c1c; }
+.message { padding: .75rem; border-radius: .4rem; }
+.error { background: #fef2f2; color: #991b1b; }
+.success { background: #f0fdf4; color: #166534; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: .7rem; border-bottom: 1px solid #e2e8f0; text-align: left; }

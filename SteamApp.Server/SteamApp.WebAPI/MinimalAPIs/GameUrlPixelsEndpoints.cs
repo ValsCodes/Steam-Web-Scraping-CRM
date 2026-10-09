@@ -25,7 +25,7 @@ public static class GameUrlPixelsEndpoints
 
             var items = await db.GameUrlsPixels
                 .AsNoTracking()
-                .Where(x => x.Pixel.UserId == userId && x.GameUrl.UserId == userId)
+                .Where(x => x.Pixel.UserId == null && x.GameUrl.UserId == null)
                 .Select(x => new
                 {
                     x.PixelId,
@@ -61,8 +61,8 @@ public static class GameUrlPixelsEndpoints
                 .AnyAsync(x =>
                     x.PixelId == pixelId &&
                     x.GameUrlId == gameUrlId &&
-                    x.Pixel.UserId == userId &&
-                    x.GameUrl.UserId == userId);
+                    x.Pixel.UserId == null &&
+                    x.GameUrl.UserId == null);
 
             return exists
                 ? Results.Ok()
@@ -80,7 +80,7 @@ public static class GameUrlPixelsEndpoints
 
             var relations = await db.GameUrlsPixels
                 .AsNoTracking()
-                .Where(x => x.GameUrlId == gameUrlId && x.Pixel.UserId == userId && x.GameUrl.UserId == userId)
+                .Where(x => x.GameUrlId == gameUrlId && x.Pixel.UserId == null && x.GameUrl.UserId == null)
                 .Select(x => new
                 {
                     x.PixelId,
@@ -111,10 +111,10 @@ public static class GameUrlPixelsEndpoints
             if (userId is null) { return Results.Unauthorized(); }
 
             var pixelExists = await db.Pixels
-                .AnyAsync(p => p.Id == input.PixelId && p.UserId == userId);
+                .AnyAsync(p => p.Id == input.PixelId && p.UserId == null);
 
             var gameUrlExists = await db.GameUrls
-                .AnyAsync(g => g.Id == input.GameUrlId && g.UserId == userId);
+                .AnyAsync(g => g.Id == input.GameUrlId && g.UserId == null);
 
             if (!pixelExists || !gameUrlExists)
             {
@@ -125,8 +125,8 @@ public static class GameUrlPixelsEndpoints
                 .AnyAsync(x =>
                     x.PixelId == input.PixelId &&
                     x.GameUrlId == input.GameUrlId &&
-                    x.Pixel.UserId == userId &&
-                    x.GameUrl.UserId == userId);
+                    x.Pixel.UserId == null &&
+                    x.GameUrl.UserId == null);
 
             if (alreadyExists)
             {
@@ -161,8 +161,8 @@ public static class GameUrlPixelsEndpoints
                 .FirstOrDefaultAsync(x =>
                     x.PixelId == pixelId &&
                     x.GameUrlId == gameUrlId &&
-                    x.Pixel.UserId == userId &&
-                    x.GameUrl.UserId == userId);
+                    x.Pixel.UserId == null &&
+                    x.GameUrl.UserId == null);
 
             if (entity is null)
             {

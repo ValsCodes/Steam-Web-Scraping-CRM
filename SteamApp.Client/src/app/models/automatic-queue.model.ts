@@ -1,4 +1,5 @@
 import { ManualCheckCriterion, ManualCheckPresetCombinationWrite, ManualCheckPriceRange } from './manual-check.model';
+import { AutomationPauseReason } from './automation.model';
 
 export type AutomaticQueueBlockType = 'ManualCheck' | 'Delay';
 export type AutomaticQueueTemplateMode = 'SavedPreset' | 'PrivateTemplate' | 'PresetCombination';
@@ -55,6 +56,10 @@ export interface AutomaticQueueDefinition {
   createdAtUtc: string;
   updatedAtUtc: string;
   activeRunId: number | null;
+  scope?: 'global' | 'personal';
+  canEdit?: boolean;
+  canClone?: boolean;
+  canRun?: boolean;
 }
 
 export interface AutomaticQueueRunBlock {
@@ -85,6 +90,7 @@ export interface AutomaticQueueRun {
   startedAtUtc: string | null;
   completedAtUtc: string | null;
   errorText: string | null;
+  pauseReason?: AutomationPauseReason | null;
   correlationId: string;
   blocks: AutomaticQueueRunBlock[];
 }

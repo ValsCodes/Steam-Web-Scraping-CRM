@@ -78,6 +78,9 @@ public sealed class ManualCheckExecutionService(
                 var productTrace = CreateProductTrace(product);
                 results.ProductTraces.Add(productTrace);
                 var productStartedTimestamp = Stopwatch.GetTimestamp();
+                using var productCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken,
+                    pauseToken);
                 try
                 {
                     if (!ManualCheckMatcher.TryBuildListingUri(product.FullUrl, out var listingUri) || listingUri is null)
@@ -88,7 +91,7 @@ public sealed class ManualCheckExecutionService(
                     var listing = await FetchListingAsync(
                         listingUri,
                         setup.BypassCache,
-                        cancellationToken);
+                        productCancellation.Token);
                     productTrace.SteamApiResultJson = JsonConvert.SerializeObject(listing);
                     successfulProducts++;
 
@@ -128,6 +131,12 @@ public sealed class ManualCheckExecutionService(
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     throw;
+                }
+                catch (OperationCanceledException) when (pauseToken.IsCancellationRequested)
+                {
+                    results.ProductTraces.Remove(productTrace);
+                    await dataService.MarkPausedAsync(runId, cancellationToken);
+                    return;
                 }
                 catch (Exception exception)
                 {
@@ -301,6 +310,23 @@ public sealed class ManualCheckExecutionService(
                     var contentType = response.Content.Headers.ContentType?.MediaType;
                     if (IsHtmlResponse(contentType, payload))
                     {
+                        if (IsSteamRateLimitPage(payload))
+                        {
+                            if (attempt < maxAttempts)
+                            {
+                                await Task.Delay(
+                                    GetRetryDelay(response.Headers.RetryAfter, attempt),
+                                    cancellationToken);
+                                continue;
+                            }
+
+                            throw new HttpRequestException(
+                                "Steam rate-limited the automated market request. Browser access may still work " +
+                                "because it uses a separate Steam session. Wait before rerunning or increase the preset cooldown.",
+                                null,
+                                HttpStatusCode.TooManyRequests);
+                        }
+
                         if (SteamMarketPageParser.TryParseListing(payload, out var pageListing))
                         {
                             return pageListing;
@@ -379,6 +405,12 @@ public sealed class ManualCheckExecutionService(
         var firstContent = payload.AsSpan().TrimStart();
         return firstContent.StartsWith("<!DOCTYPE html", StringComparison.OrdinalIgnoreCase) ||
                firstContent.StartsWith("<html", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSteamRateLimitPage(string payload)
+    {
+        return payload.Contains("too many requests", StringComparison.OrdinalIgnoreCase) &&
+               payload.Contains("wait and try", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsTransient(HttpStatusCode? statusCode)

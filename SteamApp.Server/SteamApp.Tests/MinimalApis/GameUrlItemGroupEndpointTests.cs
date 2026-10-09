@@ -125,7 +125,7 @@ public sealed class GameUrlItemGroupEndpointTests
     }
 
     [Test]
-    public async Task GameUrlGroupEndpoints_UnauthenticatedOrOtherUser_DenyAccess()
+    public async Task GameUrlGroupEndpoints_RequireAdminForMutationAndExposeGlobalReads()
     {
         await using var app = await MinimalApiTestApp.CreateAsync(TestDb.SeedBaseline);
         using var anonymous = app.CreateClientWithoutAuth();
@@ -149,13 +149,13 @@ public sealed class GameUrlItemGroupEndpointTests
             Assert.That(anonymousCreate.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
             Assert.That(anonymousRead.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
             Assert.That(anonymousUpdate.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
-            Assert.That(otherCreate.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-            Assert.That(otherRead.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
-            Assert.That(otherUpdate.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(otherCreate.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+            Assert.That(otherRead.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(otherUpdate.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
             Assert.That(otherListResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(otherList, Is.Empty);
+            Assert.That(otherList, Is.Not.Empty);
             Assert.That(otherPageResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(otherPage.Items, Is.Empty);
+            Assert.That(otherPage.Items, Is.Not.Empty);
         });
     }
 }

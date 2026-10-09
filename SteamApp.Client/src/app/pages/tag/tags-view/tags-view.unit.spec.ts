@@ -4,7 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { of, Subject } from 'rxjs';
 
 import { TagsView } from './tags-view';
-import { GameService, ItemGroupService, TagService } from '../../../services';
+import { AuthService, GameService, ItemGroupService, TagService } from '../../../services';
 import { Tag } from '../../../models';
 
 describe('TagsView', () => {
@@ -39,6 +39,7 @@ describe('TagsView', () => {
         { provide: GameService, useValue: gameService },
         { provide: Router, useValue: router },
         { provide: MatDialog, useValue: dialog },
+        { provide: AuthService, useValue: { getCurrentUser: () => ({ isAdmin: false }) } },
       ],
     }).compileComponents();
 

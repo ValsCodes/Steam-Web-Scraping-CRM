@@ -13,6 +13,8 @@
     </div>
   </header>
 
+  <div class="queue-page__message" role="status">{{ automationUsageText }}</div>
+
   @if (errorMessage) { <div class="queue-page__message queue-page__message--error" role="alert">{{ errorMessage }}</div> }
   @if (successMessage) { <div class="queue-page__message queue-page__message--success" role="status">{{ successMessage }}</div> }
 
@@ -35,10 +37,10 @@
           <button mat-stroked-button (click)="addManualBlock()" [disabled]="locked()"><mat-icon>fact_check</mat-icon>Manual check</button>
           <button mat-stroked-button (click)="addDelayBlock()" [disabled]="locked()"><mat-icon>timer</mat-icon>Timeout</button>
           <button mat-stroked-button (click)="save()" [disabled]="!canSave || busy">Save</button>
-          <button mat-flat-button (click)="run()" [disabled]="!canSave || busy"><mat-icon>play_arrow</mat-icon>Run</button>
+          <button mat-flat-button (click)="run()" [disabled]="!canSave || busy || automationUnavailable || selectedDefinition()?.canRun === false"><mat-icon>play_arrow</mat-icon>Run</button>
           @if (selectedDefinitionId() !== null) {
-            <button mat-button (click)="duplicateDefinition()" [disabled]="busy">Duplicate queue</button>
-            <button mat-button color="warn" (click)="deleteDefinition()" [disabled]="locked() || busy">Delete</button>
+            <button mat-button (click)="duplicateDefinition()" [disabled]="busy">{{ selectedDefinition()?.canClone ? 'Clone to my queues' : 'Duplicate queue' }}</button>
+            <button mat-button color="warn" (click)="deleteDefinition()" [disabled]="locked() || busy || selectedDefinition()?.canEdit === false">Delete</button>
           }
         </div>
       </div>
@@ -46,7 +48,7 @@
       @if (locked()) {
         <div class="queue-workspace__locked">
           <mat-icon>lock</mat-icon>
-          <span>This definition is locked while its run is active or paused.</span>
+          <span>{{ selectedDefinition()?.canEdit === false ? 'Global queue templates are read-only. Clone one to customize it.' : 'This definition is locked while its run is active or paused.' }}</span>
           <button mat-stroked-button color="warn" type="button" (click)="cancelAndUnlock()" [disabled]="busy">Cancel run & unlock</button>
         </div>
       }
@@ -103,11 +105,12 @@
           @if (selectedRun(); as selectedRun) {
             <div class="run-panel__summary">
               <strong>{{ selectedRun.status }}</strong>
+              @if (pauseReasonText()) { <span>{{ pauseReasonText() }}</span> }
               <span>{{ selectedRun.completedBlocks }} / {{ selectedRun.totalBlocks }} blocks complete</span>
               <small>Trace {{ selectedRun.correlationId }}</small>
               <div>
                 <button mat-stroked-button (click)="pause()" [disabled]="!canPause() || busy">Pause</button>
-                <button mat-stroked-button (click)="resume()" [disabled]="!canResume() || busy">Resume</button>
+                <button mat-stroked-button (click)="resume()" [disabled]="!canResume() || busy || automationUnavailable">Resume</button>
                 <button mat-button color="warn" (click)="cancel()" [disabled]="!activeRun() || busy">Cancel</button>
               </div>
             </div>

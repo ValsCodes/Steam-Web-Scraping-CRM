@@ -7,7 +7,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 
 import {
@@ -38,6 +38,7 @@ import { FeedbackRequestService } from '../../../services/feedback-request/feedb
   styleUrl: './feedback-requests-view.scss',
 })
 export class FeedbackRequestsView implements OnInit {
+  readonly adminMode: boolean;
   readonly typeOptions = FEEDBACK_REQUEST_TYPE_OPTIONS;
   readonly statusOptions = FEEDBACK_REQUEST_STATUS_OPTIONS;
   readonly FeedbackRequestStatus = FeedbackRequestStatus;
@@ -71,8 +72,11 @@ export class FeedbackRequestsView implements OnInit {
   constructor(
     private readonly feedbackRequestService: FeedbackRequestService,
     private readonly router: Router,
+    route: ActivatedRoute,
     private readonly cdr: ChangeDetectorRef,
-  ) {}
+  ) {
+    this.adminMode = route.snapshot.data['admin'] === true;
+  }
 
   ngOnInit(): void {
     this.textFilterControl.valueChanges.subscribe(() => this.applyFilters());
@@ -86,8 +90,11 @@ export class FeedbackRequestsView implements OnInit {
     this.isGridLoading = true;
     this.cdr.markForCheck();
 
-    this.feedbackRequestService
-      .getAll()
+    const request = this.adminMode
+      ? this.feedbackRequestService.getAdminAll()
+      : this.feedbackRequestService.getAll();
+
+    request
       .pipe(
         finalize(() => {
           this.isGridLoading = false;

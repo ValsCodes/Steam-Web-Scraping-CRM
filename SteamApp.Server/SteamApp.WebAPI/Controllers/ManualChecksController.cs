@@ -15,7 +15,8 @@ namespace SteamApp.WebAPI.Controllers;
 public sealed class ManualChecksController(
     IManualCheckDataService dataService,
     IManualCheckQueue queue,
-    ILogger<ManualChecksController> logger) : ControllerBase
+    ILogger<ManualChecksController> logger,
+    IAutomationAccessService? automationAccessService = null) : ControllerBase
 {
     [HttpGet("condition-operators")]
     public async Task<IActionResult> GetConditionOperators(CancellationToken cancellationToken = default)
@@ -57,7 +58,7 @@ public sealed class ManualChecksController(
             var userId = User.GetUserId();
             if (userId is null) return Unauthorized();
             if (!await dataService.UserOwnsGameAsync(userId, input.GameId, cancellationToken)) return NotFound();
-            var preset = await dataService.CreatePresetAsync(input, cancellationToken);
+            var preset = await dataService.CreatePresetAsync(userId, input, cancellationToken);
             return CreatedAtAction(nameof(GetPresets), new { gameId = preset.GameId }, preset);
         }
         catch (ManualCheckRequestException exception)
@@ -82,7 +83,7 @@ public sealed class ManualChecksController(
             if (userId is null) return Unauthorized();
             if (!await dataService.UserOwnsPresetAsync(userId, id, cancellationToken) ||
                 !await dataService.UserOwnsGameAsync(userId, input.GameId, cancellationToken)) return NotFound();
-            return Ok(await dataService.UpdatePresetAsync(id, input, cancellationToken));
+            return Ok(await dataService.UpdatePresetAsync(userId, id, input, cancellationToken));
         }
         catch (ManualCheckRequestException exception)
         {
@@ -117,6 +118,22 @@ public sealed class ManualChecksController(
         }
     }
 
+    [HttpPost("presets/{id:long}/clone")]
+    public async Task<IActionResult> ClonePreset(long id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            if (userId is null) return Unauthorized();
+            var preset = await dataService.ClonePresetAsync(userId, id, cancellationToken);
+            return CreatedAtAction(nameof(GetPresets), new { gameId = preset.GameId }, preset);
+        }
+        catch (ManualCheckRequestException exception)
+        {
+            return Problem(statusCode: exception.StatusCode, title: "Manual check request failed", detail: exception.Message);
+        }
+    }
+
     [HttpPost("runs")]
     [EnableRateLimiting(SecurityPolicies.ExpensiveApiRateLimit)]
     public async Task<IActionResult> CreateRun(
@@ -127,6 +144,7 @@ public sealed class ManualChecksController(
         {
             var userId = User.GetUserId();
             if (userId is null) return Unauthorized();
+            await EnsureAutomationAccessAsync(cancellationToken);
             var run = await dataService.CreateRunAsync(
                 userId,
                 input.GameUrlId,
@@ -153,6 +171,10 @@ public sealed class ManualChecksController(
                 statusCode: exception.StatusCode,
                 title: "Manual check request failed",
                 detail: exception.Message);
+        }
+        catch (AutomationAccessException exception)
+        {
+            return AutomationProblem(exception);
         }
     }
 
@@ -253,6 +275,10 @@ public sealed class ManualChecksController(
                 title: "Manual check request failed",
                 detail: exception.Message);
         }
+        catch (AutomationAccessException exception)
+        {
+            return AutomationProblem(exception);
+        }
     }
 
     [HttpPost("runs/{id:long}/continue")]
@@ -264,6 +290,7 @@ public sealed class ManualChecksController(
         try
         {
             await EnsureStandaloneRunAsync(id, cancellationToken);
+            await EnsureAutomationAccessAsync(cancellationToken);
             var run = await dataService.ContinueAsync(id, cancellationToken);
             try
             {
@@ -289,6 +316,10 @@ public sealed class ManualChecksController(
                 statusCode: exception.StatusCode,
                 title: "Manual check request failed",
                 detail: exception.Message);
+        }
+        catch (AutomationAccessException exception)
+        {
+            return AutomationProblem(exception);
         }
     }
 
@@ -322,6 +353,7 @@ public sealed class ManualChecksController(
         try
         {
             await EnsureStandaloneRunAsync(id, cancellationToken);
+            await EnsureAutomationAccessAsync(cancellationToken);
             var run = await dataService.RerunAsync(id, cancellationToken);
             await queue.EnqueueAsync(run.Id, cancellationToken);
             return AcceptedAtAction(nameof(GetRun), new { id = run.Id }, new ManualCheckRunAcceptedDto
@@ -337,6 +369,10 @@ public sealed class ManualChecksController(
                 statusCode: exception.StatusCode,
                 title: "Manual check request failed",
                 detail: exception.Message);
+        }
+        catch (AutomationAccessException exception)
+        {
+            return AutomationProblem(exception);
         }
     }
 
@@ -357,5 +393,36 @@ public sealed class ManualChecksController(
                 StatusCodes.Status409Conflict,
                 "Queue-owned checks must be managed from their automatic queue run.");
         }
+    }
+
+    private async Task EnsureAutomationAccessAsync(CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId()
+            ?? throw new AutomationAccessException(StatusCodes.Status401Unauthorized, "A signed-in user is required.");
+        if (automationAccessService is not null)
+        {
+            await automationAccessService.EnsureCanExecuteAsync(userId, cancellationToken);
+        }
+    }
+
+    private IActionResult AutomationProblem(AutomationAccessException exception)
+    {
+        if (exception.RetryAtUtc.HasValue)
+        {
+            var seconds = Math.Max(1, (int)Math.Ceiling((exception.RetryAtUtc.Value - DateTime.UtcNow).TotalSeconds));
+            Response.Headers.RetryAfter = seconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        var problem = new ProblemDetails
+        {
+            Status = exception.StatusCode,
+            Title = "Automated execution unavailable",
+            Detail = exception.Message
+        };
+        if (exception.RetryAtUtc.HasValue)
+        {
+            problem.Extensions["nextAllowanceAtUtc"] = exception.RetryAtUtc.Value;
+        }
+        return StatusCode(exception.StatusCode, problem);
     }
 }

@@ -163,11 +163,13 @@ export class AuthService implements OnDestroy {
   }
 
   logout(): void {
+    window.dispatchEvent(new Event('steamapp:session-ending'));
     this.clearSessionToken();
     this.setSessionState(false);
   }
 
   expireSession(): void {
+    window.dispatchEvent(new Event('steamapp:session-ending'));
     this.clearSessionToken();
     this.setSessionState(false);
   }

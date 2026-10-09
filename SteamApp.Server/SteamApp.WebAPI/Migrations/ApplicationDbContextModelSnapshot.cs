@@ -307,17 +307,22 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnName("updated_at_utc");
 
                     b.Property<string>("UserId")
-                        .IsRequired()
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)")
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_automatic_queue_definition_global_name")
+                        .HasFilter("[user_id] IS NULL");
+
                     b.HasIndex("UserId");
 
                     b.HasIndex("UserId", "Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[user_id] IS NOT NULL");
 
                     b.ToTable("automatic_queue_definition");
                 });
@@ -356,6 +361,10 @@ namespace SteamApp.WebAPI.Migrations
                     b.Property<string>("ErrorText")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("error_text");
+
+                    b.Property<int?>("PauseReason")
+                        .HasColumnType("int")
+                        .HasColumnName("pause_reason");
 
                     b.Property<string>("QueueName")
                         .IsRequired()
@@ -465,6 +474,107 @@ namespace SteamApp.WebAPI.Migrations
                     b.ToTable("automatic_queue_run_block");
                 });
 
+            modelBuilder.Entity("SteamApp.Domain.Entities.AutomationPolicy", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("LastModifiedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("last_modified_at_utc");
+
+                    b.Property<string>("LastModifiedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("last_modified_by_user_id");
+
+                    b.Property<DateTime?>("LastResetAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("last_reset_at_utc");
+
+                    b.Property<string>("LastResetByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("last_reset_by_user_id");
+
+                    b.Property<int>("NonAdminLimitSeconds")
+                        .HasColumnType("int")
+                        .HasColumnName("non_admin_limit_seconds");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("row_version");
+
+                    b.Property<DateTime?>("UsageResetAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("usage_reset_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("automation_policy", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_automation_policy_limit", "[non_admin_limit_seconds] >= 0 AND [non_admin_limit_seconds] <= 86400");
+
+                            t.HasCheckConstraint("CK_automation_policy_singleton", "[id] = 1");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            LastModifiedAtUtc = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Utc),
+                            NonAdminLimitSeconds = 900,
+                            RowVersion = new byte[0]
+                        });
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.AutomationUsageInterval", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("EndedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ended_at_utc");
+
+                    b.Property<long>("ManualCheckRunId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("manual_check_run_id");
+
+                    b.Property<DateTime>("StartedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("started_at_utc");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManualCheckRunId")
+                        .IsUnique()
+                        .HasFilter("[ended_at_utc] IS NULL");
+
+                    b.HasIndex("UserId", "EndedAtUtc");
+
+                    b.HasIndex("UserId", "StartedAtUtc");
+
+                    b.ToTable("automation_usage_interval");
+                });
+
             modelBuilder.Entity("SteamApp.Domain.Entities.FeedbackRequest", b =>
                 {
                     b.Property<long>("Id")
@@ -496,6 +606,15 @@ namespace SteamApp.WebAPI.Migrations
                     b.Property<DateTime>("StatusChangedAtUtc")
                         .HasColumnType("datetime2")
                         .HasColumnName("status_changed_at_utc");
+
+                    b.Property<long?>("TargetResourceId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("target_resource_id");
+
+                    b.Property<string>("TargetResourceType")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("target_resource_type");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -1049,12 +1168,25 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("updated_at_utc");
 
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ItemGroupId");
 
+                    b.HasIndex("UserId");
+
                     b.HasIndex("GameId", "Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_manual_check_preset_global_game_id_name")
+                        .HasFilter("[user_id] IS NULL");
+
+                    b.HasIndex("UserId", "GameId", "Name")
+                        .IsUnique()
+                        .HasFilter("[user_id] IS NOT NULL");
 
                     b.ToTable("manual_check_preset");
                 });
@@ -1131,6 +1263,10 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("int")
                         .HasColumnName("matched_products");
 
+                    b.Property<int?>("PauseReason")
+                        .HasColumnType("int")
+                        .HasColumnName("pause_reason");
+
                     b.Property<DateTime?>("PausedAtUtc")
                         .HasColumnType("datetime2")
                         .HasColumnName("paused_at_utc");
@@ -1155,12 +1291,19 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnName("started_at_utc");
 
                     b.Property<int>("Status")
+                        .IsConcurrencyToken()
                         .HasColumnType("int")
                         .HasColumnName("status");
 
                     b.Property<int>("TotalProducts")
                         .HasColumnType("int")
                         .HasColumnName("total_products");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
 
                     b.HasKey("Id");
 
@@ -1173,6 +1316,10 @@ namespace SteamApp.WebAPI.Migrations
                     b.HasIndex("ManualCheckPresetId");
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("UserId", "Date");
+
+                    b.HasIndex("UserId", "Status");
 
                     b.ToTable("manual_check_run");
                 });
@@ -1320,6 +1467,36 @@ namespace SteamApp.WebAPI.Migrations
                             Id = 4L,
                             Name = "Public API"
                         });
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.SessionPresenceLease", b =>
+                {
+                    b.Property<Guid>("TabId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("tab_id");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("expires_at_utc");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("TabId");
+
+                    b.HasIndex("ExpiresAtUtc");
+
+                    b.HasIndex("UserId", "ExpiresAtUtc");
+
+                    b.ToTable("session_presence_lease");
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.Tag", b =>
@@ -1693,6 +1870,17 @@ namespace SteamApp.WebAPI.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("AutomaticQueueRun");
+
+                    b.Navigation("ManualCheckRun");
+                });
+
+            modelBuilder.Entity("SteamApp.Domain.Entities.AutomationUsageInterval", b =>
+                {
+                    b.HasOne("SteamApp.Domain.Entities.ManualCheckRun", "ManualCheckRun")
+                        .WithMany("UsageIntervals")
+                        .HasForeignKey("ManualCheckRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("ManualCheckRun");
                 });
@@ -2097,6 +2285,8 @@ namespace SteamApp.WebAPI.Migrations
             modelBuilder.Entity("SteamApp.Domain.Entities.ManualCheckRun", b =>
                 {
                     b.Navigation("AutomaticQueueRunBlock");
+
+                    b.Navigation("UsageIntervals");
                 });
 
             modelBuilder.Entity("SteamApp.Domain.Entities.Pixel", b =>

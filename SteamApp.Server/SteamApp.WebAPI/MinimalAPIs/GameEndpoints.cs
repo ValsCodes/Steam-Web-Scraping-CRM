@@ -31,7 +31,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                 var games = await db.Games
                     .AsNoTracking()
-                    .Where(x => x.UserId == userId)
+                    .Where(x => x.UserId == null)
                     .ToListAsync();
                 return Results.Ok(mapper.Map<List<GameDto>>(games));
             })
@@ -50,7 +50,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                 var query = db.Games
                     .AsNoTracking()
-                    .Where(x => x.UserId == userId);
+                    .Where(x => x.UserId == null);
 
                 if (!string.IsNullOrWhiteSpace(request.Name))
                 {
@@ -108,7 +108,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                 var game = await db.Games
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+                    .FirstOrDefaultAsync(x => x.Id == id && x.UserId == null);
                 if (game is null) { return Results.NotFound(); }
 
                 return Results.Ok(mapper.Map<GameDto>(game));
@@ -128,7 +128,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 if (userId is null) { return Results.Unauthorized(); }
 
                 var entity = mapper.Map<Game>(input);
-                entity.UserId = userId;
+                entity.UserId = null;
 
                 db.Games.Add(entity);
                 await db.SaveChangesAsync();
@@ -152,7 +152,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 var userId = httpContext.User.GetUserId();
                 if (userId is null) { return Results.Unauthorized(); }
 
-                var entity = await db.Games.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+                var entity = await db.Games.FirstOrDefaultAsync(x => x.Id == id && x.UserId == null);
                 if (entity is null) { return Results.NotFound(); }
 
                 mapper.Map(input, entity);
@@ -178,7 +178,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 if (userId is null) { return Results.Unauthorized(); }
 
                 var exists = await db.Games
-                   .Where(x => x.Id == id && x.UserId == userId)
+                   .Where(x => x.Id == id && x.UserId == null)
                    .Select(x => new
                    {
                        HasDependencies =
@@ -222,7 +222,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 var userId = httpContext.User.GetUserId();
                 if (userId is null) { return Results.Unauthorized(); }
 
-                var entity = await db.Games.FirstOrDefaultAsync(x => x.Id == input.Id && x.UserId == userId);
+                var entity = await db.Games.FirstOrDefaultAsync(x => x.Id == input.Id && x.UserId == null);
                 if (entity is null) { return Results.NotFound(); }
 
                 if (entity.IsActive != input.IsActive)

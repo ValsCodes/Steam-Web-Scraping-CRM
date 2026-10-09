@@ -359,6 +359,7 @@ public class Program
         builder.Services.AddScoped<IManualCheckDataService, ManualCheckDataService>();
         builder.Services.AddScoped<IManualCheckExecutionService, ManualCheckExecutionService>();
         builder.Services.AddScoped<IAutomaticQueueDataService, AutomaticQueueDataService>();
+        builder.Services.AddScoped<IAutomationAccessService, AutomationAccessService>();
         builder.Services.AddSingleton<IManualCheckDelay, ManualCheckDelay>();
         builder.Services.AddScoped<IWishlistNotificationRecipientService, WishlistNotificationRecipientService>();
         builder.Services.AddScoped<IWishlistCheckExecutionService, WishlistCheckExecutionService>();
@@ -371,6 +372,7 @@ public class Program
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddHostedService<ManualCheckWorker>();
         builder.Services.AddHostedService<AutomaticQueueWorker>();
+        builder.Services.AddHostedService<AutomationReconciliationWorker>();
         builder.Services.AddHttpClient(ManualCheckOptions.HttpClientName, client =>
         {
             client.Timeout = Timeout.InfiniteTimeSpan;
@@ -448,6 +450,7 @@ public class Program
         app.UseAuthentication();
         app.UseRateLimiter();
         app.UseAuthorization();
+        app.UseMiddleware<CatalogMutationAuthorizationMiddleware>();
 
         app.MapControllers();
 

@@ -57,6 +57,15 @@
         placeholder="Catalog, exports, login, scraper..." />
     </div>
 
+    <div class="form-group">
+      <label for="feedback-request-target-type">Catalog target type</label>
+      <input id="feedback-request-target-type" formControlName="targetResourceType" maxlength="50" placeholder="game, product, tag…" />
+    </div>
+    <div class="form-group">
+      <label for="feedback-request-target-id">Catalog target ID</label>
+      <input id="feedback-request-target-id" type="number" min="1" formControlName="targetResourceId" />
+    </div>
+
     <div class="form-group form-group--full">
       <label for="feedback-request-description">Description *</label>
       <textarea

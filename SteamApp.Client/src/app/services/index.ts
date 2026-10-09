@@ -18,3 +18,4 @@ export * from './external-link-disclosure.service';
 export * from './feedback-request/feedback-request.service';
 export * from './manual-check/manual-check.service';
 export * from './automatic-queue/automatic-queue.service';
+export * from './automation/automation.service';

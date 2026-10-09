@@ -28,6 +28,12 @@ export class FeedbackRequestService {
       .pipe(catchError(handleError));
   }
 
+  getAdminAll(): Observable<FeedbackRequest[]> {
+    return this.http
+      .get<FeedbackRequest[]>(`${g.localHost}api/admin/requests`)
+      .pipe(catchError(handleError));
+  }
+
   getById(id: number): Observable<FeedbackRequest> {
     return this.http
       .get<FeedbackRequest>(`${this.baseUrl}/${id}`)

@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { of } from 'rxjs';
 
 import {
@@ -59,6 +59,7 @@ describe('FeedbackRequestsView', () => {
       providers: [
         { provide: FeedbackRequestService, useValue: service },
         { provide: Router, useValue: router },
+        { provide: ActivatedRoute, useValue: { snapshot: { data: { admin: false } } } },
       ],
     }).compileComponents();
 

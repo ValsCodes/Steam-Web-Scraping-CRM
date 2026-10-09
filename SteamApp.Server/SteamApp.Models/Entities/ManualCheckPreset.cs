@@ -14,6 +14,10 @@ public sealed class ManualCheckPreset
     [Column("id")]
     public long Id { get; set; }
 
+    [MaxLength(450)]
+    [Column("user_id")]
+    public string? UserId { get; set; }
+
     [Column("game_id")]
     [ForeignKey(nameof(Game))]
     public long GameId { get; set; }

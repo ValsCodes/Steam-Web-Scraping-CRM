@@ -11,6 +11,11 @@ public sealed class ManualCheckRun
     [Column("id")]
     public long Id { get; set; }
 
+    [Required]
+    [MaxLength(450)]
+    [Column("user_id")]
+    public string UserId { get; set; } = string.Empty;
+
     [Column("manual_check_preset_id")]
     public long? ManualCheckPresetId { get; set; }
 
@@ -53,6 +58,9 @@ public sealed class ManualCheckRun
     [Column("status")]
     public ManualCheckRunStatusEnum Status { get; set; } = ManualCheckRunStatusEnum.Queued;
 
+    [Column("pause_reason")]
+    public AutomationPauseReasonEnum? PauseReason { get; set; }
+
     [Column("date")]
     public DateTime Date { get; set; }
 
@@ -76,4 +84,6 @@ public sealed class ManualCheckRun
     public string CorrelationId { get; set; } = string.Empty;
 
     public AutomaticQueueRunBlock? AutomaticQueueRunBlock { get; set; }
+
+    public ICollection<AutomationUsageInterval> UsageIntervals { get; set; } = [];
 }

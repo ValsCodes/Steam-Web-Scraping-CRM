@@ -163,7 +163,7 @@
             </button>
 
             <mat-menu #feedbackActionsMenu="matMenu" xPosition="before" panelClass="table-actions-menu">
-              @for (option of statusOptions; track option.value) {
+              @for (option of (adminMode ? statusOptions : []); track option.value) {
                 @if (option.value !== row.status) {
                   <button
                     type="button"

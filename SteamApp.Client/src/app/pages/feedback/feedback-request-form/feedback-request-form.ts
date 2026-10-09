@@ -52,6 +52,8 @@ export class FeedbackRequestForm implements OnInit {
     title: ['', [Validators.required, Validators.maxLength(140)]],
     description: ['', [Validators.required, Validators.maxLength(4000)]],
     area: ['', [Validators.maxLength(120)]],
+    targetResourceType: ['', [Validators.maxLength(50)]],
+    targetResourceId: this.fb.control<number | null>(null),
     status: [{ value: FeedbackRequestStatus.Active, disabled: true }, [Validators.required]],
   });
 
@@ -69,7 +71,6 @@ export class FeedbackRequestForm implements OnInit {
     if (idParam) {
       this.isEditMode = true;
       this.feedbackRequestId = Number(idParam);
-      this.form.controls.status.enable({ emitEvent: false });
       this.loadFeedbackRequest(this.feedbackRequestId);
     }
   }
@@ -113,6 +114,8 @@ export class FeedbackRequestForm implements OnInit {
           title: request.title,
           description: request.description,
           area: request.area ?? '',
+          targetResourceType: request.targetResourceType ?? '',
+          targetResourceId: request.targetResourceId ?? null,
           status: request.status,
         });
       });
@@ -198,6 +201,8 @@ export class FeedbackRequestForm implements OnInit {
       title: value.title.trim(),
       description: value.description.trim(),
       area: this.normalizeOptional(value.area),
+      targetResourceType: this.normalizeOptional(value.targetResourceType),
+      targetResourceId: value.targetResourceId,
     };
   }
 
@@ -209,7 +214,8 @@ export class FeedbackRequestForm implements OnInit {
       title: value.title.trim(),
       description: value.description.trim(),
       area: this.normalizeOptional(value.area),
-      status: value.status,
+      targetResourceType: this.normalizeOptional(value.targetResourceType),
+      targetResourceId: value.targetResourceId,
     };
   }
 

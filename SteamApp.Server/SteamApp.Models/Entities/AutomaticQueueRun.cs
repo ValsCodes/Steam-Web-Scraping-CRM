@@ -29,6 +29,9 @@ public sealed class AutomaticQueueRun
     [Column("status")]
     public AutomaticQueueRunStatusEnum Status { get; set; } = AutomaticQueueRunStatusEnum.Queued;
 
+    [Column("pause_reason")]
+    public AutomationPauseReasonEnum? PauseReason { get; set; }
+
     [Column("current_block_index")]
     public int CurrentBlockIndex { get; set; }
 

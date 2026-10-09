@@ -73,7 +73,7 @@ public static class IntegrationSeed
                 PageUrl = "https://steam.example/app/1",
                 InternalId = 10,
                 IsActive = true,
-                UserId = UserId
+                UserId = null
             },
             new Game
             {
@@ -83,7 +83,7 @@ public static class IntegrationSeed
                 PageUrl = "https://steam.example/app/2",
                 InternalId = 20,
                 IsActive = false,
-                UserId = UserId
+                UserId = null
             },
             new Game
             {
@@ -93,7 +93,7 @@ public static class IntegrationSeed
                 PageUrl = "https://steam.example/app/3",
                 InternalId = 30,
                 IsActive = true,
-                UserId = UserId
+                UserId = null
             });
 
         db.GameUrls.AddRange(
@@ -107,7 +107,7 @@ public static class IntegrationSeed
                 StartPage = 1,
                 EndPage = 5,
                 IsActive = true,
-                UserId = UserId
+                UserId = null
             },
             new GameUrl
             {
@@ -121,7 +121,7 @@ public static class IntegrationSeed
                 PixelImageWidth = 62,
                 PixelImageHeight = 62,
                 IsActive = true,
-                UserId = UserId
+                UserId = null
             });
 
         db.Products.AddRange(
@@ -132,7 +132,7 @@ public static class IntegrationSeed
                 Name = "Rocket Launcher",
                 Rating = 5,
                 IsActive = true,
-                UserId = UserId
+                UserId = null
             },
             new Product
             {
@@ -141,7 +141,7 @@ public static class IntegrationSeed
                 Name = "Medigun",
                 Rating = 3,
                 IsActive = false,
-                UserId = UserId
+                UserId = null
             });
 
         db.Pixels.AddRange(
@@ -154,7 +154,7 @@ public static class IntegrationSeed
                 GreenValue = 108,
                 BlueValue = 45,
                 IsActive = true,
-                UserId = UserId
+                UserId = null
             },
             new Pixel
             {
@@ -165,16 +165,16 @@ public static class IntegrationSeed
                 GreenValue = 48,
                 BlueValue = 44,
                 IsActive = false,
-                UserId = UserId
+                UserId = null
             });
 
         db.ItemGroups.AddRange(
-            new ItemGroup { Id = 1, GameId = 1, Name = "Priority", UserId = UserId },
-            new ItemGroup { Id = 2, GameId = 2, Name = "Role", UserId = UserId });
+            new ItemGroup { Id = 1, GameId = 1, Name = "Priority", UserId = null },
+            new ItemGroup { Id = 2, GameId = 2, Name = "Role", UserId = null });
 
         db.Tags.AddRange(
-            new Tag { Id = 1, GameId = 1, ItemGroupId = 1, Name = "Primary", IsActive = true, UserId = UserId },
-            new Tag { Id = 2, GameId = 2, Name = "Support", IsActive = false, UserId = UserId });
+            new Tag { Id = 1, GameId = 1, ItemGroupId = 1, Name = "Primary", IsActive = true, UserId = null },
+            new Tag { Id = 2, GameId = 2, Name = "Support", IsActive = false, UserId = null });
 
         db.WishLists.AddRange(
             new WishList

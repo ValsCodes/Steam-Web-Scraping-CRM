@@ -93,6 +93,43 @@ public sealed class AutomaticQueueDataServiceTests
     }
 
     [Test]
+    public async Task GlobalDefinition_IsReadOnlyToUsersAndCanBeClonedPersonally()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        PrepareManualSource(database);
+        var manualChecks = new ManualCheckDataService(database.Factory);
+        var preset = await manualChecks.CreateGlobalPresetAsync(
+            TestDb.TestUserId,
+            Preset("Global preset"),
+            CancellationToken.None);
+        var service = CreateService(database, manualChecks);
+        var global = await service.CreateGlobalDefinitionAsync(
+            TestDb.TestUserId,
+            Definition("Global queue", ManualBlock(preset.Id, [1])),
+            CancellationToken.None);
+
+        var visible = await service.GetDefinitionsAsync(TestDb.TestUserId, CancellationToken.None);
+        var edit = Assert.ThrowsAsync<AutomaticQueueRequestException>(() =>
+            service.UpdateDefinitionAsync(
+                global.Id,
+                TestDb.TestUserId,
+                Definition("Changed", ManualBlock(preset.Id, [1])),
+                CancellationToken.None));
+        var clone = await service.CloneDefinitionAsync(global.Id, TestDb.TestUserId, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(visible.Single(x => x.Id == global.Id).Scope, Is.EqualTo("global"));
+            Assert.That(global.CanEdit, Is.False);
+            Assert.That(global.CanClone, Is.True);
+            Assert.That(edit!.StatusCode, Is.EqualTo(404));
+            Assert.That(clone.Id, Is.Not.EqualTo(global.Id));
+            Assert.That(clone.Scope, Is.EqualTo("personal"));
+            Assert.That(clone.Blocks.Single().PresetId, Is.EqualTo(preset.Id));
+        });
+    }
+
+    [Test]
     public async Task CreateDefinition_InvalidLaterBlockRejectsTheWholeDefinition()
     {
         using var database = TestDb.CreateSeededDatabase();

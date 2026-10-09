@@ -22,6 +22,9 @@ public class ManualCheckRunSummaryDto
     [JsonConverter(typeof(StringEnumConverter))]
     public ManualCheckRunStatusEnum Status { get; set; }
 
+    [JsonConverter(typeof(StringEnumConverter))]
+    public AutomationPauseReasonEnum? PauseReason { get; set; }
+
     public DateTime Date { get; set; }
     public DateTime? StartedAtUtc { get; set; }
     public DateTime? CompletedAtUtc { get; set; }

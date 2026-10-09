@@ -35,6 +35,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<AutomaticQueueBlock> AutomaticQueueBlocks { get; set; }
     public DbSet<AutomaticQueueRun> AutomaticQueueRuns { get; set; }
     public DbSet<AutomaticQueueRunBlock> AutomaticQueueRunBlocks { get; set; }
+    public DbSet<AutomationPolicy> AutomationPolicies { get; set; }
+    public DbSet<AutomationUsageInterval> AutomationUsageIntervals { get; set; }
+    public DbSet<SessionPresenceLease> SessionPresenceLeases { get; set; }
     public DbSet<FeedbackRequest> FeedbackRequests { get; set; }
     public DbSet<FeedbackRequestHistory> FeedbackRequestHistories { get; set; }
     public DbSet<GameUrlProductStockHistory> GameUrlProductStockHistories { get; set; }
@@ -100,6 +103,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(x => x.Area)
                   .HasMaxLength(FeedbackRequest.AreaMaxLength)
                   .HasColumnName("area");
+
+            entity.Property(x => x.TargetResourceType)
+                  .HasMaxLength(FeedbackRequest.TargetResourceTypeMaxLength)
+                  .HasColumnName("target_resource_type");
+
+            entity.Property(x => x.TargetResourceId)
+                  .HasColumnName("target_resource_id");
 
             entity.Property(x => x.Status)
                   .HasColumnName("status");
@@ -213,6 +223,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         });
         modelBuilder.Entity<ManualCheckPreset>(entity =>
         {
+            entity.Property(x => x.UserId)
+                  .HasMaxLength(450)
+                  .HasColumnName("user_id");
             entity.Property(x => x.Name)
                   .HasMaxLength(ManualCheckPreset.NameMaxLength)
                   .HasColumnName("name");
@@ -237,8 +250,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   .HasForeignKey(x => x.ItemGroupId)
                   .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(x => new { x.GameId, x.Name })
+            entity.HasIndex(x => new { x.UserId, x.GameId, x.Name })
                   .IsUnique();
+            entity.HasIndex(x => new { x.GameId, x.Name })
+                  .HasDatabaseName("IX_manual_check_preset_global_game_id_name")
+                  .IsUnique()
+                  .HasFilter("[user_id] IS NULL");
+            entity.HasIndex(x => x.UserId);
         });
         modelBuilder.Entity<ManualCheckCriterion>(entity =>
         {
@@ -298,6 +316,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         });
         modelBuilder.Entity<ManualCheckRun>(entity =>
         {
+            entity.Property(x => x.UserId)
+                  .HasMaxLength(450)
+                  .HasColumnName("user_id")
+                  .IsRequired();
             entity.Property(x => x.PresetName)
                   .HasMaxLength(ManualCheckPreset.NameMaxLength)
                   .HasColumnName("preset_name");
@@ -309,7 +331,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   .HasColumnName("results_json");
 
             entity.Property(x => x.Status)
-                  .HasColumnName("status");
+                  .HasColumnName("status")
+                  .IsConcurrencyToken();
+
+            entity.Property(x => x.PauseReason)
+                  .HasColumnName("pause_reason");
 
             entity.Property(x => x.ErrorText)
                   .HasColumnName("error_text");
@@ -337,6 +363,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasIndex(x => x.Status);
             entity.HasIndex(x => x.GameId);
             entity.HasIndex(x => x.GameUrlId);
+            entity.HasIndex(x => new { x.UserId, x.Date });
+            entity.HasIndex(x => new { x.UserId, x.Status });
         });
         modelBuilder.Entity<ManualCheckPresetGameUrl>(entity =>
         {
@@ -355,6 +383,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<AutomaticQueueDefinition>(entity =>
         {
             entity.HasIndex(x => new { x.UserId, x.Name }).IsUnique();
+            entity.HasIndex(x => x.Name)
+                  .HasDatabaseName("IX_automatic_queue_definition_global_name")
+                  .IsUnique()
+                  .HasFilter("[user_id] IS NULL");
             entity.HasIndex(x => x.UserId);
         });
         modelBuilder.Entity<AutomaticQueueBlock>(entity =>
@@ -370,6 +402,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<AutomaticQueueRun>(entity =>
         {
             entity.Property(x => x.Status).IsConcurrencyToken();
+            entity.Property(x => x.PauseReason).HasColumnName("pause_reason");
 
             entity.HasOne(x => x.AutomaticQueueDefinition)
                   .WithMany(x => x.Runs)
@@ -381,6 +414,51 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasIndex(x => x.AutomaticQueueDefinitionId)
                   .IsUnique()
                   .HasFilter("[automatic_queue_definition_id] IS NOT NULL AND [status] IN (1, 2, 3, 4)");
+        });
+        modelBuilder.Entity<AutomationPolicy>(entity =>
+        {
+            entity.ToTable("automation_policy", table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_automation_policy_singleton",
+                    "[id] = 1");
+                table.HasCheckConstraint(
+                    "CK_automation_policy_limit",
+                    "[non_admin_limit_seconds] >= 0 AND [non_admin_limit_seconds] <= 86400");
+            });
+            var rowVersion = entity.Property(x => x.RowVersion);
+            if (Database.ProviderName == "Microsoft.EntityFrameworkCore.SqlServer")
+            {
+                rowVersion.IsRowVersion();
+            }
+            else
+            {
+                rowVersion.IsConcurrencyToken().ValueGeneratedNever();
+            }
+            entity.HasData(new AutomationPolicy
+            {
+                Id = AutomationPolicy.SingletonId,
+                NonAdminLimitSeconds = AutomationPolicy.DefaultNonAdminLimitSeconds,
+                LastModifiedAtUtc = new DateTime(2026, 10, 7, 0, 0, 0, DateTimeKind.Utc)
+            });
+        });
+        modelBuilder.Entity<AutomationUsageInterval>(entity =>
+        {
+            entity.HasOne(x => x.ManualCheckRun)
+                  .WithMany(x => x.UsageIntervals)
+                  .HasForeignKey(x => x.ManualCheckRunId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.UserId, x.StartedAtUtc });
+            entity.HasIndex(x => new { x.UserId, x.EndedAtUtc });
+            entity.HasIndex(x => x.ManualCheckRunId)
+                  .IsUnique()
+                  .HasFilter("[ended_at_utc] IS NULL");
+        });
+        modelBuilder.Entity<SessionPresenceLease>(entity =>
+        {
+            entity.HasKey(x => x.TabId);
+            entity.HasIndex(x => new { x.UserId, x.ExpiresAtUtc });
+            entity.HasIndex(x => x.ExpiresAtUtc);
         });
         modelBuilder.Entity<AutomaticQueueRunBlock>(entity =>
         {

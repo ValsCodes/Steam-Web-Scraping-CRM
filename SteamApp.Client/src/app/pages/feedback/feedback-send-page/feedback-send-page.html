@@ -28,6 +28,16 @@
         placeholder="Catalog, exports, login, scraper..." />
     </div>
 
+    <div class="form-group">
+      <label for="feedback-send-target-type">Catalog target type</label>
+      <input id="feedback-send-target-type" formControlName="targetResourceType" maxlength="50" placeholder="game, product, tag…" />
+    </div>
+
+    <div class="form-group">
+      <label for="feedback-send-target-id">Catalog target ID</label>
+      <input id="feedback-send-target-id" type="number" min="1" formControlName="targetResourceId" />
+    </div>
+
     <div class="form-group form-group--full">
       <label for="feedback-send-title">Title *</label>
       <input

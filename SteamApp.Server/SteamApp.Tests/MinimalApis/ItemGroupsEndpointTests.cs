@@ -172,12 +172,12 @@ public sealed class ItemGroupsEndpointTests
                 Id = 3,
                 GameId = 1,
                 Name = "Category",
-                UserId = TestDb.TestUserId,
+                UserId = null,
             });
             db.Tags.AddRange(
-                new Tag { Id = 3, GameId = 1, ItemGroupId = 1, Name = "Alpha", UserId = TestDb.TestUserId },
-                new Tag { Id = 4, GameId = 1, ItemGroupId = 3, Name = "Beta", UserId = TestDb.TestUserId },
-                new Tag { Id = 5, GameId = 1, Name = "No Group", UserId = TestDb.TestUserId });
+                new Tag { Id = 3, GameId = 1, ItemGroupId = 1, Name = "Alpha", UserId = null },
+                new Tag { Id = 4, GameId = 1, ItemGroupId = 3, Name = "Beta", UserId = null },
+                new Tag { Id = 5, GameId = 1, Name = "No Group", UserId = null });
             db.SaveChanges();
         });
 

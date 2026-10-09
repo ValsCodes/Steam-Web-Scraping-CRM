@@ -36,6 +36,7 @@ describe('ManualCheckSetupDialogComponent', () => {
       'createPreset',
       'updatePreset',
       'deletePreset',
+      'clonePreset',
     ]);
     itemGroupService = jasmine.createSpyObj<ItemGroupService>('ItemGroupService', [
       'getByGame',
@@ -329,6 +330,34 @@ describe('ManualCheckSetupDialogComponent', () => {
 
     expect(service.updatePreset).not.toHaveBeenCalled();
     expect(dialogRef.close).toHaveBeenCalledWith({ mode: 'run', presetId: 2, presetCombination: null, bypassCache: true });
+  });
+
+  it('keeps global presets read-only and clones them into a personal preset', () => {
+    const globalPreset = {
+      ...component.presets.find((item) => item.id === 2)!,
+      scope: 'global' as const,
+      canEdit: false,
+      canClone: true,
+    };
+    const personalClone = {
+      ...globalPreset,
+      id: 3,
+      name: 'Preferred (copy)',
+      scope: 'personal' as const,
+      canEdit: true,
+    };
+    component.presets = component.presets.map((item) => item.id === 2 ? globalPreset : item);
+    component.selectPreset(2);
+    service.clonePreset.and.returnValue(of(personalClone));
+
+    component.markDirty();
+    component.cloneSelectedPreset();
+
+    expect(component.isSelectedPresetReadOnly).toBeFalse();
+    expect(component.selectedPresetId).toBe(3);
+    expect(component.dirty).toBeFalse();
+    expect(service.clonePreset).toHaveBeenCalledWith(2);
+    expect(component.successMessage).toContain('cloned');
   });
 
   it('builds and starts a left-to-right preset combination with independent settings', () => {

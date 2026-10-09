@@ -1,6 +1,7 @@
 export enum FeedbackRequestType {
   Feedback = 1,
   Bug = 2,
+  Request = 3,
 }
 
 export enum FeedbackRequestStatus {
@@ -26,6 +27,8 @@ export interface FeedbackRequest {
   createdAtUtc: string;
   updatedAtUtc: string;
   statusChangedAtUtc: string;
+  targetResourceType?: string | null;
+  targetResourceId?: number | null;
 }
 
 export interface CreateFeedbackRequest {
@@ -33,6 +36,8 @@ export interface CreateFeedbackRequest {
   title: string;
   description: string;
   area?: string | null;
+  targetResourceType?: string | null;
+  targetResourceId?: number | null;
 }
 
 export interface UpdateFeedbackRequest {
@@ -40,7 +45,8 @@ export interface UpdateFeedbackRequest {
   title: string;
   description: string;
   area?: string | null;
-  status: FeedbackRequestStatus;
+  targetResourceType?: string | null;
+  targetResourceId?: number | null;
 }
 
 export interface UpdateFeedbackRequestStatus {
@@ -72,6 +78,7 @@ export interface FeedbackRequestOption<TValue extends number> {
 export const FEEDBACK_REQUEST_TYPE_OPTIONS: readonly FeedbackRequestOption<FeedbackRequestType>[] = [
   { value: FeedbackRequestType.Feedback, label: 'Feedback' },
   { value: FeedbackRequestType.Bug, label: 'Bug' },
+  { value: FeedbackRequestType.Request, label: 'Request' },
 ];
 
 export const FEEDBACK_REQUEST_STATUS_OPTIONS: readonly FeedbackRequestOption<FeedbackRequestStatus>[] = [

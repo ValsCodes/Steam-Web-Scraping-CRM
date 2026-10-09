@@ -40,6 +40,7 @@ import {
   GameService,
   GameUrlProductService,
   GameUrlService,
+  AutomationService,
   ManualCheckService,
   ScrapingModeService,
   TagService,
@@ -251,7 +252,31 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     private readonly dialog: MatDialog,
     private readonly cdr: ChangeDetectorRef,
     private readonly externalLinkDisclosure: ExternalLinkDisclosureService,
+    readonly automationService: AutomationService,
   ) {}
+
+  get automationUsageText(): string {
+    const usage = this.automationService.usage();
+    if (!usage) return 'Checking automation allowance…';
+    if (usage.unlimited) return 'Automation allowance: unlimited';
+    const remaining = Math.max(0, usage.remainingSeconds ?? 0);
+    return `Automation allowance: ${Math.floor(remaining / 60)}m ${remaining % 60}s remaining`;
+  }
+
+  get automationUnavailable(): boolean {
+    const usage = this.automationService.usage();
+    return !usage || (!usage.unlimited && (!usage.presenceActive || (usage.remainingSeconds ?? 0) <= 0));
+  }
+
+  get automationPauseMessage(): string | null {
+    switch (this.automatedRun?.pauseReason) {
+      case 'PresenceLost': return 'Paused because no active browser tab was detected.';
+      case 'QuotaExceeded': return 'Paused because the rolling automation allowance was used.';
+      case 'SystemRecovery': return 'Paused during server recovery. Resume when ready.';
+      case 'UserRequested': return 'Paused by you.';
+      default: return null;
+    }
+  }
 
   get gameTagGroups(): readonly ItemGroupSection<Tag>[] {
     return groupByItemGroup(this.gameTagsFilter);
@@ -262,6 +287,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.automationService.refreshUsage();
     this.loadGames();
     this.loadScrapingModes();
     this.loadGameUrls();
@@ -924,6 +950,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       this.automatedListingLimitPending ||
       this.automatedListingLimitDirty ||
       !this.isAutomatedListingLimitValid
+      || this.automationUnavailable
     ) {
       return;
     }
@@ -1431,6 +1458,10 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     bypassCache: boolean,
     productIds: number[] | null,
   ): void {
+    if (this.automationUnavailable) {
+      this.automationService.refreshUsage();
+      return;
+    }
     this.discardRemovedProducts();
     this.resetAutomatedCheck();
     if (this.products.length === 0) {
@@ -1481,6 +1512,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
   }
 
   private applyAutomatedRun(run: ManualCheckRunDetail): void {
+    this.automationService.refreshUsage();
     const isTerminal = this.isTerminalStatus(run);
     this.automatedRunActive = !isTerminal;
     this.hasAutomatedCheckResult = isTerminal;

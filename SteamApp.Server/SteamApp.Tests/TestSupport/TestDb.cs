@@ -31,8 +31,20 @@ public static class TestDb
     {
         var database = CreateDatabase();
         SeedBaseline(database.Context);
+        SeedLegacyOwnedCatalog(database.Context);
 
         return database;
+    }
+
+    private static void SeedLegacyOwnedCatalog(ApplicationDbContext db)
+    {
+        foreach (var game in db.Games) game.UserId = TestUserId;
+        foreach (var gameUrl in db.GameUrls) gameUrl.UserId = TestUserId;
+        foreach (var product in db.Products) product.UserId = TestUserId;
+        foreach (var pixel in db.Pixels) pixel.UserId = TestUserId;
+        foreach (var tag in db.Tags) tag.UserId = TestUserId;
+        foreach (var itemGroup in db.ItemGroups) itemGroup.UserId = TestUserId;
+        db.SaveChanges();
     }
 
     public static TestDbContextFactory CreateSeededFactory()
@@ -91,7 +103,7 @@ public static class TestDb
                 PageUrl = "https://steam.example/app/1",
                 InternalId = 10,
                 IsActive = true,
-                UserId = TestUserId
+                UserId = null
             },
             new Game
             {
@@ -101,7 +113,7 @@ public static class TestDb
                 PageUrl = "https://steam.example/app/2",
                 InternalId = 20,
                 IsActive = false,
-                UserId = TestUserId
+                UserId = null
             });
 
         db.GameUrls.AddRange(
@@ -115,7 +127,7 @@ public static class TestDb
                 StartPage = 1,
                 EndPage = 5,
                 IsActive = true,
-                UserId = TestUserId
+                UserId = null
             },
             new GameUrl
             {
@@ -129,7 +141,7 @@ public static class TestDb
                 PixelImageWidth = 62,
                 PixelImageHeight = 62,
                 IsActive = true,
-                UserId = TestUserId
+                UserId = null
             });
 
         db.Products.AddRange(
@@ -140,7 +152,7 @@ public static class TestDb
                 Name = "Rocket Launcher",
                 Rating = 5,
                 IsActive = true,
-                UserId = TestUserId
+                UserId = null
             },
             new Product
             {
@@ -149,7 +161,7 @@ public static class TestDb
                 Name = "Medigun",
                 Rating = 3,
                 IsActive = false,
-                UserId = TestUserId
+                UserId = null
             });
 
         db.Pixels.AddRange(
@@ -162,7 +174,7 @@ public static class TestDb
                 GreenValue = 108,
                 BlueValue = 45,
                 IsActive = true,
-                UserId = TestUserId
+                UserId = null
             },
             new Pixel
             {
@@ -173,16 +185,16 @@ public static class TestDb
                 GreenValue = 48,
                 BlueValue = 44,
                 IsActive = false,
-                UserId = TestUserId
+                UserId = null
             });
 
         db.ItemGroups.AddRange(
-            new ItemGroup { Id = 1, GameId = 1, Name = "Priority", UserId = TestUserId },
-            new ItemGroup { Id = 2, GameId = 2, Name = "Role", UserId = TestUserId });
+            new ItemGroup { Id = 1, GameId = 1, Name = "Priority", UserId = null },
+            new ItemGroup { Id = 2, GameId = 2, Name = "Role", UserId = null });
 
         db.Tags.AddRange(
-            new Tag { Id = 1, GameId = 1, ItemGroupId = 1, Name = "Primary", IsActive = true, UserId = TestUserId },
-            new Tag { Id = 2, GameId = 2, Name = "Support", IsActive = false, UserId = TestUserId });
+            new Tag { Id = 1, GameId = 1, ItemGroupId = 1, Name = "Primary", IsActive = true, UserId = null },
+            new Tag { Id = 2, GameId = 2, Name = "Support", IsActive = false, UserId = null });
 
         db.WishLists.AddRange(
             new WishList

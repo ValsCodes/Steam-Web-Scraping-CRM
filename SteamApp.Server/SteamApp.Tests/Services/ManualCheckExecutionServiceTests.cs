@@ -198,13 +198,49 @@ public sealed class ManualCheckExecutionServiceTests
     }
 
     [Test]
-    public async Task ExecuteAsync_ParsesListingsFromSteamsServerRenderedMarketPage()
+    public async Task ExecuteAsync_HtmlRateLimitPage_RetriesAndRecordsActionable429()
+    {
+        var attempts = 0;
+        var handler = new HttpMessageHandlerStub((_, _) =>
+        {
+            attempts++;
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    "<!DOCTYPE html><html><body>You've made too many requests recently. Please wait and try your request again later.</body></html>",
+                    Encoding.UTF8,
+                    "text/html")
+            };
+            response.Headers.RetryAfter = new RetryConditionHeaderValue(TimeSpan.FromMilliseconds(1));
+            return response;
+        });
+        var data = DataServiceMock(Setup(Product(1, "First")));
+        var service = CreateService(handler, data.Object, maxAttempts: 2);
+
+        await service.ExecuteAsync(26, CancellationToken.None, CancellationToken.None);
+
+        Assert.That(attempts, Is.EqualTo(2));
+        data.Verify(x => x.FailAsync(
+            26,
+            It.Is<string>(message =>
+                message.Contains("rate-limited the automated market request") &&
+                message.Contains("separate Steam session")),
+            It.Is<ManualCheckRunResultsDto>(results =>
+                results.Errors.Count == 1 &&
+                results.Errors[0].HttpStatusCode == 429 &&
+                results.Errors[0].ErrorType == nameof(HttpRequestException)),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task ExecuteAsync_ServerRenderedMarketPage_ParsesLegacyAndCurrentPayloads(bool currentFormat)
     {
         var handler = new HttpMessageHandlerStub((_, _) =>
             new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(
-                    SteamMarketPage("Sheen: Mean Green"),
+                    SteamMarketPage("Sheen: Mean Green", currentFormat: currentFormat),
                     Encoding.UTF8,
                     "text/html")
             });
@@ -395,7 +431,7 @@ public sealed class ManualCheckExecutionServiceTests
     }
 
     [Test]
-    public async Task ExecuteAsync_PauseDuringProduct_FinishesAndPersistsTheCurrentProduct()
+    public async Task ExecuteAsync_PauseDuringProduct_CancelsAndMarksPausedWithoutProgress()
     {
         var attempts = 0;
         using var pause = new CancellationTokenSource();
@@ -406,28 +442,19 @@ public sealed class ManualCheckExecutionServiceTests
             return JsonResponse(new Listing { Success = true });
         });
         var data = DataServiceMock(Setup(Product(1, "First"), Product(2, "Second")));
-        data.Setup(x => x.UpdateProgressAsync(
-                23,
-                1,
-                It.IsAny<int>(),
-                It.IsAny<int>(),
-                It.IsAny<ManualCheckRunResultsDto>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ManualCheckRunStatusEnum.Paused);
         var service = CreateService(handler, data.Object, maxAttempts: 1);
 
         await service.ExecuteAsync(23, CancellationToken.None, pause.Token);
 
         Assert.That(attempts, Is.EqualTo(1));
+        data.Verify(x => x.MarkPausedAsync(23, It.IsAny<CancellationToken>()), Times.Once);
         data.Verify(x => x.UpdateProgressAsync(
-            23,
-            1,
-            0,
-            0,
-            It.Is<ManualCheckRunResultsDto>(results =>
-                results.ProductTraces.Count == 1 &&
-                results.ProductTraces[0].MatchEvaluated),
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<long>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<ManualCheckRunResultsDto>(),
+            It.IsAny<CancellationToken>()), Times.Never);
         data.Verify(x => x.CompleteAsync(
             It.IsAny<long>(),
             It.IsAny<ManualCheckRunStatusEnum>(),
@@ -670,7 +697,11 @@ public sealed class ManualCheckExecutionServiceTests
         };
     }
 
-    private static string SteamMarketPage(string descriptionValue, int price = 100, int fee = 15)
+    private static string SteamMarketPage(
+        string descriptionValue,
+        int price = 100,
+        int fee = 15,
+        bool currentFormat = false)
     {
         var queryData = JsonConvert.SerializeObject(new
         {
@@ -733,6 +764,15 @@ public sealed class ManualCheckExecutionServiceTests
             }
         });
         var renderContext = JsonConvert.SerializeObject(new { queryData });
+        if (currentFormat)
+        {
+            var ssrData = JsonConvert.SerializeObject(new
+            {
+                renderContext = new { queryData }
+            });
+            return $"<!DOCTYPE html><html><script id=\"valve-ssr-data\" type=\"application/json\">{ssrData}</script></html>";
+        }
+
         return $"<!DOCTYPE html><html><script>window.SSR.renderContext=JSON.parse({JsonConvert.SerializeObject(renderContext)});</script></html>";
     }
 

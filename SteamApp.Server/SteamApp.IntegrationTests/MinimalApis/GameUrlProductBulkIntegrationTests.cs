@@ -25,7 +25,7 @@ public sealed class GameUrlProductBulkIntegrationTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             db.Products.AddRange(productIds.Skip(1).Select(id => new Product
             {
-                Id = id, GameId = 1, Name = $"Product {id}", IsActive = true, UserId = IntegrationSeed.UserId,
+                Id = id, GameId = 1, Name = $"Product {id}", IsActive = true, UserId = null,
             }));
             (await db.GameUrlsProducts.FindAsync(1L, 1L))!.CurrentStock = 42;
             await db.SaveChangesAsync();
@@ -57,8 +57,8 @@ public sealed class GameUrlProductBulkIntegrationTests
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             db.Products.AddRange(
-                new Product { Id = 10, GameId = 1, Name = "Ten", UserId = IntegrationSeed.UserId },
-                new Product { Id = 11, GameId = 1, Name = "Eleven", UserId = IntegrationSeed.UserId });
+                new Product { Id = 10, GameId = 1, Name = "Ten", UserId = null },
+                new Product { Id = 11, GameId = 1, Name = "Eleven", UserId = null });
             (await db.GameUrlsProducts.FindAsync(1L, 1L))!.CurrentStock = 42;
             await db.SaveChangesAsync();
             await db.Database.ExecuteSqlRawAsync(
@@ -195,8 +195,8 @@ public sealed class GameUrlProductBulkIntegrationTests
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             db.Products.AddRange(
-                new Product { Id = 10, GameId = 1, Name = "Ten", IsActive = true, UserId = IntegrationSeed.UserId },
-                new Product { Id = 11, GameId = 1, Name = "Eleven", IsActive = true, UserId = IntegrationSeed.UserId });
+                new Product { Id = 10, GameId = 1, Name = "Ten", IsActive = true, UserId = null },
+                new Product { Id = 11, GameId = 1, Name = "Eleven", IsActive = true, UserId = null });
             db.GameUrlsProducts.Add(new GameUrlProducts { ProductId = 11, GameUrlId = 1, CurrentStock = 7 });
             (await db.GameUrlsProducts.FindAsync(1L, 1L))!.CurrentStock = 42;
             await db.SaveChangesAsync();
@@ -229,7 +229,7 @@ public sealed class GameUrlProductBulkIntegrationTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             db.Products.Add(new Product
             {
-                Id = 10, GameId = 1, Name = "Ten", IsActive = true, UserId = IntegrationSeed.UserId,
+                Id = 10, GameId = 1, Name = "Ten", IsActive = true, UserId = null,
             });
             await db.SaveChangesAsync();
         }
@@ -263,7 +263,7 @@ public sealed class GameUrlProductBulkIntegrationTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             db.Products.Add(new Product
             {
-                Id = 11, GameId = 1, Name = "Eleven", IsActive = true, UserId = IntegrationSeed.UserId,
+                Id = 11, GameId = 1, Name = "Eleven", IsActive = true, UserId = null,
             });
             (await db.GameUrlsProducts.FindAsync(1L, 1L))!.CurrentStock = 42;
             await db.SaveChangesAsync();

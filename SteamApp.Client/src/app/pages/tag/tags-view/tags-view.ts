@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -10,7 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 
-import { GameService, ItemGroupService, TagService } from '../../../services';
+import { AuthService, GameService, ItemGroupService, TagService } from '../../../services';
 import { Game, ItemGroup, Tag, UpdateTagStatus } from '../../../models';
 import { BehaviorSubject, combineLatest, finalize, of, startWith, Subject, switchMap, takeUntil } from 'rxjs';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -37,7 +37,10 @@ type ItemGroupFilterValue = number | 'ungrouped' | null;
   styleUrl: './tags-view.scss',
 })
 export class TagsView implements OnInit, OnDestroy {
-  displayedColumns: string[] = ['gameName', 'itemGroupName', 'name', 'isActive', 'actions'];
+  readonly isAdmin = inject(AuthService).getCurrentUser()?.isAdmin === true;
+  displayedColumns: string[] = this.isAdmin
+    ? ['gameName', 'itemGroupName', 'name', 'isActive', 'actions']
+    : ['gameName', 'itemGroupName', 'name', 'isActive'];
 
   readonly games$ = new BehaviorSubject<readonly Game[]>([]);
   private readonly destroy$ = new Subject<void>();

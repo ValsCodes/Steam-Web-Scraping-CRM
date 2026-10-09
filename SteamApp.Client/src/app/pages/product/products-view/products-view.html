@@ -18,7 +18,9 @@
         Export
       </button>
 
-      <button class="create-button" (click)="createButtonClicked()">Create</button>
+      @if (isAdmin) {
+        <button class="create-button" (click)="createButtonClicked()">Create</button>
+      }
     </div>
   </div>
 

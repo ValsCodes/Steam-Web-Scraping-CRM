@@ -114,11 +114,16 @@ export interface ManualCheckHistoryDialogData {
                   </td>
                   <td class="manual-check-history__actions">
                     <button mat-stroked-button type="button" (click)="openTrace(run)">View trace</button>
+                    <button
+                      mat-button
+                      type="button"
+                      (click)="loadRun(run)"
+                      [disabled]="busyRunId !== null">
+                      Load
+                    </button>
                     @if (run.automaticQueueRunId) {
                       <small class="manual-check-history__muted">Managed by its queue</small>
-                    } @else if (isActiveRun(run)) {
-                      <button mat-button type="button" (click)="manage(run)">Manage</button>
-                    } @else {
+                    } @else if (!isActiveRun(run)) {
                       <button
                         mat-button
                         type="button"
@@ -223,7 +228,7 @@ export class ManualCheckHistoryDialogComponent implements OnInit {
       run.status === 'Paused';
   }
 
-  manage(run: ManualCheckRunSummary): void {
+  loadRun(run: ManualCheckRunSummary): void {
     this.dialogRef.close(run.id);
   }
 

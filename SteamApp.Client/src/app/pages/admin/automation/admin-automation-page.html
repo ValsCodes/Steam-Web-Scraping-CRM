@@ -1,0 +1,48 @@
+<main class="automation-admin">
+  <header>
+    <div>
+      <p class="eyebrow">Administration</p>
+      <h1>Automation limits</h1>
+      <p>Manage the non-admin rolling 24-hour execution allowance and inspect current usage.</p>
+    </div>
+    <button type="button" (click)="load()" [disabled]="busy()">Refresh</button>
+  </header>
+
+  @if (errorMessage()) { <p class="message error" role="alert">{{ errorMessage() }}</p> }
+  @if (successMessage()) { <p class="message success" role="status">{{ successMessage() }}</p> }
+
+  <section class="policy-card">
+    <label>
+      <span>Non-admin limit (minutes per rolling 24 hours)</span>
+      <input type="number" min="0" step="1" [(ngModel)]="limitMinutes" [disabled]="busy()" />
+    </label>
+    <button type="button" (click)="savePolicy()" [disabled]="busy() || limitMinutes < 0">Save policy</button>
+    <button type="button" class="danger" (click)="resetUsage()" [disabled]="busy()">Reset all usage</button>
+    @if (policy(); as current) {
+      <small>Last modified {{ current.lastModifiedAtUtc | date:'medium' }}. Reset cutoff: {{ current.usageResetAtUtc ? (current.usageResetAtUtc | date:'medium') : 'none' }}.</small>
+    }
+  </section>
+
+  <section class="usage-card">
+    <h2>User usage</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>User</th><th>Role</th><th>Used</th><th>Remaining</th><th>Presence</th><th>Next allowance</th></tr></thead>
+        <tbody>
+          @for (row of usage(); track row.userId) {
+            <tr>
+              <td>{{ row.email || row.userId }}</td>
+              <td>{{ row.isAdmin ? 'Admin' : 'User' }}</td>
+              <td>{{ formatDuration(row.usage.usedSeconds) }}</td>
+              <td>{{ formatDuration(row.usage.remainingSeconds) }}</td>
+              <td>{{ row.usage.presenceRequired ? (row.usage.presenceActive ? 'Active' : 'Inactive') : 'Not required' }}</td>
+              <td>{{ row.usage.nextAllowanceAtUtc ? (row.usage.nextAllowanceAtUtc | date:'medium') : '—' }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="6">No users found.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>

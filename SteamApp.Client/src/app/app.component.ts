@@ -18,6 +18,7 @@ import { ErrorDialogBridge } from './services/error-dialog-bridge';
 import { LoadingStateService } from './services/loading/loading-state.service';
 import { SeoMetaService } from './services/seo/seo-meta.service';
 import { AuthService } from './services/auth/auth.service';
+import { AutomationService } from './services/automation/automation.service';
 
 @Component({
   selector: 'app-root',
@@ -44,6 +45,7 @@ export class AppComponent {
     loadingState: LoadingStateService,
     seoMeta: SeoMetaService,
     authService: AuthService,
+    _automationService: AutomationService,
   ) {
     ErrorDialogBridge.initialize(errorDialogService);
 

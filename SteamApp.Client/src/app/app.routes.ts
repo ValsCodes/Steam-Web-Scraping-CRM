@@ -280,6 +280,29 @@ export const routes: Routes = [
         },
       },
       {
+        path: 'admin/automation',
+        loadComponent: () =>
+          import('./pages/admin/automation/admin-automation-page').then((m) => m.AdminAutomationPage),
+        title: 'Automation Limits',
+        data: {
+          roles: ['Admin'],
+          seo: { title: 'Automation Limits', canonicalPath: '/admin/automation' },
+        },
+      },
+      {
+        path: 'admin/requests',
+        loadComponent: () =>
+          import('./pages/feedback/feedback-requests-view/feedback-requests-view').then(
+            (m) => m.FeedbackRequestsView,
+          ),
+        title: 'Request Administration',
+        data: {
+          admin: true,
+          roles: ['Admin'],
+          seo: { title: 'Request Administration', canonicalPath: '/admin/requests' },
+        },
+      },
+      {
         path: 'feedback',
         loadComponent: () =>
           import('./pages/feedback/feedback-requests-view/feedback-requests-view').then(
@@ -325,13 +348,13 @@ export const routes: Routes = [
         path: 'games/create',
         loadComponent: () => import('./pages/game/game-form/game-form').then((m) => m.GameForm),
         title: 'Create Game',
-        data: { seo: { title: 'Create Game', canonicalPath: '/games/create' } },
+        data: { roles: ['Admin'], seo: { title: 'Create Game', canonicalPath: '/games/create' } },
       },
       {
         path: 'games/edit/:id',
         loadComponent: () => import('./pages/game/game-form/game-form').then((m) => m.GameForm),
         title: 'Edit Game',
-        data: { seo: { title: 'Edit Game', canonicalPath: '/games/edit' } },
+        data: { roles: ['Admin'], seo: { title: 'Edit Game', canonicalPath: '/games/edit' } },
       },
       {
         path: 'game-urls',
@@ -345,14 +368,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/game-url/game-url-form/game-url-form').then((m) => m.GameUrlForm),
         title: 'Create Game URL',
-        data: { seo: { title: 'Create Game URL', canonicalPath: '/game-urls/create' } },
+        data: { roles: ['Admin'], seo: { title: 'Create Game URL', canonicalPath: '/game-urls/create' } },
       },
       {
         path: 'game-urls/edit/:id',
         loadComponent: () =>
           import('./pages/game-url/game-url-form/game-url-form').then((m) => m.GameUrlForm),
         title: 'Edit Game URL',
-        data: { seo: { title: 'Edit Game URL', canonicalPath: '/game-urls/edit' } },
+        data: { roles: ['Admin'], seo: { title: 'Edit Game URL', canonicalPath: '/game-urls/edit' } },
       },
       {
         path: 'products',
@@ -366,14 +389,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/product/product-form/product-form').then((m) => m.ProductForm),
         title: 'Create Product',
-        data: { seo: { title: 'Create Product', canonicalPath: '/products/create' } },
+        data: { roles: ['Admin'], seo: { title: 'Create Product', canonicalPath: '/products/create' } },
       },
       {
         path: 'products/edit/:id',
         loadComponent: () =>
           import('./pages/product/product-form/product-form').then((m) => m.ProductForm),
         title: 'Edit Product',
-        data: { seo: { title: 'Edit Product', canonicalPath: '/products/edit' } },
+        data: { roles: ['Admin'], seo: { title: 'Edit Product', canonicalPath: '/products/edit' } },
       },
       {
         path: 'wishlist',
@@ -427,13 +450,13 @@ export const routes: Routes = [
         path: 'tags/create',
         loadComponent: () => import('./pages/tag/tag-form/tag-form').then((m) => m.TagForm),
         title: 'Create Tag',
-        data: { seo: { title: 'Create Tag', canonicalPath: '/tags/create' } },
+        data: { roles: ['Admin'], seo: { title: 'Create Tag', canonicalPath: '/tags/create' } },
       },
       {
         path: 'tags/edit/:id',
         loadComponent: () => import('./pages/tag/tag-form/tag-form').then((m) => m.TagForm),
         title: 'Edit Tag',
-        data: { seo: { title: 'Edit Tag', canonicalPath: '/tags/edit' } },
+        data: { roles: ['Admin'], seo: { title: 'Edit Tag', canonicalPath: '/tags/edit' } },
       },
     ],
   },

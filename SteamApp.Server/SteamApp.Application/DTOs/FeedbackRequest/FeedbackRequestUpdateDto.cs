@@ -8,5 +8,6 @@ public sealed class FeedbackRequestUpdateDto
     public string? Title { get; set; }
     public string? Description { get; set; }
     public string? Area { get; set; }
-    public FeedbackRequestStatusEnum Status { get; set; }
+    public string? TargetResourceType { get; set; }
+    public long? TargetResourceId { get; set; }
 }

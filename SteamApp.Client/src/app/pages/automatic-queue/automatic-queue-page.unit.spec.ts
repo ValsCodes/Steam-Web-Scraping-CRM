@@ -1,4 +1,4 @@
-import { ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectorRef, signal } from '@angular/core';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { of } from 'rxjs';
@@ -8,7 +8,7 @@ import {
   AutomaticQueueDefinition,
   AutomaticQueueRun,
 } from '../../models';
-import { AutomaticQueueService } from '../../services';
+import { AutomaticQueueService, AutomationService } from '../../services';
 import { ManualCheckTraceDialogComponent } from '../manual-mode-v2/manual-check-trace-dialog.component';
 import { AutomaticQueueCombinationDialogComponent } from './automatic-queue-combination-dialog.component';
 import { AutomaticQueueDelayDialogComponent } from './automatic-queue-delay-dialog.component';
@@ -38,6 +38,13 @@ describe('AutomaticQueuePage', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: AutomaticQueueService, useValue: service },
+        {
+          provide: AutomationService,
+          useValue: {
+            usage: signal({ unlimited: true }),
+            refreshUsage: jasmine.createSpy('refreshUsage'),
+          },
+        },
         { provide: MatDialog, useValue: dialog },
         { provide: ChangeDetectorRef, useValue: jasmine.createSpyObj('ChangeDetectorRef', ['markForCheck']) },
       ],

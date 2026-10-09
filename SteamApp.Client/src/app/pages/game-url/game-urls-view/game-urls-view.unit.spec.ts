@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 
 import { GameUrlsView } from './game-urls-view';
 import { GameUrl } from '../../../models';
-import { GameService, GameUrlService, ScrapingModeService } from '../../../services';
+import { AuthService, GameService, GameUrlService, ScrapingModeService } from '../../../services';
 
 describe('GameUrlsView item groups', () => {
   const urls: GameUrl[] = [
@@ -24,6 +24,7 @@ describe('GameUrlsView item groups', () => {
         { provide: ScrapingModeService, useValue: { getAll: () => of([]) } },
         { provide: Router, useValue: { navigate: jasmine.createSpy('navigate') } },
         { provide: MatDialog, useValue: {} },
+        { provide: AuthService, useValue: { getCurrentUser: () => ({ isAdmin: false }) } },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(GameUrlsView);

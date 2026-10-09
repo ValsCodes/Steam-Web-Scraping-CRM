@@ -11,8 +11,14 @@ public interface IManualCheckDataService
     Task<IReadOnlyList<ManualCheckPresetDto>> GetPresetsAsync(string userId, long? gameId, CancellationToken cancellationToken);
     Task<IReadOnlyList<ManualCheckPresetDto>> GetPresetsAsync(string userId, long? gameId, long? gameUrlId, CancellationToken cancellationToken);
     Task<ManualCheckPresetDto> CreatePresetAsync(ManualCheckPresetWriteDto input, CancellationToken cancellationToken);
+    Task<ManualCheckPresetDto> CreatePresetAsync(string userId, ManualCheckPresetWriteDto input, CancellationToken cancellationToken);
+    Task<ManualCheckPresetDto> CreateGlobalPresetAsync(string administratorUserId, ManualCheckPresetWriteDto input, CancellationToken cancellationToken);
     Task<ManualCheckPresetDto> UpdatePresetAsync(long id, ManualCheckPresetWriteDto input, CancellationToken cancellationToken);
+    Task<ManualCheckPresetDto> UpdatePresetAsync(string userId, long id, ManualCheckPresetWriteDto input, CancellationToken cancellationToken);
+    Task<ManualCheckPresetDto> UpdateGlobalPresetAsync(string administratorUserId, long id, ManualCheckPresetWriteDto input, CancellationToken cancellationToken);
+    Task<ManualCheckPresetDto> ClonePresetAsync(string userId, long id, CancellationToken cancellationToken);
     Task DeletePresetAsync(string userId, long id, CancellationToken cancellationToken);
+    Task DeleteGlobalPresetAsync(long id, CancellationToken cancellationToken);
     Task<ManualCheckRunSummaryDto> CreateRunAsync(
         string userId,
         long gameUrlId,
@@ -34,7 +40,10 @@ public interface IManualCheckDataService
         ManualCheckSetupDto setup,
         CancellationToken cancellationToken);
     Task<ManualCheckRunSummaryDto> RerunAsync(long runId, CancellationToken cancellationToken);
-    Task<ManualCheckRunDetailDto> PauseAsync(long runId, CancellationToken cancellationToken);
+    Task<ManualCheckRunDetailDto> PauseAsync(
+        long runId,
+        CancellationToken cancellationToken,
+        AutomationPauseReasonEnum reason = AutomationPauseReasonEnum.UserRequested);
     Task<ManualCheckRunSummaryDto> ContinueAsync(long runId, CancellationToken cancellationToken);
     Task<ManualCheckRunDetailDto> UpdateListingLimitAsync(long runId, int listingLimit, CancellationToken cancellationToken);
     Task<ManualCheckRunDetailDto> CancelAsync(long runId, CancellationToken cancellationToken);

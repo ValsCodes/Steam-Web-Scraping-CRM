@@ -34,7 +34,7 @@ public static class ProductEndpoints
                 .ThenInclude(x => x.Tag)
                 .ThenInclude(x => x.ItemGroup)
                 .AsNoTracking()
-                .Where(x => x.UserId == userId)
+                .Where(x => x.UserId == null)
                 .ToListAsync(ct);
 
             return Results.Ok(mapper.Map<List<ProductDto>>(entities));
@@ -55,7 +55,7 @@ public static class ProductEndpoints
 
             var query = db.Products
                 .AsNoTracking()
-                .Where(x => x.UserId == userId);
+                .Where(x => x.UserId == null);
 
             if (request.GameId.HasValue)
             {
@@ -140,7 +140,7 @@ public static class ProductEndpoints
             var entity = await db.Products
                 .Include(x => x.Game)
                 .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == null);
 
             if (entity is null) { return Results.NotFound(); }
 
@@ -162,7 +162,7 @@ public static class ProductEndpoints
 
             var gameExists = await db.Games
                 .AsNoTracking()
-                .AnyAsync(g => g.Id == input.GameId && g.UserId == userId);
+                .AnyAsync(g => g.Id == input.GameId && g.UserId == null);
 
             if (!gameExists)
             {
@@ -174,7 +174,7 @@ public static class ProductEndpoints
             var productExists = await db.Products
                 .AsNoTracking()
                 .AnyAsync(g =>
-                    g.UserId == userId &&
+                    g.UserId == null &&
                     (g.Name ?? string.Empty).Trim().ToLower() == normalizedInputName);
 
             if (productExists)
@@ -183,7 +183,7 @@ public static class ProductEndpoints
             }
 
             var entity = mapper.Map<Product>(input);
-            entity.UserId = userId;
+            entity.UserId = null;
 
             db.Products.Add(entity);
             await db.SaveChangesAsync();
@@ -207,7 +207,7 @@ public static class ProductEndpoints
             var userId = httpContext.User.GetUserId();
             if (userId is null) { return Results.Unauthorized(); }
 
-            var entity = await db.Products.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+            var entity = await db.Products.FirstOrDefaultAsync(x => x.Id == id && x.UserId == null);
             if (entity is null) { return Results.NotFound(); }
 
             mapper.Map(input, entity);
@@ -229,7 +229,7 @@ public static class ProductEndpoints
             var userId = httpContext.User.GetUserId();
             if (userId is null) { return Results.Unauthorized(); }
 
-            var entity = await db.Products.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+            var entity = await db.Products.FirstOrDefaultAsync(x => x.Id == id && x.UserId == null);
             if (entity is null) { return Results.NotFound(); }
 
             db.Products.Remove(entity);
@@ -249,7 +249,7 @@ public static class ProductEndpoints
             var userId = httpContext.User.GetUserId();
             if (userId is null) { return Results.Unauthorized(); }
 
-            var entity = await db.Products.FirstOrDefaultAsync(x => x.Id == input.Id && x.UserId == userId);
+            var entity = await db.Products.FirstOrDefaultAsync(x => x.Id == input.Id && x.UserId == null);
             if (entity is null) { return Results.NotFound(); }
 
             if (entity.IsActive != input.IsActive)

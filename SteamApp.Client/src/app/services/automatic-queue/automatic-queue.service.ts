@@ -38,6 +38,10 @@ export class AutomaticQueueService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`).pipe(catchError(handleError));
   }
 
+  cloneDefinition(id: number): Observable<AutomaticQueueDefinition> {
+    return this.http.post<AutomaticQueueDefinition>(`${this.baseUrl}/${id}/clone`, {}).pipe(catchError(handleError));
+  }
+
   startRun(id: number): Observable<AutomaticQueueRunAccepted> {
     return this.http.post<AutomaticQueueRunAccepted>(`${this.baseUrl}/${id}/runs`, {}).pipe(catchError(handleError));
   }

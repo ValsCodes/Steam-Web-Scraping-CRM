@@ -181,6 +181,23 @@ interface ManualCheckPresetCombinationRow {
             </select>
           </label>
 
+          @if (isSelectedPresetReadOnly) {
+            <div class="manual-check-dialog__callout" role="status">
+              <strong>Global preset</strong>
+              <span>This preset is read-only. Run it as-is or clone it to make personal changes.</span>
+              @if (selectedPreset?.canClone) {
+                <button mat-stroked-button type="button" (click)="cloneSelectedPreset()" [disabled]="busy">
+                  Clone to my presets
+                </button>
+              }
+            </div>
+          }
+
+          <div
+            [class.manual-check-dialog__read-only]="isSelectedPresetReadOnly"
+            [attr.inert]="isSelectedPresetReadOnly ? '' : null"
+            [attr.aria-disabled]="isSelectedPresetReadOnly">
+
           <label>
             <span>{{ data.queueBuilder && templateMode === 'PrivateTemplate' ? 'Private template name' : 'Preset name' }}</span>
             <input
@@ -253,6 +270,7 @@ interface ManualCheckPresetCombinationRow {
               </fieldset>
             </details>
           }
+          </div>
         } @else {
           <section class="manual-check-dialog__combination" aria-labelledby="manualCheckCombinationLabel">
             <div>
@@ -295,6 +313,10 @@ interface ManualCheckPresetCombinationRow {
           </section>
         }
 
+        <div
+          [class.manual-check-dialog__read-only]="isSelectedPresetReadOnly"
+          [attr.inert]="isSelectedPresetReadOnly ? '' : null"
+          [attr.aria-disabled]="isSelectedPresetReadOnly">
         <section class="manual-check-dialog__listing-limit" aria-labelledby="manualCheckListingLimitLabel">
           <div>
             <strong id="manualCheckListingLimitLabel">Listings to check</strong>
@@ -427,6 +449,7 @@ interface ManualCheckPresetCombinationRow {
             }
           }
         </section>
+        </div>
 
         <fieldset>
           <legend>Steam response cache</legend>
@@ -475,6 +498,10 @@ interface ManualCheckPresetCombinationRow {
         }
 
         @if (presetMode === 'Single') {
+          <div
+            [class.manual-check-dialog__read-only]="isSelectedPresetReadOnly"
+            [attr.inert]="isSelectedPresetReadOnly ? '' : null"
+            [attr.aria-disabled]="isSelectedPresetReadOnly">
           <steam-manual-check-expression-editor
             [root]="expressionRoot"
             [operators]="conditionOperators"
@@ -492,6 +519,7 @@ interface ManualCheckPresetCombinationRow {
               Complete every criterion and operator, populate empty groups, and keep the expression within {{ criterionLimit }} criteria and {{ groupLimit }} groups.
             </p>
           }
+          </div>
         }
 
         @if (errorMessage) {
@@ -518,7 +546,7 @@ interface ManualCheckPresetCombinationRow {
           type="button"
           color="warn"
           (click)="deletePreset()"
-          [disabled]="selectedPresetId === null || busy || creatingItemGroup">
+          [disabled]="selectedPresetId === null || isSelectedPresetReadOnly || busy || creatingItemGroup">
           Delete
         </button>
         <button mat-stroked-button type="button" (click)="newPreset()" [disabled]="busy || creatingItemGroup">
@@ -528,7 +556,7 @@ interface ManualCheckPresetCombinationRow {
           mat-stroked-button
           type="button"
           (click)="savePreset()"
-          [disabled]="!isDraftValid || !dirty || busy || creatingItemGroup">
+          [disabled]="isSelectedPresetReadOnly || !isDraftValid || !dirty || busy || creatingItemGroup">
           Save only
         </button>
       }
@@ -583,6 +611,7 @@ interface ManualCheckPresetCombinationRow {
     .manual-check-dialog__expression-preview code { overflow-wrap: anywhere; color: #1e3a8a; white-space: normal; }
     .manual-check-dialog__expression-preview small { color: #475569; }
     .manual-check-dialog__hint { color: #92400e; margin: 0; }
+    .manual-check-dialog__read-only { opacity: .72; }
     .manual-check-dialog__spacer { flex: 1; }
     .manual-check-dialog__queue-source { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
     .manual-check-dialog__products { flex-direction: column !important; }
@@ -691,6 +720,16 @@ export class ManualCheckSetupDialogComponent implements OnInit {
 
   get presetGroups(): readonly ItemGroupSection<ManualCheckPreset>[] {
     return groupByItemGroup(this.presets);
+  }
+
+  get selectedPreset(): ManualCheckPreset | null {
+    return this.selectedPresetId === null
+      ? null
+      : this.presets.find((preset) => preset.id === this.selectedPresetId) ?? null;
+  }
+
+  get isSelectedPresetReadOnly(): boolean {
+    return this.presetMode === 'Single' && this.selectedPreset?.canEdit === false;
   }
 
   loadPresets(): void {
@@ -986,6 +1025,8 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   }
 
   markDirty(): void {
+    if (this.isSelectedPresetReadOnly) return;
+
     if (this.data.queueBuilder && this.templateMode === 'SavedPreset') {
       this.templateMode = 'PrivateTemplate';
       this.selectedPresetId = null;
@@ -1010,7 +1051,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
 
   createItemGroup(): void {
     const name = this.newItemGroupName.trim();
-    if (!name || name.length > 255 || this.creatingItemGroup || this.busy) {
+    if (this.isSelectedPresetReadOnly || !name || name.length > 255 || this.creatingItemGroup || this.busy) {
       return;
     }
 
@@ -1039,11 +1080,13 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   }
 
   setListingLimit(listingLimit: number): void {
+    if (this.isSelectedPresetReadOnly) return;
     this.listingLimit = listingLimit;
     this.markDirty();
   }
 
   setCustomCooldown(enabled: boolean): void {
+    if (this.isSelectedPresetReadOnly) return;
     this.customCooldown = enabled;
     this.markDirty();
   }
@@ -1075,7 +1118,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   }
 
   savePreset(startAfterSave = false): void {
-    if (!this.isDraftValid || this.busy || this.creatingItemGroup) {
+    if (this.isSelectedPresetReadOnly || !this.isDraftValid || this.busy || this.creatingItemGroup) {
       return;
     }
 
@@ -1124,7 +1167,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
 
   deletePreset(): void {
     const id = this.selectedPresetId;
-    if (id === null || this.busy || this.creatingItemGroup || !confirm(`Delete preset “${this.name}”? Historical runs will be retained.`)) {
+    if (id === null || this.isSelectedPresetReadOnly || this.busy || this.creatingItemGroup || !confirm(`Delete preset “${this.name}”? Historical runs will be retained.`)) {
       return;
     }
 
@@ -1143,6 +1186,32 @@ export class ManualCheckSetupDialogComponent implements OnInit {
         },
         error: (error) => {
           this.errorMessage = this.getError(error, 'Unable to delete the preset.');
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  cloneSelectedPreset(): void {
+    const preset = this.selectedPreset;
+    if (!preset?.canClone || this.busy) return;
+
+    this.busy = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.manualCheckService.clonePreset(preset.id)
+      .pipe(finalize(() => {
+        this.busy = false;
+        this.cdr.markForCheck();
+      }))
+      .subscribe({
+        next: (clone) => {
+          this.presets = [...this.presets.filter((item) => item.id !== clone.id), clone];
+          this.selectPreset(clone.id);
+          this.successMessage = `Preset “${clone.name}” cloned to your presets.`;
+          this.cdr.markForCheck();
+        },
+        error: (error) => {
+          this.errorMessage = this.getError(error, 'Unable to clone the preset.');
           this.cdr.markForCheck();
         },
       });

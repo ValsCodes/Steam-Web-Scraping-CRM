@@ -30,6 +30,8 @@ export class FeedbackSendPage {
     title: ['', [Validators.required, Validators.maxLength(140)]],
     description: ['', [Validators.required, Validators.maxLength(4000)]],
     area: ['', [Validators.maxLength(120)]],
+    targetResourceType: ['', [Validators.maxLength(50)]],
+    targetResourceId: this.fb.control<number | null>(null),
   });
 
   constructor(
@@ -71,6 +73,8 @@ export class FeedbackSendPage {
       title: value.title.trim(),
       description: value.description.trim(),
       area: this.normalizeOptional(value.area),
+      targetResourceType: this.normalizeOptional(value.targetResourceType),
+      targetResourceId: value.targetResourceId,
     };
   }
 

@@ -31,7 +31,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                 var entities = await db.GameUrls
                     .AsNoTracking()
-                    .Where(x => x.UserId == userId)
+                    .Where(x => x.UserId == null)
                     .Select(x => new
                     {
                         Id = x.Id,
@@ -70,7 +70,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                 var query = db.GameUrls
                     .AsNoTracking()
-                    .Where(x => x.UserId == userId);
+                    .Where(x => x.UserId == null);
 
                 if (request.GameId.HasValue)
                 {
@@ -148,7 +148,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                 var dto = await ProjectGameUrlDtos(db.GameUrls
                     .AsNoTracking()
-                    .Where(x => x.Id == id && x.UserId == userId))
+                    .Where(x => x.Id == id && x.UserId == null))
                     .FirstOrDefaultAsync();
 
                 if (dto is null) { return Results.NotFound(); }
@@ -172,7 +172,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                 var gameExists = await db.Games
                     .AsNoTracking()
-                    .AnyAsync(g => g.Id == input.GameId && g.UserId == userId, ct);
+                    .AnyAsync(g => g.Id == input.GameId && g.UserId == null, ct);
 
                 if (!gameExists)
                 {
@@ -190,7 +190,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                     var itemGroupExists = await db.ItemGroups.AsNoTracking().AnyAsync(
                         x => x.Id == input.ItemGroupId.Value &&
                              x.GameId == input.GameId &&
-                             x.UserId == userId,
+                             x.UserId == null,
                         ct);
 
                     if (!itemGroupExists)
@@ -200,14 +200,14 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 }
 
                 var entity = mapper.Map<GameUrl>(input);
-                entity.UserId = userId;
+                entity.UserId = null;
 
                 db.GameUrls.Add(entity);
                 await db.SaveChangesAsync(ct);
 
                 var dto = await ProjectGameUrlDtos(db.GameUrls
                     .AsNoTracking()
-                    .Where(x => x.Id == entity.Id && x.UserId == userId))
+                    .Where(x => x.Id == entity.Id && x.UserId == null))
                     .FirstAsync(ct);
 
                 return Results.Created($"/api/game-urls/{entity.Id}", dto);
@@ -230,7 +230,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 var userId = httpContext.User.GetUserId();
                 if (userId is null) { return Results.Unauthorized(); }
 
-                var entity = await db.GameUrls.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+                var entity = await db.GameUrls.FirstOrDefaultAsync(x => x.Id == id && x.UserId == null, ct);
                 if (entity is null) { return Results.NotFound(); }
 
                 var scrapingModeExists = await ScrapingModeExistsAsync(db, input.ScrapingModeId, ct);
@@ -244,7 +244,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                     var itemGroupExists = await db.ItemGroups.AsNoTracking().AnyAsync(
                         x => x.Id == input.ItemGroupId.Value &&
                              x.GameId == entity.GameId &&
-                             x.UserId == userId,
+                             x.UserId == null,
                         ct);
 
                     if (!itemGroupExists)
@@ -286,12 +286,12 @@ namespace SteamApp.WebAPI.MinimalAPIs
                     {
                         var entity = await db.GameUrls
                             .AsNoTracking()
-                            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+                            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == null, ct);
                         if (entity is null) { return Results.NotFound(); }
 
                         var gameUrlProducts = await db.GameUrlsProducts
                             .AsNoTracking()
-                            .Where(x => x.GameUrlId == id && x.GameUrl.UserId == userId)
+                            .Where(x => x.GameUrlId == id && x.GameUrl.UserId == null)
                             .Select(x => new GameUrlProducts
                             {
                                 GameUrlId = x.GameUrlId,
@@ -301,7 +301,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
 
                         var gameUrlPixels = await db.GameUrlsPixels
                             .AsNoTracking()
-                            .Where(x => x.GameUrlId == id && x.GameUrl.UserId == userId)
+                            .Where(x => x.GameUrlId == id && x.GameUrl.UserId == null)
                             .Select(x => new GameUrlPixels
                             {
                                 GameUrlId = x.GameUrlId,
@@ -334,7 +334,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                     var entity = await db.GameUrls
                         .Include(x => x.GameUrlsProducts)
                         .Include(x => x.GameUrlsPixels)
-                        .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+                        .FirstOrDefaultAsync(x => x.Id == id && x.UserId == null, ct);
                     if (entity is null) { return Results.NotFound(); }
 
                     db.GameUrlsProducts.RemoveRange(entity.GameUrlsProducts);
@@ -362,7 +362,7 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 var userId = httpContext.User.GetUserId();
                 if (userId is null) { return Results.Unauthorized(); }
 
-                var entity = await db.GameUrls.FirstOrDefaultAsync(x => x.Id == input.Id && x.UserId == userId);
+                var entity = await db.GameUrls.FirstOrDefaultAsync(x => x.Id == input.Id && x.UserId == null);
                 if (entity is null) { return Results.NotFound(); }
 
                 if (entity.IsActive != input.IsActive)

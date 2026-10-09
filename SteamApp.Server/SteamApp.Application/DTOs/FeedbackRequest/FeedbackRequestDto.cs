@@ -10,6 +10,8 @@ public sealed class FeedbackRequestDto
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string? Area { get; set; }
+    public string? TargetResourceType { get; set; }
+    public long? TargetResourceId { get; set; }
     public FeedbackRequestStatusEnum Status { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }

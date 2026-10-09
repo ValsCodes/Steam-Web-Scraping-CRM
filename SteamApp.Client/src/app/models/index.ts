@@ -15,5 +15,6 @@ export * from './scrape-history.model';
 export * from './feedback-request.model';
 export * from './manual-check.model';
 export * from './automatic-queue.model';
+export * from './automation.model';
 
 

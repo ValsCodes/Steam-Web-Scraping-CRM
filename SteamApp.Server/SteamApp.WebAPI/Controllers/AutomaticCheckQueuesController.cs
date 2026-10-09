@@ -14,7 +14,8 @@ namespace SteamApp.WebAPI.Controllers;
 [EnableRateLimiting(SecurityPolicies.ApiRateLimit)]
 public sealed class AutomaticCheckQueuesController(
     IAutomaticQueueDataService dataService,
-    ILogger<AutomaticCheckQueuesController> logger) : ControllerBase
+    ILogger<AutomaticCheckQueuesController> logger,
+    IAutomationAccessService? automationAccessService = null) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetDefinitions(CancellationToken cancellationToken)
@@ -87,12 +88,36 @@ public sealed class AutomaticCheckQueuesController(
         if (userId is null) return Unauthorized();
         try
         {
+            if (automationAccessService is not null)
+            {
+                await automationAccessService.EnsureCanExecuteAsync(userId, cancellationToken);
+            }
             var run = await dataService.StartRunAsync(id, userId, cancellationToken);
             return AcceptedAtAction(nameof(GetRun), new { id = run.Id }, new AutomaticQueueRunAcceptedDto
             {
                 RunId = run.Id,
                 Run = run
             });
+        }
+        catch (AutomaticQueueRequestException exception)
+        {
+            return RequestProblem(exception);
+        }
+        catch (AutomationAccessException exception)
+        {
+            return AutomationProblem(exception);
+        }
+    }
+
+    [HttpPost("{id:long}/clone")]
+    public async Task<IActionResult> CloneDefinition(long id, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId is null) return Unauthorized();
+        try
+        {
+            var result = await dataService.CloneDefinitionAsync(id, userId, cancellationToken);
+            return CreatedAtAction(nameof(GetDefinition), new { id = result.Id }, result);
         }
         catch (AutomaticQueueRequestException exception)
         {
@@ -118,12 +143,12 @@ public sealed class AutomaticCheckQueuesController(
 
     [HttpPost("runs/{id:long}/pause")]
     public Task<IActionResult> PauseRun(long id, CancellationToken cancellationToken) =>
-        ChangeRunAsync(id, dataService.PauseRunAsync, cancellationToken);
+        ChangeRunAsync(id, (runId, userId, token) => dataService.PauseRunAsync(runId, userId, token), cancellationToken);
 
     [HttpPost("runs/{id:long}/continue")]
     [EnableRateLimiting(SecurityPolicies.ExpensiveApiRateLimit)]
     public Task<IActionResult> ContinueRun(long id, CancellationToken cancellationToken) =>
-        ChangeRunAsync(id, dataService.ContinueRunAsync, cancellationToken);
+        ContinueRunAsync(id, cancellationToken);
 
     [HttpPost("runs/{id:long}/cancel")]
     public Task<IActionResult> CancelRun(long id, CancellationToken cancellationToken) =>
@@ -146,9 +171,51 @@ public sealed class AutomaticCheckQueuesController(
         }
     }
 
+    private async Task<IActionResult> ContinueRunAsync(long id, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId is null) return Unauthorized();
+        try
+        {
+            if (automationAccessService is not null)
+            {
+                await automationAccessService.EnsureCanExecuteAsync(userId, cancellationToken);
+            }
+            return Ok(await dataService.ContinueRunAsync(id, userId, cancellationToken));
+        }
+        catch (AutomaticQueueRequestException exception)
+        {
+            return RequestProblem(exception);
+        }
+        catch (AutomationAccessException exception)
+        {
+            return AutomationProblem(exception);
+        }
+    }
+
     private IActionResult RequestProblem(AutomaticQueueRequestException exception)
     {
         logger.LogWarning(exception, "Automatic queue request failed with status {StatusCode}.", exception.StatusCode);
         return Problem(statusCode: exception.StatusCode, title: "Automatic queue request failed", detail: exception.Message);
+    }
+
+    private IActionResult AutomationProblem(AutomationAccessException exception)
+    {
+        if (exception.RetryAtUtc.HasValue)
+        {
+            var seconds = Math.Max(1, (int)Math.Ceiling((exception.RetryAtUtc.Value - DateTime.UtcNow).TotalSeconds));
+            Response.Headers.RetryAfter = seconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+        var problem = new ProblemDetails
+        {
+            Status = exception.StatusCode,
+            Title = "Automated execution unavailable",
+            Detail = exception.Message
+        };
+        if (exception.RetryAtUtc.HasValue)
+        {
+            problem.Extensions["nextAllowanceAtUtc"] = exception.RetryAtUtc.Value;
+        }
+        return StatusCode(exception.StatusCode, problem);
     }
 }

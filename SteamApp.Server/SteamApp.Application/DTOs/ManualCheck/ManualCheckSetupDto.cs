@@ -4,6 +4,7 @@ namespace SteamApp.Application.DTOs.ManualCheck;
 
 public sealed class ManualCheckSetupDto
 {
+    public string UserId { get; set; } = string.Empty;
     public long? PresetId { get; set; }
     public string PresetName { get; set; } = string.Empty;
     public long GameId { get; set; }

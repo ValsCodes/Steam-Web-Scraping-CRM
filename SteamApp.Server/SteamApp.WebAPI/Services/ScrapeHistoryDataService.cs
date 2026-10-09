@@ -50,7 +50,7 @@ public sealed class ScrapeHistoryDataService(
 
         var gameUrlNames = await db.GameUrls
             .AsNoTracking()
-            .Where(x => x.UserId == userId && gameUrlIds.Contains(x.Id))
+            .Where(x => (x.UserId == null || x.UserId == userId) && gameUrlIds.Contains(x.Id))
             .Select(x => new { x.Id, x.Name })
             .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
 
@@ -111,7 +111,7 @@ public sealed class ScrapeHistoryDataService(
 
         detail.GameUrlName = await db.GameUrls
             .AsNoTracking()
-            .Where(x => x.Id == detail.GameUrlId && x.UserId == userId)
+            .Where(x => x.Id == detail.GameUrlId && (x.UserId == null || x.UserId == userId))
             .Select(x => x.Name)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -146,7 +146,7 @@ public sealed class ScrapeHistoryDataService(
 
         return await db.GameUrls
             .AsNoTracking()
-            .Where(x => x.Id == gameUrlId && x.UserId == userId)
+            .Where(x => x.Id == gameUrlId && (x.UserId == null || x.UserId == userId))
             .Select(x => new OwnedGameUrlSnapshot(
                 x.Id,
                 x.Name,

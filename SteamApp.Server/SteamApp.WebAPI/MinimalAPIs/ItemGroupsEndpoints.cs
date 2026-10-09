@@ -26,7 +26,7 @@ public static class ItemGroupsEndpoints
 
             var gameExists = await db.Games
                 .AsNoTracking()
-                .AnyAsync(x => x.Id == gameId && x.UserId == userId, ct);
+                .AnyAsync(x => x.Id == gameId && x.UserId == null, ct);
 
             if (!gameExists)
             {
@@ -35,7 +35,7 @@ public static class ItemGroupsEndpoints
 
             var itemGroups = await db.ItemGroups
                 .AsNoTracking()
-                .Where(x => x.GameId == gameId && x.UserId == userId)
+                .Where(x => x.GameId == gameId && x.UserId == null)
                 .OrderBy(x => x.Name)
                 .ThenBy(x => x.Id)
                 .Select(x => new ItemGroupDto
@@ -66,7 +66,7 @@ public static class ItemGroupsEndpoints
 
             var gameExists = await db.Games
                 .AsNoTracking()
-                .AnyAsync(x => x.Id == input.GameId && x.UserId == userId, ct);
+                .AnyAsync(x => x.Id == input.GameId && x.UserId == null, ct);
 
             if (!gameExists)
             {
@@ -77,7 +77,7 @@ public static class ItemGroupsEndpoints
                 .AsNoTracking()
                 .AnyAsync(
                     x => x.GameId == input.GameId &&
-                         x.UserId == userId &&
+                         x.UserId == null &&
                          x.Name == name,
                     ct);
 
@@ -90,7 +90,7 @@ public static class ItemGroupsEndpoints
             {
                 GameId = input.GameId,
                 Name = name,
-                UserId = userId,
+                UserId = null,
             };
 
             db.ItemGroups.Add(entity);

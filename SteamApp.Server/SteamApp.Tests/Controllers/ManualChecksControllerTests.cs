@@ -135,7 +135,7 @@ public sealed class ManualChecksControllerTests
                 }
             ]
         };
-        data.Setup(x => x.CreatePresetAsync(input, It.IsAny<CancellationToken>()))
+        data.Setup(x => x.CreatePresetAsync("test-user", input, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ManualCheckPresetDto { Id = 9, GameId = 440, Name = "Shared" });
         data.Setup(x => x.GetPresetsAsync("test-user", 440, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync([new ManualCheckPresetDto { Id = 9, GameId = 440, Name = "Shared" }]);
@@ -347,7 +347,7 @@ public sealed class ManualChecksControllerTests
         var data = new Mock<IManualCheckDataService>();
         var queue = new Mock<IManualCheckQueue>();
         var input = new ManualCheckPresetWriteDto { GameId = 440, Name = "Duplicate" };
-        data.Setup(x => x.CreatePresetAsync(input, It.IsAny<CancellationToken>()))
+        data.Setup(x => x.CreatePresetAsync("test-user", input, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ManualCheckRequestException(409, "Preset already exists."));
         var controller = Controller(data, queue);
 

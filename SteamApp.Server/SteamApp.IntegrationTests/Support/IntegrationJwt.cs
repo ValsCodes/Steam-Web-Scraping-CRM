@@ -28,6 +28,7 @@ public static class IntegrationJwt
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
             new Claim(ClaimTypes.NameIdentifier, "integration-user-id"),
             new Claim(ClaimTypes.Name, "Integration User"),
+            new Claim(ClaimTypes.Role, SecurityPolicies.AdminRole),
             new Claim("scope", scope)
         };
 

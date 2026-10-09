@@ -10,6 +10,7 @@ public sealed class FeedbackRequest
     public const int TitleMaxLength = 140;
     public const int AreaMaxLength = 120;
     public const int DescriptionMaxLength = 4000;
+    public const int TargetResourceTypeMaxLength = 50;
 
     [Key]
     [Column("id")]
@@ -29,6 +30,13 @@ public sealed class FeedbackRequest
     [MaxLength(AreaMaxLength)]
     [Column("area")]
     public string? Area { get; set; }
+
+    [MaxLength(TargetResourceTypeMaxLength)]
+    [Column("target_resource_type")]
+    public string? TargetResourceType { get; set; }
+
+    [Column("target_resource_id")]
+    public long? TargetResourceId { get; set; }
 
     [Column("status")]
     public FeedbackRequestStatusEnum Status { get; set; } = FeedbackRequestStatusEnum.Active;

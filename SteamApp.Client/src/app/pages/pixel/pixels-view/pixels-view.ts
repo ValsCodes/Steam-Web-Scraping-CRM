@@ -4,6 +4,7 @@ import {
   OnDestroy,
   OnInit,
   ViewChild,
+  inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -19,7 +20,7 @@ import { MatTooltip } from '@angular/material/tooltip';
 
 import { Game, PixelListItem } from '../../../models';
 import { CopyLinkComponent } from '../../../components';
-import { GameService, PixelService } from '../../../services';
+import { AuthService, GameService, PixelService } from '../../../services';
 import {
   BehaviorSubject,
   combineLatest,
@@ -53,7 +54,10 @@ import * as XLSX from 'xlsx';
   styleUrl: './pixels-view.scss',
 })
 export class PixelsView implements OnInit, OnDestroy {
-  displayedColumns: string[] = ['gameName', 'name', 'isActive', 'actions'];
+  readonly isAdmin = inject(AuthService).getCurrentUser()?.isAdmin === true;
+  displayedColumns: string[] = this.isAdmin
+    ? ['gameName', 'name', 'isActive', 'actions']
+    : ['gameName', 'name', 'isActive'];
 
   readonly games$ = new BehaviorSubject<readonly Game[]>([]);
 

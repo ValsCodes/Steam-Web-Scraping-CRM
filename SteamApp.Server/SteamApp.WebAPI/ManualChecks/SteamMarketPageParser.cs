@@ -6,6 +6,7 @@ namespace SteamApp.WebAPI.ManualChecks;
 
 public static class SteamMarketPageParser
 {
+    private const string ValveSsrDataMarker = "id=\"valve-ssr-data\"";
     private const string RenderContextName = "window.SSR.renderContext";
     private const string JsonParseCall = "JSON.parse(";
 
@@ -15,26 +16,12 @@ public static class SteamMarketPageParser
 
         try
         {
-            var contextIndex = html.IndexOf(RenderContextName, StringComparison.Ordinal);
-            if (contextIndex < 0)
+            var renderContext = ReadCurrentRenderContext(html) ?? ReadLegacyRenderContext(html);
+            if (renderContext is null)
             {
                 return false;
             }
 
-            var parseIndex = html.IndexOf(JsonParseCall, contextIndex, StringComparison.Ordinal);
-            if (parseIndex < 0)
-            {
-                return false;
-            }
-
-            using var textReader = new StringReader(html[(parseIndex + JsonParseCall.Length)..]);
-            using var jsonReader = new JsonTextReader(textReader);
-            if (!jsonReader.Read() || jsonReader.TokenType != JsonToken.String || jsonReader.Value is not string contextJson)
-            {
-                return false;
-            }
-
-            var renderContext = JObject.Parse(contextJson);
             var queryDataJson = renderContext.Value<string>("queryData");
             if (string.IsNullOrWhiteSpace(queryDataJson))
             {
@@ -78,6 +65,53 @@ public static class SteamMarketPageParser
             listing = new Listing();
             return false;
         }
+    }
+
+    private static JObject? ReadCurrentRenderContext(string html)
+    {
+        var markerIndex = html.IndexOf(ValveSsrDataMarker, StringComparison.Ordinal);
+        if (markerIndex < 0)
+        {
+            return null;
+        }
+
+        var contentStart = html.IndexOf('>', markerIndex);
+        if (contentStart < 0)
+        {
+            return null;
+        }
+
+        var contentEnd = html.IndexOf("</script>", contentStart, StringComparison.OrdinalIgnoreCase);
+        if (contentEnd < 0)
+        {
+            return null;
+        }
+
+        var ssrData = JObject.Parse(html[(contentStart + 1)..contentEnd]);
+        return ssrData["renderContext"] as JObject;
+    }
+
+    private static JObject? ReadLegacyRenderContext(string html)
+    {
+        var contextIndex = html.IndexOf(RenderContextName, StringComparison.Ordinal);
+        if (contextIndex < 0)
+        {
+            return null;
+        }
+
+        var parseIndex = html.IndexOf(JsonParseCall, contextIndex, StringComparison.Ordinal);
+        if (parseIndex < 0)
+        {
+            return null;
+        }
+
+        using var textReader = new StringReader(html[(parseIndex + JsonParseCall.Length)..]);
+        using var jsonReader = new JsonTextReader(textReader);
+        return jsonReader.Read() &&
+               jsonReader.TokenType == JsonToken.String &&
+               jsonReader.Value is string contextJson
+            ? JObject.Parse(contextJson)
+            : null;
     }
 
     private static void AddAsset(Listing listing, JObject sellListing)

@@ -103,7 +103,7 @@ public sealed class MinimalApiEndpointTests
         {
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
             Assert.That(response.Headers.Location?.ToString(), Does.StartWith("/api/games/"));
-            Assert.That(created?.UserId, Is.EqualTo(TestDb.TestUserId));
+            Assert.That(created?.UserId, Is.Null);
         });
     }
 
@@ -222,7 +222,7 @@ public sealed class MinimalApiEndpointTests
     }
 
     [Test]
-    public async Task PutFeedbackRequest_UpdatesFieldsAndStatusTimestamp()
+    public async Task PutFeedbackRequest_UpdatesFieldsWithoutChangingStatus()
     {
         await using var app = await MinimalApiTestApp.CreateAsync(TestDb.SeedBaseline);
 
@@ -231,8 +231,7 @@ public sealed class MinimalApiEndpointTests
             Type = FeedbackRequestTypeEnum.Bug,
             Title = "Updated title",
             Description = "Updated description",
-            Area = "Updated area",
-            Status = FeedbackRequestStatusEnum.Closed
+            Area = "Updated area"
         });
 
         using var scope = app.App.Services.CreateScope();
@@ -247,16 +246,16 @@ public sealed class MinimalApiEndpointTests
             Assert.That(updated?.Title, Is.EqualTo("Updated title"));
             Assert.That(updated?.Description, Is.EqualTo("Updated description"));
             Assert.That(updated?.Area, Is.EqualTo("Updated area"));
-            Assert.That(updated?.Status, Is.EqualTo(FeedbackRequestStatusEnum.Closed));
+            Assert.That(updated?.Status, Is.EqualTo(FeedbackRequestStatusEnum.Active));
             Assert.That(updated?.UpdatedAtUtc, Is.GreaterThan(new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc)));
-            Assert.That(updated?.StatusChangedAtUtc, Is.GreaterThan(new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc)));
+            Assert.That(updated?.StatusChangedAtUtc, Is.EqualTo(new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc)));
             Assert.That(history?.Action, Is.EqualTo(FeedbackRequestHistoryActionEnum.Updated));
             Assert.That(history?.PreviousTitle, Is.EqualTo("Improve filters"));
             Assert.That(history?.NewTitle, Is.EqualTo("Updated title"));
             Assert.That(history?.PreviousDescription, Is.EqualTo("Please make the search filters easier to scan."));
             Assert.That(history?.NewDescription, Is.EqualTo("Updated description"));
             Assert.That(history?.PreviousStatus, Is.EqualTo(FeedbackRequestStatusEnum.Active));
-            Assert.That(history?.NewStatus, Is.EqualTo(FeedbackRequestStatusEnum.Closed));
+            Assert.That(history?.NewStatus, Is.EqualTo(FeedbackRequestStatusEnum.Active));
         });
     }
 
@@ -264,8 +263,9 @@ public sealed class MinimalApiEndpointTests
     public async Task PatchFeedbackRequestStatus_UpdatesOnlyStatus()
     {
         await using var app = await MinimalApiTestApp.CreateAsync(TestDb.SeedBaseline);
+        using var admin = app.CreateAdminClient();
 
-        var response = await app.Client.PatchAsJsonAsync("/api/feedback-requests/1/status", new
+        var response = await admin.PatchAsJsonAsync("/api/feedback-requests/1/status", new
         {
             status = FeedbackRequestStatusEnum.Processed
         });
@@ -293,8 +293,9 @@ public sealed class MinimalApiEndpointTests
     public async Task PatchFeedbackRequestStatus_DoesNotCreateHistoryWhenStatusDoesNotChange()
     {
         await using var app = await MinimalApiTestApp.CreateAsync(TestDb.SeedBaseline);
+        using var admin = app.CreateAdminClient();
 
-        var response = await app.Client.PatchAsJsonAsync("/api/feedback-requests/2/status", new
+        var response = await admin.PatchAsJsonAsync("/api/feedback-requests/2/status", new
         {
             status = FeedbackRequestStatusEnum.Processed
         });
@@ -314,8 +315,9 @@ public sealed class MinimalApiEndpointTests
     public async Task FeedbackRequestHistoryEndpoint_ReturnsOwnedHistoryAndClosedTransition()
     {
         await using var app = await MinimalApiTestApp.CreateAsync(TestDb.SeedBaseline);
+        using var admin = app.CreateAdminClient();
 
-        var patch = await app.Client.PatchAsJsonAsync("/api/feedback-requests/1/status", new
+        var patch = await admin.PatchAsJsonAsync("/api/feedback-requests/1/status", new
         {
             status = FeedbackRequestStatusEnum.Closed
         });
@@ -398,6 +400,7 @@ public sealed class MinimalApiEndpointTests
             });
             db.SaveChanges();
         });
+        using var admin = app.CreateAdminClient();
 
         var invalidType = await app.Client.PostAsJsonAsync("/api/feedback-requests/", new
         {
@@ -405,12 +408,12 @@ public sealed class MinimalApiEndpointTests
             title = "Invalid",
             description = "Invalid enum"
         });
-        var invalidStatus = await app.Client.PatchAsJsonAsync("/api/feedback-requests/1/status", new
+        var invalidStatus = await admin.PatchAsJsonAsync("/api/feedback-requests/1/status", new
         {
             status = 99
         });
         var otherUserGet = await app.Client.GetAsync("/api/feedback-requests/99");
-        var otherUserPatch = await app.Client.PatchAsJsonAsync("/api/feedback-requests/99/status", new
+        var otherUserPatch = await admin.PatchAsJsonAsync("/api/feedback-requests/99/status", new
         {
             status = FeedbackRequestStatusEnum.Closed
         });
@@ -420,7 +423,7 @@ public sealed class MinimalApiEndpointTests
             Assert.That(invalidType.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
             Assert.That(invalidStatus.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
             Assert.That(otherUserGet.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
-            Assert.That(otherUserPatch.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(otherUserPatch.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
         });
     }
 
@@ -546,7 +549,7 @@ public sealed class MinimalApiEndpointTests
         await using var app = await MinimalApiTestApp.CreateAsync(db =>
         {
             TestDb.SeedBaseline(db);
-            db.Games.Add(new Game { Id = 99, Name = "Disposable", IsActive = true, UserId = TestDb.TestUserId });
+            db.Games.Add(new Game { Id = 99, Name = "Disposable", IsActive = true, UserId = null });
             db.SaveChanges();
         });
         using (var scope = app.App.Services.CreateScope())

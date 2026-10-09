@@ -32,7 +32,7 @@ public static class GameUrlProductsEndpoints
             if (userId is null) { return Results.Unauthorized(); }
 
             var items = await ProjectProducts(db.GameUrlsProducts.AsNoTracking()
-                    .Where(x => x.Product.UserId == userId && x.GameUrl.UserId == userId))
+                    .Where(x => x.Product.UserId == null && x.GameUrl.UserId == null))
                 .ToListAsync(ct);
             return Results.Ok(items);
         });
@@ -45,7 +45,7 @@ public static class GameUrlProductsEndpoints
 
             var exists = await db.GameUrlsProducts.AsNoTracking().AnyAsync(x =>
                 x.ProductId == productId && x.GameUrlId == gameUrlId &&
-                x.Product.UserId == userId && x.GameUrl.UserId == userId, ct);
+                x.Product.UserId == null && x.GameUrl.UserId == null, ct);
             return exists ? Results.Ok() : Results.NotFound();
         });
 
@@ -57,7 +57,7 @@ public static class GameUrlProductsEndpoints
 
             var items = await ProjectProducts(db.GameUrlsProducts.AsNoTracking().Where(x =>
                     x.GameUrlId == gameUrlId &&
-                    x.Product.UserId == userId && x.GameUrl.UserId == userId))
+                    x.Product.UserId == null && x.GameUrl.UserId == null))
                 .ToListAsync(ct);
             return Results.Ok(items);
         });
@@ -68,8 +68,8 @@ public static class GameUrlProductsEndpoints
             var userId = httpContext.User.GetUserId();
             if (userId is null) { return Results.Unauthorized(); }
 
-            var productExists = await db.Products.AnyAsync(p => p.Id == input.ProductId && p.UserId == userId, ct);
-            var gameUrlExists = await db.GameUrls.AnyAsync(g => g.Id == input.GameUrlId && g.UserId == userId, ct);
+            var productExists = await db.Products.AnyAsync(p => p.Id == input.ProductId && p.UserId == null, ct);
+            var gameUrlExists = await db.GameUrls.AnyAsync(g => g.Id == input.GameUrlId && g.UserId == null, ct);
             if (!productExists || !gameUrlExists)
             {
                 return Results.BadRequest("Invalid ProductId or GameUrlId");
@@ -77,7 +77,7 @@ public static class GameUrlProductsEndpoints
 
             var alreadyExists = await db.GameUrlsProducts.AnyAsync(x =>
                 x.ProductId == input.ProductId && x.GameUrlId == input.GameUrlId &&
-                x.Product.UserId == userId && x.GameUrl.UserId == userId, ct);
+                x.Product.UserId == null && x.GameUrl.UserId == null, ct);
             if (alreadyExists)
             {
                 return Results.Conflict("Relation already exists");
@@ -228,11 +228,11 @@ public static class GameUrlProductsEndpoints
 
             var relationExists = await db.GameUrlsProducts.AsNoTracking().AnyAsync(x =>
                 x.ProductId == productId && x.GameUrlId == gameUrlId &&
-                x.Product.UserId == userId && x.GameUrl.UserId == userId, ct);
+                x.Product.UserId == null && x.GameUrl.UserId == null, ct);
             if (!relationExists) { return Results.NotFound(); }
 
             var query = db.GameUrlProductStockHistories.AsNoTracking()
-                .Where(x => x.ProductId == productId && x.GameUrlId == gameUrlId && x.UserId == userId)
+                .Where(x => x.ProductId == productId && x.GameUrlId == gameUrlId)
                 .OrderByDescending(x => x.CreatedAtUtc)
                 .ThenByDescending(x => x.Id);
             var totalCount = await query.CountAsync(ct);
@@ -273,7 +273,7 @@ public static class GameUrlProductsEndpoints
 
             var entity = await db.GameUrlsProducts.FirstOrDefaultAsync(x =>
                 x.ProductId == productId && x.GameUrlId == gameUrlId &&
-                x.Product.UserId == userId && x.GameUrl.UserId == userId, ct);
+                x.Product.UserId == null && x.GameUrl.UserId == null, ct);
             if (entity is null)
             {
                 return Results.NotFound();
@@ -294,13 +294,13 @@ public static class GameUrlProductsEndpoints
         try
         {
             var gameId = await db.GameUrls.AsNoTracking()
-                .Where(url => url.Id == gameUrlId && url.UserId == userId)
+                .Where(url => url.Id == gameUrlId && url.UserId == null)
                 .Select(url => (long?)url.GameId)
                 .FirstOrDefaultAsync(ct);
             if (gameId is null) { return Results.NotFound(); }
 
             var validCount = await db.Products.AsNoTracking().CountAsync(product =>
-                productIds.Contains(product.Id) && product.UserId == userId && product.GameId == gameId.Value, ct);
+                productIds.Contains(product.Id) && product.UserId == null && product.GameId == gameId.Value, ct);
             if (validCount != productIds.Length)
             {
                 return Results.BadRequest("Every product must belong to you and to the Game URL's game.");
@@ -349,14 +349,14 @@ public static class GameUrlProductsEndpoints
         try
         {
             var gameId = await db.GameUrls.AsNoTracking()
-                .Where(url => url.Id == gameUrlId && url.UserId == userId)
+                .Where(url => url.Id == gameUrlId && url.UserId == null)
                 .Select(url => (long?)url.GameId)
                 .FirstOrDefaultAsync(ct);
             if (gameId is null) { return Results.NotFound(); }
 
             var productIds = addProductIds.Concat(removeProductIds).Distinct().ToArray();
             var validCount = await db.Products.AsNoTracking().CountAsync(product =>
-                productIds.Contains(product.Id) && product.UserId == userId && product.GameId == gameId.Value, ct);
+                productIds.Contains(product.Id) && product.UserId == null && product.GameId == gameId.Value, ct);
             if (validCount != productIds.Length)
             {
                 return Results.BadRequest("Every product must belong to you and to the Game URL's game.");
@@ -438,7 +438,7 @@ public static class GameUrlProductsEndpoints
             await using var transaction = await db.Database.BeginTransactionAsync(ct);
             var currentStock = await db.GameUrlsProducts.AsNoTracking()
                 .Where(x => x.ProductId == productId && x.GameUrlId == gameUrlId &&
-                    x.Product.UserId == userId && x.GameUrl.UserId == userId)
+                    x.Product.UserId == null && x.GameUrl.UserId == null)
                 .Select(x => (int?)x.CurrentStock)
                 .FirstOrDefaultAsync(ct);
             if (currentStock is null)

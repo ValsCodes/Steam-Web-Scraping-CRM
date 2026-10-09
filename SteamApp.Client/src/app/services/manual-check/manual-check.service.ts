@@ -86,6 +86,12 @@ export class ManualCheckService {
       .pipe(catchError(handleError));
   }
 
+  clonePreset(id: number): Observable<ManualCheckPreset> {
+    return this.http
+      .post<ManualCheckPreset>(`${this.baseUrl}/presets/${id}/clone`, {})
+      .pipe(catchError(handleError));
+  }
+
   pauseRun(id: number): Observable<ManualCheckRunDetail> {
     return this.http
       .post<ManualCheckRunDetail>(`${this.baseUrl}/runs/${id}/pause`, {})
