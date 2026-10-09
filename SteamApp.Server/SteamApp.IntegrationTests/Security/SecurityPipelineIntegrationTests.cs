@@ -73,6 +73,64 @@ public sealed class SecurityPipelineIntegrationTests
     }
 
     [Test]
+    public async Task TrustedProxyForwardedHttpsRequestDoesNotRedirect()
+    {
+        var configuration = new Dictionary<string, string?>
+        {
+            ["ReverseProxy__Enabled"] = "true",
+            ["ReverseProxy__ForwardLimit"] = "2",
+            ["ReverseProxy__KnownNetworks__0"] = "127.0.0.0/8"
+        };
+        using var factory = new SteamAppFactory(
+            environmentName: "Production",
+            overrides: configuration);
+
+        var response = await factory.Server.SendAsync(context =>
+        {
+            context.Connection.RemoteIpAddress = IPAddress.Loopback;
+            context.Request.Method = HttpMethod.Get.Method;
+            context.Request.Scheme = "http";
+            context.Request.Host = new Microsoft.AspNetCore.Http.HostString("localhost");
+            context.Request.Path = "/api/games/";
+            context.Request.Headers["X-Forwarded-For"] = "203.0.113.10, 127.0.0.2";
+            context.Request.Headers["X-Forwarded-Proto"] = "https, https";
+        });
+
+        Assert.That(
+            (HttpStatusCode)response.Response.StatusCode,
+            Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [Test]
+    public async Task UntrustedProxyForwardedHttpsRequestIsIgnored()
+    {
+        var configuration = new Dictionary<string, string?>
+        {
+            ["ReverseProxy__Enabled"] = "true",
+            ["ReverseProxy__ForwardLimit"] = "2",
+            ["ReverseProxy__KnownNetworks__0"] = "10.0.0.0/8"
+        };
+        using var factory = new SteamAppFactory(
+            environmentName: "Production",
+            overrides: configuration);
+
+        var response = await factory.Server.SendAsync(context =>
+        {
+            context.Connection.RemoteIpAddress = IPAddress.Loopback;
+            context.Request.Method = HttpMethod.Get.Method;
+            context.Request.Scheme = "http";
+            context.Request.Host = new Microsoft.AspNetCore.Http.HostString("localhost");
+            context.Request.Path = "/api/games/";
+            context.Request.Headers["X-Forwarded-For"] = "203.0.113.10";
+            context.Request.Headers["X-Forwarded-Proto"] = "https";
+        });
+
+        Assert.That(
+            (HttpStatusCode)response.Response.StatusCode,
+            Is.EqualTo(HttpStatusCode.RedirectKeepVerb));
+    }
+
+    [Test]
     public async Task CorsAllowsConfiguredOriginAndRejectsUnconfiguredOrigin()
     {
         var configuration = new Dictionary<string, string?>

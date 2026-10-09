@@ -76,6 +76,53 @@ public sealed class StartupIntegrationTests
             Throws.InvalidOperationException.With.Message.Contains("AllowedHosts"));
     }
 
+    [Test]
+    public void ReverseProxyEnabledWithoutKnownNetworkFailsStartup()
+    {
+        using var factory = new SteamAppFactory(
+            overrides: new Dictionary<string, string?>
+            {
+                ["ReverseProxy__Enabled"] = "true",
+                ["ReverseProxy__ForwardLimit"] = "2"
+            });
+
+        Assert.That(
+            () => factory.CreateAnonymousClient(),
+            Throws.InvalidOperationException.With.Message.Contains("ReverseProxy:KnownNetworks"));
+    }
+
+    [Test]
+    public void ReverseProxyEnabledWithInvalidNetworkFailsStartup()
+    {
+        using var factory = new SteamAppFactory(
+            overrides: new Dictionary<string, string?>
+            {
+                ["ReverseProxy__Enabled"] = "true",
+                ["ReverseProxy__ForwardLimit"] = "2",
+                ["ReverseProxy__KnownNetworks__0"] = "not-a-network"
+            });
+
+        Assert.That(
+            () => factory.CreateAnonymousClient(),
+            Throws.InvalidOperationException.With.Message.Contains("invalid CIDR"));
+    }
+
+    [Test]
+    public void ReverseProxyEnabledWithInvalidForwardLimitFailsStartup()
+    {
+        using var factory = new SteamAppFactory(
+            overrides: new Dictionary<string, string?>
+            {
+                ["ReverseProxy__Enabled"] = "true",
+                ["ReverseProxy__ForwardLimit"] = "0",
+                ["ReverseProxy__KnownNetworks__0"] = "127.0.0.0/8"
+            });
+
+        Assert.That(
+            () => factory.CreateAnonymousClient(),
+            Throws.InvalidOperationException.With.Message.Contains("ReverseProxy:ForwardLimit"));
+    }
+
     private static IReadOnlyDictionary<string, string?> ClearRequiredConfiguration()
     {
         return new Dictionary<string, string?>

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -93,6 +94,7 @@ public class Program
         ValidateClientDefinitions(clients, builder.Environment);
         ValidateHostFilteringConfiguration(builder.Configuration, builder.Environment);
         ValidateEmailConfiguration(builder.Configuration, builder.Environment);
+        ConfigureForwardedHeaders(builder.Services, builder.Configuration);
 
         builder.Services.AddSingleton<IReadOnlyList<ClientDefinition>>(clients);
 
@@ -427,6 +429,11 @@ public class Program
                 .GetResult();
         }
 
+        if (app.Configuration.GetValue<bool>("ReverseProxy:Enabled"))
+        {
+            app.UseForwardedHeaders();
+        }
+
         app.UseExceptionHandler();
 
         if (app.Environment.IsDevelopment())
@@ -581,6 +588,78 @@ public class Program
             throw new InvalidOperationException(
                 "AllowedHosts must list explicit host names outside Development.");
         }
+    }
+
+    private static void ConfigureForwardedHeaders(
+        IServiceCollection services,
+        IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        if (!configuration.GetValue<bool>("ReverseProxy:Enabled"))
+        {
+            return;
+        }
+
+        var forwardLimit = configuration.GetValue<int?>("ReverseProxy:ForwardLimit");
+        if (forwardLimit is null or <= 0)
+        {
+            throw new InvalidOperationException(
+                "ReverseProxy:ForwardLimit must be greater than zero when reverse proxy support is enabled.");
+        }
+
+        var configuredNetworks = configuration
+            .GetSection("ReverseProxy:KnownNetworks")
+            .Get<string[]>() ?? [];
+
+        if (configuredNetworks.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "ReverseProxy:KnownNetworks must contain at least one trusted CIDR when reverse proxy support is enabled.");
+        }
+
+        var knownNetworks = configuredNetworks
+            .Select(ParseKnownNetwork)
+            .ToArray();
+
+        services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders =
+                ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            options.ForwardLimit = forwardLimit;
+            options.KnownNetworks.Clear();
+            options.KnownProxies.Clear();
+
+            foreach (var network in knownNetworks)
+            {
+                options.KnownNetworks.Add(network);
+            }
+        });
+    }
+
+    private static Microsoft.AspNetCore.HttpOverrides.IPNetwork ParseKnownNetwork(string value)
+    {
+        var parts = value.Split('/', StringSplitOptions.TrimEntries);
+        if (parts.Length != 2 ||
+            !System.Net.IPAddress.TryParse(parts[0], out var prefix) ||
+            !int.TryParse(parts[1], out var prefixLength))
+        {
+            throw new InvalidOperationException(
+                $"ReverseProxy:KnownNetworks contains an invalid CIDR: '{value}'.");
+        }
+
+        var maximumPrefixLength = prefix.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork
+            ? 32
+            : 128;
+
+        if (prefixLength < 0 || prefixLength > maximumPrefixLength)
+        {
+            throw new InvalidOperationException(
+                $"ReverseProxy:KnownNetworks contains an invalid CIDR: '{value}'.");
+        }
+
+        return new Microsoft.AspNetCore.HttpOverrides.IPNetwork(prefix, prefixLength);
     }
 
     private static void ValidateCorsOrigins(

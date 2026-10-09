@@ -1,0 +1,193 @@
+name: steamapp-full
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: ${MSSQL_PID:-Developer}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in env/full-stack.env}
+    expose:
+      - "1433"
+    volumes:
+      - sql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" -b -o /dev/null']
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    networks:
+      - steamapp-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in env/full-stack.env}
+    command:
+      - /bin/sh
+      - -c
+      - exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"
+    expose:
+      - "6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG']
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    networks:
+      - steamapp-network
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?Set RABBITMQ_USER in env/full-stack.env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in env/full-stack.env}
+    expose:
+      - "5672"
+      - "15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    networks:
+      - steamapp-network
+    restart: unless-stopped
+
+  otel-lgtm:
+    image: grafana/otel-lgtm:0.34.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in env/full-stack.env}
+      GF_SERVER_DOMAIN: ${GRAFANA_PUBLIC_HOST:?Set GRAFANA_PUBLIC_HOST in env/full-stack.env}
+      GF_SERVER_ROOT_URL: https://${GRAFANA_PUBLIC_HOST:?Set GRAFANA_PUBLIC_HOST in env/full-stack.env}/
+      GF_SERVER_ENFORCE_DOMAIN: "true"
+    ports:
+      - "127.0.0.1:${GRAFANA_HTTP_PORT:-3000}:3000"
+    expose:
+      - "4318"
+    volumes:
+      - lgtm-data:/data
+    healthcheck:
+      test: ["CMD", "cat", "/tmp/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 18
+      start_period: 30s
+    networks:
+      - steamapp-network
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./SteamApp.Server
+      dockerfile: SteamApp.WebAPI/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      AllowedHosts: ${STEAMAPP_PUBLIC_HOST:?Set STEAMAPP_PUBLIC_HOST in env/full-stack.env}
+      Authentication__AllowRegistration: ${AUTHENTICATION_ALLOW_REGISTRATION:-false}
+      Database__EnsureIdentitySchemaOnStartup: "true"
+      Database__ApplyMigrationsOnStartup: "true"
+      ConnectionStrings__DefaultConnection: 'Server=sqlserver,1433;Database=${STEAMAPP_DATABASE:-SteamApp};User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in env/full-stack.env};Encrypt=True;TrustServerCertificate=True;'
+      JwtSettings__Key: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in env/full-stack.env}
+      JwtSettings__Issuer: SteamApp
+      JwtSettings__Audience: SteamAppClient
+      JwtSettings__DurationMinutes: "60"
+      Cors__AllowedOrigins__0: https://${STEAMAPP_PUBLIC_HOST:?Set STEAMAPP_PUBLIC_HOST in env/full-stack.env}
+      Clients__0__ClientId: ${STEAMAPP_CLIENT_ID:-steam-client}
+      Clients__0__ClientSecretHash: ${STEAMAPP_CLIENT_SECRET_HASH:?Set STEAMAPP_CLIENT_SECRET_HASH in env/full-stack.env}
+      Clients__0__AllowedScope: user
+      Clients__1__ClientId: ${STEAMAPP_INTERNAL_CLIENT_ID:-steam-internal}
+      Clients__1__ClientSecretHash: ${STEAMAPP_INTERNAL_CLIENT_SECRET_HASH:?Set STEAMAPP_INTERNAL_CLIENT_SECRET_HASH in env/full-stack.env}
+      Clients__1__AllowedScope: internal
+      Workers__WishlistCheck__Enabled: ${WISHLIST_WORKER_ENABLED:-false}
+      Workers__WishlistCheck__Interval: ${WISHLIST_WORKER_INTERVAL:-00:00:30}
+      Workers__WishlistCheck__DisplayName: WishlistCheck Worker
+      Email__Host: ${EMAIL_HOST:-}
+      Email__Port: ${EMAIL_PORT:-587}
+      Email__UserName: ${EMAIL_USERNAME:-}
+      Email__Password: ${EMAIL_PASSWORD:-}
+      Email__FromAddress: ${EMAIL_FROM_ADDRESS:-}
+      Email__EnableSsl: ${EMAIL_ENABLE_SSL:-true}
+      Email__AllowInvalidCertificate: "false"
+      RabbitMq__Enabled: "true"
+      RabbitMq__HostName: rabbitmq
+      RabbitMq__Port: "5672"
+      RabbitMq__UserName: ${RABBITMQ_USER:?Set RABBITMQ_USER in env/full-stack.env}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in env/full-stack.env}
+      RabbitMq__VirtualHost: /
+      RabbitMq__WishlistCheckQueueName: wishlist.check.requests
+      RabbitMq__WishlistNotificationQueueName: wishlist.notification.requests
+      RabbitMq__ScrapeRequestQueueName: scrape.requests
+      RabbitMq__WishlistCheckDelay: "00:00:15"
+      Redis__Enabled: "true"
+      Redis__ConnectionString: 'redis:6379,password=${REDIS_PASSWORD:?Set REDIS_PASSWORD in env/full-stack.env},abortConnect=false'
+      Redis__InstanceName: "SteamApp:"
+      Observability__Enabled: "true"
+      OTEL_SERVICE_NAME: steamapp-api
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-lgtm:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER:-always_on}
+      OTEL_METRIC_EXPORT_INTERVAL: ${OTEL_METRIC_EXPORT_INTERVAL:-5000}
+      ReverseProxy__Enabled: "true"
+      ReverseProxy__ForwardLimit: "2"
+      ReverseProxy__KnownNetworks__0: ${STEAMAPP_NETWORK_SUBNET:-172.30.50.0/24}
+    expose:
+      - "8080"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      otel-lgtm:
+        condition: service_healthy
+    networks:
+      - steamapp-network
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./SteamApp.Client
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:${STEAMAPP_HTTP_PORT:-4200}:80"
+    volumes:
+      - ./SteamApp.Client/nginx.full-stack.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      api:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    networks:
+      - steamapp-network
+    restart: unless-stopped
+
+networks:
+  steamapp-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${STEAMAPP_NETWORK_SUBNET:-172.30.50.0/24}
+
+volumes:
+  sql-data:
+  redis-data:
+  rabbitmq-data:
+  lgtm-data:
