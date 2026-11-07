@@ -378,8 +378,6 @@ public class Program
         builder.Services.AddHttpClient(ManualCheckOptions.HttpClientName, client =>
         {
             client.Timeout = Timeout.InfiniteTimeSpan;
-            client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("SteamApp-ManualCheck/1.0");
         });
 
         builder.Services.AddRabbitMqMessageBroker(builder.Configuration);

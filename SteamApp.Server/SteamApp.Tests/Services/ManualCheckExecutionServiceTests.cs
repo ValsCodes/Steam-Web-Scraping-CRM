@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Newtonsoft.Json;
+using SteamApp.Application.Caching;
 using SteamApp.Application.DTOs.ManualCheck;
 using SteamApp.Application.JsonObjects;
 using SteamApp.Domain.Enums;
@@ -198,9 +199,10 @@ public sealed class ManualCheckExecutionServiceTests
     }
 
     [Test]
-    public async Task ExecuteAsync_HtmlRateLimitPage_RetriesAndRecordsActionable429()
+    public async Task ExecuteAsync_HtmlRateLimitPage_StopsRunAndStoresFullRetryAfter()
     {
         var attempts = 0;
+        DistributedCacheEntryOptions? cacheOptions = null;
         var handler = new HttpMessageHandlerStub((_, _) =>
         {
             attempts++;
@@ -211,15 +213,20 @@ public sealed class ManualCheckExecutionServiceTests
                     Encoding.UTF8,
                     "text/html")
             };
-            response.Headers.RetryAfter = new RetryConditionHeaderValue(TimeSpan.FromMilliseconds(1));
+            response.Headers.RetryAfter = new RetryConditionHeaderValue(TimeSpan.FromMinutes(5));
             return response;
         });
-        var data = DataServiceMock(Setup(Product(1, "First")));
-        var service = CreateService(handler, data.Object, maxAttempts: 2);
+        var data = DataServiceMock(Setup(Product(1, "First"), Product(2, "Second")));
+        var cache = StatefulCache(options => cacheOptions = options);
+        var service = CreateService(handler, data.Object, maxAttempts: 4, cache.Object);
 
         await service.ExecuteAsync(26, CancellationToken.None, CancellationToken.None);
 
-        Assert.That(attempts, Is.EqualTo(2));
+        Assert.Multiple(() =>
+        {
+            Assert.That(attempts, Is.EqualTo(1));
+            Assert.That(cacheOptions?.AbsoluteExpirationRelativeToNow, Is.EqualTo(TimeSpan.FromMinutes(5)));
+        });
         data.Verify(x => x.FailAsync(
             26,
             It.Is<string>(message =>
@@ -230,6 +237,94 @@ public sealed class ManualCheckExecutionServiceTests
                 results.Errors[0].HttpStatusCode == 429 &&
                 results.Errors[0].ErrorType == nameof(HttpRequestException)),
             It.IsAny<CancellationToken>()), Times.Once);
+        data.Verify(x => x.UpdateProgressAsync(
+            It.IsAny<long>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<ManualCheckRunResultsDto>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_SharedRateLimitCooldown_PreventsOutboundRequest()
+    {
+        var attempts = 0;
+        var handler = new HttpMessageHandlerStub((_, _) =>
+        {
+            attempts++;
+            return JsonResponse(new Listing { Success = true });
+        });
+        var cache = EmptyCache();
+        cache.Setup(x => x.GetAsync(
+                CacheKeys.ManualCheckSteamRateLimit,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encoding.UTF8.GetBytes(
+                DateTimeOffset.UtcNow.AddMinutes(5).ToString("O")));
+        var data = DataServiceMock(Setup(Product(1, "First")));
+        var service = CreateService(handler, data.Object, maxAttempts: 4, cache.Object);
+
+        await service.ExecuteAsync(27, CancellationToken.None, CancellationToken.None);
+
+        Assert.That(attempts, Is.Zero);
+        data.Verify(x => x.FailAsync(
+            27,
+            It.Is<string>(message => message.Contains("previous rate-limit response")),
+            It.Is<ManualCheckRunResultsDto>(results =>
+                results.Errors.Count == 1 &&
+                results.Errors[0].HttpStatusCode == 429),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_Http429_StopsWithoutTransientRetry()
+    {
+        var attempts = 0;
+        var handler = new HttpMessageHandlerStub((_, _) =>
+        {
+            attempts++;
+            return new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+        });
+        var data = DataServiceMock(Setup(Product(1, "First"), Product(2, "Second")));
+        var service = CreateService(handler, data.Object, maxAttempts: 4);
+
+        await service.ExecuteAsync(28, CancellationToken.None, CancellationToken.None);
+
+        Assert.That(attempts, Is.EqualTo(1));
+        data.Verify(x => x.FailAsync(
+            28,
+            It.Is<string>(message => message.Contains("HTTP 429")),
+            It.Is<ManualCheckRunResultsDto>(results =>
+                results.Errors.Count == 1 &&
+                results.Errors[0].HttpStatusCode == 429),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_MultipleProducts_UsesOneConfiguredUserAgentForTheRun()
+    {
+        var userAgents = new List<string>();
+        var acceptHeaders = new List<string>();
+        var handler = new HttpMessageHandlerStub((request, _) =>
+        {
+            userAgents.Add(request.Headers.UserAgent.ToString());
+            acceptHeaders.Add(string.Join(",", request.Headers.Accept.Select(x => x.ToString())));
+            return JsonResponse(new Listing { Success = true });
+        });
+        var data = DataServiceMock(Setup(Product(1, "First"), Product(2, "Second")));
+        var service = CreateService(
+            handler,
+            data.Object,
+            maxAttempts: 1,
+            userAgents: ["TestAgent-A/1.0", "TestAgent-B/1.0"]);
+
+        await service.ExecuteAsync(29, CancellationToken.None, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(userAgents, Is.EqualTo(new[] { "TestAgent-B/1.0", "TestAgent-B/1.0" }));
+            Assert.That(acceptHeaders, Has.All.Contains("text/html"));
+        });
     }
 
     [TestCase(false)]
@@ -579,7 +674,8 @@ public sealed class ManualCheckExecutionServiceTests
         int maxAttempts,
         IDistributedCache? cache = null,
         IManualCheckDelay? delay = null,
-        TimeSpan? defaultDelay = null)
+        TimeSpan? defaultDelay = null,
+        IReadOnlyList<string>? userAgents = null)
     {
         var client = new HttpClient(handler);
         var factory = new Mock<IHttpClientFactory>();
@@ -589,7 +685,10 @@ public sealed class ManualCheckExecutionServiceTests
             DelayBetweenRequests = defaultDelay ?? TimeSpan.Zero,
             RetryBaseDelay = TimeSpan.FromMilliseconds(1),
             RequestTimeout = TimeSpan.FromSeconds(2),
-            MaxAttempts = maxAttempts
+            RateLimitCooldown = TimeSpan.FromMinutes(15),
+            RateLimitJitter = TimeSpan.Zero,
+            MaxAttempts = maxAttempts,
+            UserAgents = userAgents?.ToList() ?? ["TestAgent/1.0"]
         });
         return new ManualCheckExecutionService(
             factory.Object,

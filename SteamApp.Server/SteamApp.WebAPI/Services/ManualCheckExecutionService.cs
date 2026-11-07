@@ -9,6 +9,7 @@ using SteamApp.Interfaces.Services;
 using SteamApp.WebAPI.Caching;
 using SteamApp.WebAPI.ManualChecks;
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -42,6 +43,7 @@ public sealed class ManualCheckExecutionService(
         var successfulProducts = results.ProductTraces.Count(x => x.MatchEvaluated);
         var startIndex = Math.Clamp(run.CheckedProducts, 0, setup.Products.Count);
         var delayBetweenChecks = GetDelayBetweenChecks(setup);
+        var userAgent = SelectUserAgent(runId);
 
         try
         {
@@ -91,6 +93,7 @@ public sealed class ManualCheckExecutionService(
                     var listing = await FetchListingAsync(
                         listingUri,
                         setup.BypassCache,
+                        userAgent,
                         productCancellation.Token);
                     productTrace.SteamApiResultJson = JsonConvert.SerializeObject(listing);
                     successfulProducts++;
@@ -138,6 +141,21 @@ public sealed class ManualCheckExecutionService(
                     await dataService.MarkPausedAsync(runId, cancellationToken);
                     return;
                 }
+                catch (HttpRequestException exception) when (exception.StatusCode == HttpStatusCode.TooManyRequests)
+                {
+                    logger.LogWarning(
+                        exception,
+                        "Manual check run {RunId} stopped after Steam rate-limited product {ProductId}.",
+                        runId,
+                        product.ProductId);
+                    results.Errors.Add(CreateProductError(product, exception));
+                    await dataService.FailAsync(
+                        runId,
+                        BuildAllProductsFailedMessage(results.Errors),
+                        results,
+                        cancellationToken);
+                    return;
+                }
                 catch (Exception exception)
                 {
                     logger.LogWarning(
@@ -146,18 +164,7 @@ public sealed class ManualCheckExecutionService(
                         runId,
                         product.ProductId);
 
-                    results.Errors.Add(new ManualCheckProductErrorDto
-                    {
-                        ProductId = product.ProductId,
-                        ProductName = product.ProductName,
-                        FullUrl = product.FullUrl,
-                        Error = exception.Message,
-                        ErrorType = exception.GetType().Name,
-                        HttpStatusCode = exception is HttpRequestException requestException
-                            ? (int?)requestException.StatusCode
-                            : null,
-                        OccurredAtUtc = DateTime.UtcNow
-                    });
+                    results.Errors.Add(CreateProductError(product, exception));
                 }
                 finally
                 {
@@ -237,6 +244,7 @@ public sealed class ManualCheckExecutionService(
     private async Task<Listing> FetchListingAsync(
         Uri uri,
         bool bypassCache,
+        string userAgent,
         CancellationToken cancellationToken)
     {
         var cacheKey = BuildCacheKey(uri);
@@ -263,7 +271,7 @@ public sealed class ManualCheckExecutionService(
             }
         }
 
-        var listing = await FetchListingFromSteamAsync(uri, cancellationToken);
+        var listing = await FetchListingFromSteamAsync(uri, userAgent, cancellationToken);
         try
         {
             await cache.SetJsonAsync(
@@ -287,8 +295,13 @@ public sealed class ManualCheckExecutionService(
         return listing;
     }
 
-    private async Task<Listing> FetchListingFromSteamAsync(Uri uri, CancellationToken cancellationToken)
+    private async Task<Listing> FetchListingFromSteamAsync(
+        Uri uri,
+        string userAgent,
+        CancellationToken cancellationToken)
     {
+        await ThrowIfSteamRateLimitedAsync(cancellationToken);
+
         var client = httpClientFactory.CreateClient(ManualCheckOptions.HttpClientName);
         var maxAttempts = Math.Clamp(options.Value.MaxAttempts, 1, 10);
 
@@ -299,8 +312,9 @@ public sealed class ManualCheckExecutionService(
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 timeout.CancelAfter(NormalizedTimeout(options.Value.RequestTimeout));
 
-                using var response = await client.GetAsync(
-                    uri,
+                using var request = CreateRequest(uri, userAgent);
+                using var response = await client.SendAsync(
+                    request,
                     HttpCompletionOption.ResponseHeadersRead,
                     timeout.Token);
 
@@ -312,17 +326,13 @@ public sealed class ManualCheckExecutionService(
                     {
                         if (IsSteamRateLimitPage(payload))
                         {
-                            if (attempt < maxAttempts)
-                            {
-                                await Task.Delay(
-                                    GetRetryDelay(response.Headers.RetryAfter, attempt),
-                                    cancellationToken);
-                                continue;
-                            }
+                            var retryAtUtc = await ActivateSteamRateLimitAsync(
+                                response.Headers.RetryAfter,
+                                cancellationToken);
 
                             throw new HttpRequestException(
                                 "Steam rate-limited the automated market request. Browser access may still work " +
-                                "because it uses a separate Steam session. Wait before rerunning or increase the preset cooldown.",
+                                $"because it uses a separate Steam session. Requests are paused until {retryAtUtc:O}.",
                                 null,
                                 HttpStatusCode.TooManyRequests);
                         }
@@ -361,6 +371,17 @@ public sealed class ManualCheckExecutionService(
                     return listing;
                 }
 
+                if (response.StatusCode == HttpStatusCode.TooManyRequests)
+                {
+                    var retryAtUtc = await ActivateSteamRateLimitAsync(
+                        response.Headers.RetryAfter,
+                        cancellationToken);
+                    throw new HttpRequestException(
+                        $"Steam returned HTTP 429. Requests are paused until {retryAtUtc:O}.",
+                        null,
+                        HttpStatusCode.TooManyRequests);
+                }
+
                 if (!IsTransient(response.StatusCode) || attempt == maxAttempts)
                 {
                     throw new HttpRequestException(
@@ -379,13 +400,105 @@ public sealed class ManualCheckExecutionService(
             {
                 await Task.Delay(GetBackoffDelay(attempt), cancellationToken);
             }
-            catch (HttpRequestException exception) when (IsTransient(exception.StatusCode) && attempt < maxAttempts)
+            catch (HttpRequestException exception) when (
+                exception.StatusCode != HttpStatusCode.TooManyRequests &&
+                IsTransient(exception.StatusCode) &&
+                attempt < maxAttempts)
             {
                 await Task.Delay(GetBackoffDelay(attempt), cancellationToken);
             }
         }
 
         throw new TimeoutException("Steam listing request timed out after all retry attempts.");
+    }
+
+    private static HttpRequestMessage CreateRequest(Uri uri, string userAgent)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, uri);
+        request.Headers.UserAgent.ParseAdd(userAgent);
+        request.Headers.Accept.ParseAdd("text/html, application/xhtml+xml, application/json;q=0.9, */*;q=0.8");
+        request.Headers.AcceptLanguage.ParseAdd("en-US, en;q=0.9");
+        return request;
+    }
+
+    private string SelectUserAgent(long runId)
+    {
+        var userAgents = options.Value.UserAgents
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToList();
+        if (userAgents.Count == 0)
+        {
+            return "SteamApp-ManualCheck/1.0";
+        }
+
+        var remainder = runId % userAgents.Count;
+        var index = (int)(remainder < 0 ? -remainder : remainder);
+        return userAgents[index];
+    }
+
+    private async Task ThrowIfSteamRateLimitedAsync(CancellationToken cancellationToken)
+    {
+        string? cachedRetryAt;
+        try
+        {
+            cachedRetryAt = await cache.GetStringAsync(
+                CacheKeys.ManualCheckSteamRateLimit,
+                cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Unable to read the shared Steam rate-limit cooldown.");
+            return;
+        }
+
+        if (DateTimeOffset.TryParseExact(
+                cachedRetryAt,
+                "O",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind,
+                out var retryAtUtc))
+        {
+            if (retryAtUtc > DateTimeOffset.UtcNow)
+            {
+                throw new HttpRequestException(
+                    $"Steam requests are paused until {retryAtUtc:O} after a previous rate-limit response.",
+                    null,
+                    HttpStatusCode.TooManyRequests);
+            }
+        }
+    }
+
+    private async Task<DateTimeOffset> ActivateSteamRateLimitAsync(
+        RetryConditionHeaderValue? retryAfter,
+        CancellationToken cancellationToken)
+    {
+        var cooldown = GetRateLimitCooldown(retryAfter);
+        var retryAtUtc = DateTimeOffset.UtcNow.Add(cooldown);
+        try
+        {
+            await cache.SetStringAsync(
+                CacheKeys.ManualCheckSteamRateLimit,
+                retryAtUtc.ToString("O", CultureInfo.InvariantCulture),
+                new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = cooldown
+                },
+                cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Unable to store the shared Steam rate-limit cooldown.");
+        }
+
+        return retryAtUtc;
     }
 
     private static string BuildCacheKey(Uri uri)
@@ -405,6 +518,24 @@ public sealed class ManualCheckExecutionService(
         var firstContent = payload.AsSpan().TrimStart();
         return firstContent.StartsWith("<!DOCTYPE html", StringComparison.OrdinalIgnoreCase) ||
                firstContent.StartsWith("<html", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static ManualCheckProductErrorDto CreateProductError(
+        ManualCheckProductInputDto product,
+        Exception exception)
+    {
+        return new ManualCheckProductErrorDto
+        {
+            ProductId = product.ProductId,
+            ProductName = product.ProductName,
+            FullUrl = product.FullUrl,
+            Error = exception.Message,
+            ErrorType = exception.GetType().Name,
+            HttpStatusCode = exception is HttpRequestException requestException
+                ? (int?)requestException.StatusCode
+                : null,
+            OccurredAtUtc = DateTime.UtcNow
+        };
     }
 
     private static bool IsSteamRateLimitPage(string payload)
@@ -453,7 +584,7 @@ public sealed class ManualCheckExecutionService(
     {
         if (retryAfter?.Delta is { } delta && delta > TimeSpan.Zero)
         {
-            return delta > TimeSpan.FromMinutes(2) ? TimeSpan.FromMinutes(2) : delta;
+            return delta;
         }
 
         if (retryAfter?.Date is { } date)
@@ -461,11 +592,42 @@ public sealed class ManualCheckExecutionService(
             var delay = date - DateTimeOffset.UtcNow;
             if (delay > TimeSpan.Zero)
             {
-                return delay > TimeSpan.FromMinutes(2) ? TimeSpan.FromMinutes(2) : delay;
+                return delay;
             }
         }
 
         return GetBackoffDelay(attempt);
+    }
+
+    private TimeSpan GetRateLimitCooldown(RetryConditionHeaderValue? retryAfter)
+    {
+        if (retryAfter?.Delta is { } delta && delta > TimeSpan.Zero)
+        {
+            return delta;
+        }
+
+        if (retryAfter?.Date is { } date)
+        {
+            var delay = date - DateTimeOffset.UtcNow;
+            if (delay > TimeSpan.Zero)
+            {
+                return delay;
+            }
+        }
+
+        var baseCooldown = options.Value.RateLimitCooldown <= TimeSpan.Zero
+            ? TimeSpan.FromMinutes(15)
+            : options.Value.RateLimitCooldown;
+        var maximumJitter = options.Value.RateLimitJitter <= TimeSpan.Zero
+            ? TimeSpan.Zero
+            : options.Value.RateLimitJitter;
+        var maximumJitterMilliseconds = (int)Math.Min(
+            maximumJitter.TotalMilliseconds,
+            int.MaxValue - 1d);
+        var jitterMilliseconds = maximumJitterMilliseconds == 0
+            ? 0
+            : RandomNumberGenerator.GetInt32(maximumJitterMilliseconds + 1);
+        return baseCooldown + TimeSpan.FromMilliseconds(jitterMilliseconds);
     }
 
     private TimeSpan GetBackoffDelay(int attempt)

@@ -17,6 +17,8 @@
 
         public const string ManualCheckSteamListing = "v1:manual-check:steam-listing:{0}";
 
+        public const string ManualCheckSteamRateLimit = "v1:manual-check:steam-rate-limit";
+
         // Steam Repository
         public const string GameUrl = "game-url:{0}";
 

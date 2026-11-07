@@ -9,11 +9,20 @@ Read and follow this skill before governed C#/.NET work. Apply only relevant sec
 
 ## Readability and framework usage
 
+- Apply priorities in this order: human readability first; SOLID principles and extensibility second, only when they preserve or improve readability; local consistency and framework conventions afterward.
 - Prefer clear, simple, human-readable code, direct control flow, and the smallest complete solution.
 - Extend existing implementations rather than adding parallel infrastructure. Do not introduce abstractions, wrappers, factories, managers, helper layers, dependencies, projects, or folders without a concrete benefit.
 - Follow surrounding conventions. Prefer primary constructors when validation, inheritance, and dependency injection remain easy to read.
 - Do not add local functions inside methods; extract focused private members only when extraction materially improves clarity.
 - Prefer framework-native capabilities appropriate to the actual target framework and platform. Verify uncertain framework behavior or APIs against current official documentation before implementing. For Fluent UI Blazor, use official Fluent UI Blazor documentation.
+
+## Method parameter limits
+
+- Keep new and modified method and constructor signatures at three parameters or fewer whenever practical. Five parameters is the hard maximum.
+- When a signature would exceed five parameters, redesign the responsibility: split unrelated work, move behavior to the object that owns the data, or introduce one cohesive request, command, options, or value object with a clear domain meaning.
+- Do not bundle unrelated values into a parameter object merely to satisfy the count. The resulting call site and implementation must be easier for a human to understand.
+- Dependency-heavy constructors indicate excessive responsibility. Split the service by cohesive behavior instead of hiding dependencies in a service locator or aggregate dependency container.
+- Framework-mandated signatures and implemented external contracts are exempt when this repository does not control the signature. Do not add parameters to an already oversized untouched contract; improve it when the authorized change controls that contract and its callers.
 
 ## Architecture and ownership
 
