@@ -1569,6 +1569,10 @@ namespace SteamApp.WebAPI.Migrations
                         .HasColumnType("date")
                         .HasColumnName("rd");
 
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
                     b.Property<string>("Url")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("url");

@@ -22,3 +22,7 @@ export interface UpdateWatchListStatus {
   id: number;
   isActive: boolean;
 }
+
+export interface ReorderWatchList {
+  orderedIds: number[];
+}

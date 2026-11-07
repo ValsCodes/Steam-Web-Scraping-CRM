@@ -8,6 +8,7 @@ import {
   CreateWatchList,
   UpdateWatchList,
   UpdateWatchListStatus,
+  ReorderWatchList,
 } from '../../models/watch-list.model';
 
 import { handleError } from '../error-handler';
@@ -49,6 +50,12 @@ export class WatchListService {
   updateStatus(input: UpdateWatchListStatus): Observable<void> {
     return this.http
       .patch<void>(`${this.baseUrl}/${input.id}`, input)
+      .pipe(catchError(handleError));
+  }
+
+  reorder(input: ReorderWatchList): Observable<void> {
+    return this.http
+      .put<void>(`${this.baseUrl}/order`, input)
       .pipe(catchError(handleError));
   }
 

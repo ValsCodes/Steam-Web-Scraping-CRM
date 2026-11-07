@@ -43,10 +43,10 @@
       <div class="watch-list-panel__body">
         @if (view() === 'list') {
           <div class="watch-list-panel__toolbar">
-            <button type="button" class="watch-list-panel__primary" [disabled]="isLoading()" (click)="showCreateForm()">
+            <button type="button" class="watch-list-panel__primary" [disabled]="isLoading() || isReordering()" (click)="showCreateForm()">
               + Add item
             </button>
-            <button type="button" class="watch-list-panel__secondary" [disabled]="isLoading()" (click)="refresh()">
+            <button type="button" class="watch-list-panel__secondary" [disabled]="isLoading() || isReordering()" (click)="refresh()">
               {{ isLoading() ? 'Refreshing…' : 'Refresh' }}
             </button>
           </div>
@@ -59,41 +59,58 @@
               <span>Add a custom URL to start monitoring it.</span>
             </div>
           } @else {
-            <ul class="watch-list-panel__items" aria-label="Custom watch list items">
+            <ul
+              class="watch-list-panel__items"
+              aria-label="Custom watch list items"
+              cdkDropList
+              [cdkDropListData]="items()"
+              [cdkDropListDisabled]="isLoading() || isReordering()"
+              (cdkDropListDropped)="drop($event)">
               @for (item of items(); track item.id) {
-                <li class="watch-list-item" [class.watch-list-item--inactive]="!item.isActive">
+                <li
+                  class="watch-list-item"
+                  [class.watch-list-item--inactive]="!item.isActive"
+                  cdkDrag>
+                  <button
+                    type="button"
+                    class="watch-list-item__drag-handle"
+                    cdkDragHandle
+                    [disabled]="isLoading() || isReordering()"
+                    [attr.aria-label]="'Reorder ' + (item.name || 'watch list item')">
+                    <span aria-hidden="true">&#8942;&#8942;</span>
+                  </button>
                   <label class="watch-list-item__check">
                     <input
                       type="checkbox"
                       [checked]="item.isActive"
-                      [disabled]="isLoading() || isUpdating(item.id) || isDeleting(item.id)"
+                      [disabled]="isLoading() || isReordering() || isUpdating(item.id) || isDeleting(item.id)"
                       (change)="toggleActive(item)" />
                     <span class="sr-only">{{ item.isActive ? 'Deactivate' : 'Activate' }} {{ item.name ?? 'watch list item' }}</span>
                   </label>
 
                   @if (openableExternalUrl(item.url); as url) {
                     <a class="watch-list-item__content watch-list-item__link" [steamExternalLink]="url">
-                      <strong>{{ item.name || 'Unnamed item' }}</strong>
-                      <span>{{ url }}</span>
+                      <strong [matTooltip]="item.name || 'Unnamed item'">{{ item.name || 'Unnamed item' }}</strong>
+                      <span [matTooltip]="url">{{ url }}</span>
                     </a>
                   } @else {
                     <div class="watch-list-item__content">
-                      <strong>{{ item.name || 'Unnamed item' }}</strong>
-                      <span>No URL</span>
+                      <strong [matTooltip]="item.name || 'Unnamed item'">{{ item.name || 'Unnamed item' }}</strong>
+                      <span matTooltip="No URL">No URL</span>
                     </div>
                   }
 
                   <div class="watch-list-item__actions">
                     <button
                       type="button"
-                      [disabled]="isLoading() || isUpdating(item.id) || isDeleting(item.id)"
+                      [disabled]="isLoading() || isReordering() || isUpdating(item.id) || isDeleting(item.id)"
                       (click)="showEditForm(item)">
                       Edit
                     </button>
                     <button
                       type="button"
                       class="watch-list-item__delete"
-                      [disabled]="isLoading() || isUpdating(item.id) || isDeleting(item.id)"
+                      [disabled]="isLoading() || isReordering() || isUpdating(item.id) || isDeleting(item.id)"
                       (click)="delete(item)">
                       {{ isDeleting(item.id) ? 'Removing…' : 'Remove' }}
                     </button>

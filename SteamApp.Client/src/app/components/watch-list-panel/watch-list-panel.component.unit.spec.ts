@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { BehaviorSubject, of } from 'rxjs';
+import { BehaviorSubject, of, throwError } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 
@@ -32,12 +32,14 @@ describe('WatchListPanelComponent', () => {
     watchListService = jasmine.createSpyObj<WatchListService>('WatchListService', [
       'getAll',
       'updateStatus',
+      'reorder',
       'delete',
     ]);
     dialog = jasmine.createSpyObj<MatDialog>('MatDialog', ['open']);
 
     watchListService.getAll.and.returnValue(of([item]));
     watchListService.updateStatus.and.returnValue(of(void 0));
+    watchListService.reorder.and.returnValue(of(void 0));
     watchListService.delete.and.returnValue(of(void 0));
 
     await TestBed.configureTestingModule({
@@ -95,6 +97,29 @@ describe('WatchListPanelComponent', () => {
     expect(anchor.getAttribute('target')).toBe('_blank');
     expect(anchor.getAttribute('rel')).toBe('noopener noreferrer');
     expect(anchor.getAttribute('referrerpolicy')).toBe('no-referrer');
+  });
+
+  it('persists the item order after a drop', () => {
+    const secondItem = { ...item, id: 12, name: 'Weekly prices' };
+    watchListService.getAll.and.returnValue(of([item, secondItem]));
+    component.open();
+
+    component.drop({ previousIndex: 0, currentIndex: 1 } as never);
+
+    expect(component.items()).toEqual([secondItem, item]);
+    expect(watchListService.reorder).toHaveBeenCalledOnceWith({ orderedIds: [12, 11] });
+  });
+
+  it('restores the previous order when persistence fails', () => {
+    const secondItem = { ...item, id: 12, name: 'Weekly prices' };
+    watchListService.getAll.and.returnValue(of([item, secondItem]));
+    watchListService.reorder.and.returnValue(throwError(() => new Error('failed')));
+    component.open();
+
+    component.drop({ previousIndex: 0, currentIndex: 1 } as never);
+
+    expect(component.items()).toEqual([item, secondItem]);
+    expect(component.isReordering()).toBeFalse();
   });
 
   it('removes a confirmed item from the panel', () => {

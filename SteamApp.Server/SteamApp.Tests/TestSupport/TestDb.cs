@@ -224,6 +224,7 @@ public static class TestDb
                 Url = "https://steam.example/watch/1",
                 RegistrationDate = new DateOnly(2026, 1, 1),
                 IsActive = true,
+                SortOrder = 0,
                 UserId = TestUserId
             },
             new WatchList
@@ -233,6 +234,7 @@ public static class TestDb
                 Url = "https://steam.example/watch/2",
                 RegistrationDate = new DateOnly(2026, 2, 1),
                 IsActive = false,
+                SortOrder = 1,
                 UserId = TestUserId
             });
 

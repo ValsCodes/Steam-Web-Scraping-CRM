@@ -11,7 +11,9 @@ import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { A11yModule } from '@angular/cdk/a11y';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 
 import { ConfirmDialogComponent } from '../confirm-dialog.component';
 import { ExternalLinkDirective, openableExternalUrl } from '../../common';
@@ -24,7 +26,7 @@ type PanelView = 'list' | 'create' | 'edit';
 @Component({
   selector: 'steam-watch-list-panel',
   standalone: true,
-  imports: [A11yModule, CommonModule, ExternalLinkDirective, WatchListForm],
+  imports: [A11yModule, CommonModule, DragDropModule, ExternalLinkDirective, MatTooltipModule, WatchListForm],
   templateUrl: './watch-list-panel.component.html',
   styleUrl: './watch-list-panel.component.scss',
 })
@@ -39,6 +41,7 @@ export class WatchListPanelComponent {
   readonly isLoggedIn = signal(false);
   readonly isOpen = signal(false);
   readonly isLoading = signal(false);
+  readonly isReordering = signal(false);
   readonly items = signal<readonly WatchList[]>([]);
   readonly view = signal<PanelView>('list');
   readonly selectedItem = signal<WatchList | null>(null);
@@ -84,7 +87,7 @@ export class WatchListPanelComponent {
   }
 
   refresh(): void {
-    if (this.isLoading()) {
+    if (this.isLoading() || this.isReordering()) {
       return;
     }
 
@@ -124,7 +127,7 @@ export class WatchListPanelComponent {
   }
 
   toggleActive(item: WatchList): void {
-    if (this.isUpdating(item.id) || this.isDeleting(item.id)) {
+    if (this.isReordering() || this.isUpdating(item.id) || this.isDeleting(item.id)) {
       return;
     }
 
@@ -144,8 +147,29 @@ export class WatchListPanelComponent {
       });
   }
 
+  drop(event: CdkDragDrop<readonly WatchList[]>): void {
+    if (event.previousIndex === event.currentIndex || this.isReordering()) {
+      return;
+    }
+
+    const previousItems = this.items();
+    const reorderedItems = [...previousItems];
+    moveItemInArray(reorderedItems, event.previousIndex, event.currentIndex);
+    this.items.set(reorderedItems);
+    this.isReordering.set(true);
+
+    this.watchListService.reorder({ orderedIds: reorderedItems.map(item => item.id) })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isReordering.set(false)),
+      )
+      .subscribe({
+        error: () => this.items.set(previousItems),
+      });
+  }
+
   delete(item: WatchList): void {
-    if (this.isDeleting(item.id) || this.isUpdating(item.id)) {
+    if (this.isReordering() || this.isDeleting(item.id) || this.isUpdating(item.id)) {
       return;
     }
 

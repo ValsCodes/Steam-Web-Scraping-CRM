@@ -30,6 +30,8 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 var entities = await db.WatchList
                     .AsNoTracking()
                     .Where(x => x.UserId == userId)
+                    .OrderBy(x => x.SortOrder)
+                    .ThenBy(x => x.Id)
                     .ToListAsync();
 
                 return Results.Ok(mapper.Map<List<WatchListDto>>(entities));
@@ -127,6 +129,9 @@ namespace SteamApp.WebAPI.MinimalAPIs
                 var entity = mapper.Map<WatchList>(input);
                 entity.UserId = userId;
                 entity.RegistrationDate = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+                entity.SortOrder = (await db.WatchList
+                    .Where(x => x.UserId == userId)
+                    .MaxAsync(x => (int?)x.SortOrder) ?? -1) + 1;
 
                 db.WatchList.Add(entity);
                 await db.SaveChangesAsync();
@@ -163,6 +168,44 @@ namespace SteamApp.WebAPI.MinimalAPIs
             .Accepts<WatchListUpdateDto>("application/json")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
+
+            // PUT: /api/watch-list/order
+            group.MapPut("/order", async (
+                WatchListReorderDto input,
+                HttpContext httpContext,
+                ApplicationDbContext db,
+                CancellationToken ct) =>
+            {
+                var userId = httpContext.User.GetUserId();
+                if (userId is null) { return Results.Unauthorized(); }
+
+                var entities = await db.WatchList
+                    .Where(x => x.UserId == userId)
+                    .ToDictionaryAsync(x => x.Id, ct);
+
+                if (input.OrderedIds is not { } orderedIds ||
+                    orderedIds.Count != entities.Count ||
+                    orderedIds.Distinct().Count() != orderedIds.Count ||
+                    orderedIds.Any(id => !entities.ContainsKey(id)))
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        [nameof(input.OrderedIds)] = ["The ordered IDs must contain every watch-list item exactly once."],
+                    });
+                }
+
+                for (var index = 0; index < orderedIds.Count; index++)
+                {
+                    entities[orderedIds[index]].SortOrder = index;
+                }
+
+                await db.SaveChangesAsync(ct);
+                return Results.NoContent();
+            })
+            .WithName("ReorderWatchListItems")
+            .Accepts<WatchListReorderDto>("application/json")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesValidationProblem();
 
             // DELETE: /api/watch-list/{id}
             group.MapDelete("/{id:long}", async (

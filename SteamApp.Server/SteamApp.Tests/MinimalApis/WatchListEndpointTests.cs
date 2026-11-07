@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 using SteamApp.Application.DTOs.WatchListItem;
 using SteamApp.Infrastructure.Context;
 using SteamApp.Tests.TestSupport;
@@ -54,6 +55,75 @@ public sealed class WatchListEndpointTests
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
             Assert.That(updated?.RegistrationDate, Is.EqualTo(new DateOnly(2026, 1, 1)));
             Assert.That(updated?.Name, Is.EqualTo("Updated Watch Alpha"));
+        });
+    }
+
+    [Test]
+    public async Task ReorderWatchList_ValidOwnedIds_PersistsRequestedOrder()
+    {
+        await using var app = await MinimalApiTestApp.CreateAsync(TestDb.SeedBaseline);
+
+        var response = await app.Client.PutAsJsonAsync("/api/watch-list/order", new WatchListReorderDto
+        {
+            OrderedIds = [2, 1],
+        });
+
+        using var scope = app.App.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var orderedIds = await db.WatchList
+            .OrderBy(x => x.SortOrder)
+            .Select(x => x.Id)
+            .ToListAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(orderedIds, Is.EqualTo(new long[] { 2, 1 }));
+        });
+    }
+
+    [Test]
+    public async Task ReorderWatchList_MissingOwnedId_ReturnsValidationProblemWithoutChanges()
+    {
+        await using var app = await MinimalApiTestApp.CreateAsync(TestDb.SeedBaseline);
+
+        var response = await app.Client.PutAsJsonAsync("/api/watch-list/order", new WatchListReorderDto
+        {
+            OrderedIds = [2],
+        });
+
+        using var scope = app.App.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var orderedIds = await db.WatchList
+            .OrderBy(x => x.SortOrder)
+            .Select(x => x.Id)
+            .ToListAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            Assert.That(orderedIds, Is.EqualTo(new long[] { 1, 2 }));
+        });
+    }
+
+    [Test]
+    public async Task ReorderWatchList_NullIds_ReturnsValidationProblemWithoutChanges()
+    {
+        await using var app = await MinimalApiTestApp.CreateAsync(TestDb.SeedBaseline);
+
+        var response = await app.Client.PutAsJsonAsync("/api/watch-list/order", new WatchListReorderDto());
+
+        using var scope = app.App.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var orderedIds = await db.WatchList
+            .OrderBy(x => x.SortOrder)
+            .Select(x => x.Id)
+            .ToListAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            Assert.That(orderedIds, Is.EqualTo(new long[] { 1, 2 }));
         });
     }
 
