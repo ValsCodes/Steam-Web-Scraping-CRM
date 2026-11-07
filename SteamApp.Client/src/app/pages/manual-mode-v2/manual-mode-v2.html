@@ -16,11 +16,12 @@
         <aside class="flex flex-col gap-4">
             <!-- Control Panel -->
             <section class="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
-                <h2 class="mb-4 text-lg font-semibold text-slate-800">Control Panel</h2>
+                <h2 class="text-lg font-semibold text-slate-800">Control Panel</h2>
+                <p class="mb-4 mt-1 text-sm text-slate-500">
+                    Choose a source, then load or check its products.
+                </p>
 
                 <div class="rounded-md border border-slate-200 p-4">
-                    <h3 class="mb-4 text-sm font-semibold text-slate-700">1. Select Source</h3>
-
                     <div class="flex flex-col gap-4">
                         <div>
                             <label for="manual-mode-game-id"
@@ -30,19 +31,6 @@
                                 <option [ngValue]="null">Select Game</option>
                                 @for (game of games$ | async; track game.id) {
                                 <option [ngValue]="game.id">{{ game.name }}</option>
-                                }
-                            </select>
-                        </div>
-
-                        <div>
-                            <label for="manual-mode-scraping-mode-id"
-                                class="mb-1 block text-sm font-medium text-slate-700">Scraping Mode</label>
-                            <select id="manual-mode-scraping-mode-id" name="manualModeScrapingModeId"
-                                class="w-full rounded border border-slate-300 px-3 py-2"
-                                [formControl]="scrapingModeIdControl">
-                                <option [ngValue]="null">All Scraping Modes</option>
-                                @for (scrapingMode of scrapingModes$ | async; track scrapingMode.id) {
-                                <option [ngValue]="scrapingMode.id">{{ scrapingMode.name }}</option>
                                 }
                             </select>
                         </div>
@@ -64,24 +52,32 @@
                             </select>
                         </div>
 
-                        <div class="flex flex-wrap justify-end gap-2">
-                            <button class="button button-small-success" (click)="automatedCheckButtonClicked()"
-                                [disabled]="!isAutomatedCheckEligible(selectedGameUrl) || automatedRunActive || automationUnavailable">
-                                Check all products
-                            </button>
+                        <button class="button button-small-primary w-full" (click)="showAllButtonClicked()"
+                            [hidden]="isBatchMode(this.selectedGameUrl)"
+                            [disabled]="gameUrlIdControl.value === null">
+                            Load Products
+                        </button>
 
-                            <button class="button button-small-primary" (click)="automatedCheckHistoryButtonClicked()">
-                                Check history
-                            </button>
+                        <div>
+                            <span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Automation
+                            </span>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button class="button button-small-success" (click)="automatedCheckButtonClicked()"
+                                    [disabled]="!isAutomatedCheckEligible(selectedGameUrl) || automatedRunActive || automationUnavailable">
+                                    Check All
+                                </button>
 
-                            <button class="button button-small-primary" (click)="showAllButtonClicked()"
-                                [hidden]="isBatchMode(this.selectedGameUrl)"
-                                [disabled]="gameUrlIdControl.value === null">
-                                Load Products
-                            </button>
+                                <button class="button button-small-primary"
+                                    (click)="automatedCheckHistoryButtonClicked()">
+                                    History
+                                </button>
+                            </div>
+                        </div>
 
+                        <div class="border-t border-slate-200 pt-3">
                             <button (click)="clearButtonClicked()" class="button button-small-danger">
-                                Reset Source
+                                Reset
                             </button>
                         </div>
                     </div>
@@ -90,11 +86,12 @@
 
             <!-- Batch Panel -->
             <section class="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
-                <h2 class="mb-4 text-lg font-semibold text-slate-800">Batch Panel</h2>
+                <h2 class="text-lg font-semibold text-slate-800">Batch Panel</h2>
+                <p class="mb-4 mt-1 text-sm text-slate-500">
+                    Set the starting item and batch size, then run the batch.
+                </p>
 
                 <div class="rounded-md border border-slate-200 p-4">
-                    <h3 class="mb-4 text-sm font-semibold text-slate-700">2. Batch Settings</h3>
-
                     <div class="flex flex-col gap-4">
                         <div>
                             <label for="manual-mode-current-item"
@@ -120,31 +117,30 @@
                             <span>Open in Steam</span>
                         </label>
 
-                        <div class="flex flex-wrap gap-2">
-                            <button (click)="runPreviousBatchButtonClicked()" class="button button-small-primary"
-                                [disabled]="(currentIndex ?? 1) <= 1">
-                                Run Previous Batch
-                            </button>
+                        <div>
+                            <span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Batch navigation
+                            </span>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button (click)="runPreviousBatchButtonClicked()" class="button button-small-primary"
+                                    [disabled]="(currentIndex ?? 1) <= 1">
+                                    &larr; Previous
+                                </button>
 
-                            <button (click)="startBatchButtonClicked()" class="button button-small-success">
-                                Run Batch
-                            </button>
+                                <button (click)="startBatchButtonClicked()" class="button button-small-success">
+                                    Run Batch
+                                </button>
 
-                            <button (click)="runNextBatchButtonClicked()" class="button button-small-primary">
-                                Run Next Batch
-                            </button>
+                                <button (click)="runNextBatchButtonClicked()" class="button button-small-primary">
+                                    Next &rarr;
+                                </button>
+                            </div>
+                        </div>
 
+                        <div class="border-t border-slate-200 pt-3">
                             <button (click)="clearBatchButtonClicked()" class="button button-small-danger">
-                                Reset Batch
+                                Reset
                             </button>
-
-                            @if(this.openInSteamMode !== true)
-                            {
-                            <button (click)="openAllButtonClicked()" class="button button-small-primary"
-                                [hidden]="isBatchMode(this.selectedGameUrl)" [disabled]="true">
-                                Open Loaded Items
-                            </button>
-                            }
                         </div>
                     </div>
                 </div>
@@ -201,7 +197,9 @@
         <!-- Main Workspace -->
         <main class="flex min-w-0 flex-col gap-4">
             @if (automatedRunActive || automatedRun || automatedCheckWarning || automatedCheckError) {
-            <section class="rounded-lg border border-slate-300 bg-white p-4 shadow-sm" aria-live="polite">
+            <details class="rounded-lg border border-slate-300 bg-white p-4 shadow-sm" aria-live="polite" open>
+                <summary class="cursor-pointer font-semibold text-slate-800">Automated</summary>
+                <div class="mt-4">
                 @if (automatedRun) {
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <div>
@@ -347,7 +345,8 @@
                     }
                 </div>
                 }
-            </section>
+                </div>
+            </details>
             }
 
             <!-- Filters / Actions -->

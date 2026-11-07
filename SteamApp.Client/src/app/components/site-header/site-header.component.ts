@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
 
 import { AuthService, CurrentUser } from '../../services/auth/auth.service';
-import { CountdownTimerComponent } from '../countdown-timer.component';
 import { DropdownComponent } from '../dropdown/dropdown.component';
 
 @Component({
@@ -13,7 +12,6 @@ import { DropdownComponent } from '../dropdown/dropdown.component';
   imports: [
     CommonModule,
     RouterModule,
-    CountdownTimerComponent,
     // DropdownComponent,
   ],
   templateUrl: './site-header.component.html',
@@ -23,7 +21,6 @@ export class SiteHeaderComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   isLoggedIn = false;
-  expiration = 0;
   currentUser: CurrentUser | null = null;
 
   constructor(
@@ -36,9 +33,6 @@ export class SiteHeaderComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((loggedIn) => {
         this.isLoggedIn = loggedIn;
-        this.expiration = loggedIn
-          ? this.auth.getTimeBeforeExpiration()
-          : 0;
       });
 
     this.auth.currentUser$

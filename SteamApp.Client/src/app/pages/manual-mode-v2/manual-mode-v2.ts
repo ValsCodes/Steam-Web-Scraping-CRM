@@ -209,7 +209,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
 
   readonly gameIdControl = new FormControl<number | null>(null);
-  readonly scrapingModeIdControl = new FormControl<number | null>(null);
+  readonly scrapingModeIdControl = new FormControl<number | null>(ScrapingModeEnum.ManualBatch);
   readonly gameUrlIdControl = new FormControl<number | null>(null);
 
   readonly searchByNameFilterControl = new FormControl<string>('', {
@@ -401,7 +401,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
   clearButtonClicked(): void {
     this.gameIdControl.setValue(null);
-    this.scrapingModeIdControl.setValue(null);
+    this.scrapingModeIdControl.setValue(ScrapingModeEnum.ManualBatch);
     this.gameUrlIdControl.setValue(null);
 
     this.products = [];

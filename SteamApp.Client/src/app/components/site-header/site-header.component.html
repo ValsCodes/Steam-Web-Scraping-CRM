@@ -33,12 +33,6 @@
 
   <div class="site-header__session">
     @if(isLoggedIn) {
-      <app-countdown-timer
-        [initialMs]="expiration"
-        [showControls]="false"
-        [startOnLoad]="true"
-        comment="Remaining Session">
-      </app-countdown-timer>
       <span class="site-header__user">
         Signed in as {{ currentUser?.displayName ?? 'User' }}
       </span>
