@@ -58,6 +58,18 @@ export class ManualCheckService {
       .pipe(catchError(handleError));
   }
 
+  updateGlobalPreset(id: number, input: ManualCheckPresetWrite): Observable<ManualCheckPreset> {
+    return this.http
+      .put<ManualCheckPreset>(`${g.localHost}api/admin/manual-check-presets/${id}`, input)
+      .pipe(catchError(handleError));
+  }
+
+  deleteGlobalPreset(id: number): Observable<void> {
+    return this.http
+      .delete<void>(`${g.localHost}api/admin/manual-check-presets/${id}`)
+      .pipe(catchError(handleError));
+  }
+
   createRun(input: ManualCheckRunRequest): Observable<ManualCheckRunAccepted> {
     return this.http
       .post<ManualCheckRunAccepted>(`${this.baseUrl}/runs`, input)

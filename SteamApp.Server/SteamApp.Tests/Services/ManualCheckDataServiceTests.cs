@@ -207,9 +207,11 @@ public sealed class ManualCheckDataServiceTests
     }
 
     [Test]
-    public async Task PresetGameUrlAssignments_FilterReconcileAndEnforceRunCreation()
+    public async Task PresetGameUrlAssignments_FilterAndReconcileWhileAllowingUnassignedRun()
     {
         using var database = TestDb.CreateSeededDatabase();
+        database.Context.GameUrls.Single(x => x.Id == 1).PartialUrl =
+            "https://steamcommunity.com/market/listings/440/";
         database.Context.GameUrls.Add(new GameUrl
         {
             Id = 3,
@@ -233,9 +235,8 @@ public sealed class ManualCheckDataServiceTests
             TestDb.TestUserId, 1, 1, CancellationToken.None);
         var visibleForInactive = await service.GetPresetsAsync(
             TestDb.TestUserId, 1, 3, CancellationToken.None);
-        var unassignedRun = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
-            service.CreateRunAsync(
-                TestDb.TestUserId, 1, created.Id, null, false, null, CancellationToken.None));
+        var unassignedRun = await service.CreateRunAsync(
+            TestDb.TestUserId, 1, created.Id, null, false, null, CancellationToken.None);
 
         var duplicateInput = PresetInput("Duplicate URLs");
         duplicateInput.GameUrlIds = [1, 1];
@@ -252,7 +253,7 @@ public sealed class ManualCheckDataServiceTests
             Assert.That(updated.GameUrlIds, Is.EqualTo(new long[] { 3 }));
             Assert.That(noLongerVisibleForFirst, Is.Empty);
             Assert.That(visibleForInactive.Select(x => x.Id), Does.Contain(created.Id));
-            Assert.That(unassignedRun!.StatusCode, Is.EqualTo(409));
+            Assert.That(unassignedRun.Id, Is.GreaterThan(0));
             Assert.That(duplicate!.StatusCode, Is.EqualTo(400));
             Assert.That(wrongMode!.StatusCode, Is.EqualTo(400));
         });

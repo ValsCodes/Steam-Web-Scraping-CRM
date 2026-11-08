@@ -3,22 +3,29 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  DestroyRef,
   inject,
   OnInit,
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { AuthService } from '../../services/auth/auth.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
   MatDialogRef,
+  MatDialog,
 } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenuModule } from '@angular/material/menu';
 import { finalize, forkJoin, timeout, TimeoutError } from 'rxjs';
 
 import {
   AutomaticQueueBlock,
   AutomaticQueueBlockDraft,
+  AutomaticQueuePrivateTemplate,
   AutomaticQueueTemplateMode,
   Game,
   GameUrl,
@@ -55,6 +62,7 @@ import {
   validateManualCheckExpression,
 } from './manual-check-expression';
 import { ManualCheckExpressionEditorComponent } from './manual-check-expression-editor.component';
+import { ManualCheckPresetPickerComponent, ManualCheckPresetPickerData } from './manual-check-preset-picker.component';
 
 export interface ManualCheckSetupDialogData {
   gameId?: number;
@@ -71,6 +79,8 @@ export interface ManualCheckRunDialogResult {
   mode: 'run';
   presetId: number | null;
   presetCombination: ManualCheckPresetCombinationWrite | null;
+  privateTemplate: AutomaticQueuePrivateTemplate | null;
+  sourcePresetId: number | null;
   bypassCache: boolean;
 }
 
@@ -97,6 +107,7 @@ interface ManualCheckPresetCombinationRow {
     FormsModule,
     MatDialogModule,
     MatButtonModule,
+    MatMenuModule,
     ManualCheckExpressionEditorComponent,
   ],
   template: `
@@ -108,7 +119,7 @@ interface ManualCheckPresetCombinationRow {
       <p class="manual-check-dialog__intro">
         {{ data.queueBuilder
           ? 'Choose the source, products, and a saved or private check template for this block.'
-          : 'Choose a saved preset or create one, review its criteria, then start the check.' }}
+          : 'Choose an assigned preset and start, or use another preset for this check.' }}
       </p>
 
       @if (data.queueBuilder) {
@@ -144,10 +155,10 @@ interface ManualCheckPresetCombinationRow {
           <button mat-stroked-button type="button" (click)="loadPresets()">Try again</button>
         </div>
       } @else {
-        @if (presets.length === 0) {
+        @if (assignedPresets.length === 0) {
           <div class="manual-check-dialog__callout">
-            <strong>No presets for this game yet</strong>
-            <span>Complete the fields below to create the first preset.</span>
+            <strong>No presets assigned to this Game URL</strong>
+            <span>Use another preset or configure a new one-off check.</span>
           </div>
         }
 
@@ -168,108 +179,25 @@ interface ManualCheckPresetCombinationRow {
             <span>Saved preset</span>
             <select
               name="manualCheckPreset"
-              [(ngModel)]="selectedPresetId"
-              (ngModelChange)="selectPreset($event)">
-              <option [ngValue]="null">{{ data.queueBuilder ? 'Private template' : 'Create new preset' }}</option>
+              [ngModel]="selectedPresetId"
+              (ngModelChange)="selectPresetFromUi($event)">
+              <option [ngValue]="null">{{ hasCheckConfiguration ? (data.queueBuilder ? 'Private template' : 'One-off check') : 'Select a preset' }}</option>
               @for (group of presetGroups; track group.itemGroupId) {
                 <optgroup [label]="group.name">
                   @for (preset of group.items; track preset.id) {
-                    <option [ngValue]="preset.id">{{ preset.name }}</option>
+                    <option [ngValue]="preset.id">{{ preset.name }}{{ preset.gameUrlIds.includes(selectedGameUrlId ?? -1) ? '' : ' · This check only' }}</option>
                   }
                 </optgroup>
               }
             </select>
           </label>
 
-          @if (isSelectedPresetReadOnly) {
-            <div class="manual-check-dialog__callout" role="status">
-              <strong>Global preset</strong>
-              <span>This preset is read-only. Run it as-is or clone it to make personal changes.</span>
-              @if (selectedPreset?.canClone) {
-                <button mat-stroked-button type="button" (click)="cloneSelectedPreset()" [disabled]="busy">
-                  Clone to my presets
-                </button>
-              }
-            </div>
+          @if (isSelectedPresetUnassigned) {
+            <small class="manual-check-dialog__one-off">Unassigned · This check only</small>
           }
-
-          <div
-            [class.manual-check-dialog__read-only]="isSelectedPresetReadOnly"
-            [attr.inert]="isSelectedPresetReadOnly ? '' : null"
-            [attr.aria-disabled]="isSelectedPresetReadOnly">
-
-          <label>
-            <span>{{ data.queueBuilder && templateMode === 'PrivateTemplate' ? 'Private template name' : 'Preset name' }}</span>
-            <input
-              name="manualCheckPresetName"
-              maxlength="100"
-              [(ngModel)]="name"
-              (ngModelChange)="markDirty()"
-              placeholder="Preset name" />
-          </label>
-
-          @if (!data.queueBuilder) {
-            <label>
-              <span>Preset group</span>
-              <select
-                name="manualCheckPresetItemGroup"
-                [(ngModel)]="itemGroupId"
-                (ngModelChange)="markDirty()">
-                <option [ngValue]="null">No group</option>
-                @for (itemGroup of itemGroups; track itemGroup.id) {
-                  <option [ngValue]="itemGroup.id">{{ itemGroup.name }}</option>
-                }
-              </select>
-            </label>
-
-            <section class="manual-check-dialog__item-group-create">
-              <label>
-                <span>Create a new group</span>
-                <input
-                  name="manualCheckNewItemGroupName"
-                  maxlength="255"
-                  [(ngModel)]="newItemGroupName"
-                  placeholder="Group name" />
-              </label>
-              <button
-                mat-stroked-button
-                type="button"
-                (click)="createItemGroup()"
-                [disabled]="!newItemGroupName.trim() || creatingItemGroup || busy">
-                {{ creatingItemGroup ? 'Creating...' : 'Create group' }}
-              </button>
-            </section>
-
-            <details class="manual-check-dialog__assignments">
-              <summary>
-                <strong>Available for Game URLs</strong>
-                <span class="manual-check-dialog__assignment-summary">
-                  @for (gameUrl of selectedPresetAssignmentGameUrls; track gameUrl.id) {
-                    <span class="manual-check-dialog__assignment-chip">
-                      {{ gameUrl.name || ('Game URL #' + gameUrl.id) }}{{ gameUrl.isActive ? '' : ' (inactive)' }}
-                    </span>
-                  } @empty {
-                    <span class="manual-check-dialog__assignment-empty">No URLs selected</span>
-                  }
-                </span>
-              </summary>
-              <fieldset class="manual-check-dialog__assignment-options">
-                <legend>Select Game URLs</legend>
-                @for (gameUrl of presetAssignmentGameUrls; track gameUrl.id) {
-                  <label class="manual-check-dialog__radio">
-                    <input
-                      type="checkbox"
-                      [checked]="selectedPresetGameUrlIds.has(gameUrl.id)"
-                      (change)="setPresetGameUrlAssigned(gameUrl.id, $any($event.target).checked)" />
-                    <span>{{ gameUrl.name || ('Game URL #' + gameUrl.id) }}{{ gameUrl.isActive ? '' : ' (inactive)' }}</span>
-                  </label>
-                }
-                @if (selectedPresetGameUrlIds.size === 0) {
-                  <p class="manual-check-dialog__validation" role="alert">Assign the preset to at least one Manual Batch URL.</p>
-                }
-              </fieldset>
-            </details>
-          }
+          <div class="manual-check-dialog__browse-actions">
+            <button mat-stroked-button type="button" (click)="openPresetPicker()" [disabled]="busy || creatingItemGroup || selectedGameUrlId === null">Use another preset…</button>
+            <button mat-button type="button" (click)="createNewFromUi()" [disabled]="busy || creatingItemGroup">New one-off check</button>
           </div>
         } @else {
           <section class="manual-check-dialog__combination" aria-labelledby="manualCheckCombinationLabel">
@@ -287,8 +215,9 @@ interface ManualCheckPresetCombinationRow {
                 } @else {
                   <strong>Start with</strong>
                 }
-                <select [name]="'combinationPreset' + index" [(ngModel)]="row.presetId" (ngModelChange)="combinationChanged()" aria-label="Combined preset">
-                  @for (group of presetGroups; track group.itemGroupId) {
+                <select [name]="'combinationPreset' + index" [ngModel]="row.presetId" (ngModelChange)="selectCombinationPreset(index, $event)" aria-label="Combined preset">
+                  <option [ngValue]="null">Select a preset</option>
+                  @for (group of combinationPresetGroups(index); track group.itemGroupId) {
                     <optgroup [label]="group.name">
                       @for (preset of group.items; track preset.id) {
                         <option [ngValue]="preset.id">{{ preset.name }}</option>
@@ -296,6 +225,8 @@ interface ManualCheckPresetCombinationRow {
                     </optgroup>
                   }
                 </select>
+                <button mat-button type="button" (click)="openPresetPicker(index)" [disabled]="busy || selectedGameUrlId === null">Use another preset…</button>
+                @if (isPresetUnassigned(row.presetId)) { <small>Unassigned · This check only</small> }
                 <button mat-button type="button" (click)="moveCombinationRow(index, -1)" [disabled]="index === 0">Up</button>
                 <button mat-button type="button" (click)="moveCombinationRow(index, 1)" [disabled]="index === combinationRows.length - 1">Down</button>
                 <button mat-button type="button" color="warn" (click)="removeCombinationRow(index)" [disabled]="combinationRows.length <= 2">Remove</button>
@@ -313,14 +244,16 @@ interface ManualCheckPresetCombinationRow {
           </section>
         }
 
-        <div
-          [class.manual-check-dialog__read-only]="isSelectedPresetReadOnly"
-          [attr.inert]="isSelectedPresetReadOnly ? '' : null"
-          [attr.aria-disabled]="isSelectedPresetReadOnly">
+        <section class="manual-check-dialog__summary" aria-label="Check settings summary">
+          <strong>{{ settingsSummary }}</strong>
+          @if (dirty && hasCheckConfiguration) {
+            <small role="status">Unsaved changes · Applies to this check only</small>
+          }
+        </section>
         <section class="manual-check-dialog__listing-limit" aria-labelledby="manualCheckListingLimitLabel">
           <div>
             <strong id="manualCheckListingLimitLabel">Listings to check</strong>
-            <p>Cheapest listings are checked first after Steam results are loaded.</p>
+            <p>Set Top X for this check. Cheapest listings are checked first. Changes are only kept if you explicitly save the preset.</p>
           </div>
           <div class="manual-check-dialog__listing-limit-controls">
             <button
@@ -354,103 +287,6 @@ interface ManualCheckPresetCombinationRow {
             <p class="manual-check-dialog__validation" role="alert">Enter a positive whole number.</p>
           }
         </section>
-
-        <section class="manual-check-dialog__price-check" aria-labelledby="manualCheckPriceCheckLabel">
-          <div>
-            <strong id="manualCheckPriceCheckLabel">Price check</strong>
-            <p>Compare the cheapest checked Steam listing, including fees, in EUR.</p>
-          </div>
-          <div class="manual-check-dialog__price-check-controls">
-            <label>
-              <span>Range</span>
-              <select
-                name="manualCheckPriceRangeMode"
-                [(ngModel)]="priceRangeMode"
-                (ngModelChange)="priceRangeChanged()">
-                <option value="Any">Any price</option>
-                <option value="Above">Above (&gt;)</option>
-                <option value="Between">Between (inclusive)</option>
-                <option value="Below">Below (&lt;)</option>
-              </select>
-            </label>
-            @if (priceRangeMode === 'Above' || priceRangeMode === 'Between') {
-              <label>
-                <span>{{ priceRangeMode === 'Above' ? 'Above €' : 'Minimum €' }}</span>
-                <input
-                  type="number"
-                  name="manualCheckMinimumPrice"
-                  min="0"
-                  step="0.01"
-                  [(ngModel)]="minimumPriceEuros"
-                  (ngModelChange)="priceRangeChanged()" />
-              </label>
-            }
-            @if (priceRangeMode === 'Below' || priceRangeMode === 'Between') {
-              <label>
-                <span>{{ priceRangeMode === 'Below' ? 'Below €' : 'Maximum €' }}</span>
-                <input
-                  type="number"
-                  name="manualCheckMaximumPrice"
-                  min="0"
-                  step="0.01"
-                  [(ngModel)]="maximumPriceEuros"
-                  (ngModelChange)="priceRangeChanged()" />
-              </label>
-            }
-          </div>
-          @if (!isPriceRangeValid) {
-            <p class="manual-check-dialog__validation" role="alert">
-              Enter non-negative EUR values with no more than two decimals, and keep the minimum at or below the maximum.
-            </p>
-          }
-        </section>
-
-        <section class="manual-check-dialog__cooldown" aria-labelledby="manualCheckCooldownLabel">
-          <label class="manual-check-dialog__radio">
-            <input
-              type="checkbox"
-              name="manualCheckCustomCooldown"
-              [ngModel]="customCooldown"
-              (ngModelChange)="setCustomCooldown($event)" />
-            <span>
-              <strong id="manualCheckCooldownLabel">Custom cooldown between product checks</strong><br />
-              <small>When disabled, the server default is used (currently 3 seconds).</small>
-            </span>
-          </label>
-          @if (customCooldown) {
-            <div class="manual-check-dialog__cooldown-controls">
-              <label>
-                <span>Minutes</span>
-                <input
-                  type="number"
-                  name="manualCheckCooldownMinutes"
-                  min="0"
-                  max="59"
-                  step="1"
-                  [(ngModel)]="cooldownMinutes"
-                  (ngModelChange)="markDirty()" />
-              </label>
-              <label>
-                <span>Seconds</span>
-                <input
-                  type="number"
-                  name="manualCheckCooldownSeconds"
-                  min="0"
-                  max="59"
-                  step="1"
-                  [(ngModel)]="cooldownSeconds"
-                  (ngModelChange)="markDirty()" />
-              </label>
-            </div>
-            @if (!isCooldownValid) {
-              <p class="manual-check-dialog__validation" role="alert">
-                Enter whole minutes and seconds between 0 and 59.
-              </p>
-            }
-          }
-        </section>
-        </div>
-
         <fieldset>
           <legend>Steam response cache</legend>
           <label class="manual-check-dialog__radio">
@@ -497,34 +333,237 @@ interface ManualCheckPresetCombinationRow {
           </fieldset>
         }
 
-        @if (presetMode === 'Single') {
-          <div
-            [class.manual-check-dialog__read-only]="isSelectedPresetReadOnly"
-            [attr.inert]="isSelectedPresetReadOnly ? '' : null"
-            [attr.aria-disabled]="isSelectedPresetReadOnly">
-          <steam-manual-check-expression-editor
-            [root]="expressionRoot"
-            [operators]="conditionOperators"
-            (expressionChange)="markDirty()">
-          </steam-manual-check-expression-editor>
+        <details class="manual-check-dialog__details" [open]="detailsExpanded()" (toggle)="detailsExpanded.set($any($event.target).open)">
+          <summary>Preset details</summary>
+          <div class="manual-check-dialog__detail-fields">
+            @if (presetMode === 'Single') {
+              @if (isSelectedPresetReadOnly) {
+                <div class="manual-check-dialog__callout" role="status">
+                  <strong>Global preset</strong>
+                  <span>You can adjust this check or save a personal copy. Starting uses your changes once.</span>
+                  @if (canManageGlobalPreset) {
+                    <span>As an admin, you can also save changes to this global preset for everyone, including its Game URL assignments.</span>
+                  }
+                </div>
+              }
 
-          <section class="manual-check-dialog__expression-preview" aria-live="polite">
-            <strong>Expression preview</strong>
-            <code>{{ expressionPreview }}</code>
-            <small>Parentheses define groups. Evaluation is strictly left-to-right inside each group.</small>
-          </section>
+              <label>
+                <span>{{ data.queueBuilder && templateMode === 'PrivateTemplate' ? 'Private template name' : 'Preset name' }}</span>
+                <input
+                  name="manualCheckPresetName"
+                  maxlength="100"
+                  [(ngModel)]="name"
+                  (ngModelChange)="markDirty()"
+                  placeholder="Preset name" />
+              </label>
 
-          @if (!expressionValidation.isValid) {
-            <p class="manual-check-dialog__validation" role="alert">
-              Complete every criterion and operator, populate empty groups, and keep the expression within {{ criterionLimit }} criteria and {{ groupLimit }} groups.
-            </p>
-          }
+              @if (!data.queueBuilder) {
+                <label>
+                  <span>Preset group</span>
+                  <select
+                    name="manualCheckPresetItemGroup"
+                    [(ngModel)]="itemGroupId"
+                    (ngModelChange)="markMetadataDirty()">
+                    <option [ngValue]="null">No group</option>
+                    @for (itemGroup of itemGroups; track itemGroup.id) {
+                      <option [ngValue]="itemGroup.id">{{ itemGroup.name }}</option>
+                    }
+                  </select>
+                </label>
+
+                <button mat-button type="button" (click)="showGroupCreation.set(!showGroupCreation())">{{ showGroupCreation() ? 'Cancel group creation' : 'Create group' }}</button>
+                @if (showGroupCreation()) {
+                  <section class="manual-check-dialog__item-group-create">
+                    <label>
+                      <span>Create a new group</span>
+                      <input
+                        name="manualCheckNewItemGroupName"
+                        maxlength="255"
+                        [(ngModel)]="newItemGroupName"
+                        placeholder="Group name" />
+                    </label>
+                    <button
+                      mat-stroked-button
+                      type="button"
+                      (click)="createItemGroup()"
+                      [disabled]="!newItemGroupName.trim() || creatingItemGroup || busy">
+                      {{ creatingItemGroup ? 'Creating...' : 'Create group' }}
+                    </button>
+                  </section>
+                }
+
+                <details class="manual-check-dialog__assignments">
+                  <summary>
+                    <strong>Available for Game URLs</strong>
+                    <span class="manual-check-dialog__assignment-summary">
+                      @for (gameUrl of selectedPresetAssignmentGameUrls; track gameUrl.id) {
+                        <span class="manual-check-dialog__assignment-chip">
+                          {{ gameUrl.name || ('Game URL #' + gameUrl.id) }}{{ gameUrl.isActive ? '' : ' (inactive)' }}
+                        </span>
+                      } @empty {
+                        <span class="manual-check-dialog__assignment-empty">No URLs selected</span>
+                      }
+                    </span>
+                  </summary>
+                  <fieldset class="manual-check-dialog__assignment-options">
+                    <legend>Select Game URLs</legend>
+                    @for (gameUrl of presetAssignmentGameUrls; track gameUrl.id) {
+                      <label class="manual-check-dialog__radio">
+                        <input
+                          type="checkbox"
+                          [checked]="selectedPresetGameUrlIds.has(gameUrl.id)"
+                          (change)="setPresetGameUrlAssigned(gameUrl.id, $any($event.target).checked)" />
+                        <span>{{ gameUrl.name || ('Game URL #' + gameUrl.id) }}{{ gameUrl.isActive ? '' : ' (inactive)' }}</span>
+                      </label>
+                    }
+                    @if (selectedPresetGameUrlIds.size === 0) {
+                      <p class="manual-check-dialog__validation" role="alert">Select at least one Manual Batch URL to save. Running once does not require an assignment.</p>
+                    }
+                  </fieldset>
+                </details>
+              }
+            }
+            <section class="manual-check-dialog__price-check" aria-labelledby="manualCheckPriceCheckLabel">
+              <div>
+                <strong id="manualCheckPriceCheckLabel">Price check</strong>
+                <p>Compare the cheapest checked Steam listing, including fees, in EUR.</p>
+              </div>
+              <div class="manual-check-dialog__price-check-controls">
+                <label>
+                  <span>Range</span>
+                  <select
+                    name="manualCheckPriceRangeMode"
+                    [(ngModel)]="priceRangeMode"
+                    (ngModelChange)="priceRangeChanged()">
+                    <option value="Any">Any price</option>
+                    <option value="Above">Above (&gt;)</option>
+                    <option value="Between">Between (inclusive)</option>
+                    <option value="Below">Below (&lt;)</option>
+                  </select>
+                </label>
+                @if (priceRangeMode === 'Above' || priceRangeMode === 'Between') {
+                  <label>
+                    <span>{{ priceRangeMode === 'Above' ? 'Above €' : 'Minimum €' }}</span>
+                    <input
+                      type="number"
+                      name="manualCheckMinimumPrice"
+                      min="0"
+                      step="0.01"
+                      [(ngModel)]="minimumPriceEuros"
+                      (ngModelChange)="priceRangeChanged()" />
+                  </label>
+                }
+                @if (priceRangeMode === 'Below' || priceRangeMode === 'Between') {
+                  <label>
+                    <span>{{ priceRangeMode === 'Below' ? 'Below €' : 'Maximum €' }}</span>
+                    <input
+                      type="number"
+                      name="manualCheckMaximumPrice"
+                      min="0"
+                      step="0.01"
+                      [(ngModel)]="maximumPriceEuros"
+                      (ngModelChange)="priceRangeChanged()" />
+                  </label>
+                }
+              </div>
+              @if (!isPriceRangeValid) {
+                <p class="manual-check-dialog__validation" role="alert">
+                  Enter non-negative EUR values with no more than two decimals, and keep the minimum at or below the maximum.
+                </p>
+              }
+            </section>
+
+            <section class="manual-check-dialog__cooldown" aria-labelledby="manualCheckCooldownLabel">
+              <label class="manual-check-dialog__radio">
+                <input
+                  type="checkbox"
+                  name="manualCheckCustomCooldown"
+                  [ngModel]="customCooldown"
+                  (ngModelChange)="setCustomCooldown($event)" />
+                <span>
+                  <strong id="manualCheckCooldownLabel">Custom cooldown between product checks</strong><br />
+                  <small>When disabled, the server default is used (currently 3 seconds).</small>
+                </span>
+              </label>
+              @if (customCooldown) {
+                <div class="manual-check-dialog__cooldown-controls">
+                  <label>
+                    <span>Minutes</span>
+                    <input
+                      type="number"
+                      name="manualCheckCooldownMinutes"
+                      min="0"
+                      max="59"
+                      step="1"
+                      [(ngModel)]="cooldownMinutes"
+                      (ngModelChange)="markDirty()" />
+                  </label>
+                  <label>
+                    <span>Seconds</span>
+                    <input
+                      type="number"
+                      name="manualCheckCooldownSeconds"
+                      min="0"
+                      max="59"
+                      step="1"
+                      [(ngModel)]="cooldownSeconds"
+                      (ngModelChange)="markDirty()" />
+                  </label>
+                </div>
+                @if (!isCooldownValid) {
+                  <p class="manual-check-dialog__validation" role="alert">
+                    Enter whole minutes and seconds between 0 and 59.
+                  </p>
+                }
+              }
+            </section>
+
+            @if (presetMode === 'Single') {
+              <steam-manual-check-expression-editor
+                [root]="expressionRoot"
+                [operators]="conditionOperators"
+                (expressionChange)="markDirty()">
+              </steam-manual-check-expression-editor>
+
+              <section class="manual-check-dialog__expression-preview" aria-live="polite">
+                <strong>Expression preview</strong>
+                <code>{{ expressionPreview }}</code>
+                <small>Parentheses define groups. Evaluation is strictly left-to-right inside each group.</small>
+              </section>
+
+              @if (!expressionValidation.isValid) {
+                <p class="manual-check-dialog__validation" role="alert">
+                  Complete every criterion and operator, populate empty groups, and keep the expression within {{ criterionLimit }} criteria and {{ groupLimit }} groups.
+                </p>
+              }
+            }
+
+            @if (!data.queueBuilder && presetMode === 'Single') {
+              <div class="manual-check-dialog__manage-actions">
+                <button mat-stroked-button type="button" (click)="savePreset()"
+                  [disabled]="!canSavePreset || (!dirty && !isSelectedPresetReadOnly) || busy || creatingItemGroup">
+                  {{ isSelectedPresetReadOnly ? 'Save as personal preset' : selectedPresetId === null ? 'Save preset' : 'Save changes' }}
+                </button>
+                @if (canManageGlobalPreset) {
+                  <button mat-stroked-button type="button" (click)="savePreset(true)"
+                    [disabled]="!canSavePreset || !dirty || busy || creatingItemGroup">
+                    Save global changes
+                  </button>
+                }
+                <button mat-button type="button" [matMenuTriggerFor]="presetMenu" [disabled]="busy || creatingItemGroup">More preset actions</button>
+                <mat-menu #presetMenu="matMenu">
+                  <button mat-menu-item type="button" (click)="deletePreset()"
+                    [disabled]="selectedPresetId === null || (isSelectedPresetReadOnly && !canManageGlobalPreset) || busy || creatingItemGroup">
+                    {{ canManageGlobalPreset ? 'Delete global preset' : 'Delete' }}
+                  </button>
+                </mat-menu>
+              </div>
+            }
           </div>
-        }
-
+        </details>
         @if (errorMessage) {
           <div class="manual-check-dialog__callout manual-check-dialog__callout--error" role="alert">
-            <strong>{{ presetMode === 'Combination' ? 'Could not use the combination' : 'Could not save the preset' }}</strong>
+            <strong>{{ presetMode === 'Combination' ? 'Could not use the combination' : 'Check needs attention' }}</strong>
             <span>{{ errorMessage }}</span>
           </div>
         }
@@ -534,32 +573,12 @@ interface ManualCheckPresetCombinationRow {
           </div>
         }
         @if (presetMode === 'Single' && dirty && selectedPresetId !== null) {
-          <p class="manual-check-dialog__hint">Your changes will be saved when you start the check.</p>
+          <p class="manual-check-dialog__hint">Starting uses these changes once. Save explicitly to keep them.</p>
         }
       }
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      @if (!loading && !loadError && !data.queueBuilder && presetMode === 'Single') {
-        <button
-          mat-button
-          type="button"
-          color="warn"
-          (click)="deletePreset()"
-          [disabled]="selectedPresetId === null || isSelectedPresetReadOnly || busy || creatingItemGroup">
-          Delete
-        </button>
-        <button mat-stroked-button type="button" (click)="newPreset()" [disabled]="busy || creatingItemGroup">
-          Create new
-        </button>
-        <button
-          mat-stroked-button
-          type="button"
-          (click)="savePreset()"
-          [disabled]="isSelectedPresetReadOnly || !isDraftValid || !dirty || busy || creatingItemGroup">
-          Save only
-        </button>
-      }
       <span class="manual-check-dialog__spacer"></span>
       <button mat-button type="button" (click)="dialogRef.close()">Cancel</button>
       @if (!loading && !loadError) {
@@ -567,7 +586,7 @@ interface ManualCheckPresetCombinationRow {
           mat-flat-button
           type="button"
           (click)="startOrSave()"
-          [disabled]="!isDraftValid || !isQueueSelectionValid || busy || creatingItemGroup">
+          [disabled]="!hasCheckConfiguration || !isQueueSelectionValid || busy || creatingItemGroup">
           {{ primaryActionLabel }}
         </button>
       }
@@ -576,6 +595,14 @@ interface ManualCheckPresetCombinationRow {
   styles: [`
     .manual-check-dialog { display: flex; min-width: 0; flex-direction: column; gap: 1rem; }
     .manual-check-dialog.mat-mdc-dialog-content { min-height: 0; max-height: none; overflow-x: hidden; overflow-y: auto; }
+    .manual-check-dialog__summary, .manual-check-dialog__detail-fields { display: flex; flex-direction: column; gap: 1rem; }
+    .manual-check-dialog__summary { padding: .8rem; background: #f1f5f9; border-radius: .4rem; }
+    .manual-check-dialog__summary strong { font-weight: 500; }
+    .manual-check-dialog__summary small, .manual-check-dialog__one-off { color: #475569; }
+    .manual-check-dialog__details { border: 1px solid #cbd5e1; border-radius: .4rem; padding: .8rem; }
+    .manual-check-dialog__details > summary { cursor: pointer; font-weight: 600; }
+    .manual-check-dialog__detail-fields { padding-top: 1rem; }
+    .manual-check-dialog__browse-actions, .manual-check-dialog__manage-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
     .manual-check-dialog steam-manual-check-expression-editor { display: block; min-width: 0; }
     .manual-check-dialog__source { margin: 0; color: #475569; font-weight: 600; }
     .manual-check-dialog__intro { margin: -.5rem 0 0; color: #64748b; }
@@ -591,7 +618,8 @@ interface ManualCheckPresetCombinationRow {
     .manual-check-dialog__mode { flex-wrap: wrap; }
     .manual-check-dialog__combination { display: flex; flex-direction: column; gap: .65rem; border: 1px solid #e2e8f0; border-radius: .375rem; padding: .75rem; }
     .manual-check-dialog__combination p { margin: .2rem 0 0; color: #64748b; }
-    .manual-check-dialog__combination-row { display: grid; grid-template-columns: 7rem minmax(12rem, 1fr) auto auto auto; align-items: center; gap: .45rem; }
+    .manual-check-dialog__combination-row { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; }
+    .manual-check-dialog__combination-row select[aria-label="Combined preset"] { flex: 1; min-width: 12rem; }
     .manual-check-dialog__item-group-create { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; }
     .manual-check-dialog__item-group-create label { flex: 1; min-width: 12rem; }
     .manual-check-dialog__listing-limit { display: flex; flex-direction: column; gap: .65rem; border: 1px solid #e2e8f0; border-radius: .375rem; padding: .75rem; }
@@ -611,7 +639,6 @@ interface ManualCheckPresetCombinationRow {
     .manual-check-dialog__expression-preview code { overflow-wrap: anywhere; color: #1e3a8a; white-space: normal; }
     .manual-check-dialog__expression-preview small { color: #475569; }
     .manual-check-dialog__hint { color: #92400e; margin: 0; }
-    .manual-check-dialog__read-only { opacity: .72; }
     .manual-check-dialog__spacer { flex: 1; }
     .manual-check-dialog__queue-source { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
     .manual-check-dialog__products { flex-direction: column !important; }
@@ -623,7 +650,7 @@ interface ManualCheckPresetCombinationRow {
     .manual-check-dialog__assignment-empty { color: #64748b; font-size: .85rem; }
     .manual-check-dialog__assignment-options { flex-direction: column !important; margin-top: .75rem; }
     .manual-check-dialog__product-list { display: grid; max-height: 14rem; overflow: auto; gap: .35rem; border: 1px solid #e2e8f0; border-radius: .375rem; padding: .6rem; }
-    @media (max-width: 700px) { .manual-check-dialog__queue-source, .manual-check-dialog__combination-row { grid-template-columns: 1fr; } }
+    @media (max-width: 700px) { .manual-check-dialog__queue-source { grid-template-columns: 1fr; } }
     @keyframes manual-check-spin { to { transform: rotate(360deg); } }
   `],
 })
@@ -634,6 +661,9 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   readonly groupLimit = MANUAL_CHECK_MAX_GROUPS;
   readonly combinationLimit = 10;
   private readonly manualCheckService = inject(ManualCheckService);
+  private readonly dialogs = inject(MatDialog);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly currentUser = toSignal(inject(AuthService).currentUser$, { initialValue: null });
   private readonly itemGroupService = inject(ItemGroupService);
   private readonly gameService = inject(GameService);
   private readonly gameUrlService = inject(GameUrlService);
@@ -673,6 +703,11 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   loadError = false;
   busy = false;
   dirty = true;
+  contentDirty = true;
+  readonly detailsExpanded = signal(false);
+  readonly showGroupCreation = signal(false);
+  hasCheckConfiguration = false;
+  private combinationDirty = false;
   errorMessage = '';
   successMessage = '';
 
@@ -719,7 +754,78 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   }
 
   get presetGroups(): readonly ItemGroupSection<ManualCheckPreset>[] {
-    return groupByItemGroup(this.presets);
+    return groupByItemGroup(this.presets.filter((preset) =>
+      this.isPresetAssigned(preset) || preset.id === this.selectedPresetId));
+  }
+
+  get assignedPresets(): ManualCheckPreset[] {
+    return this.presets.filter((preset) => this.isPresetAssigned(preset));
+  }
+
+  private isPresetAssigned(preset: ManualCheckPreset): boolean {
+    return this.selectedGameUrlId !== null && preset.gameUrlIds.includes(this.selectedGameUrlId);
+  }
+
+  isPresetUnassigned(id: number | null): boolean {
+    const preset = this.presets.find((preset) => preset.id === id);
+    return !!preset && !this.isPresetAssigned(preset);
+  }
+
+  get isSelectedPresetUnassigned(): boolean {
+    return this.isPresetUnassigned(this.selectedPresetId);
+  }
+
+  combinationPresetGroups(index: number): readonly ItemGroupSection<ManualCheckPreset>[] {
+    return groupByItemGroup(this.presets.filter((preset) =>
+      this.isPresetAssigned(preset) || preset.id === this.combinationRows[index]?.presetId));
+  }
+
+  get settingsSummary(): string {
+    if (!this.hasCheckConfiguration) return 'Choose a preset or configure a one-off check.';
+    const price = this.priceRangeMode === 'Any' ? 'Any price'
+      : this.priceRangeMode === 'Above' ? `Above €${this.minimumPriceEuros ?? '—'}`
+      : this.priceRangeMode === 'Below' ? `Below €${this.maximumPriceEuros ?? '—'}`
+      : `€${this.minimumPriceEuros ?? '—'}–€${this.maximumPriceEuros ?? '—'}`;
+    const cooldown = this.customCooldown
+      ? `${this.cooldownMinutes ?? 0}m ${this.cooldownSeconds ?? 0}s cooldown` : 'Default cooldown';
+    const count = this.presetMode === 'Single' ? this.criteria.length : this.combinationRows.reduce(
+      (total, row) => total + (this.presets.find((preset) => preset.id === row.presetId)?.criteria.length ?? 0), 0);
+    return `${this.listingLimit ?? '—'} listings · ${price} · ${cooldown} · ${count} ${count === 1 ? 'criterion' : 'criteria'}`;
+  }
+
+  get canSavePreset(): boolean {
+    return this.isDraftValid && this.selectedPresetGameUrlIds.size > 0;
+  }
+
+  openPresetPicker(rowIndex: number | null = null): void {
+    if (this.busy || this.creatingItemGroup || this.selectedGameUrlId === null) return;
+    if (rowIndex === null && this.dirty && this.hasCheckConfiguration
+      && !confirm('Discard your unsaved changes when you choose another preset?')) return;
+    this.dialogs.open<ManualCheckPresetPickerComponent, ManualCheckPresetPickerData, ManualCheckPreset>(
+      ManualCheckPresetPickerComponent, {
+        width: '620px', maxWidth: '95vw',
+        data: {
+          presets: this.presets,
+          gameUrlId: this.selectedGameUrlId,
+          accessibleGameUrlIds: this.presetAssignmentGameUrls.map((url) => url.id),
+          excludedPresetIds: rowIndex === null ? [] : this.combinationRows
+            .filter((_, index) => index !== rowIndex).flatMap((row) => row.presetId === null ? [] : [row.presetId]),
+        },
+      },
+    ).afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((preset) => {
+      if (!preset) return;
+      if (preset.gameId !== this.selectedGameId) return;
+      this.presets = [...this.presets.filter((item) => item.id !== preset.id), preset];
+      if (rowIndex === null) this.selectPreset(preset.id);
+      else this.selectCombinationPreset(rowIndex, preset.id);
+      this.cdr.markForCheck();
+    });
+  }
+
+  selectCombinationPreset(index: number, id: number | null): void {
+    if (!this.combinationRows[index]) return;
+    this.combinationRows = this.combinationRows.map((row, rowIndex) => rowIndex === index ? { ...row, presetId: id } : row);
+    this.combinationChanged();
   }
 
   get selectedPreset(): ManualCheckPreset | null {
@@ -732,6 +838,10 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     return this.presetMode === 'Single' && this.selectedPreset?.canEdit === false;
   }
 
+  get canManageGlobalPreset(): boolean {
+    return this.isSelectedPresetReadOnly && this.currentUser()?.isAdmin === true;
+  }
+
   loadPresets(): void {
     this.loading = true;
     this.loadError = false;
@@ -739,7 +849,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.successMessage = '';
 
     forkJoin({
-      presets: this.manualCheckService.getPresets(this.selectedGameId!, this.selectedGameUrlId ?? undefined),
+      presets: this.manualCheckService.getPresets(this.selectedGameId!),
       itemGroups: this.itemGroupService.getByGame(this.selectedGameId!),
       conditionOperators: this.manualCheckService.getConditionOperators(),
     }).pipe(
@@ -750,27 +860,35 @@ export class ManualCheckSetupDialogComponent implements OnInit {
       }),
     ).subscribe({
       next: ({ presets, itemGroups, conditionOperators }) => {
-        this.presets = presets;
+        this.presets = [...presets].sort((left, right) =>
+          Number(right.gameUrlIds.includes(this.selectedGameUrlId ?? -1))
+          - Number(left.gameUrlIds.includes(this.selectedGameUrlId ?? -1)));
         this.itemGroups = itemGroups;
         this.conditionOperators = conditionOperators;
-        const preferredPresetId = this.data.initialBlock?.presetId ?? this.data.preselectedPresetId;
+        const sameInitialSource = this.data.initialBlock?.gameUrlId === this.selectedGameUrlId
+          && this.data.initialBlock.gameId === this.selectedGameId;
+        const preferredPresetId = sameInitialSource ? this.data.initialBlock?.presetId
+          : this.data.queueBuilder ? null : this.data.preselectedPresetId;
         const preferred = presets.find((x) => x.id === preferredPresetId)
-          ?? (preferredPresetId === null || preferredPresetId === undefined ? presets[0] : undefined);
+          ?? this.assignedPresets[0];
         if (
           this.data.queueBuilder &&
           this.data.initialBlock?.templateMode === 'PresetCombination' &&
-          this.data.initialBlock.gameId === this.selectedGameId
+          sameInitialSource
         ) {
           this.applyPresetCombination(this.data.initialBlock);
-        } else if (this.data.queueBuilder && this.data.initialBlock?.templateMode === 'PrivateTemplate') {
+        } else if (this.data.queueBuilder && sameInitialSource && this.data.initialBlock?.templateMode === 'PrivateTemplate') {
           this.applyPrivateTemplate(this.data.initialBlock);
         } else if (preferred) {
           this.selectedPresetId = preferred.id;
           this.selectPreset(preferred.id);
         } else {
           this.newPreset();
+          this.hasCheckConfiguration = false;
+          this.dirty = false;
+          this.detailsExpanded.set(false);
           if (preferredPresetId !== null && preferredPresetId !== undefined) {
-            this.errorMessage = 'The selected preset is no longer assigned to this Game URL.';
+            this.errorMessage = 'The selected preset is no longer available.';
           }
         }
         this.cdr.markForCheck();
@@ -796,14 +914,12 @@ export class ManualCheckSetupDialogComponent implements OnInit {
       && this.isListingLimitValid
       && this.isPriceRangeValid
       && this.isCooldownValid
-      && (this.data.queueBuilder || this.selectedPresetGameUrlIds.size > 0)
       && this.expressionValidation.isValid;
   }
 
   get isQueueSelectionValid(): boolean {
     if (!this.data.queueBuilder) {
-      return this.presetMode === 'Combination'
-        || (this.selectedGameUrlId !== null && this.selectedPresetGameUrlIds.has(this.selectedGameUrlId));
+      return this.selectedGameUrlId !== null;
     }
     return this.selectedGameId !== null
       && this.selectedGameUrlId !== null
@@ -893,10 +1009,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   get primaryActionLabel(): string {
     if (this.data.queueBuilder) return 'Use block';
     if (this.presetMode === 'Combination') return 'Start combined check';
-    if (this.selectedPresetId === null) {
-      return 'Create & start';
-    }
-    return this.dirty ? 'Save & start' : 'Start check';
+    return this.dirty ? 'Start with changes' : 'Start check';
   }
 
   get isPriceRangeValid(): boolean {
@@ -918,24 +1031,31 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   }
 
   setPresetMode(mode: ManualCheckPresetMode): void {
+    if (mode === this.presetMode) return;
+    if (this.hasCheckConfiguration && (this.presetMode === 'Single' ? this.dirty : this.combinationDirty)
+      && !confirm('Discard your unsaved changes?')) return;
     if (mode === 'Combination') {
       if (this.presets.length < 2) return;
       this.presetMode = 'Combination';
       this.templateMode = 'PresetCombination';
-      if (this.combinationRows.length < 2) {
-        const first = this.presets.find((preset) => preset.id === this.selectedPresetId) ?? this.presets[0];
-        const second = this.presets.find((preset) => preset.id !== first.id)!;
-        this.combinationRows = [
-          { presetId: first.id, operator: null },
-          { presetId: second.id, operator: 'And' },
-        ];
-        this.applyCombinationSettings(first);
-      }
+      const first = this.presets.find((preset) => preset.id === this.selectedPresetId) ?? this.assignedPresets[0];
+      const second = this.assignedPresets.find((preset) => preset.id !== first?.id);
+      this.combinationRows = [
+        { presetId: first?.id ?? null, operator: null },
+        { presetId: second?.id ?? null, operator: 'And' },
+      ];
+      if (first) this.applyCombinationSettings(first);
+      this.hasCheckConfiguration = true;
+      this.combinationDirty = false;
+      this.dirty = false;
     } else {
       this.presetMode = 'Single';
+      this.combinationRows = [];
       this.templateMode = this.data.queueBuilder && this.selectedPresetId === null
         ? 'PrivateTemplate'
         : 'SavedPreset';
+      if (this.selectedPresetId !== null) this.selectPreset(this.selectedPresetId);
+      else this.newPreset();
     }
     this.errorMessage = '';
     this.successMessage = '';
@@ -945,9 +1065,8 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   addCombinationRow(): void {
     if (this.combinationRows.length >= this.combinationLimit) return;
     const selectedIds = new Set(this.combinationRows.map((row) => row.presetId));
-    const next = this.presets.find((preset) => !selectedIds.has(preset.id));
-    if (!next) return;
-    this.combinationRows = [...this.combinationRows, { presetId: next.id, operator: 'And' }];
+    const next = this.assignedPresets.find((preset) => !selectedIds.has(preset.id));
+    this.combinationRows = [...this.combinationRows, { presetId: next?.id ?? null, operator: 'And' }];
     this.combinationChanged();
   }
 
@@ -970,8 +1089,20 @@ export class ManualCheckSetupDialogComponent implements OnInit {
 
   combinationChanged(): void {
     this.templateMode = 'PresetCombination';
+    this.combinationDirty = true;
+    this.dirty = true;
     this.errorMessage = '';
     this.successMessage = '';
+  }
+
+  selectPresetFromUi(id: number | null): void {
+    if (id !== this.selectedPresetId && this.hasCheckConfiguration && this.dirty && !confirm('Discard your unsaved changes?')) return;
+    this.selectPreset(id);
+  }
+
+  createNewFromUi(): void {
+    if (this.hasCheckConfiguration && this.dirty && !confirm('Discard your unsaved changes?')) return;
+    this.newPreset();
   }
 
   selectPreset(id: number | null): void {
@@ -998,6 +1129,11 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.cooldownSeconds = preset.cooldownSeconds ?? 0;
     this.expressionRoot = parseManualCheckExpression(preset.criteria).root;
     this.dirty = false;
+    this.contentDirty = false;
+    this.combinationDirty = false;
+    this.hasCheckConfiguration = true;
+    this.detailsExpanded.set(false);
+    this.showGroupCreation.set(false);
     this.errorMessage = '';
     this.successMessage = '';
     this.cdr.markForCheck();
@@ -1019,19 +1155,24 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.cooldownSeconds = 0;
     this.expressionRoot = this.createEmptyExpression();
     this.dirty = true;
+    this.contentDirty = true;
+    this.combinationDirty = false;
+    this.hasCheckConfiguration = true;
+    this.detailsExpanded.set(true);
+    this.showGroupCreation.set(false);
     this.errorMessage = '';
     this.successMessage = '';
     this.cdr.markForCheck();
   }
 
   markDirty(): void {
-    if (this.isSelectedPresetReadOnly) return;
-
+    this.hasCheckConfiguration = true;
+    if (this.presetMode === 'Combination') this.combinationDirty = true;
     if (this.data.queueBuilder && this.templateMode === 'SavedPreset') {
       this.templateMode = 'PrivateTemplate';
-      this.selectedPresetId = null;
     }
     this.dirty = true;
+    this.contentDirty = true;
     this.errorMessage = '';
     this.successMessage = '';
   }
@@ -1042,7 +1183,13 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     } else {
       this.selectedPresetGameUrlIds.delete(gameUrlId);
     }
-    this.markDirty();
+    this.markMetadataDirty();
+  }
+
+  markMetadataDirty(): void {
+    this.dirty = true;
+    this.errorMessage = '';
+    this.successMessage = '';
   }
 
   priceRangeChanged(): void {
@@ -1051,7 +1198,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
 
   createItemGroup(): void {
     const name = this.newItemGroupName.trim();
-    if (this.isSelectedPresetReadOnly || !name || name.length > 255 || this.creatingItemGroup || this.busy) {
+    if (!name || name.length > 255 || this.creatingItemGroup || this.busy) {
       return;
     }
 
@@ -1069,6 +1216,7 @@ export class ManualCheckSetupDialogComponent implements OnInit {
             left.name.localeCompare(right.name) || left.id - right.id);
           this.itemGroupId = created.id;
           this.newItemGroupName = '';
+          this.showGroupCreation.set(false);
           this.markDirty();
           this.cdr.markForCheck();
         },
@@ -1080,13 +1228,11 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   }
 
   setListingLimit(listingLimit: number): void {
-    if (this.isSelectedPresetReadOnly) return;
     this.listingLimit = listingLimit;
     this.markDirty();
   }
 
   setCustomCooldown(enabled: boolean): void {
-    if (this.isSelectedPresetReadOnly) return;
     this.customCooldown = enabled;
     this.markDirty();
   }
@@ -1117,8 +1263,9 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     }
   }
 
-  savePreset(startAfterSave = false): void {
-    if (this.isSelectedPresetReadOnly || !this.isDraftValid || this.busy || this.creatingItemGroup) {
+  savePreset(saveGlobal = false): void {
+    if (!this.canSavePreset || this.busy || this.creatingItemGroup
+      || (saveGlobal && (!this.canManageGlobalPreset || this.selectedPresetGameUrlIds.size === 0))) {
       return;
     }
 
@@ -1126,7 +1273,17 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
     const input = this.toWriteModel();
-    const request = this.selectedPresetId === null
+    if (this.isSelectedPresetReadOnly && !saveGlobal) {
+      const accessibleUrlIds = new Set(this.presetAssignmentGameUrls.map((url) => url.id));
+      input.gameUrlIds = input.gameUrlIds.filter((id) => accessibleUrlIds.has(id));
+      if (this.selectedGameUrlId !== null && accessibleUrlIds.has(this.selectedGameUrlId)
+        && !input.gameUrlIds.includes(this.selectedGameUrlId)) {
+        input.gameUrlIds.push(this.selectedGameUrlId);
+      }
+    }
+    const request = saveGlobal
+      ? this.manualCheckService.updateGlobalPreset(this.selectedPresetId!, input)
+      : this.selectedPresetId === null || this.isSelectedPresetReadOnly
       ? this.manualCheckService.createPreset(input)
       : this.manualCheckService.updatePreset(this.selectedPresetId, input);
 
@@ -1135,26 +1292,14 @@ export class ManualCheckSetupDialogComponent implements OnInit {
       this.cdr.markForCheck();
     })).subscribe({
       next: (saved) => {
-        const remainsAvailable = this.selectedGameUrlId !== null
-          && saved.gameUrlIds.includes(this.selectedGameUrlId);
         const index = this.presets.findIndex((x) => x.id === saved.id);
-        if (!remainsAvailable) {
-          this.presets = this.presets.filter((preset) => preset.id !== saved.id);
-        } else if (index >= 0) {
+        if (index >= 0) {
           this.presets = this.presets.map((preset) => preset.id === saved.id ? saved : preset);
         } else {
           this.presets = [...this.presets, saved];
         }
         this.selectedPresetId = saved.id;
-        if (remainsAvailable) {
-          this.selectPreset(saved.id);
-        } else {
-          this.newPreset();
-        }
-        if (startAfterSave) {
-          this.closeForStart(saved.id, null);
-          return;
-        }
+        this.selectPreset(saved.id);
         this.successMessage = `Preset “${saved.name}” saved.`;
         this.cdr.markForCheck();
       },
@@ -1167,12 +1312,16 @@ export class ManualCheckSetupDialogComponent implements OnInit {
 
   deletePreset(): void {
     const id = this.selectedPresetId;
-    if (id === null || this.isSelectedPresetReadOnly || this.busy || this.creatingItemGroup || !confirm(`Delete preset “${this.name}”? Historical runs will be retained.`)) {
+    if (id === null || (this.isSelectedPresetReadOnly && !this.canManageGlobalPreset) || this.busy || this.creatingItemGroup
+      || !confirm(`Delete ${this.canManageGlobalPreset ? 'global preset for everyone' : 'preset'} “${this.name}”? Historical runs will be retained.`)) {
       return;
     }
 
     this.busy = true;
-    this.manualCheckService.deletePreset(id)
+    const request = this.canManageGlobalPreset
+      ? this.manualCheckService.deleteGlobalPreset(id)
+      : this.manualCheckService.deletePreset(id);
+    request
       .pipe(finalize(() => {
         this.busy = false;
         this.cdr.markForCheck();
@@ -1218,7 +1367,10 @@ export class ManualCheckSetupDialogComponent implements OnInit {
   }
 
   startOrSave(): void {
-    if (!this.isDraftValid || !this.isQueueSelectionValid || this.busy || this.creatingItemGroup) {
+    if (!this.hasCheckConfiguration || this.busy || this.creatingItemGroup) return;
+    if (!this.isDraftValid || !this.isQueueSelectionValid) {
+      this.detailsExpanded.set(true);
+      this.errorMessage = 'Complete the check settings before starting.';
       return;
     }
 
@@ -1228,23 +1380,28 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     }
 
     if (this.presetMode === 'Combination') {
-      this.closeForStart(null, this.toPresetCombination());
+      this.closeForStart(null, this.toPresetCombination(), null);
       return;
     }
 
-    if (this.selectedPresetId === null || this.dirty) {
-      this.savePreset(true);
-      return;
-    }
-
-    this.closeForStart(this.selectedPresetId, null);
+    this.closeForStart(this.contentDirty ? null : this.selectedPresetId, null,
+      this.contentDirty ? this.toPrivateTemplate() : null);
   }
 
   private closeForStart(
     presetId: number | null,
     presetCombination: ManualCheckPresetCombinationWrite | null,
+    privateTemplate: AutomaticQueuePrivateTemplate | null,
   ): void {
-    this.dialogRef.close({ mode: 'run', presetId, presetCombination, bypassCache: this.bypassCache });
+    this.dialogRef.close({ mode: 'run', presetId, presetCombination, privateTemplate,
+      sourcePresetId: this.selectedPresetId, bypassCache: this.bypassCache });
+  }
+
+  private toPrivateTemplate(): AutomaticQueuePrivateTemplate {
+    const write = this.toWriteModel();
+    return { name: write.name, listingLimit: write.listingLimit, priceRange: write.priceRange,
+      cooldownMinutes: write.cooldownMinutes, cooldownSeconds: write.cooldownSeconds,
+      criteria: write.criteria };
   }
 
   private toWriteModel(): ManualCheckPresetWrite {
@@ -1347,6 +1504,9 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.expressionRoot = parseManualCheckExpression(template.criteria).root;
     this.bypassCache = block.bypassCache;
     this.dirty = true;
+    this.contentDirty = true;
+    this.hasCheckConfiguration = true;
+    this.detailsExpanded.set(true);
   }
 
   private applyPresetCombination(block: AutomaticQueueBlock): void {
@@ -1370,6 +1530,9 @@ export class ManualCheckSetupDialogComponent implements OnInit {
     this.cooldownSeconds = combination.cooldownSeconds ?? 0;
     this.bypassCache = block.bypassCache;
     this.dirty = false;
+    this.hasCheckConfiguration = true;
+    this.combinationDirty = false;
+    this.detailsExpanded.set(false);
   }
 
   private closeForQueue(): void {
@@ -1385,13 +1548,13 @@ export class ManualCheckSetupDialogComponent implements OnInit {
         gameId: this.selectedGameId,
         gameName: this.selectedGameName,
         gameUrlName: this.selectedGameUrlName,
-        templateMode: this.templateMode,
-        presetId: this.templateMode === 'SavedPreset' ? this.selectedPresetId : null,
+        templateMode: this.presetMode === 'Single' && this.contentDirty ? 'PrivateTemplate' : this.templateMode,
+        presetId: this.presetMode === 'Single' && !this.contentDirty ? this.selectedPresetId : null,
         presetCombination: this.templateMode === 'PresetCombination' ? this.toPresetCombination() : null,
         presetName: this.templateMode === 'SavedPreset'
           ? this.presets.find((preset) => preset.id === this.selectedPresetId)?.name ?? null
           : this.templateMode === 'PresetCombination' ? this.combinationPreview : null,
-        privateTemplate: this.templateMode === 'PrivateTemplate' ? {
+        privateTemplate: this.presetMode === 'Single' && this.contentDirty ? {
           name: write!.name,
           listingLimit: write!.listingLimit,
           priceRange: write!.priceRange,

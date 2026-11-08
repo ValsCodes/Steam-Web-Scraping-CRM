@@ -514,8 +514,9 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       if (result === undefined || result.mode !== 'run') {
         return;
       }
-      if (result.presetId !== null) {
-        this.lastPresetByGameUrl.set(source.id, result.presetId);
+      const sourcePresetId = result.sourcePresetId ?? result.presetId;
+      if (sourcePresetId !== null) {
+        this.lastPresetByGameUrl.set(source.id, sourcePresetId);
       }
       this.startAutomatedRun(
         source.id,
@@ -523,6 +524,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
         result.presetCombination ?? null,
         result.bypassCache,
         productIds,
+        result.privateTemplate,
       );
     });
   }
@@ -1465,6 +1467,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     presetCombination: ManualCheckPresetCombinationWrite | null,
     bypassCache: boolean,
     productIds: number[] | null,
+    privateTemplate: import('../../models').AutomaticQueuePrivateTemplate | null = null,
   ): void {
     if (this.automationUnavailable) {
       this.automationService.refreshUsage();
@@ -1478,7 +1481,8 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.automatedRunActive = true;
     this.cdr.markForCheck();
 
-    this.manualCheckService.createRun({ gameUrlId, presetId, presetCombination, bypassCache, productIds })
+    this.manualCheckService.createRun({ gameUrlId, presetId, presetCombination,
+      ...(privateTemplate ? { privateTemplate } : {}), bypassCache, productIds })
       .pipe(
         takeUntil(this.automatedRunStop$),
         takeUntil(this.destroy$),

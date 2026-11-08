@@ -83,6 +83,7 @@ export interface ManualCheckRunRequest {
   gameUrlId: number;
   presetId: number | null;
   presetCombination?: ManualCheckPresetCombinationWrite | null;
+  privateTemplate?: import('./automatic-queue.model').AutomaticQueuePrivateTemplate | null;
   bypassCache: boolean;
   productIds: number[] | null;
 }

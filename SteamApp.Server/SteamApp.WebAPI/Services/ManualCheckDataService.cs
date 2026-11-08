@@ -605,13 +605,6 @@ public sealed class ManualCheckDataService(
                     x => x.Id == presetId.Value && (x.UserId == null || x.UserId == userId),
                     cancellationToken)
                 ?? throw RequestError(StatusCodes.Status404NotFound, "Preset was not found.");
-            if (preset.GameUrls.All(x => x.GameUrlId != gameUrlId))
-            {
-                throw RequestError(
-                    StatusCodes.Status409Conflict,
-                    "The selected preset is not assigned to this Game URL.");
-            }
-
             return await PrepareRunSetupInternalAsync(
                 db,
                 userId,
@@ -1784,13 +1777,6 @@ public sealed class ManualCheckDataService(
         {
             throw RequestError(StatusCodes.Status404NotFound, "One or more presets were not found.");
         }
-        if (presets.Any(x => x.GameUrls.All(y => y.GameUrlId != gameUrlId)))
-        {
-            throw RequestError(
-                StatusCodes.Status409Conflict,
-                "Every combined preset must be assigned to the selected Game URL.");
-        }
-
         var presetsById = presets.ToDictionary(x => x.Id);
         var orderedPresets = presetIds.Select(x => presetsById[x]).ToList();
         var gameId = orderedPresets[0].GameId;

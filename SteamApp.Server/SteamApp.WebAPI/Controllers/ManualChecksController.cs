@@ -145,14 +145,15 @@ public sealed class ManualChecksController(
             var userId = User.GetUserId();
             if (userId is null) return Unauthorized();
             await EnsureAutomationAccessAsync(cancellationToken);
-            var run = await dataService.CreateRunAsync(
-                userId,
-                input.GameUrlId,
-                input.PresetId,
-                input.PresetCombination,
-                input.BypassCache,
-                input.ProductIds,
-                cancellationToken);
+            var run = input.PrivateTemplate is null
+                ? await dataService.CreateRunAsync(
+                    userId, input.GameUrlId, input.PresetId, input.PresetCombination,
+                    input.BypassCache, input.ProductIds, cancellationToken)
+                : await dataService.CreateRunFromSetupAsync(
+                    await dataService.PrepareRunSetupAsync(
+                        userId, input.GameUrlId, input.PresetId, input.PresetCombination,
+                        input.PrivateTemplate, input.BypassCache, input.ProductIds, cancellationToken),
+                    cancellationToken);
             await queue.EnqueueAsync(run.Id, cancellationToken);
             return AcceptedAtAction(nameof(GetRun), new { id = run.Id }, new ManualCheckRunAcceptedDto
             {

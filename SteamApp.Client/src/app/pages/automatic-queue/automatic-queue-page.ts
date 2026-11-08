@@ -20,6 +20,7 @@ import {
   AutomaticQueueWrite,
 } from '../../models';
 import { AutomaticQueueService, AutomationService } from '../../services';
+import { BetaBadgeComponent } from '../../components/beta-badge.component';
 import {
   ManualCheckSetupDialogComponent,
   ManualCheckSetupDialogData,
@@ -43,7 +44,7 @@ type EditorBlock = AutomaticQueueBlockWrite & Partial<AutomaticQueueBlock>;
   selector: 'steam-automatic-queue-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, DragDropModule, MatButtonModule, MatDialogModule, MatIconModule, MatMenuModule],
+  imports: [CommonModule, FormsModule, DragDropModule, MatButtonModule, MatDialogModule, MatIconModule, MatMenuModule, BetaBadgeComponent],
   templateUrl: './automatic-queue-page.html',
   styleUrl: './automatic-queue-page.scss',
 })

@@ -28,6 +28,7 @@ import { WishListService } from '../../../services/wish-list/wish-list.service';
 import { GameService } from '../../../services';
 import { Game } from '../../../models';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog.component';
+import { BetaBadgeComponent } from '../../../components/beta-badge.component';
 import { StatusDialogComponent } from '../../../components/status-dialog.component';
 import { ExternalLinkDirective, openableExternalUrl } from '../../../common';
 import {
@@ -50,6 +51,7 @@ import * as XLSX from 'xlsx';
     MatIconModule,
     MatMenuModule,
     ExternalLinkDirective,
+    BetaBadgeComponent,
   ],
   templateUrl: './wish-lists-view.html',
   styleUrl: './wish-lists-view.scss',
