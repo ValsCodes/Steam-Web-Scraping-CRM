@@ -83,19 +83,48 @@ describe('ManualModeV2 external link disclosure', () => {
     expect(component.gameUrlGroups.map(group => group.items.map(url => url.id))).toEqual([[3], [4, 1], [2]]);
   });
 
-  it('routes open-all through disclosure and stops when acceptance is needed', () => {
+  it('routes selected visible products through disclosure and stops when acceptance is needed', () => {
     component.productsFiltered = [
-      { fullUrl: 'https://backpack.tf/stats' },
-      { fullUrl: 'https://steamcommunity.com/market/' },
+      { productId: 1, fullUrl: 'https://backpack.tf/stats' },
+      { productId: 2, fullUrl: 'https://steamcommunity.com/market/' },
     ] as never;
+    component.selectedProductIds.add(1);
+    component.selectedProductIds.add(2);
     disclosure.openTrustedUrl.and.returnValue('needs-disclosure');
 
-    component.openAllButtonClicked();
+    component.openSelectedProductsButtonClicked();
 
     expect(disclosure.openTrustedUrl).toHaveBeenCalledOnceWith(
       'https://backpack.tf/stats',
       '/manual-checks',
     );
+  });
+
+  it('opens selected products in visible grid order and excludes hidden selections', () => {
+    component.productsFiltered = [
+      { productId: 2, fullUrl: 'https://steamcommunity.com/market/listings/440/Second' },
+      { productId: 1, fullUrl: 'https://steamcommunity.com/market/listings/440/First' },
+    ] as never;
+    component.selectedProductIds.add(1);
+    component.selectedProductIds.add(2);
+    component.selectedProductIds.add(99);
+    component.openInSteamMode = true;
+    disclosure.openTrustedUrl.and.returnValue('opened');
+
+    expect(component.selectedVisibleProductCount).toBe(2);
+
+    component.openSelectedProductsButtonClicked();
+
+    expect(disclosure.openTrustedUrl.calls.allArgs()).toEqual([
+      [
+        'steam://openurl/https://steamcommunity.com/market/listings/440/Second',
+        '/manual-checks',
+      ],
+      [
+        'steam://openurl/https://steamcommunity.com/market/listings/440/First',
+        '/manual-checks',
+      ],
+    ]);
   });
 
   it('opens batch URLs through the disclosure service without advancing the current item', () => {
@@ -369,7 +398,7 @@ describe('ManualModeV2 external link disclosure', () => {
     expect(component.productsFiltered).toEqual([]);
   });
 
-  it('uses the matched-only filtered list for Open All and clears the filter', () => {
+  it('uses the matched-only filtered list for opening selected products and clears the filter', () => {
     const completed = runDetail('Succeeded', 1, 0);
     manualCheckService.cancelRun.and.returnValue(of(completed));
     component.products = [
@@ -391,8 +420,10 @@ describe('ManualModeV2 external link disclosure', () => {
     disclosure.openTrustedUrl.and.returnValue('opened');
     component.cancelAutomatedRun();
     component.setAutomatedOutcomeFilter('Matched');
+    component.selectedProductIds.add(5);
+    component.selectedProductIds.add(6);
 
-    component.openAllButtonClicked();
+    component.openSelectedProductsButtonClicked();
 
     expect(disclosure.openTrustedUrl).toHaveBeenCalledOnceWith(
       'https://steamcommunity.com/market/listings/440/Matched%20Item',

@@ -12,7 +12,7 @@ import { DropdownComponent } from '../dropdown/dropdown.component';
   imports: [
     CommonModule,
     RouterModule,
-    // DropdownComponent,
+    DropdownComponent,
   ],
   templateUrl: './site-header.component.html',
   styleUrl: './site-header.component.scss',

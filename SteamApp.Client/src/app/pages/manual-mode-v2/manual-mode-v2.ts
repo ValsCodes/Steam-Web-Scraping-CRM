@@ -679,6 +679,12 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     return this.selectedProductIds.size;
   }
 
+  get selectedVisibleProductCount(): number {
+    return this.productsFiltered.filter((product) =>
+      this.selectedProductIds.has(product.productId),
+    ).length;
+  }
+
   get areAllFilteredProductsSelected(): boolean {
     const selectableProducts = this.productsFiltered.filter(
       (product) => !this.isProductRemoved(product.productId) && !this.isProductRelationUpdating(product.productId),
@@ -1011,9 +1017,11 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       });
   }
 
-  openAllButtonClicked(): void {
+  openSelectedProductsButtonClicked(): void {
     this.openTrustedUrls(
-      this.productsFiltered.slice(0, 5).map((product) => product.fullUrl),
+      this.productsFiltered
+        .filter((product) => this.selectedProductIds.has(product.productId))
+        .map((product) => product.fullUrl),
     );
   }
 

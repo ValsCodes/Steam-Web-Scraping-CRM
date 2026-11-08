@@ -24,9 +24,14 @@
       <a routerLink="/watch-list" routerLinkActive="active">Custom Watch List</a>     
       <a routerLink="/feedback/send" routerLinkActive="active">Send Feedback</a>
       @if (currentUser?.isAdmin) {
-        <a routerLink="/admin/requests" routerLinkActive="active">Requests</a>
-        <a routerLink="/admin/users" routerLinkActive="active">Users</a>
-        <a routerLink="/admin/automation" routerLinkActive="active">Automation</a>
+        <steam-dropdown
+          label="Admin"
+          [links]="[
+            { label: 'Requests', route: '/admin/requests' },
+            { label: 'Users', route: '/admin/users' },
+            { label: 'Automation', route: '/admin/automation' }
+          ]">
+        </steam-dropdown>
       }
     }
   </nav>
