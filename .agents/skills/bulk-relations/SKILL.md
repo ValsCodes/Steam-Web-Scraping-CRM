@@ -5,7 +5,7 @@ description: Implement SteamApp join-table selection or multi-record relation mu
 
 # SteamApp bulk relation writes
 
-Read applicable C# and UI conventions skills before governed code work. Ownership/authorization and broker/external-boundary changes also require `security-review`; required rollback/regression coverage requires `unit-tests`.
+Read `api-conventions` and applicable C# and UI conventions skills before governed code work. Ownership/authorization and broker/external-boundary changes also require `security-review`; required rollback/regression coverage requires `unit-tests`.
 
 - A multi-record relation selection must use one batch HTTP request, not one create/delete request per record or a client-side forkJoin of individual writes.
 - Extend the existing relation endpoint and client service. Make clear whether the request is a full desired selection or explicit additions/removals; an empty full selection removes the scoped relations.

@@ -1,0 +1,3 @@
+# Temporarily disable the inherited server for this project.
+[mcp_servers.codebase-memory-mcp]
+enabled = false

@@ -1,3 +1,16 @@
 {
-  "hooks": {}
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -Command \"python (Join-Path (git rev-parse --show-toplevel) 'scripts/validate_agent_configuration.py') --hook\"",
+            "timeout": 15,
+            "statusMessage": "Checking agent configuration"
+          }
+        ]
+      }
+    ]
+  }
 }

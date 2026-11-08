@@ -1,6 +1,6 @@
 ---
 name: codebase-discovery
-description: Discover SteamApp architecture, symbols, callers, routes, dependencies, implementation paths, and change impact with codebase-memory-mcp and scoped source verification. Use for repository discovery or dependency analysis; skip broad discovery when the user already identified a locally understandable file or symbol.
+description: Discover SteamApp architecture, symbols, callers, routes, dependencies, and change impact through scoped source searches and project files. Use for repository discovery; skip broad discovery for an already identified, locally understandable target.
 ---
 
 # SteamApp Codebase Discovery
@@ -9,31 +9,16 @@ description: Discover SteamApp architecture, symbols, callers, routes, dependenc
 
 Inspect source directly when the user names the exact file, class, method, endpoint, or component and the task is locally understandable.
 
-Use codebase-memory-mcp as the primary navigation index when correctness requires repository discovery, including natural-language codebase questions, symbol discovery, callers, dependencies, route tracing, architectural placement, or change impact.
-
-Do not route a question to Graphify merely because `graphify-out/graph.json` exists. Use Graphify when the user explicitly requests it, asks for graph-specific analysis or outputs, or when codebase-memory-mcp is unavailable or insufficient and a scoped Graphify query can materially help. Do not run both graph systems routinely.
+Codebase-memory is temporarily disabled for this project. Do not call its tools, start its server, or create/update its index unless the user explicitly re-enables it.
 
 ## Procedure
 
-1. Run `list_projects` and select the project whose root matches the current SteamApp workspace.
-2. Run `index_status`.
-3. Run `detect_changes` when the task concerns the current diff.
-4. Re-index only when the index is missing or stale.
-5. Use the narrowest operation:
-   - `search_graph`: locate functions, classes, interfaces, routes, fields, or variables.
-   - `trace_path`: trace callers, callees, and dependencies.
-   - `get_code_snippet`: inspect a targeted symbol.
-   - `query_graph`: answer a specific structural relationship.
-   - `get_architecture`: perform broad layer/package/hotspot analysis only.
-   - `search_code`: locate text or patterns when structural search is unsuitable.
-6. Verify implementation-sensitive, negative, exhaustive, or security-sensitive conclusions against source and project files.
+1. Start from the named file, feature, error, or changed files.
+2. Use scoped rg or rg --files searches to locate symbols, callers, routes, and configuration. If unavailable, use Get-ChildItem and Select-String within the relevant directories.
+3. Read affected source and project files. Expand to callers, dependencies, or neighboring implementations only when correctness requires it.
+4. For current-diff analysis, inspect git diff, git diff --cached, and relevant untracked files. Compare against an existing base ref only when the requested scope needs it.
+5. Verify implementation-sensitive, negative, exhaustive, and security-sensitive conclusions against source and project files. Do not claim exhaustive coverage from a narrow search.
 
 ## SteamApp orientation
 
-Client sources are under `SteamApp.Client/src/app`; server projects and .NET tests are under `SteamApp.Server`. For architectural ownership or conventions conclusions, read the relevant [C# conventions](../csharp-conventions/SKILL.md) or [UI conventions](../ui-conventions/SKILL.md). Treat orientation as navigation, not proof; verify claims against affected project files, source, configuration, and tests.
-
-## Fallback
-
-Use `rg` or direct file inspection for string literals, errors, configuration, HTML/SCSS, generated assets, or gaps in indexed results.
-
-If codebase-memory-mcp is unavailable, state that briefly and continue with scoped source inspection. Use Graphify as a secondary fallback only when the existing graph can materially help. Never invent graph results.
+Client sources are under SteamApp.Client/src/app; server projects and .NET tests are under SteamApp.Server. For architectural ownership or conventions conclusions, read the relevant [C# conventions](../csharp-conventions/SKILL.md) or [UI conventions](../ui-conventions/SKILL.md). Treat orientation as navigation, not proof; verify claims against affected project files, source, configuration, and tests.
