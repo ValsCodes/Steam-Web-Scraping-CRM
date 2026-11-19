@@ -1,3 +1,8 @@
+using System.Data.Common;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -66,6 +71,39 @@ public sealed class GameUrlProductStockIntegrationTests
             }));
             Assert.That(history.All(x => x.UserId == IntegrationSeed.UserId), Is.True);
             Assert.That(history.All(x => x.CreatedAtUtc > DateTime.MinValue), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task StockIncrement_CommitAcknowledgmentLost_AppliesOneAdjustment()
+    {
+        var interceptor = new StockCommitInterceptor();
+        using var factory = new SteamAppFactory();
+        using var host = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+            services.AddDbContextFactory<ApplicationDbContext>(options =>
+                options.UseSqlite(sqlite => sqlite.ExecutionStrategy(
+                    dependencies => new StockTestExecutionStrategy(dependencies)))
+                    .AddInterceptors(interceptor))));
+        using var client = host.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost")
+        });
+        client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", IntegrationJwt.CreateToken());
+        await IntegrationSeed.SeedAsync(host.Services);
+
+        var response = await client.PatchAsync("/api/game-url-products/1/1/current-stock/increment", null);
+
+        using var scope = host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var relation = await db.GameUrlsProducts.FindAsync(1L, 1L);
+        var audit = await db.GameUrlProductStockHistories.SingleAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(interceptor.FaultInjected, Is.True);
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(relation!.CurrentStock, Is.EqualTo(1));
+            Assert.That(audit.NewStock, Is.EqualTo(1));
         });
     }
 
@@ -225,5 +263,28 @@ public sealed class GameUrlProductStockIntegrationTests
             Assert.That(db.GameUrlsProducts.Any(x => x.ProductId == 1 && x.GameUrlId == 1), Is.False);
             Assert.That(db.GameUrlProductStockHistories.Count(x => x.ProductId == 1 && x.GameUrlId == 1), Is.EqualTo(1));
         });
+    }
+
+    private sealed class StockCommitInterceptor : DbTransactionInterceptor
+    {
+        public bool FaultInjected { get; private set; }
+
+        public override Task TransactionCommittedAsync(
+            DbTransaction transaction, TransactionEndEventData eventData, CancellationToken cancellationToken = default)
+        {
+            if (!FaultInjected && eventData.Context?.ChangeTracker.Entries<GameUrlProductStockHistory>().Any() == true)
+            {
+                FaultInjected = true;
+                throw new TimeoutException("Simulated loss of the commit acknowledgment.");
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class StockTestExecutionStrategy(ExecutionStrategyDependencies dependencies)
+        : ExecutionStrategy(dependencies, 1, TimeSpan.Zero)
+    {
+        protected override bool ShouldRetryOn(Exception exception) => exception is TimeoutException;
     }
 }

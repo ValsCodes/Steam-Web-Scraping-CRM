@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -62,6 +63,51 @@ public sealed class EfRepositoryIntegrationTests
             Assert.That(db.Database.GetMigrations().Count(), Is.EqualTo(migrations.Length));
             Assert.That(db.Database.HasPendingModelChanges(), Is.False);
         });
+    }
+
+    [Test]
+    public async Task ScrapeJobClaim_ExpiredClaimCanBeRecoveredAndOnlyItsNewOwnerCanComplete()
+    {
+        using var factory = new SteamAppFactory();
+        await factory.ResetDatabaseAsync();
+        using var scope = factory.Services.CreateScope();
+        var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
+        var history = new ScrapeHistoryDataService(dbFactory);
+        var ct = CancellationToken.None;
+        var url = await history.GetOwnedGameUrlSnapshotAsync(1, IntegrationSeed.UserId, ct);
+        var job = await history.CreateQueuedHistoryAsync(IntegrationSeed.UserId, url!, 2,
+            "scrape-page", "Web Scrape", Guid.NewGuid().ToString(), ct);
+        var now = DateTime.UtcNow;
+        var expiredClaim = Guid.NewGuid();
+        var currentClaim = Guid.NewGuid();
+
+        Assert.That(await history.TryClaimJobAsync(job.Id, expiredClaim, now, now.AddMinutes(1), ct), Is.True);
+        now = now.AddMinutes(2);
+        Assert.That(await history.GetRecoverableJobIdsAsync(now.AddSeconds(-20), now, ct), Does.Contain(job.Id));
+        Assert.That(await history.TryClaimJobAsync(job.Id, currentClaim, now, now.AddMinutes(1), ct), Is.True);
+        Assert.That(await history.TryClaimJobAsync(job.Id, Guid.NewGuid(), now, now.AddMinutes(1), ct), Is.False);
+        Assert.That(await history.CompleteJobAsync(job.Id, expiredClaim, null, "stale failure", ct), Is.False);
+        Assert.That(await history.CompleteJobAsync(job.Id, currentClaim, null, null, ct), Is.True);
+        Assert.That((await history.GetJobAsync(job.Id, ct))!.Status, Is.EqualTo(ScrapeJobStatusEnum.Succeeded));
+    }
+
+    [Test]
+    public async Task PresenceLease_ParallelHeartbeatsConvergeOnOneRow()
+    {
+        using var factory = new SteamAppFactory(sharedDatabase: Guid.NewGuid().ToString("N"));
+        await factory.ResetDatabaseAsync();
+        using var scope = factory.Services.CreateScope();
+        var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
+        var service = new AutomationAccessService(dbFactory, TimeProvider.System,
+            NullLogger<AutomationAccessService>.Instance);
+        var tabId = Guid.NewGuid();
+
+        await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() =>
+            service.UpsertPresenceAsync(IntegrationSeed.UserId, tabId, CancellationToken.None))));
+
+        await using var db = await dbFactory.CreateDbContextAsync();
+        var lease = await db.SessionPresenceLeases.SingleAsync(x => x.TabId == tabId);
+        Assert.That(lease.UserId, Is.EqualTo(IntegrationSeed.UserId));
     }
 
     [Test]

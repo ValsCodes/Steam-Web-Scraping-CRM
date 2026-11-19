@@ -26,5 +26,8 @@ internal sealed class AutomatedScrapeHistoryConfiguration : IEntityTypeConfigura
         entity.Property(x => x.StartedAtUtc).HasColumnName("started_at_utc");
         entity.Property(x => x.CompletedAtUtc).HasColumnName("completed_at_utc");
         entity.Property(x => x.CorrelationId).HasColumnName("correlation_id");
+        entity.Property(x => x.ClaimId).HasColumnName("claim_id").IsConcurrencyToken();
+        entity.Property(x => x.ClaimExpiresAtUtc).HasColumnName("claim_expires_at_utc");
+        entity.HasIndex(x => new { x.Status, x.Date });
     }
 }

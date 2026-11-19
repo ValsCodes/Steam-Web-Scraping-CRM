@@ -233,17 +233,33 @@ public partial class AuthController(
 
     [HttpDelete("profile")]
     [Authorize(Policy = SecurityPolicies.ApiUser)]
-    public async Task<IActionResult> DeleteProfile([FromBody] DeleteUserRequest req)
+    public Task<IActionResult> DeleteProfile(
+        [FromBody] DeleteUserRequest req, [FromServices] AccountMutation accountMutation)
     {
-        var user = await GetCurrentUserAsync();
-        if (user == null)
+        return accountMutation.ExecuteAsync<IActionResult>(async () =>
         {
-            return Unauthorized("User profile is unavailable.");
-        }
+            var user = await GetCurrentUserAsync();
+            if (user == null || !UserSessionClaims.Matches(User, user))
+            {
+                return Unauthorized("User profile is unavailable.");
+            }
 
-        if (!await userManager.CheckPasswordAsync(user, req.Password))
+            if (!await userManager.CheckPasswordAsync(user, req.Password))
+            {
+                return Unauthorized("Invalid user credentials.");
+            }
+
+            return await DeleteAccountAsync(user, accountMutation);
+        }, HttpContext.RequestAborted);
+    }
+
+    private async Task<IActionResult> DeleteAccountAsync(ApplicationUser user, AccountMutation accountMutation)
+    {
+        if (accountMutation.IsConfiguredAdmin(user.Id) ||
+            (await userManager.IsInRoleAsync(user, SecurityPolicies.AdminRole) &&
+                (await userManager.GetUsersInRoleAsync(SecurityPolicies.AdminRole)).Count <= 1))
         {
-            return Unauthorized("Invalid user credentials.");
+            return Problem(statusCode: 409, title: "This administrator account cannot be deleted.");
         }
 
         var result = await userManager.DeleteAsync(user);
@@ -253,7 +269,6 @@ public partial class AuthController(
         }
 
         logger.LogInformation("User account deletion completed successfully.");
-
         return NoContent();
     }
 

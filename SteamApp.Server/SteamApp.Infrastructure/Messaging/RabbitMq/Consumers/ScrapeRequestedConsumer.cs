@@ -30,6 +30,26 @@ public sealed class ScrapeRequestedConsumer(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await ConsumeAsync(stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception exception)
+            {
+                logger.LogWarning(exception, "RabbitMQ consumer unavailable. Retrying shortly.");
+                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+            }
+        }
+    }
+
+    private async Task ConsumeAsync(CancellationToken stoppingToken)
+    {
         IConnection connection = await rabbitMqConnection.GetConnectionAsync(stoppingToken);
 
         await using IChannel channel = await connection.CreateChannelAsync(

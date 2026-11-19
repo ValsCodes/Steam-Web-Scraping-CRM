@@ -58,6 +58,7 @@ public static class AdminUserEndpoints
             UpdateUserRoleRequest input,
             HttpContext httpContext,
             UserManager<ApplicationUser> userManager,
+            AccountMutation accountMutation,
             CancellationToken ct) =>
         {
             var currentUserId = httpContext.User.GetUserId();
@@ -69,47 +70,63 @@ public static class AdminUserEndpoints
                 return Results.BadRequest(new { message = "Role must be Admin or User." });
             }
 
-            var user = await userManager.FindByIdAsync(id);
-            if (user is null) { return Results.NotFound(); }
-
-            var isAdmin = await userManager.IsInRoleAsync(user, SecurityPolicies.AdminRole);
-            var demotingToUser = requestedRole == SecurityPolicies.UserRole && isAdmin;
-
-            if (demotingToUser &&
-                string.Equals(user.Id, currentUserId, StringComparison.Ordinal))
+            return await accountMutation.ExecuteAsync<IResult>(async () =>
             {
-                return Results.BadRequest(new { message = "Admins cannot demote themselves." });
-            }
+                var user = await userManager.FindByIdAsync(id);
+                if (user is null) { return Results.NotFound(); }
 
-            if (demotingToUser && await CountAdminsAsync(userManager, ct) <= 1)
-            {
-                return Results.BadRequest(new { message = "The last Admin cannot be demoted." });
-            }
+                var isAdmin = await userManager.IsInRoleAsync(user, SecurityPolicies.AdminRole);
+                var demotingToUser = requestedRole == SecurityPolicies.UserRole && isAdmin;
 
-            var userRoleResult = await EnsureRoleAsync(
-                userManager,
-                user,
-                SecurityPolicies.UserRole);
-            if (userRoleResult is not null) { return userRoleResult; }
+                if (demotingToUser &&
+                    string.Equals(user.Id, currentUserId, StringComparison.Ordinal))
+                {
+                    return Results.BadRequest(new { message = "Admins cannot demote themselves." });
+                }
 
-            if (requestedRole == SecurityPolicies.AdminRole)
-            {
-                var adminRoleResult = await EnsureRoleAsync(
+                if (demotingToUser && (await userManager.GetUsersInRoleAsync(SecurityPolicies.AdminRole)).Count <= 1)
+                {
+                    return Results.BadRequest(new { message = "The last Admin cannot be demoted." });
+                }
+
+                if (demotingToUser && accountMutation.IsConfiguredAdmin(user.Id))
+                {
+                    return Results.BadRequest(new { message = "Remove the administrator from configuration before demoting them." });
+                }
+
+                if (await userManager.FindByIdAsync(currentUserId) is not { } actor ||
+                    !await userManager.IsInRoleAsync(actor, SecurityPolicies.AdminRole))
+                {
+                    return Results.Forbid();
+                }
+
+                var userRoleResult = await EnsureRoleAsync(
                     userManager,
                     user,
-                    SecurityPolicies.AdminRole);
-                if (adminRoleResult is not null) { return adminRoleResult; }
-            }
-            else if (isAdmin)
-            {
-                var result = await userManager.RemoveFromRoleAsync(user, SecurityPolicies.AdminRole);
-                if (!result.Succeeded)
-                {
-                    return CreateValidationProblem(result);
-                }
-            }
+                    SecurityPolicies.UserRole);
+                if (userRoleResult is not null) { return userRoleResult; }
 
-            return Results.Ok(await CreateSummaryAsync(userManager, user, currentUserId));
+                if (requestedRole == SecurityPolicies.AdminRole)
+                {
+                    var adminRoleResult = await EnsureRoleAsync(
+                        userManager,
+                        user,
+                        SecurityPolicies.AdminRole);
+                    if (adminRoleResult is not null) { return adminRoleResult; }
+                }
+                else if (isAdmin)
+                {
+                    // The Identity store persists the stamp and role removal in the same save.
+                    user.SecurityStamp = Guid.NewGuid().ToString();
+                    var result = await userManager.RemoveFromRoleAsync(user, SecurityPolicies.AdminRole);
+                    if (!result.Succeeded)
+                    {
+                        return CreateValidationProblem(result);
+                    }
+                }
+
+                return Results.Ok(await CreateSummaryAsync(userManager, user, currentUserId));
+            }, ct);
         })
         .WithName("UpdateAdminUserRole")
         .Accepts<UpdateUserRoleRequest>("application/json")
@@ -132,14 +149,6 @@ public static class AdminUserEndpoints
 
         var result = await userManager.AddToRoleAsync(user, role);
         return result.Succeeded ? null : CreateValidationProblem(result);
-    }
-
-    private static async Task<int> CountAdminsAsync(
-        UserManager<ApplicationUser> userManager,
-        CancellationToken ct)
-    {
-        var admins = await userManager.GetUsersInRoleAsync(SecurityPolicies.AdminRole);
-        return admins.Count(user => !ct.IsCancellationRequested && user.Id is not null);
     }
 
     private static string? NormalizeRequestedRole(string? role)

@@ -21,11 +21,11 @@ public sealed class ManualCheckWorker(
             var startedAt = Stopwatch.GetTimestamp();
             using var activity = SteamAppTelemetry.StartOperation(operation);
             var outcome = SteamAppTelemetry.SuccessOutcome;
-            using var runCancellation = CancellationTokenSource.CreateLinkedTokenSource(
-                stoppingToken,
-                workItem.CancellationToken);
             try
             {
+                using var runCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                    stoppingToken,
+                    workItem.CancellationToken);
                 using var scope = scopeFactory.CreateScope();
                 var execution = scope.ServiceProvider.GetRequiredService<IManualCheckExecutionService>();
                 await execution.ExecuteAsync(

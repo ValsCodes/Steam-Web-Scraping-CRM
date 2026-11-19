@@ -42,7 +42,7 @@ public sealed class SteamServiceTests
     [Test]
     public void ScrapeFromPublicApi_RejectsPageOutsideAllowedRange()
     {
-        var service = new SteamService(Mock.Of<ISteamRepository>());
+        var service = new SteamService(Mock.Of<ISteamRepository>(), Mock.Of<IHttpClientFactory>());
 
         Assert.That(
             async () => await service.ScrapeFromPublicApi(1, -1),
@@ -62,7 +62,7 @@ public sealed class SteamServiceTests
                 PartialUrl = "https://steam.example/{0}"
             });
 
-        var service = new SteamService(repository.Object);
+        var service = new SteamService(repository.Object, Mock.Of<IHttpClientFactory>());
 
         Assert.That(
             async () => await service.ScrapePage(1, 1),
@@ -82,7 +82,7 @@ public sealed class SteamServiceTests
                 PartialUrl = "https://steam.example/no-page-placeholder"
             });
 
-        var service = new SteamService(repository.Object);
+        var service = new SteamService(repository.Object, Mock.Of<IHttpClientFactory>());
 
         Assert.That(
             async () => await service.ScrapePage(1, 1),
@@ -102,11 +102,30 @@ public sealed class SteamServiceTests
                 PartialUrl = "https://steam.example/{0}"
             });
 
-        var service = new SteamService(repository.Object);
+        var service = new SteamService(repository.Object, Mock.Of<IHttpClientFactory>());
 
         Assert.That(
             async () => await service.ScrapeFromPublicApi(1, 1),
             Throws.Exception.With.Message.Contains("public API"));
+    }
+
+    [TestCase("http://steamcommunity.com/market/search/render/?start={0}")]
+    [TestCase("https://example.test/market/search/render/?start={0}")]
+    [TestCase("https://steamcommunity.com:8443/market/search/render/?start={0}")]
+    [TestCase("https://steamcommunity.com/profiles/123")]
+    public async Task ScrapeFromPublicApi_RejectsDestinationsOutsideSteamMarket(string url)
+    {
+        var repository = new Mock<ISteamRepository>();
+        repository.Setup(x => x.GetGameUrl(1)).ReturnsAsync(new GameUrl
+        {
+            ScrapingModeId = (long)ScrapingModeEnum.PublicApi,
+            PartialUrl = url
+        });
+        var factory = new Mock<IHttpClientFactory>(MockBehavior.Strict);
+        var service = new SteamService(repository.Object, factory.Object);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await service.ScrapeFromPublicApi(1, 2));
+        factory.VerifyNoOtherCalls();
     }
 
     [Test]
@@ -122,7 +141,10 @@ public sealed class SteamServiceTests
             }
             """;
 
-        await using var server = OneShotHttpServer.StartJson(json);
+        using var client = new HttpClient(new HttpMessageHandlerStub((_, _) =>
+            new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(json) }));
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(x => x.CreateClient(SteamService.HttpClientName)).Returns(client);
         var repository = new Mock<ISteamRepository>();
         repository
             .Setup(x => x.GetGameUrl(7))
@@ -130,10 +152,10 @@ public sealed class SteamServiceTests
             {
                 Id = 7,
                 ScrapingModeId = (long)ScrapingModeEnum.PublicApi,
-                PartialUrl = server.Uri.ToString()
+                PartialUrl = "https://steamcommunity.com/market/search/render/?start={0}"
             });
 
-        var service = new SteamService(repository.Object);
+        var service = new SteamService(repository.Object, factory.Object);
 
         var result = (await service.ScrapeFromPublicApi(7, 1)).ToArray();
 
@@ -149,7 +171,7 @@ public sealed class SteamServiceTests
     [Test]
     public void ScrapeWithPixels_RejectsPageOutsideAllowedRange()
     {
-        var service = new SteamService(Mock.Of<ISteamRepository>());
+        var service = new SteamService(Mock.Of<ISteamRepository>(), Mock.Of<IHttpClientFactory>());
 
         Assert.That(
             async () => await service.ScrapeWithPixels(1, -1),
@@ -169,7 +191,7 @@ public sealed class SteamServiceTests
                 PartialUrl = "https://steam.example/{0}"
             });
 
-        var service = new SteamService(repository.Object);
+        var service = new SteamService(repository.Object, Mock.Of<IHttpClientFactory>());
 
         Assert.That(
             async () => await service.ScrapeWithPixels(1, 1),
@@ -194,7 +216,7 @@ public sealed class SteamServiceTests
 
         var repository = new Mock<ISteamRepository>();
         repository.Setup(x => x.GetGameUrl(1)).ReturnsAsync(gameUrl);
-        var service = new SteamService(repository.Object);
+        var service = new SteamService(repository.Object, Mock.Of<IHttpClientFactory>());
 
         try
         {

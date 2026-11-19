@@ -420,69 +420,77 @@ public static class GameUrlProductsEndpoints
         int? assignedStock, ApplicationDbContext db, CancellationToken ct)
     {
         var strategy = db.Database.CreateExecutionStrategy();
-        return await strategy.ExecuteAsync(() => UpdateCurrentStockWithRetriesAsync(
-            productId,
-            gameUrlId,
-            userId,
-            operation,
-            assignedStock,
-            db,
-            ct));
-    }
-
-    private static async Task<IResult> UpdateCurrentStockWithRetriesAsync(
-        long productId, long gameUrlId, string userId, GameUrlProductStockOperationEnum operation,
-        int? assignedStock, ApplicationDbContext db, CancellationToken ct)
-    {
         for (var attempt = 0; attempt < MaxStockUpdateAttempts; attempt++)
         {
-            await using var transaction = await db.Database.BeginTransactionAsync(ct);
-            var currentStock = await db.GameUrlsProducts.AsNoTracking()
-                .Where(x => x.ProductId == productId && x.GameUrlId == gameUrlId &&
-                    x.Product.UserId == null && x.GameUrl.UserId == null)
-                .Select(x => (int?)x.CurrentStock)
-                .FirstOrDefaultAsync(ct);
-            if (currentStock is null)
-            {
-                return Results.NotFound();
-            }
+            GameUrlProductStockHistory? history = null;
+            long? savedHistoryId = null;
+            var result = await strategy.ExecuteInTransactionAsync<IResult?>(
+                async token =>
+                {
+                    if (history is not null)
+                    {
+                        db.Entry(history).State = EntityState.Detached;
+                        history = null;
+                    }
+                    savedHistoryId = null;
 
-            var nextStock = operation switch
-            {
-                GameUrlProductStockOperationEnum.Assigned => assignedStock!.Value,
-                GameUrlProductStockOperationEnum.Incremented when currentStock.Value < int.MaxValue => currentStock.Value + 1,
-                GameUrlProductStockOperationEnum.Decremented when currentStock.Value > int.MinValue => currentStock.Value - 1,
-                _ => currentStock.Value,
-            };
-            if (nextStock == currentStock.Value)
-            {
-                await transaction.CommitAsync(ct);
-                return Results.Ok(new GameUrlProductCurrentStockDto { CurrentStock = currentStock.Value });
-            }
+                    var relation = db.GameUrlsProducts.Where(x =>
+                        x.ProductId == productId && x.GameUrlId == gameUrlId &&
+                        db.Products.Any(product => product.Id == productId && product.UserId == null) &&
+                        db.GameUrls.Any(gameUrl => gameUrl.Id == gameUrlId && gameUrl.UserId == null));
+                    var currentStock = await relation
+                        .Select(x => (int?)x.CurrentStock)
+                        .FirstOrDefaultAsync(token);
+                    if (currentStock is null)
+                    {
+                        return Results.NotFound();
+                    }
 
-            var updated = await db.GameUrlsProducts
-                .Where(x => x.ProductId == productId && x.GameUrlId == gameUrlId &&
-                    x.CurrentStock == currentStock.Value)
-                .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.CurrentStock, nextStock), ct);
-            if (updated == 0)
-            {
-                await transaction.RollbackAsync(ct);
-                continue;
-            }
+                    var nextStock = operation switch
+                    {
+                        GameUrlProductStockOperationEnum.Assigned => assignedStock!.Value,
+                        GameUrlProductStockOperationEnum.Incremented when currentStock.Value < int.MaxValue => currentStock.Value + 1,
+                        GameUrlProductStockOperationEnum.Decremented when currentStock.Value > int.MinValue => currentStock.Value - 1,
+                        _ => currentStock.Value,
+                    };
+                    if (nextStock == currentStock.Value)
+                    {
+                        return Results.Ok(new GameUrlProductCurrentStockDto { CurrentStock = currentStock.Value });
+                    }
 
-            db.GameUrlProductStockHistories.Add(new GameUrlProductStockHistory
+                    var updated = await relation
+                        .Where(x => x.CurrentStock == currentStock.Value)
+                        .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.CurrentStock, nextStock), token);
+                    if (updated == 0)
+                    {
+                        return null;
+                    }
+
+                    history = new GameUrlProductStockHistory
+                    {
+                        ProductId = productId,
+                        GameUrlId = gameUrlId,
+                        PreviousStock = currentStock.Value,
+                        NewStock = nextStock,
+                        Operation = operation,
+                        CreatedAtUtc = DateTime.UtcNow,
+                        UserId = userId,
+                    };
+                    db.GameUrlProductStockHistories.Add(history);
+                    await db.SaveChangesAsync(token);
+                    // The audit row commits with the stock change and identifies this attempt.
+                    savedHistoryId = history.Id;
+                    return Results.Ok(new GameUrlProductCurrentStockDto { CurrentStock = nextStock });
+                },
+                token => savedHistoryId is long id
+                    ? db.GameUrlProductStockHistories.AnyAsync(x => x.Id == id, token)
+                    : Task.FromResult(false),
+                ct);
+
+            if (result is not null)
             {
-                ProductId = productId,
-                GameUrlId = gameUrlId,
-                PreviousStock = currentStock.Value,
-                NewStock = nextStock,
-                Operation = operation,
-                CreatedAtUtc = DateTime.UtcNow,
-                UserId = userId,
-            });
-            await db.SaveChangesAsync(ct);
-            await transaction.CommitAsync(ct);
-            return Results.Ok(new GameUrlProductCurrentStockDto { CurrentStock = nextStock });
+                return result;
+            }
         }
 
         return Results.Conflict("Current stock changed concurrently. Try again.");

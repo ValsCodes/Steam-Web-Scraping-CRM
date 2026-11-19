@@ -8,22 +8,22 @@ public sealed class RabbitMqConnection(IOptions<RabbitMqOptions> options) : IAsy
 {
     private readonly RabbitMqOptions _options = options.Value;
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
-    private IConnection? _connection;
+    private volatile IConnection? _connection;
 
     public async Task<IConnection> GetConnectionAsync(CancellationToken cancellationToken)
     {
-        if (_connection is { IsOpen: true })
+        if (_connection is { } connection)
         {
-            return _connection;
+            return connection;
         }
 
         await _connectionLock.WaitAsync(cancellationToken);
 
         try
         {
-            if (_connection is { IsOpen: true })
+            if (_connection is { } existing)
             {
-                return _connection;
+                return existing;
             }
 
             ConnectionFactory factory = new()

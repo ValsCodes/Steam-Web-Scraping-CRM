@@ -20,6 +20,7 @@ public sealed class RabbitMqPublisher(
         IConnection connection = await rabbitMqConnection.GetConnectionAsync(cancellationToken);
 
         await using IChannel channel = await connection.CreateChannelAsync(
+            new CreateChannelOptions(publisherConfirmationsEnabled: true, publisherConfirmationTrackingEnabled: true),
             cancellationToken: cancellationToken);
 
         await channel.QueueDeclareAsync(

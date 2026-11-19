@@ -117,6 +117,30 @@ public sealed class AdminUserEndpointTests
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
     }
 
+    [Test]
+    public async Task AdminUserEndpoints_ConcurrentDemotions_RevokeOneSessionAndLeaveAnAdmin()
+    {
+        await using var app = await MinimalApiTestApp.CreateAsync(db => SeedUsers(db, includeSecondAdmin: true));
+        using var first = app.CreateAdminClient("admin-id");
+        using var second = app.CreateAdminClient("second-admin-id");
+        var roleChange = new UpdateUserRoleRequest(SecurityPolicies.UserRole);
+
+        var responses = await Task.WhenAll(
+            first.PutAsJsonAsync("/api/admin/users/second-admin-id/role", roleChange),
+            second.PutAsJsonAsync("/api/admin/users/admin-id/role", roleChange));
+
+        using var scope = app.App.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var remaining = db.UserRoles.Single(x => x.RoleId == "role-admin").UserId;
+        var demotedId = remaining == "admin-id" ? "second-admin-id" : "admin-id";
+        Assert.Multiple(() =>
+        {
+            Assert.That(responses.Count(x => x.StatusCode == HttpStatusCode.OK), Is.EqualTo(1));
+            Assert.That(db.Users.Single(x => x.Id == demotedId).SecurityStamp,
+                Is.Not.EqualTo("original-security-stamp"));
+        });
+    }
+
     private static void SeedUsers(ApplicationDbContext db)
     {
         SeedUsers(db, includeSecondAdmin: false);
@@ -142,6 +166,7 @@ public sealed class AdminUserEndpointTests
             new ApplicationUser
             {
                 Id = "admin-id",
+                SecurityStamp = "original-security-stamp",
                 FirstName = "Ada",
                 LastName = "Admin",
                 UserName = "admin",
@@ -182,6 +207,7 @@ public sealed class AdminUserEndpointTests
             db.Users.Add(new ApplicationUser
             {
                 Id = "second-admin-id",
+                SecurityStamp = "original-security-stamp",
                 UserName = "second-admin",
                 NormalizedUserName = "SECOND-ADMIN",
                 Email = "second-admin@example.com",

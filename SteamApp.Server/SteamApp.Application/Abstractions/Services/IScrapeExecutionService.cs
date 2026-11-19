@@ -7,5 +7,6 @@ public interface IScrapeExecutionService
     Task<IReadOnlyList<WatchItemDto>> ExecuteAsync(
         string endpoint,
         long gameUrlId,
-        short page);
+        short page,
+        CancellationToken cancellationToken = default);
 }

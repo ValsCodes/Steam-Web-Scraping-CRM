@@ -31,7 +31,9 @@ internal static class UserSessionClaims
 
         var id = principal.GetUserId();
         var users = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
-        if (id == null || await users.FindByIdAsync(id) is not { } user || !Matches(principal, user))
+        if (id == null || await users.FindByIdAsync(id) is not { } user || !Matches(principal, user) ||
+            (principal.IsInRole(SecurityPolicies.AdminRole) &&
+                !await users.IsInRoleAsync(user, SecurityPolicies.AdminRole)))
         {
             context.Fail("The user session is no longer valid.");
         }

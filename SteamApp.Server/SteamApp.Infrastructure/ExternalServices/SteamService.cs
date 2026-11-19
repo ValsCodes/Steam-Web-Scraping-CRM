@@ -15,10 +15,13 @@ using System.Globalization;
 
 namespace SteamApp.Infrastructure.ExternalServices;
 
-public class SteamService(ISteamRepository steamRepository) : ISteamService
+public class SteamService(ISteamRepository steamRepository, IHttpClientFactory httpClientFactory) : ISteamService
 {
-    public async Task<IEnumerable<WatchItemDto>> ScrapePage(long gamerUrlId, short page)
+    public const string HttpClientName = "SteamScraping";
+
+    public async Task<IEnumerable<WatchItemDto>> ScrapePage(long gamerUrlId, short page, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var gameUrl = await steamRepository.GetGameUrl(gamerUrlId);
 
         if (gameUrl == null || !IsBatchScrapingMode(gameUrl.ScrapingModeId))
@@ -33,14 +36,15 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
 
         var url = string.Format(gameUrl.PartialUrl, page);
 
-        var result = await ScrapePageFromUrl(url);
+        var result = await ScrapePageFromUrl(SteamScrapeDestination.RequireMarketUrl(url), cancellationToken);
 
         return result.OrderBy(x => x.Price);
     }
 
 
-    public async Task<IEnumerable<WatchItemDto>> ScrapeFromPublicApi(long gameUrlId, short page)
+    public async Task<IEnumerable<WatchItemDto>> ScrapeFromPublicApi(long gameUrlId, short page, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (page < 0 || page > 500)
         {
             throw new ArgumentOutOfRangeException("Page is either negative or greater than 500.");
@@ -56,7 +60,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         //var url = $"{Constants.JSON_100_LISTINGS_URL_PART_1}{page}{Constants.JSON_100_LISTINGS_URL_PART_2}";
 
         var url = string.Format($"{gameUrl.PartialUrl}", page);
-        var filteredResult = await GetResultsFromUrl(url);
+        var filteredResult = await GetResultsFromUrl(SteamScrapeDestination.RequireMarketUrl(url), cancellationToken);
 
         var imageUrlBase = "https://community.akamai.steamstatic.com/economy/image/{0}/62fx62f";
 
@@ -76,8 +80,9 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         })];
     }
 
-    public async Task<IEnumerable<WatchItemDto>> ScrapeWithPixels(long gameUrlId, short page)
+    public async Task<IEnumerable<WatchItemDto>> ScrapeWithPixels(long gameUrlId, short page, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!OperatingSystem.IsWindowsVersionAtLeast(6, 1))
         {
             throw new PlatformNotSupportedException("Pixel scraping uses System.Drawing and is only supported on Windows.");
@@ -108,23 +113,27 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         }
 
         var url = string.Format($"{gameUrl.PartialUrl}", page);
+        var destination = SteamScrapeDestination.RequireMarketUrl(url);
 
         var options = new ChromeOptions();
 
         options.AddArgument("--headless");
         options.AddArgument("--disable-gpu");
-        options.AddArgument("--no-sandbox");
         options.AddArgument("--disable-dev-shm-usage");
 
-        options.AcceptInsecureCertificates = true;
+        SteamScrapeDestination.ConfigureBrowser(options);
         options.UnhandledPromptBehavior = UnhandledPromptBehavior.AcceptAndNotify;
 
 
         var results = new List<WatchItemDto>();
 
+        cancellationToken.ThrowIfCancellationRequested();
         using var driver = new ChromeDriver(options);
+        driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(30);
 
-        driver.Navigate().GoToUrl(url);
+        await SteamScrapeDestination.RestrictBrowserRequestsAsync(driver);
+        cancellationToken.ThrowIfCancellationRequested();
+        driver.Navigate().GoToUrl(destination);
 
         // Add Cookie to redirect to old site
         var cookie = new Cookie(
@@ -135,23 +144,29 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
 
         driver.Manage().Cookies.AddCookie(cookie);
 
+        cancellationToken.ThrowIfCancellationRequested();
         driver.Navigate().Refresh();
 
         var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
-        wait.Until(browser => browser.FindElement(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]")));
+        wait.Until(browser =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return browser.FindElement(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]"));
+        });
 
         ReadOnlyCollection<IWebElement> listingAnchors =
             driver.FindElements(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]"));
 
         foreach (var anchor in listingAnchors)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var listing = ParseListingFromAnchor(anchor);
             listing.PageUrl = url;
 
             string srcImage = listing.ImageUrl!.Replace($"/{gameUrl.PixelImageWidth}fx{gameUrl.PixelImageHeight}f", string.Empty);
 
-            using HttpClient client = new();
-            byte[] bytes = await client.GetByteArrayAsync(srcImage);
+            using var client = httpClientFactory.CreateClient(HttpClientName);
+            byte[] bytes = await client.GetByteArrayAsync(SteamScrapeDestination.RequireAssetUrl(srcImage), cancellationToken);
 
             using var ms = new MemoryStream(bytes);
             using Bitmap bmp = new(ms);
@@ -331,23 +346,20 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         throw new Exception($"Could not parse price text: '{text}'");
     }
 
-    private static async Task<IEnumerable<WatchItemDto>> ScrapePageFromUrl(string url)
+    private static async Task<IEnumerable<WatchItemDto>> ScrapePageFromUrl(Uri url, CancellationToken cancellationToken)
     {
-        var ct = new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token;
         var options = new ChromeOptions();
 
         options.AddArgument("--headless");
         options.AddArgument("--disable-gpu");
-        options.AddArgument("--no-sandbox");
         options.AddArgument("--disable-dev-shm-usage");
 
-        options.AcceptInsecureCertificates = true;
+        SteamScrapeDestination.ConfigureBrowser(options);
         options.UnhandledPromptBehavior = UnhandledPromptBehavior.AcceptAndNotify;
 
-        options.AddArgument("--disable-gpu");
         options.PageLoadStrategy = PageLoadStrategy.Eager;
 
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         linkedCts.CancelAfter(TimeSpan.FromSeconds(30));
 
         return await Task.Factory.StartNew(() =>
@@ -355,8 +367,11 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
             linkedCts.Token.ThrowIfCancellationRequested();
 
             using var driver = new ChromeDriver(options);
+            driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(30);
             try
             {
+                SteamScrapeDestination.RestrictBrowserRequestsAsync(driver).GetAwaiter().GetResult();
+                linkedCts.Token.ThrowIfCancellationRequested();
                 driver.Navigate().GoToUrl(url);
 
                 // Add Cookie to redirect to old site
@@ -368,6 +383,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
 
                 driver.Manage().Cookies.AddCookie(cookie);
 
+                linkedCts.Token.ThrowIfCancellationRequested();
                 driver.Navigate().Refresh();
 
                 var resultBy = By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]");
@@ -452,9 +468,10 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         return listing;
     }
 
-    private static async Task<IEnumerable<Result>> GetResultsFromUrl(string url)
+    private async Task<IEnumerable<Result>> GetResultsFromUrl(Uri url, CancellationToken cancellationToken)
     {
-        var jsonResponse = await HttpUtilities.GetHttpResposeAsync(url);
+        using var client = httpClientFactory.CreateClient(HttpClientName);
+        var jsonResponse = await client.GetStringAsync(url, cancellationToken);
         if (string.IsNullOrEmpty(jsonResponse))
         {
             throw new Exception("No JSON received or request failed.");

@@ -1,3 +1,4 @@
+using SteamApp.Tests.TestSupport;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -550,7 +551,7 @@ public sealed class AuthControllerTests
     [Test]
     public async Task DeleteProfile_RequiresPasswordAndDeletesCurrentUser()
     {
-        var user = new ApplicationUser { Id = "user-id" };
+        var user = new ApplicationUser { Id = "user-id", SecurityStamp = "test-stamp" };
         var userManager = CreateUserManager();
         userManager.Setup(x => x.FindByIdAsync("user-id")).ReturnsAsync(user);
         userManager.Setup(x => x.CheckPasswordAsync(user, "Password1")).ReturnsAsync(true);
@@ -559,13 +560,34 @@ public sealed class AuthControllerTests
         var controller = CreateController(userManager: userManager);
         Authenticate(controller);
 
+        using var db = TestDb.CreateSeededDatabase();
         var result = await controller.DeleteProfile(new DeleteUserRequest
         {
             Password = "Password1"
-        });
+        }, new AccountMutation(db.Context, Config()));
 
         Assert.That(result, Is.TypeOf<NoContentResult>());
         userManager.Verify(x => x.DeleteAsync(user), Times.Once);
+    }
+
+    [Test]
+    public async Task DeleteProfile_RejectsTheLastAdministrator()
+    {
+        var user = new ApplicationUser { Id = "user-id", SecurityStamp = "test-stamp" };
+        var userManager = CreateUserManager();
+        userManager.Setup(x => x.FindByIdAsync("user-id")).ReturnsAsync(user);
+        userManager.Setup(x => x.CheckPasswordAsync(user, "Password1")).ReturnsAsync(true);
+        userManager.Setup(x => x.IsInRoleAsync(user, SecurityPolicies.AdminRole)).ReturnsAsync(true);
+        userManager.Setup(x => x.GetUsersInRoleAsync(SecurityPolicies.AdminRole)).ReturnsAsync(new[] { user });
+
+        var controller = CreateController(userManager: userManager);
+        Authenticate(controller);
+        using var db = TestDb.CreateSeededDatabase();
+        var result = await controller.DeleteProfile(
+            new DeleteUserRequest { Password = "Password1" }, new AccountMutation(db.Context, Config()));
+
+        Assert.That(result, Is.InstanceOf<ObjectResult>().With.Property("StatusCode").EqualTo(409));
+        userManager.Verify(x => x.DeleteAsync(user), Times.Never);
     }
 
     [Test]
@@ -678,7 +700,7 @@ public sealed class AuthControllerTests
     public async Task DeleteExternalProfile_RequiresRecentExternalSignIn(int minutesAgo, bool deleted)
     {
         var users = CreateUserManager();
-        var user = new ApplicationUser { Id = "user-id" };
+        var user = new ApplicationUser { Id = "user-id", SecurityStamp = "test-stamp" };
         users.Setup(x => x.FindByIdAsync(user.Id)).ReturnsAsync(user);
         users.Setup(x => x.GetLoginsAsync(user)).ReturnsAsync([new UserLoginInfo("Steam", "76561198000000000", "Steam")]);
         users.Setup(x => x.DeleteAsync(user)).ReturnsAsync(IdentityResult.Success);
@@ -686,13 +708,33 @@ public sealed class AuthControllerTests
         Authenticate(auth, authenticationTime: DefaultNow.AddMinutes(-minutesAgo));
         ((ClaimsIdentity)auth.User.Identity!).AddClaim(new Claim("steamapp_external_provider", "Steam"));
 
-        var result = await auth.DeleteExternalProfile();
+        using var db = TestDb.CreateSeededDatabase();
+        var result = await auth.DeleteExternalProfile(new AccountMutation(db.Context, Config()));
 
         if (deleted)
             Assert.That(result, Is.TypeOf<NoContentResult>());
         else
             Assert.That(((ObjectResult)result).StatusCode, Is.EqualTo(403));
         users.Verify(x => x.DeleteAsync(user), deleted ? Times.Once() : Times.Never());
+    }
+
+    [Test]
+    public async Task DeleteExternalProfile_RejectsTheLastAdministrator()
+    {
+        var users = CreateUserManager();
+        var user = new ApplicationUser { Id = "user-id", SecurityStamp = "test-stamp" };
+        users.Setup(x => x.FindByIdAsync(user.Id)).ReturnsAsync(user);
+        users.Setup(x => x.GetLoginsAsync(user)).ReturnsAsync([new UserLoginInfo("Steam", "76561198000000000", "Steam")]);
+        users.Setup(x => x.IsInRoleAsync(user, SecurityPolicies.AdminRole)).ReturnsAsync(true);
+        users.Setup(x => x.GetUsersInRoleAsync(SecurityPolicies.AdminRole)).ReturnsAsync(new[] { user });
+        var auth = CreateController(userManager: users);
+        Authenticate(auth, authenticationTime: DefaultNow.AddMinutes(-1));
+        ((ClaimsIdentity)auth.User.Identity!).AddClaim(new Claim("steamapp_external_provider", "Steam"));
+
+        using var db = TestDb.CreateSeededDatabase();
+        var result = await auth.DeleteExternalProfile(new AccountMutation(db.Context, Config()));
+        Assert.That(result, Is.InstanceOf<ObjectResult>().With.Property("StatusCode").EqualTo(409));
+        users.Verify(x => x.DeleteAsync(user), Times.Never);
     }
 
     private static ExternalAuthentication StartCompletedFlow(AuthController auth, IMemoryCache cache, string? userId = null)

@@ -20,6 +20,7 @@ public sealed class ManualCheckQueue : IManualCheckQueue
     public async ValueTask EnqueueAsync(long runId, CancellationToken cancellationToken = default)
     {
         var control = new ManualCheckQueueControl(runId);
+        var workItem = control.CreateWorkItem();
         if (!controls.TryAdd(control.WorkItemId, control))
         {
             control.Dispose();
@@ -29,7 +30,7 @@ public sealed class ManualCheckQueue : IManualCheckQueue
         try
         {
             SetCurrentWorkItem(control);
-            await channel.Writer.WriteAsync(control.CreateWorkItem(), cancellationToken);
+            await channel.Writer.WriteAsync(workItem, cancellationToken);
         }
         catch
         {

@@ -200,18 +200,21 @@ public partial class AuthController
 
     [HttpDelete("profile/external")]
     [Authorize(Policy = SecurityPolicies.UserSession)]
-    public async Task<IActionResult> DeleteExternalProfile()
+    public Task<IActionResult> DeleteExternalProfile([FromServices] AccountMutation accountMutation)
     {
-        var provider = User.FindFirstValue(ExternalProviderClaim);
-        if (provider == null || !HasRecentUserSignIn() || await GetCurrentUserAsync() is not { } user ||
-            await userManager.HasPasswordAsync(user) || await userManager.IsLockedOutAsync(user) ||
-            !(await userManager.GetLoginsAsync(user)).Any(login => login.LoginProvider == provider))
+        return accountMutation.ExecuteAsync<IActionResult>(async () =>
         {
-            return RecentSignInRequired();
-        }
+            var provider = User.FindFirstValue(ExternalProviderClaim);
+            if (provider == null || !HasRecentUserSignIn() || await GetCurrentUserAsync() is not { } user ||
+                !UserSessionClaims.Matches(User, user) || await userManager.HasPasswordAsync(user) ||
+                await userManager.IsLockedOutAsync(user) ||
+                !(await userManager.GetLoginsAsync(user)).Any(login => login.LoginProvider == provider))
+            {
+                return RecentSignInRequired();
+            }
 
-        var result = await userManager.DeleteAsync(user);
-        return result.Succeeded ? NoContent() : ValidationProblem(CreateModelState(result));
+            return await DeleteAccountAsync(user, accountMutation);
+        }, HttpContext.RequestAborted);
     }
 
     private async Task<IActionResult> CompleteExternalLinkAsync(string userId, UserLoginInfo login, string? ownerId)

@@ -27,20 +27,23 @@ public sealed class FakeSteamService : ISteamService
 
     public bool ThrowInvalidPixelListing { get; set; }
 
-    public Task<IEnumerable<WatchItemDto>> ScrapePage(long gamerUrlId, short page)
+    public Task<IEnumerable<WatchItemDto>> ScrapePage(long gamerUrlId, short page, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         ScrapePageCalls++;
         return Task.FromResult(PageResults.AsEnumerable());
     }
 
-    public Task<IEnumerable<WatchItemDto>> ScrapeFromPublicApi(long gameUrlId, short page)
+    public Task<IEnumerable<WatchItemDto>> ScrapeFromPublicApi(long gameUrlId, short page, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         ScrapeFromPublicApiCalls++;
         return Task.FromResult(PublicApiResults.AsEnumerable());
     }
 
-    public Task<IEnumerable<WatchItemDto>> ScrapeWithPixels(long gameUrlId, short page)
+    public Task<IEnumerable<WatchItemDto>> ScrapeWithPixels(long gameUrlId, short page, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         ScrapeWithPixelsCalls++;
 
         if (ThrowInvalidPixelListing)

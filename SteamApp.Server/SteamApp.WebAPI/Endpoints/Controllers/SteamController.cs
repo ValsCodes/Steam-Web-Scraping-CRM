@@ -460,6 +460,8 @@ public class SteamController(
 
         try
         {
+            using var publishTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            publishTimeout.CancelAfter(TimeSpan.FromSeconds(3));
             await messagePublisher.PublishAsync(
                 rabbitMq.ScrapeRequestQueueName,
                 new ScrapeRequested(
@@ -471,24 +473,16 @@ public class SteamController(
                     scrapeType,
                     history.Date,
                     correlationId),
-                cancellationToken);
+                publishTimeout.Token);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception exception)
         {
-            logger.LogError(
-                exception,
-                "Failed to publish scrape job {CorrelationId} for history row {HistoryId}.",
-                correlationId,
-                history.Id);
-
-            await scrapeHistoryData.MarkFailedAsync(
-                history.Id,
-                "Failed to queue scrape job.",
-                cancellationToken);
-
-            return StatusCode(
-                StatusCodes.Status500InternalServerError,
-                "Failed to queue scrape job.");
+            // The recovery worker can claim the durable SQL job if RabbitMQ delivery fails.
+            logger.LogWarning(exception, "Scrape job {HistoryId} will be recovered from SQL.", history.Id);
         }
 
         return BuildAcceptedScrapeJobResult(history, gameUrl.GameUrlName);

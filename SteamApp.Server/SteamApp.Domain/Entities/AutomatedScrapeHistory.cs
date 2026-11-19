@@ -38,6 +38,10 @@ namespace SteamApp.Domain.Entities
 
         public DateTime? CompletedAtUtc { get; set; }
 
+        public Guid? ClaimId { get; set; }
+
+        public DateTime? ClaimExpiresAtUtc { get; set; }
+
         [MaxLength(64)]
         public string? CorrelationId { get; set; }
     }

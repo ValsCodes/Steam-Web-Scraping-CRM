@@ -14,6 +14,23 @@ namespace SteamApp.IntegrationTests.Security;
 public sealed class SecurityPipelineIntegrationTests
 {
     [Test]
+    public async Task AdminJwt_WithUnchangedStamp_CannotAuthorizeAfterRoleRemoval()
+    {
+        using var factory = new SteamAppFactory();
+        using var client = factory.CreateAuthenticatedClient();
+        await factory.ResetDatabaseAsync();
+        Assert.That((await client.GetAsync("/api/admin/users/")).StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        using var scope = factory.Services.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await users.FindByIdAsync(IntegrationSeed.UserId);
+        var stamp = user!.SecurityStamp;
+        Assert.That((await users.RemoveFromRoleAsync(user, SecurityPolicies.AdminRole)).Succeeded, Is.True);
+        Assert.That(user.SecurityStamp, Is.EqualTo(stamp));
+        Assert.That((await client.GetAsync("/api/admin/users/")).StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [Test]
     public async Task ProtectedEndpointsRejectMissingWrongAndExpiredTokens()
     {
         using var factory = new SteamAppFactory();
@@ -478,6 +495,15 @@ public sealed class SecurityPipelineIntegrationTests
         using var authenticated = factory.CreateAuthenticatedClient();
         using var anonymous = factory.CreateAnonymousClient();
         await factory.ResetDatabaseAsync();
+
+        // This test covers ordinary profile deletion with another administrator available.
+        using (var scope = factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var otherAdmin = new ApplicationUser { UserName = "other-admin", Email = "other-admin@example.test" };
+            Assert.That((await users.CreateAsync(otherAdmin)).Succeeded, Is.True);
+            Assert.That((await users.AddToRoleAsync(otherAdmin, SecurityPolicies.AdminRole)).Succeeded, Is.True);
+        }
 
         var profile = await authenticated.GetAsync("/api/auth/profile");
         var profileJson = await profile.ReadJsonElementAsync();

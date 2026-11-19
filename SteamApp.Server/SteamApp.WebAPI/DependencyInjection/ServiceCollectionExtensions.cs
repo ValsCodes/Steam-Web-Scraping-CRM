@@ -52,6 +52,7 @@ internal static class ServiceCollectionExtensions
         builder.Services.AddScoped<IdentitySchemaInitializer>();
         builder.Services.AddScoped<ExternalAccountRegistration>();
         builder.Services.AddScoped<AuthenticatorMfa>();
+        builder.Services.AddScoped<AccountMutation>();
         builder.Services.AddSingleton<MfaFlows>();
         builder.Services.AddScoped<IdentityRoleInitializer>();
         builder.Services.AddScoped<IScrapeHistoryDataService, ScrapeHistoryDataService>();
@@ -72,11 +73,20 @@ internal static class ServiceCollectionExtensions
         builder.Services.AddSingleton<IManualCheckQueue, ManualCheckQueue>();
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddHostedService<ManualCheckWorker>();
+        builder.Services.AddHostedService<ScrapeJobRecoveryWorker>();
         builder.Services.AddHostedService<AutomaticQueueWorker>();
         builder.Services.AddHostedService<AutomationReconciliationWorker>();
         builder.Services.AddHttpClient(ManualCheckOptions.HttpClientName, client =>
         {
             client.Timeout = Timeout.InfiniteTimeSpan;
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+        builder.Services.AddHttpClient(SteamService.HttpClientName, client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AllowAutoRedirect = false,
+            UseProxy = false
         });
 
         builder.Services.AddRabbitMqMessageBroker(builder.Configuration);

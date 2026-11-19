@@ -49,6 +49,7 @@ public sealed class MinimalApiTestApp : IAsyncDisposable
         builder.Logging.ClearProviders();
 
         builder.Services.AddRouting();
+        builder.Services.AddScoped<AccountMutation>();
         builder.Services.AddMemoryCache();
         builder.Services.AddSingleton(timeProvider ?? TimeProvider.System);
         builder.Services.AddSingleton<IWishlistCheckExecutionService>(

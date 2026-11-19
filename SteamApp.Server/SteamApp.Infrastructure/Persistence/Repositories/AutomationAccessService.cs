@@ -65,31 +65,67 @@ public sealed class AutomationAccessService(
 
         await using var db = dbContextFactory.CreateDbContext();
         var now = UtcNow();
-        var lease = await db.SessionPresenceLeases
-            .FirstOrDefaultAsync(x => x.TabId == tabId, cancellationToken);
+        if (db.Database.IsRelational())
+        {
+            var leases = db.SessionPresenceLeases.Where(x => x.TabId == tabId);
+            var updated = await leases.Where(x => x.UserId == userId && x.UpdatedAtUtc < now)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.UpdatedAtUtc, now)
+                    .SetProperty(x => x.ExpiresAtUtc, now.Add(PresenceLeaseDuration)), cancellationToken);
+            if (updated != 0)
+            {
+                return;
+            }
+        }
+
+        var lease = await db.SessionPresenceLeases.FirstOrDefaultAsync(x => x.TabId == tabId, cancellationToken);
         if (lease is null)
         {
-            db.SessionPresenceLeases.Add(new SessionPresenceLease
+            lease = new SessionPresenceLease
             {
                 UserId = userId,
                 TabId = tabId,
                 UpdatedAtUtc = now,
                 ExpiresAtUtc = now.Add(PresenceLeaseDuration)
-            });
+            };
+            db.SessionPresenceLeases.Add(lease);
+            try
+            {
+                await db.SaveChangesAsync(cancellationToken);
+                return;
+            }
+            catch (DbUpdateException)
+            {
+                db.Entry(lease).State = EntityState.Detached;
+                lease = await db.SessionPresenceLeases.FirstOrDefaultAsync(x => x.TabId == tabId, cancellationToken);
+                if (lease is null)
+                {
+                    throw;
+                }
+            }
         }
-        else if (lease.UserId != userId)
+
+        if (lease.UserId != userId)
         {
             throw new AutomationAccessException(
                 StatusCodes.Status409Conflict,
                 "The tab identifier is already associated with another session.");
         }
-        else
+
+        if (db.Database.IsRelational())
+        {
+            await db.SessionPresenceLeases
+                .Where(x => x.TabId == tabId && x.UserId == userId && x.UpdatedAtUtc < now)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.UpdatedAtUtc, now)
+                    .SetProperty(x => x.ExpiresAtUtc, now.Add(PresenceLeaseDuration)), cancellationToken);
+        }
+        else if (lease.UpdatedAtUtc < now)
         {
             lease.UpdatedAtUtc = now;
             lease.ExpiresAtUtc = now.Add(PresenceLeaseDuration);
+            await db.SaveChangesAsync(cancellationToken);
         }
-
-        await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task ReleasePresenceAsync(
@@ -98,8 +134,14 @@ public sealed class AutomationAccessService(
         CancellationToken cancellationToken)
     {
         await using var db = dbContextFactory.CreateDbContext();
-        var lease = await db.SessionPresenceLeases
-            .FirstOrDefaultAsync(x => x.UserId == userId && x.TabId == tabId, cancellationToken);
+        var leases = db.SessionPresenceLeases.Where(x => x.UserId == userId && x.TabId == tabId);
+        if (db.Database.IsRelational())
+        {
+            await leases.ExecuteDeleteAsync(cancellationToken);
+            return;
+        }
+
+        var lease = await leases.FirstOrDefaultAsync(cancellationToken);
         if (lease is null)
         {
             return;

@@ -9,13 +9,14 @@ public sealed class ScrapeExecutionService(
     public async Task<IReadOnlyList<WatchItemDto>> ExecuteAsync(
         string endpoint,
         long gameUrlId,
-        short page)
+        short page,
+        CancellationToken cancellationToken = default)
     {
         var results = endpoint switch
         {
-            ScrapeOperation.ScrapePageEndpoint => await steamService.ScrapePage(gameUrlId, page),
-            ScrapeOperation.ScrapePublicApiEndpoint => await steamService.ScrapeFromPublicApi(gameUrlId, page),
-            ScrapeOperation.ScrapePixelsEndpoint => await steamService.ScrapeWithPixels(gameUrlId, page),
+            ScrapeOperation.ScrapePageEndpoint => await steamService.ScrapePage(gameUrlId, page, cancellationToken),
+            ScrapeOperation.ScrapePublicApiEndpoint => await steamService.ScrapeFromPublicApi(gameUrlId, page, cancellationToken),
+            ScrapeOperation.ScrapePixelsEndpoint => await steamService.ScrapeWithPixels(gameUrlId, page, cancellationToken),
             _ => throw new InvalidOperationException("Unsupported scrape history endpoint.")
         };
 

@@ -261,99 +261,116 @@ public sealed class ScrapeHistoryDataService(
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<ScrapeJobStatusEnum?> MarkRunningAsync(
-        long historyId,
-        CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<long>> GetRecoverableJobIdsAsync(
+        DateTime queuedBeforeUtc, DateTime nowUtc, CancellationToken cancellationToken)
     {
         await using var db = dbContextFactory.CreateDbContext();
+        return await RecoverableJobs(db, nowUtc, queuedBeforeUtc)
+            .OrderBy(x => x.Date)
+            .ThenBy(x => x.Id)
+            .Select(x => x.Id)
+            .Take(20)
+            .ToListAsync(cancellationToken);
+    }
 
-        var history = await db.AutomatedScrapeHistories
-            .FirstOrDefaultAsync(x => x.Id == historyId, cancellationToken);
-
-        if (history is null)
+    public async Task<bool> TryClaimJobAsync(
+        long historyId, Guid claimId, DateTime nowUtc, DateTime expiresAtUtc, CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        var jobs = RecoverableJobs(db, nowUtc, nowUtc)
+            .Where(x => x.Id == historyId);
+        if (db.Database.IsRelational())
         {
-            return null;
+            var updated = await jobs.ExecuteUpdateAsync(setters => setters
+                .SetProperty(x => x.Status, ScrapeJobStatusEnum.Running)
+                .SetProperty(x => x.StartedAtUtc, x => x.StartedAtUtc ?? nowUtc)
+                .SetProperty(x => x.ClaimId, claimId)
+                .SetProperty(x => x.ClaimExpiresAtUtc, expiresAtUtc), cancellationToken);
+            // A retry after an ambiguous SQL write can find its own already-committed claim.
+            return updated != 0 || await ClaimedJob(db, historyId, claimId, nowUtc).AnyAsync(cancellationToken);
         }
 
-        if (history.Status is ScrapeJobStatusEnum.Succeeded or ScrapeJobStatusEnum.Failed)
+        var job = await jobs.SingleOrDefaultAsync(cancellationToken);
+        if (job is null)
         {
-            return history.Status;
+            return false;
         }
 
-        if (history.Status == ScrapeJobStatusEnum.Queued)
+        job.Status = ScrapeJobStatusEnum.Running;
+        job.StartedAtUtc ??= nowUtc;
+        job.ClaimId = claimId;
+        job.ClaimExpiresAtUtc = expiresAtUtc;
+        return await SaveClaimChangesAsync(db, cancellationToken);
+    }
+
+    public async Task<bool> RenewClaimAsync(
+        long historyId, Guid claimId, DateTime nowUtc, DateTime expiresAtUtc, CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        var jobs = ClaimedJob(db, historyId, claimId, nowUtc);
+        if (db.Database.IsRelational())
         {
-            history.Status = ScrapeJobStatusEnum.Running;
-            history.StartedAtUtc = DateTime.UtcNow;
+            return await jobs.ExecuteUpdateAsync(
+                setters => setters.SetProperty(x => x.ClaimExpiresAtUtc, expiresAtUtc), cancellationToken) != 0;
+        }
+
+        var job = await jobs.SingleOrDefaultAsync(cancellationToken);
+        if (job is null)
+        {
+            return false;
+        }
+
+        job.ClaimExpiresAtUtc = expiresAtUtc;
+        return await SaveClaimChangesAsync(db, cancellationToken);
+    }
+
+    public async Task<bool> CompleteJobAsync(
+        long historyId, Guid claimId, object? results, string? errorText, CancellationToken cancellationToken)
+    {
+        await using var db = dbContextFactory.CreateDbContext();
+        var now = DateTime.UtcNow;
+        var job = await ClaimedJob(db, historyId, claimId, now).SingleOrDefaultAsync(cancellationToken);
+        if (job is null)
+        {
+            return false;
+        }
+
+        job.ResultsJson = errorText is null
+            ? JsonConvert.SerializeObject(results ?? Array.Empty<WatchItemDto>())
+            : null;
+        job.ResultCount = errorText is null ? GetResultCount(results) : 0;
+        job.ErrorText = errorText;
+        job.IsHaveError = errorText is not null;
+        job.Status = errorText is null ? ScrapeJobStatusEnum.Succeeded : ScrapeJobStatusEnum.Failed;
+        job.CompletedAtUtc = now;
+        job.ClaimId = null;
+        job.ClaimExpiresAtUtc = null;
+        return await SaveClaimChangesAsync(db, cancellationToken);
+    }
+
+    private static IQueryable<AutomatedScrapeHistory> RecoverableJobs(
+        ApplicationDbContext db, DateTime now, DateTime queuedBefore) =>
+        db.AutomatedScrapeHistories.Where(x =>
+            (x.Status == ScrapeJobStatusEnum.Queued && x.Date <= queuedBefore) ||
+            (x.Status == ScrapeJobStatusEnum.Running &&
+                (x.ClaimExpiresAtUtc == null || x.ClaimExpiresAtUtc <= now)));
+
+    private static IQueryable<AutomatedScrapeHistory> ClaimedJob(
+        ApplicationDbContext db, long historyId, Guid claimId, DateTime now) =>
+        db.AutomatedScrapeHistories.Where(x => x.Id == historyId &&
+            x.Status == ScrapeJobStatusEnum.Running && x.ClaimId == claimId && x.ClaimExpiresAtUtc > now);
+
+    private static async Task<bool> SaveClaimChangesAsync(ApplicationDbContext db, CancellationToken cancellationToken)
+    {
+        try
+        {
             await db.SaveChangesAsync(cancellationToken);
+            return true;
         }
-
-        return history.Status;
-    }
-
-    public async Task<AutomatedScrapeHistory?> MarkSucceededAsync(
-        long historyId,
-        object? results,
-        CancellationToken cancellationToken)
-    {
-        await using var db = dbContextFactory.CreateDbContext();
-
-        var history = await db.AutomatedScrapeHistories
-            .FirstOrDefaultAsync(x => x.Id == historyId, cancellationToken);
-
-        if (history is null)
+        catch (DbUpdateConcurrencyException)
         {
-            return null;
+            return false;
         }
-
-        if (history.Status is ScrapeJobStatusEnum.Succeeded or ScrapeJobStatusEnum.Failed)
-        {
-            return history;
-        }
-
-        var now = DateTime.UtcNow;
-        history.ResultsJson = JsonConvert.SerializeObject(results ?? Array.Empty<WatchItemDto>());
-        history.ResultCount = GetResultCount(results);
-        history.ErrorText = null;
-        history.IsHaveError = false;
-        history.Status = ScrapeJobStatusEnum.Succeeded;
-        history.StartedAtUtc ??= now;
-        history.CompletedAtUtc = now;
-
-        await db.SaveChangesAsync(cancellationToken);
-        return history;
-    }
-
-    public async Task<AutomatedScrapeHistory?> MarkFailedAsync(
-        long historyId,
-        string errorText,
-        CancellationToken cancellationToken)
-    {
-        await using var db = dbContextFactory.CreateDbContext();
-
-        var history = await db.AutomatedScrapeHistories
-            .FirstOrDefaultAsync(x => x.Id == historyId, cancellationToken);
-
-        if (history is null)
-        {
-            return null;
-        }
-
-        if (history.Status is ScrapeJobStatusEnum.Succeeded or ScrapeJobStatusEnum.Failed)
-        {
-            return history;
-        }
-
-        var now = DateTime.UtcNow;
-        history.ResultsJson = null;
-        history.ResultCount = 0;
-        history.ErrorText = errorText;
-        history.IsHaveError = true;
-        history.Status = ScrapeJobStatusEnum.Failed;
-        history.StartedAtUtc ??= now;
-        history.CompletedAtUtc = now;
-
-        await db.SaveChangesAsync(cancellationToken);
-        return history;
     }
 
     private static int GetResultCount(object? results)

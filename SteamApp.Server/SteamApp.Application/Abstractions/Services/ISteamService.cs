@@ -4,11 +4,11 @@ namespace SteamApp.Application.Abstractions.Services;
 
 public interface ISteamService
 {  
-    Task<IEnumerable<WatchItemDto>> ScrapePage(long gamerUrlId, short page);
+    Task<IEnumerable<WatchItemDto>> ScrapePage(long gamerUrlId, short page, CancellationToken cancellationToken = default);
 
-    Task<IEnumerable<WatchItemDto>> ScrapeFromPublicApi(long gameUrlId, short page);
+    Task<IEnumerable<WatchItemDto>> ScrapeFromPublicApi(long gameUrlId, short page, CancellationToken cancellationToken = default);
 
-    Task<IEnumerable<WatchItemDto>> ScrapeWithPixels(long gameUrlId, short page);
+    Task<IEnumerable<WatchItemDto>> ScrapeWithPixels(long gameUrlId, short page, CancellationToken cancellationToken = default);
 
     // Not Done
 

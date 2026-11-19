@@ -164,6 +164,15 @@ namespace SteamApp.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<DateTime?>("ClaimExpiresAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("claim_expires_at_utc");
+
+                    b.Property<Guid?>("ClaimId")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("claim_id");
+
                     b.Property<DateTime?>("CompletedAtUtc")
                         .HasColumnType("datetime2")
                         .HasColumnName("completed_at_utc");
@@ -238,6 +247,8 @@ namespace SteamApp.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId", "Date");
 
                     b.HasIndex("UserId", "Status");
+
+                    b.HasIndex("Status", "Date");
 
                     b.ToTable("automated_scrape_history");
                 });

@@ -54,7 +54,7 @@ public sealed class SteamControllerTests
         using var cache = TestDb.CreateMemoryCache();
         var response = new[] { new WatchItemDto { Name = "Fresh", Price = 2 } };
         var steamService = new Mock<ISteamService>();
-        steamService.Setup(x => x.ScrapePage(1, 2)).ReturnsAsync(response);
+        steamService.Setup(x => x.ScrapePage(1, 2, It.IsAny<CancellationToken>())).ReturnsAsync(response);
         var controller = CreateController(steamService: steamService, cache: cache);
 
         var result = await controller.ScrapePageAsync(1, 2);
@@ -74,7 +74,7 @@ public sealed class SteamControllerTests
         var db = database.Context;
         var response = new[] { new WatchItemDto { Name = "Fresh", Price = 2 } };
         var steamService = new Mock<ISteamService>();
-        steamService.Setup(x => x.ScrapePage(1, 2)).ReturnsAsync(response);
+        steamService.Setup(x => x.ScrapePage(1, 2, It.IsAny<CancellationToken>())).ReturnsAsync(response);
         var controller = CreateController(steamService: steamService, database: database);
 
         var result = await controller.ScrapePageAsync(1, 2);
@@ -142,7 +142,7 @@ public sealed class SteamControllerTests
         using var cache = TestDb.CreateMemoryCache();
         var response = new[] { new WatchItemDto { Name = "Public", Price = 3 } };
         var steamService = new Mock<ISteamService>();
-        steamService.Setup(x => x.ScrapeFromPublicApi(1, 2)).ReturnsAsync(response);
+        steamService.Setup(x => x.ScrapeFromPublicApi(1, 2, It.IsAny<CancellationToken>())).ReturnsAsync(response);
         var controller = CreateController(steamService: steamService, cache: cache);
 
         var result = await controller.ScrapeFromPublicApi(1, 2);
@@ -160,7 +160,7 @@ public sealed class SteamControllerTests
     {
         var steamService = new Mock<ISteamService>();
         steamService
-            .Setup(x => x.ScrapeWithPixels(1, 2))
+            .Setup(x => x.ScrapeWithPixels(1, 2, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new JsonSerializationException("bad listing"));
         var logger = new Mock<ILogger<SteamController>>();
         var controller = CreateController(steamService: steamService, logger: logger);
@@ -183,7 +183,7 @@ public sealed class SteamControllerTests
         var db = database.Context;
         var steamService = new Mock<ISteamService>();
         steamService
-            .Setup(x => x.ScrapeWithPixels(1, 2))
+            .Setup(x => x.ScrapeWithPixels(1, 2, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new JsonSerializationException("bad listing"));
         var controller = CreateController(steamService: steamService, database: database);
 
@@ -208,7 +208,7 @@ public sealed class SteamControllerTests
     {
         var steamService = new Mock<ISteamService>();
         steamService
-            .Setup(x => x.ScrapeWithPixels(1, 2))
+            .Setup(x => x.ScrapeWithPixels(1, 2, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("boom"));
         var logger = new Mock<ILogger<SteamController>>();
         var controller = CreateController(steamService: steamService, logger: logger);
@@ -246,7 +246,7 @@ public sealed class SteamControllerTests
 
         var response = new[] { new WatchItemDto { Name = "Fresh Rerun", Price = 4 } };
         var steamService = new Mock<ISteamService>();
-        steamService.Setup(x => x.ScrapePage(1, 2)).ReturnsAsync(response);
+        steamService.Setup(x => x.ScrapePage(1, 2, It.IsAny<CancellationToken>())).ReturnsAsync(response);
         var controller = CreateController(steamService: steamService, cache: cache, database: database);
         var originalId = db.AutomatedScrapeHistories.Single().Id;
 
@@ -259,7 +259,7 @@ public sealed class SteamControllerTests
             Assert.That(db.AutomatedScrapeHistories.Count(), Is.EqualTo(2));
             Assert.That(db.AutomatedScrapeHistories.OrderBy(x => x.Id).Last().ResultsJson, Does.Contain("Fresh Rerun"));
         });
-        steamService.Verify(x => x.ScrapePage(1, 2), Times.Once);
+        steamService.Verify(x => x.ScrapePage(1, 2, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
@@ -329,7 +329,7 @@ public sealed class SteamControllerTests
         var originalId = db.AutomatedScrapeHistories.Single().Id;
         var steamService = new Mock<ISteamService>();
         steamService
-            .Setup(x => x.ScrapePage(1, 2))
+            .Setup(x => x.ScrapePage(1, 2, It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => [new WatchItemDto { Name = "Parallel Rerun", Price = 5 }]);
 
         using var cache = TestDb.CreateMemoryCache();
@@ -353,7 +353,7 @@ public sealed class SteamControllerTests
         {
             Assert.That(results, Has.All.TypeOf<OkObjectResult>());
             Assert.That(db.AutomatedScrapeHistories.Count(), Is.EqualTo(6));
-            steamService.Verify(x => x.ScrapePage(1, 2), Times.Exactly(5));
+            steamService.Verify(x => x.ScrapePage(1, 2, It.IsAny<CancellationToken>()), Times.Exactly(5));
         });
     }
 
@@ -408,6 +408,78 @@ public sealed class SteamControllerTests
     }
 
     [Test]
+    public async Task QueueScrapePageAsync_BrokerUnavailable_LeavesDurableJobForRecoveryWithoutCache()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var publisher = new Mock<IMessagePublisher>();
+        publisher.Setup(x => x.PublishAsync(It.IsAny<string>(), It.IsAny<ScrapeRequested>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new IOException("Broker unavailable"));
+        var controller = CreateController(messagePublisher: publisher, database: database);
+
+        var response = await controller.QueueScrapePageAsync(1, 2);
+        var history = database.Context.AutomatedScrapeHistories.AsNoTracking().Single();
+        Assert.That(response, Is.TypeOf<AcceptedResult>());
+        Assert.That(history.Status, Is.EqualTo(ScrapeJobStatusEnum.Queued));
+
+        var cache = new Mock<IDistributedCache>(MockBehavior.Strict);
+        cache.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new IOException("Cache unavailable"));
+        cache.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<byte[]>(),
+                It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new IOException("Cache unavailable"));
+        var steam = new Mock<ISteamService>();
+        steam.Setup(x => x.ScrapePage(1, 2, It.IsAny<CancellationToken>())).ReturnsAsync(new[] { new WatchItemDto { Name = "Recovered" } });
+        await CreateScrapeHandler(database, steam, cache.Object).RecoverAsync(history.Id, CancellationToken.None);
+
+        var recovered = database.Context.AutomatedScrapeHistories.AsNoTracking().Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(recovered.Status, Is.EqualTo(ScrapeJobStatusEnum.Succeeded));
+            Assert.That(recovered.ResultsJson, Does.Contain("Recovered"));
+        });
+    }
+
+    [Test]
+    public async Task ScrapeRequestedHandler_RejectsMismatchedMessagesAndSkipsActiveDuplicate()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var data = new ScrapeHistoryDataService(database.Factory);
+        var url = await data.GetOwnedGameUrlSnapshotAsync(1, TestDb.TestUserId, CancellationToken.None);
+        var history = await data.CreateQueuedHistoryAsync(TestDb.TestUserId, url!, 2,
+            "scrape-page", "Web Scrape", "correlation", CancellationToken.None);
+        var message = CreateScrapeMessage(history);
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var steam = new Mock<ISteamService>(MockBehavior.Strict);
+        steam.Setup(x => x.ScrapePage(1, 2, It.IsAny<CancellationToken>())).Returns(async () =>
+        {
+            started.TrySetResult();
+            await finish.Task;
+            return Array.Empty<WatchItemDto>();
+        });
+        var handler = CreateScrapeHandler(database, steam);
+        await handler.HandleAsync(message with { GameUrlId = 2 }, CancellationToken.None);
+        await handler.HandleAsync(message with { UserId = "other-user" }, CancellationToken.None);
+        await handler.HandleAsync(message with { CorrelationId = "other-job" }, CancellationToken.None);
+        Assert.That((await data.GetJobAsync(history.Id, CancellationToken.None))!.Status,
+            Is.EqualTo(ScrapeJobStatusEnum.Queued));
+
+        var first = handler.HandleAsync(message, CancellationToken.None);
+        try
+        {
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await handler.HandleAsync(message, CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            finish.TrySetResult();
+            await first;
+        }
+
+        steam.Verify(x => x.ScrapePage(1, 2, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
     public async Task QueueScrapePageAsync_ReturnsServiceUnavailableWhenRabbitMqDisabled()
     {
         using var database = TestDb.CreateSeededDatabase();
@@ -429,6 +501,39 @@ public sealed class SteamControllerTests
     }
 
     [Test]
+    public async Task ScrapeRequestedHandler_StoppingCancelsOutboundWorkAndLeavesJobRecoverable()
+    {
+        using var database = TestDb.CreateSeededDatabase();
+        var data = new ScrapeHistoryDataService(database.Factory);
+        var url = await data.GetOwnedGameUrlSnapshotAsync(1, TestDb.TestUserId, CancellationToken.None);
+        var history = await data.CreateQueuedHistoryAsync(TestDb.TestUserId, url!, 2,
+            "scrape-page", "Web Scrape", "correlation", CancellationToken.None);
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var steam = new Mock<ISteamService>(MockBehavior.Strict);
+        steam.Setup(x => x.ScrapePage(1, 2, It.IsAny<CancellationToken>()))
+            .Returns(async (long _, short _, CancellationToken token) =>
+            {
+                started.TrySetResult();
+                await Task.Delay(Timeout.InfiniteTimeSpan, token);
+                return Array.Empty<WatchItemDto>();
+            });
+        using var stopping = new CancellationTokenSource();
+        var processing = CreateScrapeHandler(database, steam).HandleAsync(CreateScrapeMessage(history), stopping.Token);
+        try
+        {
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            await stopping.CancelAsync();
+        }
+
+        await Assert.ThrowsAsync<TaskCanceledException>(async () => await processing.WaitAsync(TimeSpan.FromSeconds(5)));
+        var future = DateTime.UtcNow.AddMinutes(6);
+        Assert.That(await data.GetRecoverableJobIdsAsync(future, future, CancellationToken.None), Does.Contain(history.Id));
+    }
+
+    [Test]
     public async Task ScrapeRequestedHandler_MarksSucceededWithFreshResults()
     {
         using var database = TestDb.CreateSeededDatabase();
@@ -447,7 +552,7 @@ public sealed class SteamControllerTests
             CancellationToken.None);
         var response = new[] { new WatchItemDto { Name = "Async Fresh", Price = 4 } };
         var steamService = new Mock<ISteamService>();
-        steamService.Setup(x => x.ScrapePage(1, 2)).ReturnsAsync(response);
+        steamService.Setup(x => x.ScrapePage(1, 2, It.IsAny<CancellationToken>())).ReturnsAsync(response);
         var cache = TestDb.CreateDistributedCache();
         var handler = CreateScrapeHandler(database, steamService, cache);
 
@@ -485,7 +590,7 @@ public sealed class SteamControllerTests
             CancellationToken.None);
         var steamService = new Mock<ISteamService>();
         steamService
-            .Setup(x => x.ScrapeWithPixels(2, 2))
+            .Setup(x => x.ScrapeWithPixels(2, 2, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new JsonSerializationException("bad listing"));
         var handler = CreateScrapeHandler(database, steamService);
 

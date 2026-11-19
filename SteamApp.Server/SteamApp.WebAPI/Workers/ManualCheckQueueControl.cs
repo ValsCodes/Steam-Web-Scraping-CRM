@@ -1,58 +1,85 @@
-using SteamApp.Contracts.ManualCheck;
 using SteamApp.Application.DTOs.ManualCheck;
 
 namespace SteamApp.WebAPI.Workers;
 
-internal sealed class ManualCheckQueueControl : IDisposable
+internal sealed class ManualCheckQueueControl(long runId) : IDisposable
 {
     private readonly CancellationTokenSource cancellation = new();
     private readonly CancellationTokenSource pause = new();
+    private readonly object gate = new();
+    private int activeSignals;
+    private bool disposalRequested;
 
-    public ManualCheckQueueControl(long runId)
+    public long RunId { get; } = runId;
+    public Guid WorkItemId { get; } = Guid.NewGuid();
+    public bool IsPauseRequested
     {
-        RunId = runId;
-        WorkItemId = Guid.NewGuid();
+        get
+        {
+            lock (gate)
+            {
+                return !disposalRequested && pause.IsCancellationRequested;
+            }
+        }
     }
 
-    public long RunId { get; }
-    public Guid WorkItemId { get; }
-    public bool IsPauseRequested => pause.IsCancellationRequested;
+    public ManualCheckQueueItem CreateWorkItem() =>
+        new(RunId, WorkItemId, cancellation.Token, pause.Token);
 
-    public ManualCheckQueueItem CreateWorkItem()
-    {
-        return new ManualCheckQueueItem(
-            RunId,
-            WorkItemId,
-            cancellation.Token,
-            pause.Token);
-    }
+    public bool TryPause() => TryCancelSource(pause);
 
-    public bool TryPause()
-    {
-        return TryCancelSource(pause);
-    }
-
-    public bool TryCancel()
-    {
-        return TryCancelSource(cancellation);
-    }
+    public bool TryCancel() => TryCancelSource(cancellation);
 
     public void Dispose()
     {
-        cancellation.Dispose();
-        pause.Dispose();
+        lock (gate)
+        {
+            if (disposalRequested)
+            {
+                return;
+            }
+
+            disposalRequested = true;
+            if (activeSignals == 0)
+            {
+                DisposeSources();
+            }
+        }
     }
 
-    private static bool TryCancelSource(CancellationTokenSource source)
+    private bool TryCancelSource(CancellationTokenSource source)
     {
+        lock (gate)
+        {
+            if (disposalRequested)
+            {
+                return false;
+            }
+
+            activeSignals++;
+        }
+
         try
         {
             source.Cancel();
             return true;
         }
-        catch (ObjectDisposedException)
+        finally
         {
-            return false;
+            lock (gate)
+            {
+                activeSignals--;
+                if (disposalRequested && activeSignals == 0)
+                {
+                    DisposeSources();
+                }
+            }
         }
+    }
+
+    private void DisposeSources()
+    {
+        cancellation.Dispose();
+        pause.Dispose();
     }
 }

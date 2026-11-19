@@ -13,7 +13,7 @@ public static class ManualCheckMatcher
     {
         listingUri = null;
         if (!Uri.TryCreate(listingUrl, UriKind.Absolute, out var uri) ||
-            uri.Scheme != Uri.UriSchemeHttps ||
+            uri.Scheme != Uri.UriSchemeHttps || !uri.IsDefaultPort || uri.UserInfo.Length != 0 ||
             !IsSteamCommunityHost(uri.Host))
         {
             return false;

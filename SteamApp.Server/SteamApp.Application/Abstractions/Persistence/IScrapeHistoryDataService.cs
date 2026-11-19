@@ -1,7 +1,6 @@
 using SteamApp.Contracts.ScrapeHistory;
 using SteamApp.Application.DTOs.ScrapeHistory;
 using SteamApp.Domain.Entities;
-using SteamApp.Domain.Enums;
 
 namespace SteamApp.Application.Abstractions.Persistence;
 
@@ -50,17 +49,15 @@ public interface IScrapeHistoryDataService
         long historyId,
         CancellationToken cancellationToken);
 
-    Task<ScrapeJobStatusEnum?> MarkRunningAsync(
-        long historyId,
-        CancellationToken cancellationToken);
+    Task<IReadOnlyList<long>> GetRecoverableJobIdsAsync(
+        DateTime queuedBeforeUtc, DateTime nowUtc, CancellationToken cancellationToken);
 
-    Task<AutomatedScrapeHistory?> MarkSucceededAsync(
-        long historyId,
-        object? results,
-        CancellationToken cancellationToken);
+    Task<bool> TryClaimJobAsync(
+        long historyId, Guid claimId, DateTime nowUtc, DateTime expiresAtUtc, CancellationToken cancellationToken);
 
-    Task<AutomatedScrapeHistory?> MarkFailedAsync(
-        long historyId,
-        string errorText,
-        CancellationToken cancellationToken);
+    Task<bool> RenewClaimAsync(
+        long historyId, Guid claimId, DateTime nowUtc, DateTime expiresAtUtc, CancellationToken cancellationToken);
+
+    Task<bool> CompleteJobAsync(
+        long historyId, Guid claimId, object? results, string? errorText, CancellationToken cancellationToken);
 }
