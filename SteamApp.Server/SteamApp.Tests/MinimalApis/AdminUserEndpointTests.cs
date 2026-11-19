@@ -2,11 +2,11 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
-using SteamApp.Infrastructure.Context;
+using SteamApp.Infrastructure.Persistence;
 using SteamApp.Infrastructure.Identity;
 using SteamApp.Tests.TestSupport;
-using SteamApp.WebAPI.Contracts.AdminUsers;
-using SteamApp.WebAPI.MinimalAPIs;
+using SteamApp.Contracts.AdminUsers;
+using SteamApp.WebAPI.Endpoints.MinimalAPIs;
 using SteamApp.WebAPI.Security;
 
 namespace SteamApp.Tests.MinimalApis;

@@ -2,8 +2,8 @@ using MailKit.Security;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using MimeKit;
-using SteamApp.Infrastructure.Services;
-using SteamApp.Interfaces.Services;
+using SteamApp.Infrastructure.ExternalServices;
+using SteamApp.Application.Abstractions.Services;
 
 namespace SteamApp.IntegrationTests.External;
 

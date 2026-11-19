@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
-using SteamApp.Application.DTOs.ItemGroup;
-using SteamApp.Application.DTOs.Tag;
+using SteamApp.Contracts.ItemGroup;
+using SteamApp.Contracts.Tag;
 using SteamApp.Domain.Entities;
 using SteamApp.Tests.TestSupport;
 

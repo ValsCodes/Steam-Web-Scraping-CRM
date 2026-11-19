@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using SteamApp.Interfaces.Services;
+using SteamApp.Application.Abstractions.Services;
 
 namespace SteamApp.IntegrationTests.Support;
 

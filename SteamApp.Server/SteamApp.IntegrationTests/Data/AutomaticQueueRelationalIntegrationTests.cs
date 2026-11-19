@@ -2,7 +2,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
-using SteamApp.Infrastructure.Context;
+using SteamApp.Infrastructure.Persistence;
 
 namespace SteamApp.IntegrationTests.Data;
 

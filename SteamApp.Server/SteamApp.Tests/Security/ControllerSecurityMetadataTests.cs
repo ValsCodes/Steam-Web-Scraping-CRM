@@ -1,7 +1,7 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
-using SteamApp.WebAPI.Controllers;
+using SteamApp.WebAPI.Endpoints.Controllers;
 using SteamApp.WebAPI.Security;
 
 namespace SteamApp.Tests.Security;

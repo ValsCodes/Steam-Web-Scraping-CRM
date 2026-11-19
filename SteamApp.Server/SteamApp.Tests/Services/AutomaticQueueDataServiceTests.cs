@@ -1,13 +1,16 @@
+using Wire = SteamApp.Contracts.Enums;
+using SteamApp.Infrastructure.Persistence.Repositories;
 using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
+using SteamApp.Contracts.AutomaticQueue;
 using SteamApp.Application.DTOs.AutomaticQueue;
+using SteamApp.Contracts.ManualCheck;
 using SteamApp.Application.DTOs.ManualCheck;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
 using SteamApp.Tests.TestSupport;
-using SteamApp.WebAPI.Exceptions;
-using SteamApp.WebAPI.Jobs;
-using SteamApp.WebAPI.Services;
+using SteamApp.Application.Common.Exceptions;
+using SteamApp.WebAPI.Workers;
 
 namespace SteamApp.Tests.Services;
 
@@ -34,16 +37,16 @@ public sealed class AutomaticQueueDataServiceTests
                     new AutomaticQueueBlockWriteDto
                     {
                         Key = Guid.NewGuid(),
-                        Type = AutomaticQueueBlockTypeEnum.ManualCheck,
+                        Type = Wire.AutomaticQueueBlockTypeEnum.ManualCheck,
                         GameUrlId = 1,
-                        TemplateMode = AutomaticQueueTemplateModeEnum.PrivateTemplate,
+                        TemplateMode = Wire.AutomaticQueueTemplateModeEnum.PrivateTemplate,
                         PrivateTemplate = new AutomaticQueuePrivateTemplateDto
                         {
                             Name = "Private",
                             ListingLimit = 20,
                             PriceRange = new ManualCheckPriceRangeDto
                             {
-                                Mode = ManualCheckPriceRangeModeEnum.Below,
+                                Mode = Wire.ManualCheckPriceRangeModeEnum.Below,
                                 MaximumPriceMinorUnits = 250
                             },
                             Criteria = [new ManualCheckCriterionDto { ValueContains = "Unusual" }]
@@ -146,7 +149,7 @@ public sealed class AutomaticQueueDataServiceTests
                 new AutomaticQueueBlockWriteDto
                 {
                     Key = Guid.NewGuid(),
-                    Type = AutomaticQueueBlockTypeEnum.Delay,
+                    Type = Wire.AutomaticQueueBlockTypeEnum.Delay,
                     DelaySeconds = 604801
                 }
             ]
@@ -219,7 +222,7 @@ public sealed class AutomaticQueueDataServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(run.Status, Is.EqualTo(AutomaticQueueRunStatusEnum.Queued));
+            Assert.That(run.Status, Is.EqualTo(Wire.AutomaticQueueRunStatusEnum.Queued));
             Assert.That(snapshot.ManualCheckSetup!.PresetName, Is.EqualTo("Frozen"));
             Assert.That(snapshot.ManualCheckSetup.ListingLimit, Is.EqualTo(10));
             Assert.That(snapshot.ManualCheckSetup.BypassCache, Is.True);
@@ -242,15 +245,15 @@ public sealed class AutomaticQueueDataServiceTests
         var combinationBlock = new AutomaticQueueBlockWriteDto
         {
             Key = Guid.NewGuid(),
-            Type = AutomaticQueueBlockTypeEnum.ManualCheck,
+            Type = Wire.AutomaticQueueBlockTypeEnum.ManualCheck,
             GameUrlId = 1,
-            TemplateMode = AutomaticQueueTemplateModeEnum.PresetCombination,
+            TemplateMode = Wire.AutomaticQueueTemplateModeEnum.PresetCombination,
             PresetCombination = new ManualCheckPresetCombinationWriteDto
             {
                 ListingLimit = 20,
                 PriceRange = new ManualCheckPriceRangeDto
                 {
-                    Mode = ManualCheckPriceRangeModeEnum.Between,
+                    Mode = Wire.ManualCheckPriceRangeModeEnum.Between,
                     MinimumPriceMinorUnits = 100,
                     MaximumPriceMinorUnits = 300
                 },
@@ -260,7 +263,7 @@ public sealed class AutomaticQueueDataServiceTests
                     new ManualCheckPresetCombinationTermWriteDto
                     {
                         PresetId = second.Id,
-                        Operator = ManualCheckPresetCombinationOperatorEnum.And
+                        Operator = Wire.ManualCheckPresetCombinationOperatorEnum.And
                     }
                 ]
             }
@@ -281,7 +284,7 @@ public sealed class AutomaticQueueDataServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(definition.Blocks[0].TemplateMode, Is.EqualTo(AutomaticQueueTemplateModeEnum.PresetCombination));
+            Assert.That(definition.Blocks[0].TemplateMode, Is.EqualTo(Wire.AutomaticQueueTemplateModeEnum.PresetCombination));
             Assert.That(definition.Blocks[0].PresetCombination!.Terms.Select(x => x.PresetId), Is.EqualTo(new[] { first.Id, second.Id }));
             Assert.That(definition.Blocks[0].PresetCombination!.PriceRange!.MinimumPriceMinorUnits, Is.EqualTo(100));
             Assert.That(snapshot.ManualCheckSetup!.ListingLimit, Is.EqualTo(20));
@@ -303,9 +306,9 @@ public sealed class AutomaticQueueDataServiceTests
         var block = new AutomaticQueueBlockWriteDto
         {
             Key = Guid.NewGuid(),
-            Type = AutomaticQueueBlockTypeEnum.ManualCheck,
+            Type = Wire.AutomaticQueueBlockTypeEnum.ManualCheck,
             GameUrlId = 1,
-            TemplateMode = AutomaticQueueTemplateModeEnum.PresetCombination,
+            TemplateMode = Wire.AutomaticQueueTemplateModeEnum.PresetCombination,
             PresetCombination = new ManualCheckPresetCombinationWriteDto
             {
                 ListingLimit = 10,
@@ -315,7 +318,7 @@ public sealed class AutomaticQueueDataServiceTests
                     new ManualCheckPresetCombinationTermWriteDto
                     {
                         PresetId = second.Id,
-                        Operator = ManualCheckPresetCombinationOperatorEnum.Or
+                        Operator = Wire.ManualCheckPresetCombinationOperatorEnum.Or
                     }
                 ]
             }
@@ -356,7 +359,7 @@ public sealed class AutomaticQueueDataServiceTests
                 Blocks =
                 [
                     ManualBlock(preset.Id, [1]),
-                    new AutomaticQueueBlockWriteDto { Key = Guid.NewGuid(), Type = AutomaticQueueBlockTypeEnum.Delay, DelaySeconds = 30 },
+                    new AutomaticQueueBlockWriteDto { Key = Guid.NewGuid(), Type = Wire.AutomaticQueueBlockTypeEnum.Delay, DelaySeconds = 30 },
                     ManualBlock(preset.Id, [1])
                 ]
             },
@@ -395,12 +398,12 @@ public sealed class AutomaticQueueDataServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(completed!.Status, Is.EqualTo(AutomaticQueueRunStatusEnum.CompletedWithErrors));
+            Assert.That(completed!.Status, Is.EqualTo(Wire.AutomaticQueueRunStatusEnum.CompletedWithErrors));
             Assert.That(completed.Blocks.Select(x => x.Status), Is.EqualTo(new[]
             {
-                AutomaticQueueBlockRunStatusEnum.CompletedWithWarnings,
-                AutomaticQueueBlockRunStatusEnum.Succeeded,
-                AutomaticQueueBlockRunStatusEnum.Failed
+                Wire.AutomaticQueueBlockRunStatusEnum.CompletedWithWarnings,
+                Wire.AutomaticQueueBlockRunStatusEnum.Succeeded,
+                Wire.AutomaticQueueBlockRunStatusEnum.Failed
             }));
             Assert.That(completed.Blocks[0].WarningCount, Is.EqualTo(1));
             Assert.That(completed.CompletedBlocks, Is.EqualTo(3));
@@ -425,7 +428,7 @@ public sealed class AutomaticQueueDataServiceTests
                 Name = "Pause and cancel",
                 Blocks =
                 [
-                    new AutomaticQueueBlockWriteDto { Key = Guid.NewGuid(), Type = AutomaticQueueBlockTypeEnum.Delay, DelaySeconds = 60 },
+                    new AutomaticQueueBlockWriteDto { Key = Guid.NewGuid(), Type = Wire.AutomaticQueueBlockTypeEnum.Delay, DelaySeconds = 60 },
                     ManualBlock(preset.Id, [1])
                 ]
             },
@@ -440,12 +443,12 @@ public sealed class AutomaticQueueDataServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(paused.Status, Is.EqualTo(AutomaticQueueRunStatusEnum.Paused));
+            Assert.That(paused.Status, Is.EqualTo(Wire.AutomaticQueueRunStatusEnum.Paused));
             Assert.That(paused.Blocks[0].RemainingDelaySeconds, Is.EqualTo(40));
             Assert.That(resumed.Blocks[0].WaitUntilUtc, Is.EqualTo(time.GetUtcNow().UtcDateTime.AddSeconds(40)));
-            Assert.That(canceled.Status, Is.EqualTo(AutomaticQueueRunStatusEnum.Canceled));
-            Assert.That(canceled.Blocks[0].Status, Is.EqualTo(AutomaticQueueBlockRunStatusEnum.Canceled));
-            Assert.That(canceled.Blocks[1].Status, Is.EqualTo(AutomaticQueueBlockRunStatusEnum.Skipped));
+            Assert.That(canceled.Status, Is.EqualTo(Wire.AutomaticQueueRunStatusEnum.Canceled));
+            Assert.That(canceled.Blocks[0].Status, Is.EqualTo(Wire.AutomaticQueueBlockRunStatusEnum.Canceled));
+            Assert.That(canceled.Blocks[1].Status, Is.EqualTo(Wire.AutomaticQueueBlockRunStatusEnum.Skipped));
         });
     }
 
@@ -478,9 +481,9 @@ public sealed class AutomaticQueueDataServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(recovered!.Status, Is.EqualTo(AutomaticQueueRunStatusEnum.Paused));
-            Assert.That(recovered.Blocks[0].Status, Is.EqualTo(AutomaticQueueBlockRunStatusEnum.Paused));
-            Assert.That(child!.Status, Is.EqualTo(ManualCheckRunStatusEnum.Paused));
+            Assert.That(recovered!.Status, Is.EqualTo(Wire.AutomaticQueueRunStatusEnum.Paused));
+            Assert.That(recovered.Blocks[0].Status, Is.EqualTo(Wire.AutomaticQueueBlockRunStatusEnum.Paused));
+            Assert.That(child!.Status, Is.EqualTo(Wire.ManualCheckRunStatusEnum.Paused));
             Assert.That(usage.UsedSeconds, Is.EqualTo(12));
         });
     }
@@ -511,9 +514,9 @@ public sealed class AutomaticQueueDataServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(pauseRequested.Status, Is.EqualTo(AutomaticQueueRunStatusEnum.PauseRequested));
-            Assert.That(paused!.Status, Is.EqualTo(AutomaticQueueRunStatusEnum.Paused));
-            Assert.That(resumed.Status, Is.EqualTo(AutomaticQueueRunStatusEnum.Running));
+            Assert.That(pauseRequested.Status, Is.EqualTo(Wire.AutomaticQueueRunStatusEnum.PauseRequested));
+            Assert.That(paused!.Status, Is.EqualTo(Wire.AutomaticQueueRunStatusEnum.Paused));
+            Assert.That(resumed.Status, Is.EqualTo(Wire.AutomaticQueueRunStatusEnum.Running));
             Assert.That(resumed.Blocks[0].ManualCheckRunId, Is.EqualTo(childRunId));
         });
     }
@@ -549,9 +552,9 @@ public sealed class AutomaticQueueDataServiceTests
         return new AutomaticQueueBlockWriteDto
         {
             Key = Guid.NewGuid(),
-            Type = AutomaticQueueBlockTypeEnum.ManualCheck,
+            Type = Wire.AutomaticQueueBlockTypeEnum.ManualCheck,
             GameUrlId = 1,
-            TemplateMode = AutomaticQueueTemplateModeEnum.SavedPreset,
+            TemplateMode = Wire.AutomaticQueueTemplateModeEnum.SavedPreset,
             PresetId = presetId,
             ProductIds = productIds
         };

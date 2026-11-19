@@ -1,3 +1,4 @@
+using SteamApp.Infrastructure.Identity;
 namespace SteamApp.WebAPI.Security;
 
 public static class SecurityPolicies
@@ -14,6 +15,6 @@ public static class SecurityPolicies
     public const string UserScope = "user";
     public const string InternalScope = "internal";
 
-    public const string UserRole = "User";
-    public const string AdminRole = "Admin";
+    public const string UserRole = ApplicationRoles.User;
+    public const string AdminRole = ApplicationRoles.Admin;
 }

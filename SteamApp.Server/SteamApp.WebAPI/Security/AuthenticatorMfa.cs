@@ -1,3 +1,4 @@
+using SteamApp.Contracts.Requests;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -6,11 +7,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OtpNet;
-using SteamApp.Application.OperationResults;
-using SteamApp.Infrastructure.Context;
+using SteamApp.Application.Common.Results;
+using SteamApp.Infrastructure.Persistence;
 using SteamApp.Infrastructure.Identity;
-using SteamApp.WebAPI.Contracts;
-using SteamApp.WebAPI.Services;
 
 namespace SteamApp.WebAPI.Security;
 

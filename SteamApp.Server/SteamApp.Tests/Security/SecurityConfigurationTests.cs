@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Moq;
-using SteamApp.Domain.ValueObjects.Authentication;
 using SteamApp.Tests.TestSupport;
 using SteamApp.WebAPI;
 using SteamApp.WebAPI.Security;

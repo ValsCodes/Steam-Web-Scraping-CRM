@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
-using SteamApp.Infrastructure.Services;
-using SteamApp.Interfaces.Services;
+using SteamApp.Infrastructure.ExternalServices;
+using SteamApp.Application.Abstractions.Services;
 
 namespace SteamApp.Tests.Services;
 

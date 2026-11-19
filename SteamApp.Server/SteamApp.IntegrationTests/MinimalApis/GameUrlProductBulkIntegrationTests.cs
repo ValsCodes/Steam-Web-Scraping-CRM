@@ -2,9 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using SteamApp.Application.DTOs.GameUrlProduct;
+using SteamApp.Contracts.GameUrlProduct;
 using SteamApp.Domain.Entities;
-using SteamApp.Infrastructure.Context;
+using SteamApp.Infrastructure.Persistence;
 using SteamApp.Infrastructure.Identity;
 using SteamApp.IntegrationTests.Support;
 

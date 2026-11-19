@@ -1,0 +1,222 @@
+using SteamApp.Application.Abstractions.Persistence;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using SteamApp.Contracts.AutomaticQueue;
+using SteamApp.Application.Abstractions.Services;
+using SteamApp.Application.Common.Exceptions;
+using SteamApp.WebAPI.Security;
+
+namespace SteamApp.WebAPI.Endpoints.Controllers;
+
+[ApiController]
+[Route("api/automatic-check-queues")]
+[Authorize(Policy = SecurityPolicies.ApiUser)]
+[EnableRateLimiting(SecurityPolicies.ApiRateLimit)]
+public sealed class AutomaticCheckQueuesController(
+    IAutomaticQueueDataService dataService,
+    ILogger<AutomaticCheckQueuesController> logger,
+    IAutomationAccessService? automationAccessService = null) : ControllerBase
+{
+    [HttpGet]
+    public async Task<IActionResult> GetDefinitions(CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        return userId is null ? Unauthorized() : Ok(await dataService.GetDefinitionsAsync(userId, cancellationToken));
+    }
+
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> GetDefinition(long id, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId is null) return Unauthorized();
+        var result = await dataService.GetDefinitionAsync(id, userId, cancellationToken);
+        return result is null ? NotFound() : Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateDefinition([FromBody] AutomaticQueueWriteDto input, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId is null) return Unauthorized();
+        try
+        {
+            var result = await dataService.CreateDefinitionAsync(userId, input, cancellationToken);
+            return CreatedAtAction(nameof(GetDefinition), new { id = result.Id }, result);
+        }
+        catch (AutomaticQueueRequestException exception)
+        {
+            return RequestProblem(exception);
+        }
+    }
+
+    [HttpPut("{id:long}")]
+    public async Task<IActionResult> UpdateDefinition(long id, [FromBody] AutomaticQueueWriteDto input, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId is null) return Unauthorized();
+        try
+        {
+            return Ok(await dataService.UpdateDefinitionAsync(id, userId, input, cancellationToken));
+        }
+        catch (AutomaticQueueRequestException exception)
+        {
+            return RequestProblem(exception);
+        }
+    }
+
+    [HttpDelete("{id:long}")]
+    public async Task<IActionResult> DeleteDefinition(long id, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId is null) return Unauthorized();
+        try
+        {
+            await dataService.DeleteDefinitionAsync(id, userId, cancellationToken);
+            return NoContent();
+        }
+        catch (AutomaticQueueRequestException exception)
+        {
+            return RequestProblem(exception);
+        }
+    }
+
+    [HttpPost("{id:long}/runs")]
+    [EnableRateLimiting(SecurityPolicies.ExpensiveApiRateLimit)]
+    public async Task<IActionResult> StartRun(long id, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId is null) return Unauthorized();
+        try
+        {
+            if (automationAccessService is not null)
+            {
+                await automationAccessService.EnsureCanExecuteAsync(userId, cancellationToken);
+            }
+            var run = await dataService.StartRunAsync(id, userId, cancellationToken);
+            return AcceptedAtAction(nameof(GetRun), new { id = run.Id }, new AutomaticQueueRunAcceptedDto
+            {
+                RunId = run.Id,
+                Run = run
+            });
+        }
+        catch (AutomaticQueueRequestException exception)
+        {
+            return RequestProblem(exception);
+        }
+        catch (AutomationAccessException exception)
+        {
+            return AutomationProblem(exception);
+        }
+    }
+
+    [HttpPost("{id:long}/clone")]
+    public async Task<IActionResult> CloneDefinition(long id, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId is null) return Unauthorized();
+        try
+        {
+            var result = await dataService.CloneDefinitionAsync(id, userId, cancellationToken);
+            return CreatedAtAction(nameof(GetDefinition), new { id = result.Id }, result);
+        }
+        catch (AutomaticQueueRequestException exception)
+        {
+            return RequestProblem(exception);
+        }
+    }
+
+    [HttpGet("runs")]
+    public async Task<IActionResult> GetRuns([FromQuery] long? queueId, [FromQuery] int take = 100, CancellationToken cancellationToken = default)
+    {
+        var userId = User.GetUserId();
+        return userId is null ? Unauthorized() : Ok(await dataService.GetRunsAsync(userId, queueId, take, cancellationToken));
+    }
+
+    [HttpGet("runs/{id:long}")]
+    public async Task<IActionResult> GetRun(long id, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId is null) return Unauthorized();
+        var result = await dataService.GetRunAsync(id, userId, cancellationToken);
+        return result is null ? NotFound() : Ok(result);
+    }
+
+    [HttpPost("runs/{id:long}/pause")]
+    public Task<IActionResult> PauseRun(long id, CancellationToken cancellationToken) =>
+        ChangeRunAsync(id, (runId, userId, token) => dataService.PauseRunAsync(runId, userId, token), cancellationToken);
+
+    [HttpPost("runs/{id:long}/continue")]
+    [EnableRateLimiting(SecurityPolicies.ExpensiveApiRateLimit)]
+    public Task<IActionResult> ContinueRun(long id, CancellationToken cancellationToken) =>
+        ContinueRunAsync(id, cancellationToken);
+
+    [HttpPost("runs/{id:long}/cancel")]
+    public Task<IActionResult> CancelRun(long id, CancellationToken cancellationToken) =>
+        ChangeRunAsync(id, dataService.CancelRunAsync, cancellationToken);
+
+    private async Task<IActionResult> ChangeRunAsync(
+        long id,
+        Func<long, string, CancellationToken, Task<AutomaticQueueRunDto>> operation,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId is null) return Unauthorized();
+        try
+        {
+            return Ok(await operation(id, userId, cancellationToken));
+        }
+        catch (AutomaticQueueRequestException exception)
+        {
+            return RequestProblem(exception);
+        }
+    }
+
+    private async Task<IActionResult> ContinueRunAsync(long id, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId is null) return Unauthorized();
+        try
+        {
+            if (automationAccessService is not null)
+            {
+                await automationAccessService.EnsureCanExecuteAsync(userId, cancellationToken);
+            }
+            return Ok(await dataService.ContinueRunAsync(id, userId, cancellationToken));
+        }
+        catch (AutomaticQueueRequestException exception)
+        {
+            return RequestProblem(exception);
+        }
+        catch (AutomationAccessException exception)
+        {
+            return AutomationProblem(exception);
+        }
+    }
+
+    private IActionResult RequestProblem(AutomaticQueueRequestException exception)
+    {
+        logger.LogWarning(exception, "Automatic queue request failed with status {StatusCode}.", exception.StatusCode);
+        return Problem(statusCode: exception.StatusCode, title: "Automatic queue request failed", detail: exception.Message);
+    }
+
+    private IActionResult AutomationProblem(AutomationAccessException exception)
+    {
+        if (exception.RetryAtUtc.HasValue)
+        {
+            var seconds = Math.Max(1, (int)Math.Ceiling((exception.RetryAtUtc.Value - DateTime.UtcNow).TotalSeconds));
+            Response.Headers.RetryAfter = seconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+        var problem = new ProblemDetails
+        {
+            Status = exception.StatusCode,
+            Title = "Automated execution unavailable",
+            Detail = exception.Message
+        };
+        if (exception.RetryAtUtc.HasValue)
+        {
+            problem.Extensions["nextAllowanceAtUtc"] = exception.RetryAtUtc.Value;
+        }
+        return StatusCode(exception.StatusCode, problem);
+    }
+}

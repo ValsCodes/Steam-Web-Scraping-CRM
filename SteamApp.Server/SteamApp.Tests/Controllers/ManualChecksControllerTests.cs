@@ -1,3 +1,5 @@
+using SteamApp.Application.Abstractions.Persistence;
+using Wire = SteamApp.Contracts.Enums;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -5,11 +7,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using SteamApp.Application.DTOs.ManualCheck;
+using SteamApp.Contracts.ManualCheck;
 using SteamApp.Domain.Enums;
-using SteamApp.Interfaces.Services;
-using SteamApp.WebAPI.Controllers;
-using SteamApp.WebAPI.Exceptions;
+using SteamApp.Application.Abstractions.Services;
+using SteamApp.WebAPI.Endpoints.Controllers;
+using SteamApp.Application.Common.Exceptions;
 using SteamApp.WebAPI.Security;
 
 namespace SteamApp.Tests.Controllers;
@@ -82,7 +84,7 @@ public sealed class ManualChecksControllerTests
                 new ManualCheckPresetCombinationTermWriteDto
                 {
                     PresetId = 5,
-                    Operator = ManualCheckPresetCombinationOperatorEnum.And
+                    Operator = Wire.ManualCheckPresetCombinationOperatorEnum.And
                 }
             ]
         };
@@ -202,7 +204,7 @@ public sealed class ManualChecksControllerTests
             {
                 Id = 12,
                 PresetName = "Historical",
-                Status = ManualCheckRunStatusEnum.Canceled,
+                Status = Wire.ManualCheckRunStatusEnum.Canceled,
                 CheckedProducts = 2,
                 TotalProducts = 5
             });
@@ -225,7 +227,7 @@ public sealed class ManualChecksControllerTests
             {
                 Id = 12,
                 PresetName = "Historical",
-                Status = ManualCheckRunStatusEnum.PauseRequested,
+                Status = Wire.ManualCheckRunStatusEnum.PauseRequested,
                 CheckedProducts = 2,
                 TotalProducts = 5
             });
@@ -261,7 +263,7 @@ public sealed class ManualChecksControllerTests
             {
                 Id = 12,
                 PresetName = "Historical",
-                Status = ManualCheckRunStatusEnum.Paused,
+                Status = Wire.ManualCheckRunStatusEnum.Paused,
                 Setup = new ManualCheckSetupDto { ListingLimit = 25 }
             });
         var controller = Controller(data, queue);
@@ -403,7 +405,7 @@ public sealed class ManualChecksControllerTests
             PresetName = "Shared",
             GameId = 440,
             GameUrlId = 8,
-            Status = ManualCheckRunStatusEnum.Queued,
+            Status = Wire.ManualCheckRunStatusEnum.Queued,
             CorrelationId = "test"
         };
     }

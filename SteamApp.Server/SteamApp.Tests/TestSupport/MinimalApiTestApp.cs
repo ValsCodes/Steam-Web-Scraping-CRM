@@ -1,3 +1,5 @@
+using SteamApp.Application.Features.Wishlist;
+using SteamApp.Infrastructure.Persistence.Repositories;
 using System.Net.Http.Json;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication;
@@ -11,12 +13,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using Moq;
-using SteamApp.Application.Mapper;
-using SteamApp.Infrastructure.Context;
+using SteamApp.Application.Mappings;
+using SteamApp.Infrastructure.Persistence;
 using SteamApp.Infrastructure.Identity;
-using SteamApp.WebAPI.MinimalAPIs;
+using SteamApp.WebAPI.Endpoints.MinimalAPIs;
 using SteamApp.WebAPI.Security;
-using SteamApp.WebAPI.Services;
 
 namespace SteamApp.Tests.TestSupport;
 

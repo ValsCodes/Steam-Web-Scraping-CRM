@@ -2,8 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
-using SteamApp.Application.DTOs.WatchListItem;
-using SteamApp.Infrastructure.Context;
+using SteamApp.Contracts.WatchListItem;
+using SteamApp.Infrastructure.Persistence;
 using SteamApp.Tests.TestSupport;
 
 namespace SteamApp.Tests.MinimalApis;

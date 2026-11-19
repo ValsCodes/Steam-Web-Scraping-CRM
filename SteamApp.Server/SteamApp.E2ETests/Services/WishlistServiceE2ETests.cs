@@ -1,8 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using SteamApp.IntegrationTests.Support;
-using SteamApp.WebAPI.Jobs;
-using SteamApp.WebAPI.MessageBrokers.Handlers.Wishlist;
-using SteamApp.WebAPI.MessageBrokers.Messages.Wishlist;
+using SteamApp.WebAPI.Workers;
+using SteamApp.Infrastructure.Messaging.Handlers.Wishlist;
+using SteamApp.Contracts.Events.Wishlist;
 
 namespace SteamApp.E2ETests.Services;
 

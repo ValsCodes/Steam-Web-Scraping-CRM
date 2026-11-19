@@ -1,3 +1,4 @@
+using SteamApp.Infrastructure.Observability;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using Microsoft.AspNetCore.Builder;

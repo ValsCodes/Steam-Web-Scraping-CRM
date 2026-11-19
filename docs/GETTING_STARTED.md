@@ -78,7 +78,7 @@ If your environment needs migrations applied manually:
 
 ```bash
 cd SteamApp.Server/SteamApp.WebAPI
-dotnet ef database update
+dotnet ef database update --project ../SteamApp.Infrastructure --startup-project SteamApp.WebAPI.csproj
 ```
 
 > If EF tools are not installed: `dotnet tool install --global dotnet-ef`

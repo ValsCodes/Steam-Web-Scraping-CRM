@@ -9,7 +9,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OtpNet;
-using SteamApp.Infrastructure.Context;
+using SteamApp.Infrastructure.Persistence;
 using SteamApp.Infrastructure.Identity;
 using SteamApp.IntegrationTests.Support;
 using SteamApp.WebAPI.Security;

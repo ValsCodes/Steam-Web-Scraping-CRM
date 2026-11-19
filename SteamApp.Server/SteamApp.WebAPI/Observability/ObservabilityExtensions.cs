@@ -1,3 +1,4 @@
+using SteamApp.Infrastructure.Observability;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;

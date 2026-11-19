@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using SteamApp.Infrastructure.Context;
+using SteamApp.Infrastructure.Persistence;
 
 namespace SteamApp.Tests.TestSupport;
 

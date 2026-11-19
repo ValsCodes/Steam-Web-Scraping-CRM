@@ -2,8 +2,8 @@ using Moq;
 using OpenQA.Selenium;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
-using SteamApp.Infrastructure.Services;
-using SteamApp.Interfaces.Repositories;
+using SteamApp.Infrastructure.ExternalServices;
+using SteamApp.Application.Abstractions.Persistence;
 using SteamApp.Tests.TestSupport;
 
 namespace SteamApp.Tests.Services;

@@ -37,7 +37,7 @@ public sealed class SteamControllerIntegrationTests
         using var factory = new SteamAppFactory();
         factory.SteamService.PublicApiResults =
         [
-            new SteamApp.Application.DTOs.WatchItem.WatchItemDto
+            new SteamApp.Contracts.WatchItem.WatchItemDto
             {
                 Name = "Public A",
                 Price = 1.25,
@@ -72,7 +72,7 @@ public sealed class SteamControllerIntegrationTests
 
         factory.SteamService.PageResults =
         [
-            new SteamApp.Application.DTOs.WatchItem.WatchItemDto
+            new SteamApp.Contracts.WatchItem.WatchItemDto
             {
                 Name = "Rerun Item",
                 Price = 9.5,
@@ -91,6 +91,7 @@ public sealed class SteamControllerIntegrationTests
             Assert.That(historyResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(historyJson.GetArrayLength(), Is.EqualTo(1));
             Assert.That(historyJson[0].GetProperty("scrapeType").GetString(), Is.EqualTo("Web Scrape"));
+            Assert.That(historyJson[0].GetProperty("status").GetString(), Is.EqualTo("Succeeded"));
             Assert.That(rerun.StatusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(rerunJson.GetProperty("results")[0].GetProperty("name").GetString(), Is.EqualTo("Rerun Item"));
             Assert.That(secondHistoryJson.GetArrayLength(), Is.EqualTo(2));

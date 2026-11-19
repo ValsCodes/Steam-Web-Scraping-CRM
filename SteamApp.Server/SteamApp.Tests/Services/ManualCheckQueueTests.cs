@@ -1,4 +1,4 @@
-using SteamApp.WebAPI.Jobs;
+using SteamApp.WebAPI.Workers;
 
 namespace SteamApp.Tests.Services;
 

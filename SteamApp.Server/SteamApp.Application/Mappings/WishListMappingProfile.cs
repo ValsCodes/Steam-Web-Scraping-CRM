@@ -1,0 +1,21 @@
+﻿using AutoMapper;
+using SteamApp.Contracts.WishListItem;
+using SteamApp.Domain.Entities;
+
+namespace SteamApp.Application.Mappings
+{
+    public sealed class WishListMappingProfile : Profile
+    {
+        public WishListMappingProfile()
+        {
+            CreateMap<WishList, WishListDto>();
+
+            CreateMap<WishListCreateDto, WishList>()
+                .ForMember(d => d.Id, o => o.Ignore());
+
+            CreateMap<WishListUpdateDto, WishList>()
+                .ForMember(d => d.Id, o => o.Ignore())
+                .ForMember(d => d.GameId, o => o.Ignore());
+        }
+    }
+}

@@ -113,9 +113,10 @@ Steam-Web-Scraping-CRM/
 ├─ SteamApp.Client/                  # Angular application
 ├─ SteamApp.Server/
 │  ├─ SteamApp.WebAPI/              # ASP.NET Core API host
-│  ├─ SteamApp.Application/         # DTOs / application layer
-│  ├─ SteamApp.Infrastructure/      # infra services/repos
-│  ├─ SteamApp.Models/              # domain layer
+│  ├─ SteamApp.Application/         # Use cases and application ports
+│  ├─ SteamApp.Contracts/           # HTTP and message contracts
+│  ├─ SteamApp.Infrastructure/      # Persistence and integrations
+│  ├─ SteamApp.Domain/              # Domain entities and value objects
 │  └─ SteamApp.Tests/               # tests
 └─ docs/                            # project documentation
 ```

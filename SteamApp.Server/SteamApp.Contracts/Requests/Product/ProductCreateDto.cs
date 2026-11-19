@@ -1,0 +1,12 @@
+﻿namespace SteamApp.Contracts.Product
+{
+    public sealed class ProductCreateDto
+    {
+        public long GameId { get; set; }
+        public string Name { get; set; } = string.Empty;
+
+        public bool IsActive { get; set; }
+
+        public int? Rating { get; set; }
+    }
+}

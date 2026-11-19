@@ -5,10 +5,9 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
-using SteamApp.Infrastructure.Context;
-using SteamApp.Infrastructure.Repositories;
+using SteamApp.Infrastructure.Persistence;
+using SteamApp.Infrastructure.Persistence.Repositories;
 using SteamApp.IntegrationTests.Support;
-using SteamApp.WebAPI;
 
 namespace SteamApp.IntegrationTests.Data;
 
@@ -36,14 +35,19 @@ public sealed class EfRepositoryIntegrationTests
     [Test]
     public void MigrationMetadataIsAvailableForProductionDatabaseUpgrades()
     {
-        var webApiAssembly = typeof(Program).Assembly;
-        var migrations = webApiAssembly
+        var migrationsAssembly = typeof(ApplicationDbContext).Assembly;
+        var migrations = migrationsAssembly
             .GetTypes()
             .Where(type => type.GetCustomAttributes(typeof(MigrationAttribute), inherit: false).Length > 0)
             .ToArray();
-        var hasModelSnapshot = webApiAssembly
+        var hasModelSnapshot = migrationsAssembly
             .GetTypes()
             .Any(type => type.Name == "ApplicationDbContextModelSnapshot");
+
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlServer("Server=localhost;Database=OfflineMigrationTest;Integrated Security=true")
+            .Options;
+        using var db = new ApplicationDbContext(options);
 
         Assert.Multiple(() =>
         {
@@ -55,6 +59,8 @@ public sealed class EfRepositoryIntegrationTests
                         .Cast<DbContextAttribute>()
                         .Any(attribute => attribute.ContextType == typeof(ApplicationDbContext))));
             Assert.That(hasModelSnapshot, Is.True);
+            Assert.That(db.Database.GetMigrations().Count(), Is.EqualTo(migrations.Length));
+            Assert.That(db.Database.HasPendingModelChanges(), Is.False);
         });
     }
 

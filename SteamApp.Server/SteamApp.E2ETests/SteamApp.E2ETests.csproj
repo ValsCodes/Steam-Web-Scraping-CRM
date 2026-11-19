@@ -26,8 +26,7 @@
     <ProjectReference Include="..\SteamApp.IntegrationTests\SteamApp.IntegrationTests.csproj" />
     <ProjectReference Include="..\SteamApp.WebAPI\SteamApp.WebAPI.csproj" />
     <ProjectReference Include="..\SteamApp.Application\SteamApp.Application.csproj" />
-    <ProjectReference Include="..\SteamApp.Interfaces\SteamApp.Interfaces.csproj" />
-    <ProjectReference Include="..\SteamApp.Models\SteamApp.Domain.csproj" />
+    <ProjectReference Include="..\SteamApp.Domain\SteamApp.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

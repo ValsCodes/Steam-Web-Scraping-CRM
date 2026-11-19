@@ -1,12 +1,14 @@
+using SteamApp.Application.Features.Wishlist;
+using SteamApp.Application.Common.Pagination;
+using SteamApp.Infrastructure.Persistence.Repositories;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using SteamApp.Application.DTOs.WishListItem;
-using SteamApp.Application.OperationResults;
+using SteamApp.Contracts.WishListItem;
+using SteamApp.Application.Common.Results;
 using SteamApp.Tests.TestSupport;
-using SteamApp.WebAPI.Contracts.Pagination;
-using SteamApp.WebAPI.Services;
+using SteamApp.Contracts.Pagination;
 
 namespace SteamApp.Tests.MinimalApis;
 

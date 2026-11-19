@@ -1,3 +1,6 @@
+using SteamApp.Application.Abstractions.Persistence;
+using Wire = SteamApp.Contracts.Enums;
+using SteamApp.Application.Features.ManualChecks;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
@@ -7,13 +10,12 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Newtonsoft.Json;
 using SteamApp.Application.Caching;
-using SteamApp.Application.DTOs.ManualCheck;
+using SteamApp.Contracts.ManualCheck;
 using SteamApp.Application.JsonObjects;
 using SteamApp.Domain.Enums;
-using SteamApp.Interfaces.Services;
+using SteamApp.Application.Abstractions.Services;
 using SteamApp.Tests.TestSupport;
-using SteamApp.WebAPI.ManualChecks;
-using SteamApp.WebAPI.Services;
+using SteamApp.Infrastructure.ExternalServices.ManualChecks;
 
 namespace SteamApp.Tests.Services;
 
@@ -63,7 +65,7 @@ public sealed class ManualCheckExecutionServiceTests
         var setup = Setup(Product(1, "First"));
         setup.PriceRange = new ManualCheckPriceRangeDto
         {
-            Mode = ManualCheckPriceRangeModeEnum.Between,
+            Mode = Wire.ManualCheckPriceRangeModeEnum.Between,
             MinimumPriceMinorUnits = 0,
             MaximumPriceMinorUnits = 100
         };
@@ -342,7 +344,7 @@ public sealed class ManualCheckExecutionServiceTests
         var setup = Setup(Product(1, "First"));
         setup.PriceRange = new ManualCheckPriceRangeDto
         {
-            Mode = ManualCheckPriceRangeModeEnum.Above,
+            Mode = Wire.ManualCheckPriceRangeModeEnum.Above,
             MinimumPriceMinorUnits = 200
         };
         var data = DataServiceMock(setup);
@@ -598,7 +600,7 @@ public sealed class ManualCheckExecutionServiceTests
             .ReturnsAsync(new ManualCheckRunDetailDto
             {
                 Id = 25,
-                Status = ManualCheckRunStatusEnum.Running,
+                Status = Wire.ManualCheckRunStatusEnum.Running,
                 CheckedProducts = 1,
                 Setup = setup,
                 Results = new ManualCheckRunResultsDto
@@ -690,10 +692,13 @@ public sealed class ManualCheckExecutionServiceTests
             MaxAttempts = maxAttempts,
             UserAgents = userAgents?.ToList() ?? ["TestAgent/1.0"]
         });
-        return new ManualCheckExecutionService(
+        var listingSource = new SteamManualCheckListingSource(
             factory.Object,
             options,
             cache ?? EmptyCache().Object,
+            NullLogger<SteamManualCheckListingSource>.Instance);
+        return new ManualCheckExecutionService(
+            listingSource,
             dataService,
             delay ?? new ImmediateManualCheckDelay(),
             NullLogger<ManualCheckExecutionService>.Instance);
@@ -706,7 +711,7 @@ public sealed class ManualCheckExecutionServiceTests
                 It.IsAny<long>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ManualCheckRunDetailDto
             {
-                Status = ManualCheckRunStatusEnum.Running,
+                Status = Wire.ManualCheckRunStatusEnum.Running,
                 Setup = setup,
                 Results = new ManualCheckRunResultsDto()
             });

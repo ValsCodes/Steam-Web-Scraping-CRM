@@ -28,7 +28,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="Otp.NET" />
@@ -44,10 +43,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SteamApp.Infrastructure\SteamApp.Infrastructure.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Migrations\" />
+    <ProjectReference Include="..\SteamApp.Contracts\SteamApp.Contracts.csproj" />
+    <ProjectReference Include="..\SteamApp.Application\SteamApp.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

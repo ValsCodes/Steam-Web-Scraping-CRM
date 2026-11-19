@@ -1,3 +1,6 @@
+using System.Net.Mail;
+using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
@@ -10,25 +13,14 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi;
 using Newtonsoft.Json.Serialization;
-using SteamApp.Application.Mapper;
-using SteamApp.Domain.ValueObjects.Authentication;
-using SteamApp.Infrastructure.Context;
+using SteamApp.Infrastructure.ExternalServices;
 using SteamApp.Infrastructure.Identity;
-using SteamApp.Infrastructure.Repositories;
-using SteamApp.Infrastructure.Services;
-using SteamApp.Interfaces.Repositories;
-using SteamApp.Interfaces.Services;
-using SteamApp.WebAPI.Jobs;
-using SteamApp.WebAPI.Jobs.Base;
-using SteamApp.WebAPI.ManualChecks;
-using SteamApp.WebAPI.MinimalAPIs;
-using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.DependencyInjection;
+using SteamApp.Infrastructure.Persistence;
+using SteamApp.Infrastructure.Serialization;
+using SteamApp.WebAPI.DependencyInjection;
+using SteamApp.WebAPI.Endpoints.MinimalAPIs;
 using SteamApp.WebAPI.Observability;
 using SteamApp.WebAPI.Security;
-using SteamApp.WebAPI.Services;
-using System.Net.Mail;
-using System.Text;
-using System.Threading.RateLimiting;
 
 namespace SteamApp.WebAPI;
 
@@ -187,8 +179,10 @@ public class Program
             .AddControllers()
             .AddNewtonsoftJson(opts =>
             {
-                opts.SerializerSettings.ContractResolver =
-                    new CamelCasePropertyNamesContractResolver();
+                opts.SerializerSettings.ContractResolver = new ContractJsonResolver
+                {
+                    NamingStrategy = new CamelCaseNamingStrategy(processDictionaryKeys: true, overrideSpecifiedNames: true)
+                };
             });
 
         builder.Services.AddProblemDetails();
@@ -334,75 +328,7 @@ public class Program
             });
         });
 
-        builder.Services.AddDbContextFactory<ApplicationDbContext>(opts =>
-        {
-            opts.UseSqlServer(
-                builder.Configuration.GetConnectionString("DefaultConnection"),
-                sql =>
-                {
-                    sql.MigrationsAssembly(typeof(Program).Assembly.FullName);
-                    sql.EnableRetryOnFailure(
-                        maxRetryCount: 5,
-                        maxRetryDelay: TimeSpan.FromSeconds(10),
-                        errorNumbersToAdd: null);
-                });
-        });
-
-        builder.Services.AddAutoMapper(_ => { }, typeof(BaseProfile));
-
-        // Mailtrap setup
-        //builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Mailtrap").Exists() 
-        //    ? builder.Configuration.GetSection("Mailtrap") : builder.Configuration.GetSection("Mailstrap"));
-
-        builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
-
-        builder.Services.Configure<TransientRetryPolicyOptions>(builder.Configuration.GetSection(TransientRetryPolicyOptions.SectionName));
-
-        builder.Services.Configure<ManualCheckOptions>(builder.Configuration.GetSection(ManualCheckOptions.SectionName));
-
-        builder.Services.Configure<EncryptionHashingOptions>(builder.Configuration.GetSection(EncryptionHashingOptions.SectionName));
-
-        builder.Services.AddSingleton<ITransientRetryPolicyService, TransientRetryPolicyService>();
-        builder.Services.AddSingleton<IEncryptionHashingService, EncryptionHashingService>();
-        builder.Services.AddScoped<IEmailService, EmailService>();
-        builder.Services.AddScoped<IdentitySchemaInitializer>();
-        builder.Services.AddScoped<ExternalAccountRegistration>();
-        builder.Services.AddScoped<AuthenticatorMfa>();
-        builder.Services.AddSingleton<MfaFlows>();
-        builder.Services.AddScoped<IdentityRoleInitializer>();
-        builder.Services.AddScoped<IScrapeHistoryDataService, ScrapeHistoryDataService>();
-        builder.Services.AddScoped<IScrapeExecutionService, ScrapeExecutionService>();
-        builder.Services.AddScoped<IManualCheckDataService, ManualCheckDataService>();
-        builder.Services.AddScoped<IManualCheckExecutionService, ManualCheckExecutionService>();
-        builder.Services.AddScoped<IAutomaticQueueDataService, AutomaticQueueDataService>();
-        builder.Services.AddScoped<IAutomationAccessService, AutomationAccessService>();
-        builder.Services.AddSingleton<IManualCheckDelay, ManualCheckDelay>();
-        builder.Services.AddScoped<IWishlistNotificationRecipientService, WishlistNotificationRecipientService>();
-        builder.Services.AddScoped<IWishlistCheckExecutionService, WishlistCheckExecutionService>();
-        builder.Services.AddScoped<ISteamRepository, SteamRepository>();
-        builder.Services.AddScoped<ISteamService, SteamService>();
-        builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
-        builder.Services.AddScoped<IWishlistService, WishlistService>();
-
-        builder.Services.AddSingleton<IManualCheckQueue, ManualCheckQueue>();
-        builder.Services.AddSingleton(TimeProvider.System);
-        builder.Services.AddHostedService<ManualCheckWorker>();
-        builder.Services.AddHostedService<AutomaticQueueWorker>();
-        builder.Services.AddHostedService<AutomationReconciliationWorker>();
-        builder.Services.AddHttpClient(ManualCheckOptions.HttpClientName, client =>
-        {
-            client.Timeout = Timeout.InfiniteTimeSpan;
-        });
-
-        builder.Services.AddRabbitMqMessageBroker(builder.Configuration);
-
-        builder.Services.AddMemoryCache();
-        AddDistributedCache(builder.Services, builder.Configuration);
-
-        // Wishlist Job
-        builder.Services.AddScoped<WishlistCheckJob>();
-        builder.Services.AddHostedService<BackgroundWorkerService<WishlistCheckJob>>();
-        builder.Services.Configure<WorkerOptions>(nameof(WishlistCheckJob), builder.Configuration.GetSection("Workers:WishlistCheck"));
+        builder.AddSteamAppServices();
 
         builder.Services.Configure<HostOptions>(o =>
         {
@@ -777,35 +703,6 @@ public class Program
     private static bool ShouldApplyMigrationsOnStartup(IConfiguration configuration)
     {
         return configuration.GetValue<bool?>("Database:ApplyMigrationsOnStartup") ?? true;
-    }
-
-    private static void AddDistributedCache(
-        IServiceCollection services,
-        IConfiguration configuration)
-    {
-        if (!configuration.GetValue<bool>("Redis:Enabled"))
-        {
-            services.AddDistributedMemoryCache();
-            return;
-        }
-
-        var connectionString =
-            configuration.GetConnectionString("Redis")
-            ?? configuration.GetConnectionString("CacheConnection")
-            ?? configuration["Redis:ConnectionString"]
-            ?? configuration["CacheConnection"];
-
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            throw new InvalidOperationException(
-                "Redis:ConnectionString must be configured when Redis:Enabled is true.");
-        }
-
-        services.AddStackExchangeRedisCache(options =>
-        {
-            options.Configuration = connectionString;
-            options.InstanceName = configuration["Redis:InstanceName"] ?? "SteamApp:";
-        });
     }
 
     private static async Task ApplyDatabaseMigrationsAsync(

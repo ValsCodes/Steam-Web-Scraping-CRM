@@ -130,12 +130,11 @@ The server projects keep explicit ownership boundaries:
 
 | Project | Responsibility |
 | --- | --- |
-| `SteamApp.Models` | Domain entities, enums, value objects, and constants |
-| `SteamApp.Application` | DTOs, mappings, operation results, cache keys, and JSON models |
-| `SteamApp.Interfaces` | Repository and service contracts |
-| `SteamApp.Infrastructure` | EF Core persistence and external integrations |
-| `SteamApp.WebAPI` | HTTP composition, security, orchestration, messages, consumers, workers, and caching |
-| `SteamApp.WebApiClient` | Typed .NET API-client managers |
+| `SteamApp.Domain` | Domain entities, enums, value objects, and constants |
+| `SteamApp.Contracts` | HTTP requests and responses and RabbitMQ event payloads |
+| `SteamApp.Application` | Use cases, repository and service contracts, mappings, and operation results |
+| `SteamApp.Infrastructure` | EF Core persistence and migrations, Identity, messaging, caching, and external integrations |
+| `SteamApp.WebAPI` | HTTP endpoints, authorization, workers, and dependency injection |
 
 The Angular client uses standalone components and lazy-loaded routes. Route-level screens live under `pages/`; shared dialogs and controls under `components/`; typed HTTP access under `services/`; and client contracts under `models/`.
 

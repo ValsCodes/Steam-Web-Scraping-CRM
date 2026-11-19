@@ -5,7 +5,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
-using SteamApp.Infrastructure.Context;
+using SteamApp.Infrastructure.Persistence;
 
 namespace SteamApp.Tests.TestSupport;
 

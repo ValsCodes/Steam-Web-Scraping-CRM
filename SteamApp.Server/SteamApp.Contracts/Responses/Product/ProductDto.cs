@@ -1,0 +1,18 @@
+﻿namespace SteamApp.Contracts.Product
+{
+    public sealed class ProductDto
+    {
+        public long Id { get; set; }
+
+        public long GameId { get; set; }
+        public string? Name { get; set; }
+        public bool IsActive { get; set; }
+        public string GameName { get; set; } = string.Empty;
+
+        public long? GameInternalId { get; set; }
+
+        public string[] Tags { get; set; } = [];
+        public ProductTagDetailDto[] TagDetails { get; set; } = [];
+        public int? Rating { get; set; }
+    }
+}

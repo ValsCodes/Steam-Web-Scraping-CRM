@@ -3,12 +3,11 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Microsoft.Extensions.DependencyInjection;
-using SteamApp.Application.OperationResults;
-using SteamApp.Infrastructure.Context;
+using SteamApp.Application.Common.Results;
+using SteamApp.Infrastructure.Persistence;
 using SteamApp.Infrastructure.Identity;
-using SteamApp.WebAPI.Migrations;
+using SteamApp.Infrastructure.Persistence.Migrations;
 using SteamApp.WebAPI.Security;
-using SteamApp.WebAPI.Services;
 
 namespace SteamApp.IntegrationTests.Security;
 

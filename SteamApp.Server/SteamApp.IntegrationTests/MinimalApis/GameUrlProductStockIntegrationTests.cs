@@ -4,7 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
-using SteamApp.Infrastructure.Context;
+using SteamApp.Infrastructure.Persistence;
 using SteamApp.Infrastructure.Identity;
 using SteamApp.IntegrationTests.Support;
 

@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using SteamApp.WebAPI.MessageBrokers.Abstractions;
+using SteamApp.Application.Abstractions.Messaging;
 
 namespace SteamApp.IntegrationTests.Support;
 

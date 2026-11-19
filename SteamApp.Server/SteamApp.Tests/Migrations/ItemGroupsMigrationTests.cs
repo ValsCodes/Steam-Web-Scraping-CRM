@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
-using SteamApp.WebAPI.Migrations;
+using SteamApp.Infrastructure.Persistence.Migrations;
 
 namespace SteamApp.Tests.Migrations;
 

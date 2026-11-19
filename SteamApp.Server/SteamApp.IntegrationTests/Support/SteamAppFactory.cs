@@ -12,11 +12,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using SteamApp.Infrastructure.Context;
-using SteamApp.Interfaces.Services;
+using SteamApp.Infrastructure.Persistence;
+using SteamApp.Application.Abstractions.Services;
 using SteamApp.WebAPI;
-using SteamApp.WebAPI.Jobs;
-using SteamApp.WebAPI.MessageBrokers.Abstractions;
+using SteamApp.WebAPI.Workers;
+using SteamApp.Application.Abstractions.Messaging;
 using SteamApp.WebAPI.Security;
 
 namespace SteamApp.IntegrationTests.Support;

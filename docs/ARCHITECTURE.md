@@ -29,24 +29,15 @@ The active product surface is organized around four domains:
 
 Located under `SteamApp.Server/`:
 
-- **SteamApp.WebAPI**
-  - Application host
-  - Dependency injection, auth, CORS, swagger
-  - Minimal API endpoint registration + controllers
-  - manual-check and automatic-queue orchestration
-  - RabbitMQ messages, consumers, hosted workers, and cache composition
-- **SteamApp.Application**
-  - DTOs
-  - operation result models
-  - shared application contracts
-- **SteamApp.Infrastructure**
-  - repository/services implementations
-- **SteamApp.Models**
-  - domain entities/value objects
-- **SteamApp.WebApiClient**
-  - internal API client wrappers
-- **SteamApp.Tests**
-  - test project(s)
+| Project | Responsibility | Direct project references |
+| --- | --- | --- |
+| `SteamApp.Domain` | Entities, enums, value objects, and constants | None |
+| `SteamApp.Contracts` | HTTP requests and responses and RabbitMQ event payloads | None |
+| `SteamApp.Application` | Scrape and manual-check execution, application ports, mappings, and operation results | Domain, Contracts |
+| `SteamApp.Infrastructure` | EF Core configuration, migrations, repositories, Identity, Redis, RabbitMQ, and external services | Application, Contracts, Domain |
+| `SteamApp.WebAPI` | HTTP endpoints, authorization, hosted workers, and dependency injection | Application, Contracts, Infrastructure |
+
+Server tests are in `SteamApp.Tests`, `SteamApp.IntegrationTests`, and `SteamApp.E2ETests`.
 
 ---
 

@@ -1,0 +1,17 @@
+namespace SteamApp.Contracts.ManualCheck;
+
+public sealed class ManualCheckProductTraceDto
+{
+    public long ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string FullUrl { get; set; } = string.Empty;
+    public bool MatchEvaluated { get; set; }
+    public bool Matched { get; set; }
+    public int MatchedAssetCount { get; set; }
+    public long? LowestCheckedPriceMinorUnits { get; set; }
+    public string? PriceCurrencyCode { get; set; }
+    public bool? PriceRangeMatched { get; set; }
+    public List<ManualCheckAssetCheckDto> CheckedAssets { get; set; } = [];
+    public string? SteamApiResultJson { get; set; }
+    public long? DurationMilliseconds { get; set; }
+}

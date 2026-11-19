@@ -7,8 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="DotNetSeleniumExtras.WaitHelpers" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Microsoft.AspNetCore.JsonPatch" />
     <PackageReference Include="Microsoft.Extensions.Options" />
     <PackageReference Include="Selenium.Support" />
@@ -16,12 +18,16 @@
     <PackageReference Include="System.Drawing.Common" />
     <PackageReference Include="MailKit" />
     <PackageReference Include="Konscious.Security.Cryptography.Argon2" />
+    <PackageReference Include="RabbitMQ.Client" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
+    <PackageReference Include="EFCore.BulkExtensions.Core" />
+    <PackageReference Include="EFCore.BulkExtensions.SqlServer" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\SteamApp.Application\SteamApp.Application.csproj" />
-    <ProjectReference Include="..\SteamApp.Interfaces\SteamApp.Interfaces.csproj" />
-    <ProjectReference Include="..\SteamApp.Models\SteamApp.Domain.csproj" />
+    <ProjectReference Include="..\SteamApp.Contracts\SteamApp.Contracts.csproj" />
+    <ProjectReference Include="..\SteamApp.Domain\SteamApp.Domain.csproj" />
   </ItemGroup>
 
 </Project>

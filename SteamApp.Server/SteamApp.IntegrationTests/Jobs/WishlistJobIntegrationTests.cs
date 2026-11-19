@@ -1,3 +1,6 @@
+using SteamApp.Application.Features.Wishlist;
+using SteamApp.Application.Abstractions.Persistence;
+using SteamApp.Infrastructure.Persistence.Repositories;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
@@ -5,15 +8,15 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using SteamApp.Application.Caching;
+using SteamApp.Contracts.WishListItem;
 using SteamApp.Application.DTOs.WishListItem;
-using SteamApp.Application.OperationResults;
+using SteamApp.Application.Common.Results;
 using SteamApp.IntegrationTests.Support;
-using SteamApp.Interfaces.Services;
-using SteamApp.WebAPI.Jobs;
-using SteamApp.WebAPI.MessageBrokers.Handlers.Wishlist;
-using SteamApp.WebAPI.MessageBrokers.Messages.Wishlist;
-using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options;
-using SteamApp.WebAPI.Services;
+using SteamApp.Application.Abstractions.Services;
+using SteamApp.WebAPI.Workers;
+using SteamApp.Infrastructure.Messaging.Handlers.Wishlist;
+using SteamApp.Contracts.Events.Wishlist;
+using SteamApp.Infrastructure.Messaging.RabbitMq.Options;
 
 namespace SteamApp.IntegrationTests.Jobs;
 

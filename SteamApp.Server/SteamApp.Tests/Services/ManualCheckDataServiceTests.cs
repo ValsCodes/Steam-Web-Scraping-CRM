@@ -1,13 +1,14 @@
+using Wire = SteamApp.Contracts.Enums;
+using SteamApp.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using SteamApp.Application.DTOs.AutomaticQueue;
-using SteamApp.Application.DTOs.ManualCheck;
+using SteamApp.Contracts.AutomaticQueue;
+using SteamApp.Contracts.ManualCheck;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
 using SteamApp.Tests.TestSupport;
-using SteamApp.WebAPI.Exceptions;
-using SteamApp.WebAPI.Services;
+using SteamApp.Application.Common.Exceptions;
 
 namespace SteamApp.Tests.Services;
 
@@ -124,28 +125,28 @@ public sealed class ManualCheckDataServiceTests
                     QueueBlock(0, deletedSingleKey, new AutomaticQueueBlockWriteDto
                     {
                         Key = deletedSingleKey,
-                        Type = AutomaticQueueBlockTypeEnum.ManualCheck,
-                        TemplateMode = AutomaticQueueTemplateModeEnum.SavedPreset,
+                        Type = Wire.AutomaticQueueBlockTypeEnum.ManualCheck,
+                        TemplateMode = Wire.AutomaticQueueTemplateModeEnum.SavedPreset,
                         PresetId = deletedPreset.Id
                     }),
                     QueueBlock(1, retainedSingleKey, new AutomaticQueueBlockWriteDto
                     {
                         Key = retainedSingleKey,
-                        Type = AutomaticQueueBlockTypeEnum.ManualCheck,
-                        TemplateMode = AutomaticQueueTemplateModeEnum.SavedPreset,
+                        Type = Wire.AutomaticQueueBlockTypeEnum.ManualCheck,
+                        TemplateMode = Wire.AutomaticQueueTemplateModeEnum.SavedPreset,
                         PresetId = retainedPreset.Id
                     }),
                     QueueBlock(2, deletedCombinationKey, new AutomaticQueueBlockWriteDto
                     {
                         Key = deletedCombinationKey,
-                        Type = AutomaticQueueBlockTypeEnum.ManualCheck,
-                        TemplateMode = AutomaticQueueTemplateModeEnum.PresetCombination,
+                        Type = Wire.AutomaticQueueBlockTypeEnum.ManualCheck,
+                        TemplateMode = Wire.AutomaticQueueTemplateModeEnum.PresetCombination,
                         PresetCombination = Combination(deletedPreset.Id, retainedPreset.Id)
                     }),
                     QueueBlock(3, retainedDelayKey, new AutomaticQueueBlockWriteDto
                     {
                         Key = retainedDelayKey,
-                        Type = AutomaticQueueBlockTypeEnum.Delay,
+                        Type = Wire.AutomaticQueueBlockTypeEnum.Delay,
                         DelaySeconds = 30
                     })
                 ]
@@ -162,8 +163,8 @@ public sealed class ManualCheckDataServiceTests
                     QueueBlock(0, Guid.NewGuid(), new AutomaticQueueBlockWriteDto
                     {
                         Key = Guid.NewGuid(),
-                        Type = AutomaticQueueBlockTypeEnum.ManualCheck,
-                        TemplateMode = AutomaticQueueTemplateModeEnum.SavedPreset,
+                        Type = Wire.AutomaticQueueBlockTypeEnum.ManualCheck,
+                        TemplateMode = Wire.AutomaticQueueTemplateModeEnum.SavedPreset,
                         PresetId = deletedPreset.Id
                     })
                 ]
@@ -267,7 +268,7 @@ public sealed class ManualCheckDataServiceTests
         var input = PresetInput("Priced");
         input.PriceRange = new ManualCheckPriceRangeDto
         {
-            Mode = ManualCheckPriceRangeModeEnum.Between,
+            Mode = Wire.ManualCheckPriceRangeModeEnum.Between,
             MinimumPriceMinorUnits = 125,
             MaximumPriceMinorUnits = 350
         };
@@ -275,7 +276,7 @@ public sealed class ManualCheckDataServiceTests
         var created = await service.CreatePresetAsync(input, CancellationToken.None);
         input.PriceRange = new ManualCheckPriceRangeDto
         {
-            Mode = ManualCheckPriceRangeModeEnum.Below,
+            Mode = Wire.ManualCheckPriceRangeModeEnum.Below,
             MaximumPriceMinorUnits = 275
         };
         var updated = await service.UpdatePresetAsync(created.Id, input, CancellationToken.None);
@@ -283,10 +284,10 @@ public sealed class ManualCheckDataServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(created.PriceRange!.Mode, Is.EqualTo(ManualCheckPriceRangeModeEnum.Between));
+            Assert.That(created.PriceRange!.Mode, Is.EqualTo(Wire.ManualCheckPriceRangeModeEnum.Between));
             Assert.That(created.PriceRange.MinimumPriceMinorUnits, Is.EqualTo(125));
             Assert.That(created.PriceRange.MaximumPriceMinorUnits, Is.EqualTo(350));
-            Assert.That(updated.PriceRange!.Mode, Is.EqualTo(ManualCheckPriceRangeModeEnum.Below));
+            Assert.That(updated.PriceRange!.Mode, Is.EqualTo(Wire.ManualCheckPriceRangeModeEnum.Below));
             Assert.That(updated.PriceRange.MinimumPriceMinorUnits, Is.Null);
             Assert.That(updated.PriceRange.MaximumPriceMinorUnits, Is.EqualTo(275));
             Assert.That(stored.PriceRangeMode, Is.EqualTo(ManualCheckPriceRangeModeEnum.Below));
@@ -310,7 +311,7 @@ public sealed class ManualCheckDataServiceTests
         var input = PresetInput("Invalid price");
         input.PriceRange = new ManualCheckPriceRangeDto
         {
-            Mode = mode,
+            Mode = (Wire.ManualCheckPriceRangeModeEnum)mode,
             MinimumPriceMinorUnits = minimum,
             MaximumPriceMinorUnits = maximum
         };
@@ -575,7 +576,7 @@ public sealed class ManualCheckDataServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(invalid!.StatusCode, Is.EqualTo(400));
-            Assert.That(run.Status, Is.EqualTo(ManualCheckRunStatusEnum.Queued));
+            Assert.That(run.Status, Is.EqualTo(Wire.ManualCheckRunStatusEnum.Queued));
             Assert.That(detail!.Setup.Products, Has.Count.EqualTo(1));
             Assert.That(detail.Setup.ListingLimit, Is.EqualTo(10));
             Assert.That(detail.Setup.CooldownMinutes, Is.Null);
@@ -801,7 +802,7 @@ public sealed class ManualCheckDataServiceTests
             ListingLimit = 20,
             PriceRange = new ManualCheckPriceRangeDto
             {
-                Mode = ManualCheckPriceRangeModeEnum.Above,
+                Mode = Wire.ManualCheckPriceRangeModeEnum.Above,
                 MinimumPriceMinorUnits = 500
             },
             CooldownMinutes = 1,
@@ -812,7 +813,7 @@ public sealed class ManualCheckDataServiceTests
                 new ManualCheckPresetCombinationTermWriteDto
                 {
                     PresetId = second.Id,
-                    Operator = ManualCheckPresetCombinationOperatorEnum.Or
+                    Operator = Wire.ManualCheckPresetCombinationOperatorEnum.Or
                 }
             ]
         };
@@ -837,7 +838,7 @@ public sealed class ManualCheckDataServiceTests
             Assert.That(row.ManualCheckPresetId, Is.Null);
             Assert.That(row.PresetName, Is.EqualTo("(Paints) OR (Effects)"));
             Assert.That(detail!.Setup.ListingLimit, Is.EqualTo(20));
-            Assert.That(detail.Setup.PriceRange!.Mode, Is.EqualTo(ManualCheckPriceRangeModeEnum.Above));
+            Assert.That(detail.Setup.PriceRange!.Mode, Is.EqualTo(Wire.ManualCheckPriceRangeModeEnum.Above));
             Assert.That(detail.Setup.PriceRange.MinimumPriceMinorUnits, Is.EqualTo(500));
             Assert.That(detail.Setup.CooldownMinutes, Is.EqualTo(1));
             Assert.That(detail.Setup.CooldownSeconds, Is.EqualTo(5));
@@ -889,7 +890,7 @@ public sealed class ManualCheckDataServiceTests
 
         var duplicate = Combination(first.Id, first.Id);
         var invalidOperator = Combination(first.Id, second.Id);
-        invalidOperator.Terms[1].Operator = (ManualCheckPresetCombinationOperatorEnum)999;
+        invalidOperator.Terms[1].Operator = (Wire.ManualCheckPresetCombinationOperatorEnum)999;
         var missing = Combination(first.Id, 404);
         var unowned = Combination(first.Id, 99);
 
@@ -993,7 +994,7 @@ public sealed class ManualCheckDataServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(canceled.Status, Is.EqualTo(ManualCheckRunStatusEnum.Canceled));
+            Assert.That(canceled.Status, Is.EqualTo(Wire.ManualCheckRunStatusEnum.Canceled));
             Assert.That(canceled.CheckedProducts, Is.EqualTo(1));
             Assert.That(canceled.Results.ProductTraces, Has.Count.EqualTo(1));
             Assert.That(canceled.Results.ProductTraces[0].SteamApiResultJson, Does.Contain("success"));
@@ -1050,11 +1051,11 @@ public sealed class ManualCheckDataServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(pauseRequested.Status, Is.EqualTo(ManualCheckRunStatusEnum.PauseRequested));
+            Assert.That(pauseRequested.Status, Is.EqualTo(Wire.ManualCheckRunStatusEnum.PauseRequested));
             Assert.That(progressStatus, Is.EqualTo(ManualCheckRunStatusEnum.Paused));
             Assert.That(continued.Id, Is.EqualTo(run.Id));
-            Assert.That(continued.Status, Is.EqualTo(ManualCheckRunStatusEnum.Queued));
-            Assert.That(resumed!.Status, Is.EqualTo(ManualCheckRunStatusEnum.Running));
+            Assert.That(continued.Status, Is.EqualTo(Wire.ManualCheckRunStatusEnum.Queued));
+            Assert.That(resumed!.Status, Is.EqualTo(Wire.ManualCheckRunStatusEnum.Running));
             Assert.That(resumed.CheckedProducts, Is.EqualTo(1));
             Assert.That(resumed.Results.ProductTraces, Has.Count.EqualTo(1));
         });
@@ -1088,8 +1089,8 @@ public sealed class ManualCheckDataServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(paused.Status, Is.EqualTo(ManualCheckRunStatusEnum.Paused));
-            Assert.That(canceled.Status, Is.EqualTo(ManualCheckRunStatusEnum.Canceled));
+            Assert.That(paused.Status, Is.EqualTo(Wire.ManualCheckRunStatusEnum.Paused));
+            Assert.That(canceled.Status, Is.EqualTo(Wire.ManualCheckRunStatusEnum.Canceled));
             Assert.That(finalStatus, Is.EqualTo(ManualCheckRunStatusEnum.Running));
         });
     }
@@ -1208,12 +1209,12 @@ public sealed class ManualCheckDataServiceTests
         var runs = await service.GetRunsAsync(null, 100, CancellationToken.None);
         Assert.Multiple(() =>
         {
-            Assert.That(runs.Single(x => x.Id == 1).Status, Is.EqualTo(ManualCheckRunStatusEnum.Paused));
-            Assert.That(runs.Single(x => x.Id == 2).Status, Is.EqualTo(ManualCheckRunStatusEnum.Paused));
-            Assert.That(runs.Single(x => x.Id == 3).Status, Is.EqualTo(ManualCheckRunStatusEnum.Succeeded));
-            Assert.That(runs.Single(x => x.Id == 4).Status, Is.EqualTo(ManualCheckRunStatusEnum.Paused));
-            Assert.That(runs.Single(x => x.Id == 5).Status, Is.EqualTo(ManualCheckRunStatusEnum.Paused));
-            Assert.That(runs.Single(x => x.Id == 1).PauseReason, Is.EqualTo(AutomationPauseReasonEnum.SystemRecovery));
+            Assert.That(runs.Single(x => x.Id == 1).Status, Is.EqualTo(Wire.ManualCheckRunStatusEnum.Paused));
+            Assert.That(runs.Single(x => x.Id == 2).Status, Is.EqualTo(Wire.ManualCheckRunStatusEnum.Paused));
+            Assert.That(runs.Single(x => x.Id == 3).Status, Is.EqualTo(Wire.ManualCheckRunStatusEnum.Succeeded));
+            Assert.That(runs.Single(x => x.Id == 4).Status, Is.EqualTo(Wire.ManualCheckRunStatusEnum.Paused));
+            Assert.That(runs.Single(x => x.Id == 5).Status, Is.EqualTo(Wire.ManualCheckRunStatusEnum.Paused));
+            Assert.That(runs.Single(x => x.Id == 1).PauseReason, Is.EqualTo(Wire.AutomationPauseReasonEnum.SystemRecovery));
         });
     }
 
@@ -1247,7 +1248,7 @@ public sealed class ManualCheckDataServiceTests
                 new ManualCheckPresetCombinationTermWriteDto
                 {
                     PresetId = secondPresetId,
-                    Operator = ManualCheckPresetCombinationOperatorEnum.And
+                    Operator = Wire.ManualCheckPresetCombinationOperatorEnum.And
                 }
             ]
         };
@@ -1278,7 +1279,7 @@ public sealed class ManualCheckDataServiceTests
         {
             BlockKey = blockKey,
             SortOrder = sortOrder,
-            BlockType = configuration.Type,
+            BlockType = (AutomaticQueueBlockTypeEnum)configuration.Type,
             ConfigurationJson = JsonConvert.SerializeObject(configuration)
         };
     }

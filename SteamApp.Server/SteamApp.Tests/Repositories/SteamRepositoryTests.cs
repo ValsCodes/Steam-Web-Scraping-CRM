@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using SteamApp.Application.Caching;
 using SteamApp.Domain.Entities;
-using SteamApp.Infrastructure.Repositories;
+using SteamApp.Infrastructure.Persistence.Repositories;
 using SteamApp.Tests.TestSupport;
 
 namespace SteamApp.Tests.Repositories;

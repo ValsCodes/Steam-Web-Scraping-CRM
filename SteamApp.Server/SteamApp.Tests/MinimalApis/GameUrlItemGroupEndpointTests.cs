@@ -1,9 +1,10 @@
+using SteamApp.Application.Common.Pagination;
 using System.Net;
 using System.Net.Http.Json;
-using SteamApp.Application.DTOs.GameUrl;
+using SteamApp.Contracts.GameUrl;
 using SteamApp.Domain.Entities;
 using SteamApp.Tests.TestSupport;
-using SteamApp.WebAPI.Contracts.Pagination;
+using SteamApp.Contracts.Pagination;
 
 namespace SteamApp.Tests.MinimalApis;
 

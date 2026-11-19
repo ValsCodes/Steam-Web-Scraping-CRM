@@ -1,3 +1,4 @@
+using SteamApp.Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -5,9 +6,8 @@ using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
 using SteamApp.Infrastructure.Identity;
 using SteamApp.Tests.TestSupport;
-using SteamApp.WebAPI.Exceptions;
+using SteamApp.Application.Common.Exceptions;
 using SteamApp.WebAPI.Security;
-using SteamApp.WebAPI.Services;
 
 namespace SteamApp.Tests.Services;
 

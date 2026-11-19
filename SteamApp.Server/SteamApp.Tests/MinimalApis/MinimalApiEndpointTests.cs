@@ -1,18 +1,19 @@
+using Wire = SteamApp.Contracts.Enums;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using SteamApp.Application.Caching;
-using SteamApp.Application.DTOs.FeedbackRequest;
-using SteamApp.Application.DTOs.Game;
-using SteamApp.Application.DTOs.GameUrl;
-using SteamApp.Application.DTOs.Pixel;
-using SteamApp.Application.DTOs.Product;
-using SteamApp.Application.DTOs.WishListItem;
+using SteamApp.Contracts.FeedbackRequest;
+using SteamApp.Contracts.Game;
+using SteamApp.Contracts.GameUrl;
+using SteamApp.Contracts.Pixel;
+using SteamApp.Contracts.Product;
+using SteamApp.Contracts.WishListItem;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
-using SteamApp.Infrastructure.Context;
+using SteamApp.Infrastructure.Persistence;
 using SteamApp.Tests.TestSupport;
 
 namespace SteamApp.Tests.MinimalApis;
@@ -184,7 +185,7 @@ public sealed class MinimalApiEndpointTests
 
         var response = await app.Client.PostAsJsonAsync("/api/feedback-requests/", new FeedbackRequestCreateDto
         {
-            Type = FeedbackRequestTypeEnum.Bug,
+            Type = Wire.FeedbackRequestTypeEnum.Bug,
             Title = "  Broken status menu  ",
             Description = "  The status menu does not update after save.  ",
             Area = "  Feedback  "
@@ -228,7 +229,7 @@ public sealed class MinimalApiEndpointTests
 
         var response = await app.Client.PutAsJsonAsync("/api/feedback-requests/1", new FeedbackRequestUpdateDto
         {
-            Type = FeedbackRequestTypeEnum.Bug,
+            Type = Wire.FeedbackRequestTypeEnum.Bug,
             Title = "Updated title",
             Description = "Updated description",
             Area = "Updated area"
@@ -329,9 +330,9 @@ public sealed class MinimalApiEndpointTests
             Assert.That(patch.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
             Assert.That(historyResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(history, Has.Count.EqualTo(1));
-            Assert.That(history[0].Action, Is.EqualTo(FeedbackRequestHistoryActionEnum.StatusChanged));
-            Assert.That(history[0].PreviousStatus, Is.EqualTo(FeedbackRequestStatusEnum.Active));
-            Assert.That(history[0].NewStatus, Is.EqualTo(FeedbackRequestStatusEnum.Closed));
+            Assert.That(history[0].Action, Is.EqualTo(Wire.FeedbackRequestHistoryActionEnum.StatusChanged));
+            Assert.That(history[0].PreviousStatus, Is.EqualTo(Wire.FeedbackRequestStatusEnum.Active));
+            Assert.That(history[0].NewStatus, Is.EqualTo(Wire.FeedbackRequestStatusEnum.Closed));
         });
     }
 

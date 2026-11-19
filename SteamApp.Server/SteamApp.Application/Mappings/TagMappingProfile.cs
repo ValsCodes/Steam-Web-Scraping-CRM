@@ -1,0 +1,29 @@
+﻿using AutoMapper;
+using SteamApp.Contracts.Tag;
+using SteamApp.Domain.Entities;
+
+namespace SteamApp.Application.Mappings
+{
+    public sealed class TagMappingProfile : Profile
+    {
+        public TagMappingProfile()
+        {
+            CreateMap<Tag, TagDto>()
+                .ForMember(
+                    dest => dest.GameName,
+                    opt => opt.MapFrom(src => src.Game.Name)
+                )
+                .ForMember(
+                    dest => dest.ItemGroupName,
+                    opt => opt.MapFrom(src => src.ItemGroup == null ? null : src.ItemGroup.Name)
+                );
+
+            CreateMap<TagCreateDto, Tag>()
+                .ForMember(d => d.Id, o => o.Ignore());
+
+            CreateMap<TagUpdateDto, Tag>()
+                .ForMember(d => d.Id, o => o.Ignore())
+                .ForMember(d => d.GameId, o => o.Ignore());
+        }
+    }
+}

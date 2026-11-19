@@ -1,0 +1,13 @@
+﻿namespace SteamApp.Contracts.Tag
+{
+    public class TagDto
+    {
+        public long Id { get; set; }
+        public long GameId { get; set; }
+        public string GameName { get; set; } = null!;
+        public string? Name { get; set; }
+        public bool IsActive { get; set; }
+        public long? ItemGroupId { get; set; }
+        public string? ItemGroupName { get; set; }
+    }
+}

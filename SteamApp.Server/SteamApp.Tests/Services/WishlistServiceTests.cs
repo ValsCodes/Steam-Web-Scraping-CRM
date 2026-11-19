@@ -1,10 +1,10 @@
 using AutoMapper;
 using Moq;
 using OpenQA.Selenium;
-using SteamApp.Application.DTOs.WishListItem;
+using SteamApp.Contracts.WishListItem;
 using SteamApp.Domain.Entities;
-using SteamApp.Interfaces.Repositories;
-using SteamApp.Infrastructure.Services;
+using SteamApp.Application.Abstractions.Persistence;
+using SteamApp.Infrastructure.ExternalServices;
 
 namespace SteamApp.Tests.Services;
 

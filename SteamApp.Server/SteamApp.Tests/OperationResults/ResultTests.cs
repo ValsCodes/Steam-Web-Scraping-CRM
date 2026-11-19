@@ -1,4 +1,4 @@
-using SteamApp.Application.OperationResults;
+using SteamApp.Application.Common.Results;
 
 namespace SteamApp.Tests.OperationResults;
 

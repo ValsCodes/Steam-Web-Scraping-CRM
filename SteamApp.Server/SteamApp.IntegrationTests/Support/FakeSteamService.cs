@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
-using SteamApp.Application.DTOs.WatchItem;
-using SteamApp.Interfaces.Services;
+using SteamApp.Contracts.WatchItem;
+using SteamApp.Application.Abstractions.Services;
 
 namespace SteamApp.IntegrationTests.Support;
 

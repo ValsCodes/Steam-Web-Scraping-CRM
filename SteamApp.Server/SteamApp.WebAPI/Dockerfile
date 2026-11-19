@@ -14,9 +14,9 @@ WORKDIR /src
 COPY ["Directory.Packages.props", "./"]
 COPY ["SteamApp.WebAPI/SteamApp.WebAPI.csproj", "SteamApp.WebAPI/"]
 COPY ["SteamApp.Infrastructure/SteamApp.Infrastructure.csproj", "SteamApp.Infrastructure/"]
-COPY ["SteamApp.Interfaces/SteamApp.Interfaces.csproj", "SteamApp.Interfaces/"]
+COPY ["SteamApp.Contracts/SteamApp.Contracts.csproj", "SteamApp.Contracts/"]
 COPY ["SteamApp.Application/SteamApp.Application.csproj", "SteamApp.Application/"]
-COPY ["SteamApp.Models/SteamApp.Domain.csproj", "SteamApp.Models/"]
+COPY ["SteamApp.Domain/SteamApp.Domain.csproj", "SteamApp.Domain/"]
 RUN dotnet restore "SteamApp.WebAPI/SteamApp.WebAPI.csproj"
 
 COPY . .

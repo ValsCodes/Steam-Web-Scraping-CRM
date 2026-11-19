@@ -13,13 +13,11 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
-using SteamApp.Domain.ValueObjects.Authentication;
+using SteamApp.Contracts.Authentication;
 using SteamApp.Infrastructure.Identity;
-using SteamApp.Interfaces.Services;
-using SteamApp.WebAPI.Contracts;
-using SteamApp.WebAPI.Controllers;
+using SteamApp.Application.Abstractions.Services;
+using SteamApp.WebAPI.Endpoints.Controllers;
 using SteamApp.WebAPI.Security;
-using SteamApp.WebAPI.Services;
 
 namespace SteamApp.Tests.Controllers;
 

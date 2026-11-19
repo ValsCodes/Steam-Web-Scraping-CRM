@@ -1,7 +1,8 @@
 using System.Collections.Concurrent;
+using SteamApp.Contracts.WishListItem;
 using SteamApp.Application.DTOs.WishListItem;
-using SteamApp.Application.OperationResults;
-using SteamApp.Interfaces.Services;
+using SteamApp.Application.Common.Results;
+using SteamApp.Application.Abstractions.Services;
 
 namespace SteamApp.IntegrationTests.Support;
 

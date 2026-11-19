@@ -1,3 +1,5 @@
+using SteamApp.Contracts.AutomaticQueue;
+using SteamApp.Contracts.ManualCheck;
 using SteamApp.Application.DTOs.ManualCheck;
 
 namespace SteamApp.Application.DTOs.AutomaticQueue;

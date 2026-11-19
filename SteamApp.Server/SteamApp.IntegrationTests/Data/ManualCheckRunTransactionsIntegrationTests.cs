@@ -1,15 +1,16 @@
+using Wire = SteamApp.Contracts.Enums;
+using SteamApp.Infrastructure.Persistence.Repositories;
 using System.Data.Common;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
-using SteamApp.Application.DTOs.ManualCheck;
+using SteamApp.Contracts.ManualCheck;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
-using SteamApp.Infrastructure.Context;
+using SteamApp.Infrastructure.Persistence;
 using SteamApp.Infrastructure.Identity;
-using SteamApp.WebAPI.Services;
 
 namespace SteamApp.IntegrationTests.Data;
 
@@ -69,7 +70,7 @@ public sealed class ManualCheckRunTransactionsIntegrationTests
         Assert.Multiple(() =>
         {
             Assert.That(interceptor.StartedTransactions, Is.EqualTo(5));
-            Assert.That(completed!.Status, Is.EqualTo(ManualCheckRunStatusEnum.Succeeded));
+            Assert.That(completed!.Status, Is.EqualTo(Wire.ManualCheckRunStatusEnum.Succeeded));
             Assert.That(completed.Results.ProductTraces, Has.Count.EqualTo(1));
             Assert.That(completed.Results.ProductTraces[0].SteamApiResultJson, Does.Contain("success"));
             Assert.That(usageIntervals, Has.Count.EqualTo(2));

@@ -1,3 +1,6 @@
+using Wire = SteamApp.Contracts.Enums;
+using SteamApp.Application.Features.Scraping;
+using SteamApp.Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,20 +11,19 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Newtonsoft.Json;
 using SteamApp.Application.Caching;
-using SteamApp.Application.DTOs.ScrapeHistory;
-using SteamApp.Application.DTOs.WatchItem;
-using SteamApp.Application.DTOs.WishListItem;
+using SteamApp.Contracts.ScrapeHistory;
+using SteamApp.Contracts.WatchItem;
+using SteamApp.Contracts.WishListItem;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
-using SteamApp.Infrastructure.Context;
-using SteamApp.Interfaces.Services;
+using SteamApp.Infrastructure.Persistence;
+using SteamApp.Application.Abstractions.Services;
 using SteamApp.Tests.TestSupport;
-using SteamApp.WebAPI.Controllers;
-using SteamApp.WebAPI.MessageBrokers.Abstractions;
-using SteamApp.WebAPI.MessageBrokers.Handlers.Scraping;
-using SteamApp.WebAPI.MessageBrokers.Messages.Scraping;
-using SteamApp.WebAPI.MessageBrokers.Providers.RabbitMq.Options;
-using SteamApp.WebAPI.Services;
+using SteamApp.WebAPI.Endpoints.Controllers;
+using SteamApp.Application.Abstractions.Messaging;
+using SteamApp.Infrastructure.Messaging.Handlers.Scraping;
+using SteamApp.Contracts.Events.Scraping;
+using SteamApp.Infrastructure.Messaging.RabbitMq.Options;
 using System.Security.Claims;
 
 namespace SteamApp.Tests.Controllers;
@@ -296,7 +298,7 @@ public sealed class SteamControllerTests
         var detailResult = await controller.GetScrapeHistoryDetailAsync(otherId);
 
         var ok = listResult as OkObjectResult;
-        var items = ok?.Value as IEnumerable<SteamApp.Application.DTOs.ScrapeHistory.ScrapeHistorySummaryDto>;
+        var items = ok?.Value as IEnumerable<SteamApp.Contracts.ScrapeHistory.ScrapeHistorySummaryDto>;
         Assert.Multiple(() =>
         {
             Assert.That(items?.Count(), Is.EqualTo(1));
@@ -395,7 +397,7 @@ public sealed class SteamControllerTests
         {
             Assert.That(accepted, Is.Not.Null);
             Assert.That(dto?.HistoryId, Is.EqualTo(history.Id));
-            Assert.That(dto?.Status, Is.EqualTo(ScrapeJobStatusEnum.Queued));
+            Assert.That(dto?.Status, Is.EqualTo(Wire.ScrapeJobStatusEnum.Queued));
             Assert.That(queueName, Is.EqualTo("test.scrape.requests"));
             Assert.That(published?.HistoryId, Is.EqualTo(history.Id));
             Assert.That(published?.Endpoint, Is.EqualTo("scrape-page"));

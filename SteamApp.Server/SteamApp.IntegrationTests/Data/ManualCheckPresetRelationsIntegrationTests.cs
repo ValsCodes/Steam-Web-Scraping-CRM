@@ -1,12 +1,12 @@
+using SteamApp.Infrastructure.Persistence.Repositories;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using SteamApp.Application.DTOs.ManualCheck;
+using SteamApp.Contracts.ManualCheck;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
-using SteamApp.Infrastructure.Context;
+using SteamApp.Infrastructure.Persistence;
 using SteamApp.Infrastructure.Identity;
-using SteamApp.WebAPI.Services;
 
 namespace SteamApp.IntegrationTests.Data;
 

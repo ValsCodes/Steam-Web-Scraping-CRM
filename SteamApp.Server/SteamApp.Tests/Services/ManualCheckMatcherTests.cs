@@ -1,7 +1,9 @@
-using SteamApp.Application.DTOs.ManualCheck;
+using Wire = SteamApp.Contracts.Enums;
+using SteamApp.Application.Features.ManualChecks;
+using SteamApp.Contracts.ManualCheck;
 using SteamApp.Application.JsonObjects;
 using SteamApp.Domain.Enums;
-using SteamApp.WebAPI.ManualChecks;
+using SteamApp.Infrastructure.ExternalServices.ManualChecks;
 
 namespace SteamApp.Tests.Services;
 
@@ -248,7 +250,7 @@ public sealed class ManualCheckMatcherTests
     {
         var result = ManualCheckMatcher.MatchesPriceRange(price, new ManualCheckPriceRangeDto
         {
-            Mode = mode,
+            Mode = (Wire.ManualCheckPriceRangeModeEnum)mode,
             MinimumPriceMinorUnits = minimum,
             MaximumPriceMinorUnits = maximum
         });

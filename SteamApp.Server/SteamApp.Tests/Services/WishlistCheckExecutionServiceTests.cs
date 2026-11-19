@@ -1,14 +1,16 @@
+using SteamApp.Application.Common.Pagination;
+using SteamApp.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using SteamApp.Contracts.WishListItem;
 using SteamApp.Application.DTOs.WishListItem;
-using SteamApp.Application.OperationResults;
+using SteamApp.Application.Common.Results;
 using SteamApp.Domain.Entities;
 using SteamApp.Domain.Enums;
-using SteamApp.Interfaces.Services;
+using SteamApp.Application.Abstractions.Services;
 using SteamApp.Tests.TestSupport;
-using SteamApp.WebAPI.Contracts.Pagination;
-using SteamApp.WebAPI.Services;
+using SteamApp.Contracts.Pagination;
 
 namespace SteamApp.Tests.Services;
 

@@ -2,7 +2,7 @@ using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SteamApp.Domain.Entities;
-using SteamApp.Infrastructure.Context;
+using SteamApp.Infrastructure.Persistence;
 using SteamApp.IntegrationTests.Support;
 
 namespace SteamApp.E2ETests.Repositories;

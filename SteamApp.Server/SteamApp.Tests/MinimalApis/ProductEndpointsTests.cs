@@ -1,8 +1,9 @@
+using SteamApp.Application.Common.Pagination;
 using System.Net;
-using SteamApp.Application.DTOs.Product;
+using SteamApp.Contracts.Product;
 using SteamApp.Domain.Entities;
 using SteamApp.Tests.TestSupport;
-using SteamApp.WebAPI.Contracts.Pagination;
+using SteamApp.Contracts.Pagination;
 
 namespace SteamApp.Tests.MinimalApis;
 
