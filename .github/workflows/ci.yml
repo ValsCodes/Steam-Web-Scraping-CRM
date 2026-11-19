@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  DOTNET_VERSION: 9.0.x
+  DOTNET_VERSION: 11.0.x
   NODE_VERSION: 22.x
   SOLUTION_PATH: SteamApp.Server/SteamApp.WebAPI/SteamApp.sln
   UNIT_TEST_PROJECT: SteamApp.Server/SteamApp.Tests/SteamApp.Tests.csproj

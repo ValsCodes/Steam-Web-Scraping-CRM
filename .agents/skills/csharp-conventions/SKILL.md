@@ -66,7 +66,7 @@ Each class, record, struct, interface, enum, and delegate MUST have its own sour
 
 ## Data access, DI, and resources
 
-- `ApplicationDbContext` is the single EF Core context for Identity and business data.
+- `ApplicationDbContext` is the single EF Core context for Identity and business data. Keep the EF Core providers and Identity EF on the major version supported by BulkExtensions.
 - Repositories, reusable services, handlers, and background work inject `IDbContextFactory<ApplicationDbContext>`, create one context per operation, and dispose it with `using` or `await using`.
 - Request-bound Minimal API handlers may inject `ApplicationDbContext` directly, matching established request-scoped conventions. Any other direct usage must be an explicit short-lived scope, not a reusable service bypass of factory ownership.
 - Never run concurrent operations on one context or retain it beyond its owning request, scope, or operation.

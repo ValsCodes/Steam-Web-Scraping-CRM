@@ -39,7 +39,7 @@ For every change, identify whether it changes authentication/authorization or ow
 
 ## Discovery and orientation
 
-- Client: SteamApp.Client. Server and .NET tests: SteamApp.Server.
+- The Angular client is under SteamApp.Client. Server and test projects under SteamApp.Server target .NET 11 (`net11.0`). Use SteamApp.Server/Directory.Packages.props for central NuGet versions.
 - Follow [C# conventions](.agents/skills/csharp-conventions/SKILL.md) and [UI conventions](.agents/skills/ui-conventions/SKILL.md) for ownership and local patterns.
 - Codebase-memory is temporarily disabled. Do not call its tools, start its server, or create/update its index unless the user re-enables it.
 - Use source-based discovery only; do not invoke retired graph tools or recreate their artifacts.

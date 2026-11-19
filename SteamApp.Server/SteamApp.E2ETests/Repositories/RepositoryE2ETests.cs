@@ -28,7 +28,7 @@ public sealed class RepositoryE2ETests
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         db.ProductTags.Add(new ProductTags { ProductId = 1, TagId = 1 });
 
-        var duplicateJoinException = Assert.CatchAsync<DbUpdateException>(
+        var duplicateJoinException = await Assert.CatchAsync<DbUpdateException>(
             async () => await db.SaveChangesAsync());
 
         Assert.Multiple(() =>

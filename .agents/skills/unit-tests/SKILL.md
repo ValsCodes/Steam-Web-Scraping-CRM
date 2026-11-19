@@ -18,7 +18,7 @@ Follow AGENTS.md for proportional validation and applicable C#/UI conventions fo
 | Angular integration | Existing Jest configuration |
 | Angular E2E | Playwright; explicit request only |
 
-Use Assert.That/Assert.Multiple and Method_StateUnderTest_ExpectedBehavior for .NET. Reuse TestDb, MinimalApiTestApp, and nearby factories when appropriate. Keep async tests Task-returning and DbContext operations sequential. Use relational integration tests when transaction rollback or bulk-provider behavior must be proved; EF InMemory is insufficient.
+Use Assert.That/Assert.Multiple and Method_StateUnderTest_ExpectedBehavior for .NET. Reuse TestDb, MinimalApiTestApp, and nearby factories when appropriate. Keep async tests Task-returning and DbContext operations sequential. In NUnit 5, await `Assert.ThrowsAsync`, `Assert.CatchAsync`, and `Assert.DoesNotThrowAsync`. Use relational integration tests when transaction rollback or bulk-provider behavior must be proved; EF InMemory is insufficient.
 
 ## Coverage and execution
 

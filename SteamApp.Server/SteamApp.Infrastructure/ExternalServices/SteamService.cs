@@ -2,7 +2,6 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
-using SeleniumExtras.WaitHelpers;
 using SteamApp.Contracts.WatchItem;
 using SteamApp.Application.JsonObjects;
 using SteamApp.Application.Utilities;
@@ -139,7 +138,7 @@ public class SteamService(ISteamRepository steamRepository) : ISteamService
         driver.Navigate().Refresh();
 
         var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
-        wait.Until(ExpectedConditions.ElementExists(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]")));
+        wait.Until(browser => browser.FindElement(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]")));
 
         ReadOnlyCollection<IWebElement> listingAnchors =
             driver.FindElements(By.XPath($"//a[starts-with(@id, '{Constants.RESULTLINK}')]"));

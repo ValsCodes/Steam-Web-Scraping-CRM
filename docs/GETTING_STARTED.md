@@ -6,7 +6,7 @@ This guide covers local setup for both backend and frontend.
 
 - **Node.js** latest LTS (recommended)
 - **npm** (bundled with Node)
-- **.NET 9 SDK**
+- **.NET 11 SDK**
 - **SQL Server** instance (local or remote)
 - Optional: EF Core tools (`dotnet-ef`) if you apply migrations manually
 
@@ -81,7 +81,7 @@ cd SteamApp.Server/SteamApp.WebAPI
 dotnet ef database update --project ../SteamApp.Infrastructure --startup-project SteamApp.WebAPI.csproj
 ```
 
-> If EF tools are not installed: `dotnet tool install --global dotnet-ef`
+> If EF tools are not installed: `dotnet tool install --global dotnet-ef --version 10.0.15`
 
 ---
 
@@ -117,7 +117,7 @@ For local registration without an existing SMTP account, start Docker Desktop an
 `.\Start-SteamApp-Local-Release.bat --local-mail` from the repository root in PowerShell.
 The launcher starts a local Mailpit inbox at `http://127.0.0.1:8025` and configures the API
 process to send verification codes there. To stop Mailpit, run
-`docker compose -f docker-compose.local-mail.yml down`.
+`docker compose --project-directory . -f docker/docker-compose.local-mail.yml down`.
 
 Existing administrator role assignments carry forward. Where configuration is used to assign administrators, set `Authentication:AdminUserIds` to the confirmed SteamApp user IDs. The old `Authentication:AdminEmails` setting has no effect.
 

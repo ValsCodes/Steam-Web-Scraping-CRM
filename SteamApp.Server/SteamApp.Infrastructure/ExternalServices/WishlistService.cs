@@ -2,7 +2,6 @@ using AutoMapper;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
-using SeleniumExtras.WaitHelpers;
 using SteamApp.Contracts.WishListItem;
 using SteamApp.Application.DTOs.WishListItem;
 using SteamApp.Application.Common.Results;
@@ -51,7 +50,7 @@ public class WishlistService(IWishlistRepository repository, IMapper mapper) : I
             driver.Navigate().GoToUrl(url);
 
             var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
-            wait.Until(ExpectedConditions.ElementExists(By.CssSelector("div[id^='appHubAppName']")));
+            wait.Until(browser => browser.FindElement(By.CssSelector("div[id^='appHubAppName']")));
 
             cancellationToken.ThrowIfCancellationRequested();
 

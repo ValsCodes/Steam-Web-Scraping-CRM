@@ -27,7 +27,7 @@ Apply this skill together with `csharp-conventions` for server work and `ui-conv
 
 - Keep `GlobalExceptionHandler` registered through `AddExceptionHandler`, `AddProblemDetails`, and `UseExceptionHandler` early in the request pipeline.
 - Return a redacted 500 ProblemDetails response with the request path and trace ID. Never expose exception messages, stack traces, credentials, tokens, personal data, request bodies, or external payloads.
-- Avoid duplicate logging. On .NET 9, rely on the exception-handler middleware diagnostics unless a concrete operational requirement justifies separate logging and its duplication is configured away.
+- On .NET 11, keep `SuppressDiagnosticsCallback = _ => false` on the exception-handler middleware so handled 500s emit diagnostics. Use those diagnostics as the single source of exception logs.
 - The HTTP handler covers only the request pipeline. Startup, hosted workers, message consumers, and external integration boundaries retain their own cancellation, retry, recovery, and logging behavior.
 
 ## Completion checks

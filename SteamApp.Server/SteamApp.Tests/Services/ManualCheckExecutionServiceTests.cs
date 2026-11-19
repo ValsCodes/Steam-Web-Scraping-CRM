@@ -635,7 +635,7 @@ public sealed class ManualCheckExecutionServiceTests
     }
 
     [Test]
-    public void ExecuteAsync_CancellationDuringCooldown_StopsBeforeNextProduct()
+    public async Task ExecuteAsync_CancellationDuringCooldown_StopsBeforeNextProduct()
     {
         var attempts = 0;
         var handler = new HttpMessageHandlerStub((_, _) =>
@@ -654,7 +654,7 @@ public sealed class ManualCheckExecutionServiceTests
             });
         var service = CreateService(handler, data.Object, maxAttempts: 1, delay: delay.Object);
 
-        Assert.CatchAsync<OperationCanceledException>(async () =>
+        await Assert.CatchAsync<OperationCanceledException>(async () =>
             await service.ExecuteAsync(23, cancellation.Token, CancellationToken.None));
 
         Assert.That(attempts, Is.EqualTo(1));

@@ -89,7 +89,7 @@ public sealed class AutomationAccessServiceTests
         var service = CreateService(database, now);
 
         var usage = await service.GetUsageAsync("user-1", CancellationToken.None);
-        var exception = Assert.ThrowsAsync<AutomationAccessException>(() =>
+        var exception = await Assert.ThrowsAsync<AutomationAccessException>(() =>
             service.EnsureCanExecuteAsync("user-1", CancellationToken.None));
 
         Assert.Multiple(() =>
@@ -121,7 +121,7 @@ public sealed class AutomationAccessServiceTests
         var tabId = Guid.NewGuid();
         await service.UpsertPresenceAsync("user-1", tabId, CancellationToken.None);
 
-        var exception = Assert.ThrowsAsync<AutomationAccessException>(() =>
+        var exception = await Assert.ThrowsAsync<AutomationAccessException>(() =>
             service.UpsertPresenceAsync("user-2", tabId, CancellationToken.None));
 
         Assert.That(exception!.StatusCode, Is.EqualTo(409));
@@ -133,7 +133,7 @@ public sealed class AutomationAccessServiceTests
         using var database = TestDb.CreateDatabase();
         var now = new DateTimeOffset(2026, 10, 7, 8, 0, 0, TimeSpan.Zero);
         var service = CreateService(database, now);
-        var noPresence = Assert.ThrowsAsync<AutomationAccessException>(() =>
+        var noPresence = await Assert.ThrowsAsync<AutomationAccessException>(() =>
             service.EnsureCanExecuteAsync("user-1", CancellationToken.None));
         await service.UpsertPresenceAsync("user-1", Guid.NewGuid(), CancellationToken.None);
         var run = AddRun(database, "user-1");
@@ -148,7 +148,7 @@ public sealed class AutomationAccessServiceTests
         });
         database.Context.SaveChanges();
 
-        var exhausted = Assert.ThrowsAsync<AutomationAccessException>(() =>
+        var exhausted = await Assert.ThrowsAsync<AutomationAccessException>(() =>
             service.EnsureCanExecuteAsync("user-1", CancellationToken.None));
 
         Assert.Multiple(() =>
@@ -169,7 +169,7 @@ public sealed class AutomationAccessServiceTests
         await service.UpsertPresenceAsync("user-1", Guid.NewGuid(), CancellationToken.None);
 
         var usage = await service.GetUsageAsync("user-1", CancellationToken.None);
-        var exception = Assert.ThrowsAsync<AutomationAccessException>(() =>
+        var exception = await Assert.ThrowsAsync<AutomationAccessException>(() =>
             service.EnsureCanExecuteAsync("user-1", CancellationToken.None));
 
         Assert.Multiple(() =>
@@ -204,7 +204,7 @@ public sealed class AutomationAccessServiceTests
 
         var usage = await service.GetUsageAsync("admin-1", CancellationToken.None);
         var adminRow = (await service.GetAllUsageAsync(CancellationToken.None)).Single(x => x.UserId == "admin-1");
-        Assert.DoesNotThrowAsync(() => service.EnsureCanExecuteAsync("admin-1", CancellationToken.None));
+        await Assert.DoesNotThrowAsync(() => service.EnsureCanExecuteAsync("admin-1", CancellationToken.None));
 
         Assert.Multiple(() =>
         {

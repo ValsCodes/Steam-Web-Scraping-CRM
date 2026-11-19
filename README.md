@@ -3,7 +3,7 @@
 A full-stack Steam market intelligence and workflow automation platform.
 
 - **Frontend:** Angular 21 (`SteamApp.Client`)
-- **Backend:** .NET 9 Web API (`SteamApp.Server/SteamApp.WebAPI`)
+- **Backend:** .NET 11 Web API (`SteamApp.Server/SteamApp.WebAPI`)
 - **Primary use case:** connect Steam catalog context with reusable matching rules, live manual checks, automated queues, monitoring targets, and auditable run history.
 
 SteamApp is not a traditional customer-relationship CRM. It is an operations workspace for turning repeated Steam market research into structured, explainable workflows.
@@ -98,7 +98,7 @@ Legacy pixel and standalone scraper implementations remain in the repository for
 
 ### Backend
 
-- ASP.NET Core (.NET 9)
+- ASP.NET Core (.NET 11)
 - Minimal APIs + Controllers
 - Entity Framework Core (SQL Server)
 - JWT auth

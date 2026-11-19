@@ -105,7 +105,7 @@ public sealed class ExternalAccountRegistrationTests
             """);
         var registration = scope.ServiceProvider.GetRequiredService<ExternalAccountRegistration>();
 
-        Assert.ThrowsAsync<DbUpdateException>(() => registration.RegisterAsync(
+        await Assert.ThrowsAsync<DbUpdateException>(() => registration.RegisterAsync(
             new("Google", "test-subject", "Google"), "new@example.test", default));
 
         Assert.That(await db.Users.CountAsync(), Is.Zero);
@@ -127,6 +127,6 @@ public sealed class ExternalAccountRegistrationTests
         db.Users.AddRange(new ApplicationUser { NormalizedEmail = "DUPLICATE@EXAMPLE.TEST" },
             new ApplicationUser { NormalizedEmail = "DUPLICATE@EXAMPLE.TEST" });
 
-        Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
     }
 }

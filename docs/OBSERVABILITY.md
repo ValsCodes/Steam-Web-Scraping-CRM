@@ -13,8 +13,8 @@ profiling, and long-term retention are intentionally outside this local setup.
 From the repository root:
 
 ```powershell
-docker compose -f docker-compose.observability.yml up -d
-docker compose -f docker-compose.observability.yml ps
+docker compose --project-directory . -f docker/docker-compose.observability.yml up -d
+docker compose --project-directory . -f docker/docker-compose.observability.yml ps
 ```
 
 Wait until `otel-lgtm` reports healthy, then run the API with the explicit
@@ -72,7 +72,7 @@ channels cannot reintroduce sensitive request targets or identifiers.
 ## Stop and reset
 
 ```powershell
-docker compose -f docker-compose.observability.yml down
+docker compose --project-directory . -f docker/docker-compose.observability.yml down
 ```
 
 No data volume is mounted. Removing the container removes its logs, traces, and

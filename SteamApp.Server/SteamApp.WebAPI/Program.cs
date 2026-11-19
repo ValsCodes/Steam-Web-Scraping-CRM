@@ -372,7 +372,10 @@ public class Program
             app.UseForwardedHeaders();
         }
 
-        app.UseExceptionHandler();
+        app.UseExceptionHandler(new ExceptionHandlerOptions
+        {
+            SuppressDiagnosticsCallback = _ => false
+        });
 
         if (app.Environment.IsDevelopment())
         {

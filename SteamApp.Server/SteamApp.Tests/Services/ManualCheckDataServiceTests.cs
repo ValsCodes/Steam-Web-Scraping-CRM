@@ -24,7 +24,7 @@ public sealed class ManualCheckDataServiceTests
 
         var created = await service.CreatePresetAsync(input, CancellationToken.None);
         var visible = await service.GetPresetsAsync(gameId: null, CancellationToken.None);
-        var duplicate = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var duplicate = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreatePresetAsync(input, CancellationToken.None));
 
         Assert.Multiple(() =>
@@ -83,7 +83,7 @@ public sealed class ManualCheckDataServiceTests
             CancellationToken.None);
 
         var visible = await service.GetPresetsAsync(TestDb.TestUserId, 1, 1, CancellationToken.None);
-        var edit = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var edit = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.UpdatePresetAsync(TestDb.TestUserId, global.Id, PresetInput("Changed"), CancellationToken.None));
         var clone = await service.ClonePresetAsync(TestDb.TestUserId, global.Id, CancellationToken.None);
 
@@ -196,7 +196,7 @@ public sealed class ManualCheckDataServiceTests
         var service = new ManualCheckDataService(database.Factory);
         var preset = await service.CreatePresetAsync(PresetInput("Owned preset"), CancellationToken.None);
 
-        var exception = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var exception = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.DeletePresetAsync("other-user", preset.Id, CancellationToken.None));
 
         await using var verification = database.Factory.CreateDbContext();
@@ -241,11 +241,11 @@ public sealed class ManualCheckDataServiceTests
 
         var duplicateInput = PresetInput("Duplicate URLs");
         duplicateInput.GameUrlIds = [1, 1];
-        var duplicate = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var duplicate = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreatePresetAsync(duplicateInput, CancellationToken.None));
         var wrongModeInput = PresetInput("Wrong mode");
         wrongModeInput.GameUrlIds = [2];
-        var wrongMode = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var wrongMode = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreatePresetAsync(wrongModeInput, CancellationToken.None));
 
         Assert.Multiple(() =>
@@ -301,7 +301,7 @@ public sealed class ManualCheckDataServiceTests
     [TestCase(ManualCheckPriceRangeModeEnum.Between, 200, 100)]
     [TestCase(ManualCheckPriceRangeModeEnum.Below, 100, 200)]
     [TestCase(ManualCheckPriceRangeModeEnum.Below, null, -1)]
-    public void CreatePresetAsync_InvalidPriceRange_RejectsRequest(
+    public async Task CreatePresetAsync_InvalidPriceRange_RejectsRequest(
         ManualCheckPriceRangeModeEnum mode,
         long? minimum,
         long? maximum)
@@ -316,7 +316,7 @@ public sealed class ManualCheckDataServiceTests
             MaximumPriceMinorUnits = maximum
         };
 
-        var exception = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var exception = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreatePresetAsync(input, CancellationToken.None));
 
         Assert.That(exception!.StatusCode, Is.EqualTo(400));
@@ -343,11 +343,11 @@ public sealed class ManualCheckDataServiceTests
         var ungrouped = await service.CreatePresetAsync(ungroupedInput, CancellationToken.None);
         var invalidInput = PresetInput("Wrong game group");
         invalidInput.ItemGroupId = 2;
-        var invalid = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var invalid = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreatePresetAsync(invalidInput, CancellationToken.None));
         var wrongOwnerInput = PresetInput("Wrong owner group");
         wrongOwnerInput.ItemGroupId = 3;
-        var wrongOwner = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var wrongOwner = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreatePresetAsync(wrongOwnerInput, CancellationToken.None));
         var visible = await service.GetPresetsAsync(gameId: 1, CancellationToken.None);
         var clearInput = PresetInput(grouped.Name);
@@ -444,7 +444,7 @@ public sealed class ManualCheckDataServiceTests
             });
         }
 
-        var exception = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var exception = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreatePresetAsync(rejectedInput, CancellationToken.None));
 
         Assert.Multiple(() =>
@@ -459,7 +459,7 @@ public sealed class ManualCheckDataServiceTests
     [TestCase("premature")]
     [TestCase("excessive")]
     [TestCase("unclosed")]
-    public void CreatePresetAsync_MalformedGrouping_RejectsRequest(string scenario)
+    public async Task CreatePresetAsync_MalformedGrouping_RejectsRequest(string scenario)
     {
         using var database = TestDb.CreateSeededDatabase();
         var service = new ManualCheckDataService(database.Factory);
@@ -489,14 +489,14 @@ public sealed class ManualCheckDataServiceTests
                 break;
         }
 
-        var exception = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var exception = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreatePresetAsync(input, CancellationToken.None));
 
         Assert.That(exception!.StatusCode, Is.EqualTo(400));
     }
 
     [Test]
-    public void CreatePresetAsync_MissingOperatorOrPartialCooldown_RejectsRequest()
+    public async Task CreatePresetAsync_MissingOperatorOrPartialCooldown_RejectsRequest()
     {
         using var database = TestDb.CreateSeededDatabase();
         var service = new ManualCheckDataService(database.Factory);
@@ -511,11 +511,11 @@ public sealed class ManualCheckDataServiceTests
         var partialCooldown = PresetInput("Partial cooldown");
         partialCooldown.CooldownMinutes = 1;
 
-        var operatorException = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var operatorException = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreatePresetAsync(missingOperator, CancellationToken.None));
-        var unsupportedOperatorException = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var unsupportedOperatorException = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreatePresetAsync(unsupportedOperator, CancellationToken.None));
-        var cooldownException = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var cooldownException = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreatePresetAsync(partialCooldown, CancellationToken.None));
 
         Assert.Multiple(() =>
@@ -541,7 +541,7 @@ public sealed class ManualCheckDataServiceTests
         invalidCooldown.CooldownSeconds = 60;
 
         var created = await service.CreatePresetAsync(zeroCooldown, CancellationToken.None);
-        var exception = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var exception = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreatePresetAsync(invalidCooldown, CancellationToken.None));
 
         Assert.Multiple(() =>
@@ -565,7 +565,7 @@ public sealed class ManualCheckDataServiceTests
 
         source.ScrapingModeId = (long)ScrapingModeEnum.Batch;
         database.Context.SaveChanges();
-        var invalid = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var invalid = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreateRunAsync(TestDb.TestUserId, source.Id, preset.Id, null, false, null, CancellationToken.None));
         source.ScrapingModeId = (long)ScrapingModeEnum.ManualBatch;
         database.Context.SaveChanges();
@@ -755,9 +755,9 @@ public sealed class ManualCheckDataServiceTests
         var rerun = await service.RerunAsync(run.Id, CancellationToken.None);
         var rerunDetail = await service.GetRunAsync(rerun.Id, CancellationToken.None);
 
-        var empty = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var empty = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreateRunAsync(TestDb.TestUserId, source.Id, preset.Id, null, false, [], CancellationToken.None));
-        var unrelated = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var unrelated = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreateRunAsync(TestDb.TestUserId, source.Id, preset.Id, null, false, [999], CancellationToken.None));
 
         Assert.Multiple(() =>
@@ -894,13 +894,13 @@ public sealed class ManualCheckDataServiceTests
         var missing = Combination(first.Id, 404);
         var unowned = Combination(first.Id, 99);
 
-        var duplicateError = Assert.ThrowsAsync<ManualCheckRequestException>(() => service.CreateRunAsync(
+        var duplicateError = await Assert.ThrowsAsync<ManualCheckRequestException>(() => service.CreateRunAsync(
             TestDb.TestUserId, source.Id, null, duplicate, false, null, CancellationToken.None));
-        var operatorError = Assert.ThrowsAsync<ManualCheckRequestException>(() => service.CreateRunAsync(
+        var operatorError = await Assert.ThrowsAsync<ManualCheckRequestException>(() => service.CreateRunAsync(
             TestDb.TestUserId, source.Id, null, invalidOperator, false, null, CancellationToken.None));
-        var missingError = Assert.ThrowsAsync<ManualCheckRequestException>(() => service.CreateRunAsync(
+        var missingError = await Assert.ThrowsAsync<ManualCheckRequestException>(() => service.CreateRunAsync(
             TestDb.TestUserId, source.Id, null, missing, false, null, CancellationToken.None));
-        var unownedError = Assert.ThrowsAsync<ManualCheckRequestException>(() => service.CreateRunAsync(
+        var unownedError = await Assert.ThrowsAsync<ManualCheckRequestException>(() => service.CreateRunAsync(
             TestDb.TestUserId, source.Id, null, unowned, false, null, CancellationToken.None));
 
         Assert.Multiple(() =>
@@ -931,21 +931,21 @@ public sealed class ManualCheckDataServiceTests
         row.SetupJson = setup.ToString();
         database.Context.SaveChanges();
 
-        var exception = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var exception = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.RerunAsync(original.Id, CancellationToken.None));
 
         Assert.That(exception!.StatusCode, Is.EqualTo(400));
     }
 
     [Test]
-    public void CreatePresetAsync_ListingLimitIsNotPositive_RejectsRequest()
+    public async Task CreatePresetAsync_ListingLimitIsNotPositive_RejectsRequest()
     {
         using var database = TestDb.CreateSeededDatabase();
         var service = new ManualCheckDataService(database.Factory);
         var input = PresetInput("Invalid limit");
         input.ListingLimit = 0;
 
-        var exception = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var exception = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.CreatePresetAsync(input, CancellationToken.None));
 
         Assert.Multiple(() =>
@@ -1174,11 +1174,11 @@ public sealed class ManualCheckDataServiceTests
         var run = await service.CreateRunAsync(
             TestDb.TestUserId, source.Id, preset.Id, null, false, [1], CancellationToken.None);
 
-        var notPaused = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var notPaused = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.UpdateListingLimitAsync(run.Id, 20, CancellationToken.None));
         await service.PauseAsync(run.Id, CancellationToken.None);
         var updated = await service.UpdateListingLimitAsync(run.Id, 20, CancellationToken.None);
-        var invalid = Assert.ThrowsAsync<ManualCheckRequestException>(() =>
+        var invalid = await Assert.ThrowsAsync<ManualCheckRequestException>(() =>
             service.UpdateListingLimitAsync(run.Id, 0, CancellationToken.None));
         var storedPreset = database.Context.ManualCheckPresets.Single(x => x.Id == preset.Id);
 

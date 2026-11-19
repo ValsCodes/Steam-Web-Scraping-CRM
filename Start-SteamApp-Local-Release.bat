@@ -90,7 +90,7 @@ if errorlevel 1 (
 )
 
 if /I "%~1"=="--local-mail" (
-    docker compose -f "%ROOT%docker-compose.local-mail.yml" up -d --wait
+    docker compose --project-directory "%ROOT%." -f "%ROOT%docker\docker-compose.local-mail.yml" up -d --wait
     if errorlevel 1 goto local_mail_failed
     set "Email__Host=127.0.0.1"
     set "Email__Port=1025"

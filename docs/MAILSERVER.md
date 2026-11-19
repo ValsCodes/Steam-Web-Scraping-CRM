@@ -78,7 +78,7 @@ docker-data/dms/config/opendkim/keys/<domain>/mail.txt
 Run Certbot once with port 80 free:
 
 ```bash
-docker compose --env-file env/mailserver.env -f docker-compose.mail.yml --profile certbot run --rm certbot
+docker compose --project-directory . --env-file env/mailserver.env -f docker/docker-compose.mail.yml --profile certbot run --rm certbot
 ```
 
 For a staging certificate test first, set this in `env/mailserver.env`:
@@ -95,36 +95,36 @@ Create the app sender and postmaster accounts before relying on SMTP. These
 commands write account data into the mounted Docker Mailserver config volume:
 
 ```bash
-docker compose --env-file env/mailserver.env -f docker-compose.mail.yml run --rm mailserver setup email add postmaster@<domain> '<strong-password>'
-docker compose --env-file env/mailserver.env -f docker-compose.mail.yml run --rm mailserver setup email add notifications@<domain> '<strong-password>'
-docker compose --env-file env/mailserver.env -f docker-compose.mail.yml run --rm mailserver setup config dkim
+docker compose --project-directory . --env-file env/mailserver.env -f docker/docker-compose.mail.yml run --rm mailserver setup email add postmaster@<domain> '<strong-password>'
+docker compose --project-directory . --env-file env/mailserver.env -f docker/docker-compose.mail.yml run --rm mailserver setup email add notifications@<domain> '<strong-password>'
+docker compose --project-directory . --env-file env/mailserver.env -f docker/docker-compose.mail.yml run --rm mailserver setup config dkim
 ```
 
 For the local smoke-test domain, the concrete commands are:
 
 ```bash
-docker compose --env-file env/mailserver.test.env.example -f docker-compose.mail.yml run --rm mailserver setup email add postmaster@steamapp.test 'Password1!'
-docker compose --env-file env/mailserver.test.env.example -f docker-compose.mail.yml run --rm mailserver setup email add notifications@steamapp.test 'Password1!'
-docker compose --env-file env/mailserver.test.env.example -f docker-compose.mail.yml run --rm mailserver setup config dkim
+docker compose --project-directory . --env-file env/mailserver.test.env.example -f docker/docker-compose.mail.yml run --rm mailserver setup email add postmaster@steamapp.test 'Password1!'
+docker compose --project-directory . --env-file env/mailserver.test.env.example -f docker/docker-compose.mail.yml run --rm mailserver setup email add notifications@steamapp.test 'Password1!'
+docker compose --project-directory . --env-file env/mailserver.test.env.example -f docker/docker-compose.mail.yml run --rm mailserver setup config dkim
 ```
 
 Then start or restart the mailserver:
 
 ```bash
-docker compose --env-file env/mailserver.env -f docker-compose.mail.yml up -d mailserver
+docker compose --project-directory . --env-file env/mailserver.env -f docker/docker-compose.mail.yml up -d mailserver
 ```
 
 For the local smoke-test domain:
 
 ```bash
-docker compose --env-file env/mailserver.test.env.example -f docker-compose.mail.yml up -d mailserver
+docker compose --project-directory . --env-file env/mailserver.test.env.example -f docker/docker-compose.mail.yml up -d mailserver
 ```
 
 If the container is already running and still inside Docker Mailserver's
 first-start grace period, `exec` also works:
 
 ```bash
-docker compose --env-file env/mailserver.env -f docker-compose.mail.yml exec mailserver setup email add notifications@<domain> '<strong-password>'
+docker compose --project-directory . --env-file env/mailserver.env -f docker/docker-compose.mail.yml exec mailserver setup email add notifications@<domain> '<strong-password>'
 ```
 
 The warning `You need at least one mail account to start Dovecot` means the
@@ -170,14 +170,14 @@ with a valid Let's Encrypt certificate.
 ## Smoke Checks
 
 ```bash
-docker compose --env-file env/mailserver.env -f docker-compose.mail.yml config
+docker compose --project-directory . --env-file env/mailserver.env -f docker/docker-compose.mail.yml config
 openssl s_client -starttls smtp -connect mail.<domain>:587
 ```
 
 For the local smoke-test domain:
 
 ```bash
-docker compose --env-file env/mailserver.test.env.example -f docker-compose.mail.yml config
+docker compose --project-directory . --env-file env/mailserver.test.env.example -f docker/docker-compose.mail.yml config
 openssl s_client -starttls smtp -connect localhost:587 -servername mail.steamapp.test
 ```
 

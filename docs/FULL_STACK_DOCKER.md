@@ -1,6 +1,6 @@
 # Full Docker Compose stack
 
-`docker-compose.full.yml` runs the Angular client, .NET API, SQL Server, Redis,
+`docker/docker-compose.full.yml` runs the Angular client, .NET API, SQL Server, Redis,
 RabbitMQ, and the Grafana OTEL-LGTM observability image as the isolated
 `steamapp-full` Compose project. It is intended for a private staging host behind
 an existing HTTPS reverse proxy. The existing Compose files remain independent
@@ -33,20 +33,20 @@ network. The same value configures the API's trusted proxy network.
 Validate without printing resolved credentials:
 
 ```powershell
-docker compose --env-file env/full-stack.env -f docker-compose.full.yml config --quiet
+docker compose --project-directory . --env-file env/full-stack.env -f docker/docker-compose.full.yml config --quiet
 ```
 
 Build and start the stack:
 
 ```powershell
-docker compose --env-file env/full-stack.env -f docker-compose.full.yml up -d --build
-docker compose --env-file env/full-stack.env -f docker-compose.full.yml ps
+docker compose --project-directory . --env-file env/full-stack.env -f docker/docker-compose.full.yml up -d --build
+docker compose --project-directory . --env-file env/full-stack.env -f docker/docker-compose.full.yml ps
 ```
 
 Follow logs without rendering the resolved Compose configuration:
 
 ```powershell
-docker compose --env-file env/full-stack.env -f docker-compose.full.yml logs -f
+docker compose --project-directory . --env-file env/full-stack.env -f docker/docker-compose.full.yml logs -f
 ```
 
 Only the Angular entry point and Grafana are published, both on loopback. The
@@ -72,26 +72,25 @@ preserves those headers and proxies `/api` and `/steam` to the internal API.
 Stop containers while retaining all named volumes:
 
 ```powershell
-docker compose --env-file env/full-stack.env -f docker-compose.full.yml down
+docker compose --project-directory . --env-file env/full-stack.env -f docker/docker-compose.full.yml down
 ```
 
 The following command permanently deletes this stack's SQL, Redis, RabbitMQ,
 and observability data. Run it only when a complete reset is intended:
 
 ```powershell
-docker compose --env-file env/full-stack.env -f docker-compose.full.yml down --volumes
+docker compose --project-directory . --env-file env/full-stack.env -f docker/docker-compose.full.yml down --volumes
 ```
 
 ## Existing workflows
 
-The original infrastructure, server-local, observability, and mail workflows
-are unchanged:
+Run the infrastructure, server-local, observability, or mail workflow from the repository root:
 
 ```powershell
-docker compose -f docker-compose.yml up -d
-docker compose -f SteamApp.Server\SteamApp.WebAPI\docker-compose.yml up -d
-docker compose -f docker-compose.observability.yml up -d
-docker compose -f docker-compose.mail.yml up -d
+docker compose --project-directory . -f docker/docker-compose.yml up -d
+docker compose --project-directory SteamApp.Server/SteamApp.WebAPI -f SteamApp.Server/SteamApp.WebAPI/Docker/docker-compose.yml up -d
+docker compose --project-directory . -f docker/docker-compose.observability.yml up -d
+docker compose --project-directory . -f docker/docker-compose.mail.yml up -d
 ```
 
 Because the full stack uses a distinct project name and isolated volumes, it

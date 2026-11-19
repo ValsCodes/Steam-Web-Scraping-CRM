@@ -112,7 +112,7 @@ public sealed class AutomaticQueueDataServiceTests
             CancellationToken.None);
 
         var visible = await service.GetDefinitionsAsync(TestDb.TestUserId, CancellationToken.None);
-        var edit = Assert.ThrowsAsync<AutomaticQueueRequestException>(() =>
+        var edit = await Assert.ThrowsAsync<AutomaticQueueRequestException>(() =>
             service.UpdateDefinitionAsync(
                 global.Id,
                 TestDb.TestUserId,
@@ -155,7 +155,7 @@ public sealed class AutomaticQueueDataServiceTests
             ]
         };
 
-        var exception = Assert.ThrowsAsync<AutomaticQueueRequestException>(() =>
+        var exception = await Assert.ThrowsAsync<AutomaticQueueRequestException>(() =>
             service.CreateDefinitionAsync(TestDb.TestUserId, input, CancellationToken.None));
 
         Assert.Multiple(() =>
@@ -185,7 +185,7 @@ public sealed class AutomaticQueueDataServiceTests
         var preset = await manualChecks.CreatePresetAsync(Preset("Ownership"), CancellationToken.None);
         var service = CreateService(database, manualChecks);
 
-        var exception = Assert.ThrowsAsync<AutomaticQueueRequestException>(() =>
+        var exception = await Assert.ThrowsAsync<AutomaticQueueRequestException>(() =>
             service.CreateDefinitionAsync(
                 TestDb.TestUserId,
                 Definition("Ownership", ManualBlock(preset.Id, [30])),
@@ -215,9 +215,9 @@ public sealed class AutomaticQueueDataServiceTests
         await manualChecks.UpdatePresetAsync(preset.Id, updatedPreset, CancellationToken.None);
         var storedBlock = database.Context.AutomaticQueueRunBlocks.Single();
         var snapshot = JsonConvert.DeserializeObject<AutomaticQueueRunBlockSetupDto>(storedBlock.SetupJson)!;
-        var secondStart = Assert.ThrowsAsync<AutomaticQueueRequestException>(() =>
+        var secondStart = await Assert.ThrowsAsync<AutomaticQueueRequestException>(() =>
             service.StartRunAsync(definition.Id, TestDb.TestUserId, CancellationToken.None));
-        var edit = Assert.ThrowsAsync<AutomaticQueueRequestException>(() =>
+        var edit = await Assert.ThrowsAsync<AutomaticQueueRequestException>(() =>
             service.UpdateDefinitionAsync(definition.Id, TestDb.TestUserId, Definition("Edited", ManualBlock(preset.Id, null)), CancellationToken.None));
 
         Assert.Multiple(() =>
