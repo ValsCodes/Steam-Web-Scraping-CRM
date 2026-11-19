@@ -37,6 +37,24 @@ describe('AuthService unit tests', () => {
     expect(service.hasToken()).toBeFalse();
   });
 
+  it('stores a session only after the MFA challenge is verified', () => {
+    const token = createJwt({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 3600 });
+    const challenge = { requiresMfa: true, challengeId: 'pending', expiresAtUtc: '2026-12-01T12:00:00Z' };
+    service.login('val@example.test', 'Password1').subscribe();
+    http.expectOne('https://localhost:7443/api/Auth/login').flush(challenge, { status: 202, statusText: 'Accepted' });
+
+    expect(service.isLoggedIn()).toBeFalse();
+    expect(localStorage.getItem('access_token')).toBeNull();
+
+    service.verifyMfa('pending', 'recovery', 'backup').subscribe();
+    const verify = http.expectOne('https://localhost:7443/api/Auth/mfa/verify');
+    expect(verify.request.body).toEqual({ challengeId: 'pending', method: 'recovery', code: 'backup' });
+    verify.flush({ token });
+
+    expect(service.isLoggedIn()).toBeTrue();
+    expect(localStorage.getItem('access_token')).toBe(token);
+  });
+
   it('hydrates a valid persisted token for new tabs', () => {
     const token = createJwt({
       sub: 'user-1',
@@ -205,6 +223,39 @@ describe('AuthService unit tests', () => {
     });
   });
 
+  it('keeps verification pending without a session and stores only the completed external JWT', () => {
+    const url = 'https://localhost:7443/api/Auth/external/complete';
+    const challenge = { requiresEmail: true, codeSent: true } as const;
+    const token = createJwt({ sub: 'external-user', exp: Math.floor(Date.now() / 1000) + 3600 });
+
+    service.completeExternalSignIn('external@example.test').subscribe(response => {
+      expect(response).toEqual(challenge);
+    });
+    const send = http.expectOne(url);
+    expect(send.request.withCredentials).toBeTrue();
+    expect(send.request.body.email).toBe('external@example.test');
+    send.flush(challenge, { status: 202, statusText: 'Accepted' });
+    expect(service.hasToken()).toBeFalse();
+
+    service.completeExternalSignIn(undefined, '123456').subscribe();
+    const verify = http.expectOne(url);
+    expect(verify.request.withCredentials).toBeTrue();
+    expect(verify.request.body.code).toBe('123456');
+    verify.flush({ token });
+    expect(service.getToken()).toBe(token);
+  });
+
+  it('keeps the current session when linking a provider', () => {
+    const token = createJwt({ sub: 'linked-user', exp: Math.floor(Date.now() / 1000) + 3600 });
+    service.login('linked@example.test', 'Password1').subscribe();
+    http.expectOne('https://localhost:7443/api/Auth/login').flush({ token });
+
+    service.completeExternalSignIn().subscribe();
+    http.expectOne('https://localhost:7443/api/Auth/external/complete')
+      .flush(null, { status: 204, statusText: 'No Content' });
+    expect(service.getToken()).toBe(token);
+  });
+
   it('updates profile and password through authenticated profile endpoints', () => {
     service.updateProfile({
       firstName: 'Val',
@@ -320,6 +371,24 @@ describe('AuthService unit tests', () => {
 
     tick(5 * 60 * 1000);
     http.expectNone('https://localhost:7443/api/Auth/renew');
+  }));
+
+  it('ignores a renewal response sent before the browser completed a new sign-in', fakeAsync(() => {
+    const issuedAt = Math.floor(Date.now() / 1000);
+    const oldToken = createJwt({ sub: 'first', auth_time: issuedAt, iat: issuedAt, exp: issuedAt + 3600 });
+    const newToken = createJwt({ sub: 'second', exp: issuedAt + 3600 });
+
+    service.login('first', 'Password1').subscribe();
+    http.expectOne('https://localhost:7443/api/Auth/login').flush({ token: oldToken });
+    window.dispatchEvent(new KeyboardEvent('keydown'));
+    tick(300_000);
+    const renewal = http.expectOne('https://localhost:7443/api/Auth/renew');
+
+    service.verifyMfa('challenge', 'authenticator', '123456').subscribe();
+    http.expectOne('https://localhost:7443/api/Auth/mfa/verify').flush({ token: newToken });
+    renewal.flush({ token: oldToken });
+
+    expect(service.getToken()).toBe(newToken);
   }));
 
   it('does not renew inactive, hidden, or legacy sessions', fakeAsync(() => {

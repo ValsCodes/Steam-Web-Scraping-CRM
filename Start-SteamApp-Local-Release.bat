@@ -77,7 +77,7 @@ set "ConnectionStrings__DefaultConnection=Server=(localdb)\MSSQLLocalDB;Database
 set "Database__ApplyMigrationsOnStartup=true"
 set "Database__EnsureIdentitySchemaOnStartup=true"
 set "API_URL=https://localhost:7443/swagger/index.html"
-set "CLIENT_URL=http://%CLIENT_HOST%:%CLIENT_PORT%/"
+set "CLIENT_URL=https://localhost:%CLIENT_PORT%/"
 
 sqllocaldb.exe start MSSQLLocalDB >nul 2>&1
 
@@ -87,6 +87,17 @@ if errorlevel 1 (
     echo This launcher will not create a replacement database.
     pause
     exit /b 1
+)
+
+if /I "%~1"=="--local-mail" (
+    docker compose -f "%ROOT%docker-compose.local-mail.yml" up -d --wait
+    if errorlevel 1 goto local_mail_failed
+    set "Email__Host=127.0.0.1"
+    set "Email__Port=1025"
+    set "Email__UserName=steamapp"
+    set "Email__Password=local-test"
+    set "Email__FromAddress=steamapp@example.test"
+    set "Email__UseStartTls=false"
 )
 
 call :stop_owned_listener 7443 "%SERVER_DIR%" "SteamApp.WebAPI.dll"
@@ -125,6 +136,7 @@ echo Client:  %CLIENT_URL%
 echo API:     https://localhost:7443
 echo Swagger: https://localhost:7443/swagger
 echo Database: %LOCAL_DB_NAME% on ^(localdb^)\MSSQLLocalDB
+if /I "%~1"=="--local-mail" echo Verification email inbox: http://127.0.0.1:8025
 echo Close the API and client terminal windows to stop services started here.
 
 endlocal
@@ -134,6 +146,12 @@ exit /b 0
 echo.
 echo ERROR: Port 7443 is owned by a process outside this SteamApp checkout.
 call :show_port_owner 7443
+pause
+exit /b 1
+
+:local_mail_failed
+echo.
+echo ERROR: Mailpit could not start. Check that Docker Desktop is running and ports 1025 and 8025 are free.
 pause
 exit /b 1
 

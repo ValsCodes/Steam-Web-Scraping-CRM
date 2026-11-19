@@ -217,19 +217,6 @@ public sealed class AutomationAccessService(
             .Where(x => x.UserId == userId && x.ExpiresAtUtc > now)
             .MaxAsync(x => (DateTime?)x.ExpiresAtUtc, cancellationToken);
 
-        if (isAdmin)
-        {
-            return new AutomationUsageDto
-            {
-                Unlimited = true,
-                UsedSeconds = 0,
-                PresenceRequired = false,
-                PresenceActive = true,
-                PresenceExpiresAtUtc = presenceExpiry,
-                UsageResetAtUtc = policy.UsageResetAtUtc
-            };
-        }
-
         var cutoff = now.Subtract(RollingWindow);
         if (policy.UsageResetAtUtc > cutoff)
         {
@@ -246,15 +233,15 @@ public sealed class AutomationAccessService(
 
         return new AutomationUsageDto
         {
-            Unlimited = false,
-            LimitSeconds = policy.NonAdminLimitSeconds,
+            Unlimited = isAdmin,
+            LimitSeconds = isAdmin ? null : policy.NonAdminLimitSeconds,
             UsedSeconds = roundedUsedSeconds,
-            RemainingSeconds = remainingSeconds,
+            RemainingSeconds = isAdmin ? null : remainingSeconds,
             UsageResetAtUtc = policy.UsageResetAtUtc,
-            PresenceRequired = true,
-            PresenceActive = presenceExpiry.HasValue,
+            PresenceRequired = !isAdmin,
+            PresenceActive = isAdmin || presenceExpiry.HasValue,
             PresenceExpiresAtUtc = presenceExpiry,
-            NextAllowanceAtUtc = remainingSeconds > 0
+            NextAllowanceAtUtc = isAdmin || remainingSeconds > 0
                 ? null
                 : CalculateNextAllowance(intervals, cutoff, now, policy.NonAdminLimitSeconds)
         };

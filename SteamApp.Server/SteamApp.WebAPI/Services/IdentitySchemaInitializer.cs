@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using SteamApp.Infrastructure.Context;
+using SteamApp.WebAPI.Migrations;
 
 namespace SteamApp.WebAPI.Services;
 
@@ -26,6 +27,7 @@ public class IdentitySchemaInitializer(
         await dbContext.Database.ExecuteSqlRawAsync(
             IdentitySchemaSql,
             cancellationToken);
+        await dbContext.Database.ExecuteSqlRawAsync(UniqueIdentityEmail.CreateIndexSql, cancellationToken);
     }
 
     private const string IdentitySchemaSql = """
@@ -124,11 +126,6 @@ END;
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'RoleNameIndex' AND [object_id] = OBJECT_ID(N'[dbo].[AspNetRoles]'))
 BEGIN
     CREATE UNIQUE INDEX [RoleNameIndex] ON [dbo].[AspNetRoles] ([NormalizedName]) WHERE [NormalizedName] IS NOT NULL;
-END;
-
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'EmailIndex' AND [object_id] = OBJECT_ID(N'[dbo].[AspNetUsers]'))
-BEGIN
-    CREATE INDEX [EmailIndex] ON [dbo].[AspNetUsers] ([NormalizedEmail]);
 END;
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'UserNameIndex' AND [object_id] = OBJECT_ID(N'[dbo].[AspNetUsers]'))

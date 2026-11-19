@@ -93,7 +93,7 @@ npm install
 npm start
 ```
 
-The Angular app runs on `http://localhost:4200` by default.
+The Angular app runs on `https://localhost:4300` by default.
 
 ---
 
@@ -104,6 +104,32 @@ Most API endpoints require JWT auth. Typical flow:
 1. Call `POST /api/Auth/token`
 2. Use returned bearer token in `Authorization: Bearer <token>`
 3. Access protected endpoints
+
+### Local Google and Steam sign-in
+
+1. Start the API with `dotnet run --project SteamApp.Server/SteamApp.WebAPI/SteamApp.WebAPI.csproj --launch-profile https` from the repository root. The API uses `https://localhost:7443`.
+2. In `SteamApp.Client`, run `npm start` and open `https://localhost:4300/login`. Trust the local development certificates before testing. Use `localhost` for both origins.
+3. For Google, create a **Web application** client in Google Auth Platform and add `https://localhost:7443/signin-google` under authorized redirect URIs. Set `Authentication:Google:ClientId` and `Authentication:Google:ClientSecret` in the API project's .NET User Secrets. The Google button appears when both values are configured.
+4. Steam is enabled in the development configuration and uses `https://localhost:7443/signin-steam`. Browser sign-in requires a Steam account. For a new account, configure the existing `Email` SMTP settings with an authenticated local SMTP capture service or a test mailbox, then enter the code sent by SteamApp.
+5. To attach a provider to an existing account, sign in to that account and select **Connect Google** or **Connect Steam** in **Profile** within five minutes.
+
+For local registration without an existing SMTP account, start Docker Desktop and run
+`.\Start-SteamApp-Local-Release.bat --local-mail` from the repository root in PowerShell.
+The launcher starts a local Mailpit inbox at `http://127.0.0.1:8025` and configures the API
+process to send verification codes there. To stop Mailpit, run
+`docker compose -f docker-compose.local-mail.yml down`.
+
+Existing administrator role assignments carry forward. Where configuration is used to assign administrators, set `Authentication:AdminUserIds` to the confirmed SteamApp user IDs. The old `Authentication:AdminEmails` setting has no effect.
+
+### Authenticator MFA
+
+1. In **Profile**, select **Set up authenticator** within five minutes of signing in. Scan the QR code in an authenticator app, or enter the setup key manually.
+2. Enter a six-digit code from the app to confirm enrollment. Save the ten backup codes before closing the confirmation. Each works once.
+3. On your next password, Google, or Steam sign-in, enter an authenticator code or select **Use a backup code**. If you lose your authenticator, use a backup code to sign in, then disable MFA and enroll the new device in Profile. You need an authenticator or a remaining backup code to recover access.
+
+Profile shows how many backup codes remain and lets you replace the entire set. Enabling or disabling MFA signs out other sessions. Changing your password requires signing in again. Sessions issued before this feature also require a fresh sign-in.
+
+Keep the ASP.NET Core Data Protection key ring with your local database backups so authenticator secrets remain readable. Local host development uses the current user's ASP.NET Core key ring by default. Full Docker Compose uses the `api-data-protection-keys` volume. Preserve that volume when recreating the API container. For a custom container setup, set `Authentication__DataProtectionKeyPath` to a persistent directory accessible only to the API user. Pending sign-in challenges expire on API restart.
 
 ---
 

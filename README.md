@@ -29,12 +29,14 @@ After configuring the backend user-secrets once, double-click
 `Start-SteamApp-Local-Release.bat` in the repository root. It starts:
 
 - the .NET API with `--configuration Release` on `https://localhost:7443`;
-- the optimized Angular `local-release` configuration on `http://localhost:4200`;
+- the optimized Angular `local-release` configuration on `https://localhost:4300`;
 - the existing SQL Server LocalDB database `db_steam_app2`, with automatic EF
   Core migrations.
 
 The launcher points `DefaultConnection` to the existing database and stops with
 an error if that database is missing; it does not create a replacement database.
+Run `.\Start-SteamApp-Local-Release.bat --local-mail` with Docker Desktop running
+to use a local inbox for sign-up verification codes.
 JWT and client secrets stay in .NET user-secrets and are not written into the
 batch file. It waits until both services are ready before opening the default
 browser. Each run stops API/client listeners that belong to this SteamApp
@@ -67,8 +69,8 @@ npm install
 npm start
 ```
 
-- Frontend: `http://localhost:4200`
-- Backend swagger: `https://localhost:7273/swagger` (port may vary by local profile)
+- Frontend: `https://localhost:4300`
+- Backend Swagger with the HTTPS profile: `https://localhost:7443/swagger`
 
 ## Core features
 

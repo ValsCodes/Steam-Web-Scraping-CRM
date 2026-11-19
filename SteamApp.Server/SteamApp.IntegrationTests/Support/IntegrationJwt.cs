@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using SteamApp.WebAPI.Security;
@@ -16,7 +17,8 @@ public static class IntegrationJwt
         string scope = SecurityPolicies.UserScope,
         DateTime? expiresUtc = null,
         DateTime? authenticationTimeUtc = null,
-        bool includeAuthenticationTime = true)
+        bool includeAuthenticationTime = true,
+        bool includeSessionStamp = true)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Key));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -24,13 +26,19 @@ public static class IntegrationJwt
 
         var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, "integration-user-id"),
+            new Claim(JwtRegisteredClaimNames.Sub, IntegrationSeed.UserId),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
-            new Claim(ClaimTypes.NameIdentifier, "integration-user-id"),
+            new Claim(ClaimTypes.NameIdentifier, IntegrationSeed.UserId),
             new Claim(ClaimTypes.Name, "Integration User"),
             new Claim(ClaimTypes.Role, SecurityPolicies.AdminRole),
             new Claim("scope", scope)
         };
+
+        if (includeSessionStamp)
+        {
+            claims.Add(new Claim("steamapp_session_stamp",
+                Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(IntegrationSeed.UserSecurityStamp)))));
+        }
 
         if (includeAuthenticationTime)
         {

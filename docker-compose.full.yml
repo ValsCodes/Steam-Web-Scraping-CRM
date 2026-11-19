@@ -143,6 +143,9 @@ services:
       ReverseProxy__Enabled: "true"
       ReverseProxy__ForwardLimit: "2"
       ReverseProxy__KnownNetworks__0: ${STEAMAPP_NETWORK_SUBNET:-172.30.50.0/24}
+      Authentication__DataProtectionKeyPath: /home/app/.aspnet/DataProtection-Keys
+    volumes:
+      - api-data-protection-keys:/home/app/.aspnet/DataProtection-Keys
     expose:
       - "8080"
     depends_on:
@@ -191,3 +194,4 @@ volumes:
   redis-data:
   rabbitmq-data:
   lgtm-data:
+  api-data-protection-keys:

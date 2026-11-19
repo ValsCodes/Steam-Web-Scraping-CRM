@@ -24,4 +24,10 @@ public sealed class CapturingEmailService : IEmailService
         {
         }
     }
+
+    public async Task<bool> TrySendVerificationAsync(EmailMessage message, CancellationToken cancellationToken)
+    {
+        await SendAsync(message, cancellationToken);
+        return true;
+    }
 }

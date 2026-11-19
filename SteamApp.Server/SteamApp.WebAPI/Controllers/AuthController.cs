@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SteamApp.Domain.ValueObjects.Authentication;
 using SteamApp.Infrastructure.Identity;
 using SteamApp.WebAPI.Security;
+using SteamApp.WebAPI.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Globalization;
 using System.Security.Claims;
@@ -18,7 +20,7 @@ namespace SteamApp.WebAPI.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [EnableRateLimiting(SecurityPolicies.AuthRateLimit)]
-public class AuthController(
+public partial class AuthController(
     JwtSettings jwtSettings,
     IReadOnlyList<ClientDefinition> clients,
     UserManager<ApplicationUser> userManager,
@@ -29,6 +31,7 @@ public class AuthController(
     ILogger<AuthController> logger) : ControllerBase
 {
     private const string AuthenticationTimeClaim = "auth_time";
+    private const string ExternalProviderClaim = "steamapp_external_provider";
     private static readonly TimeSpan MaximumClockSkew = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan MaximumUserSessionDuration = TimeSpan.FromHours(1);
 
@@ -75,7 +78,15 @@ public class AuthController(
             LastName = NormalizeOptional(req.LastName)
         };
 
-        var result = await userManager.CreateAsync(user, req.Password);
+        IdentityResult result;
+        try
+        {
+            result = await userManager.CreateAsync(user, req.Password);
+        }
+        catch (DbUpdateException exception) when (ExternalAccountRegistration.IsUniqueConflict(exception))
+        {
+            return Problem(statusCode: 409, title: "An account already uses that email or username.");
+        }
 
         if (!result.Succeeded)
         {
@@ -84,6 +95,7 @@ public class AuthController(
 
         logger.LogInformation("User registration completed successfully.");
 
+        MarkNoStore();
         return Ok(await CreateUserTokenResponseAsync(user, timeProvider.GetUtcNow()));
     }
 
@@ -98,10 +110,9 @@ public class AuthController(
         if (user == null)
             return Unauthorized("Invalid user credentials.");
 
-        var result = await signInManager.CheckPasswordSignInAsync(
-            user,
-            req.Password,
-            lockoutOnFailure: true);
+        var result = user.TwoFactorEnabled
+            ? await CheckMfaPasswordAsync(user, req.Password)
+            : await signInManager.CheckPasswordSignInAsync(user, req.Password, lockoutOnFailure: true);
 
         if (result.IsLockedOut)
             return Unauthorized("User account is locked out.");
@@ -109,9 +120,7 @@ public class AuthController(
         if (!result.Succeeded)
             return Unauthorized("Invalid user credentials.");
 
-        logger.LogInformation("User login completed successfully.");
-
-        return Ok(await CreateUserTokenResponseAsync(user, timeProvider.GetUtcNow()));
+        return await FinishPrimarySignInAsync(user);
     }
 
     [HttpPost("renew")]
@@ -119,6 +128,7 @@ public class AuthController(
     [EnableRateLimiting(SecurityPolicies.ApiRateLimit)]
     public async Task<IActionResult> Renew()
     {
+        MarkNoStore();
         var authenticationTime = GetAuthenticationTime();
         var now = timeProvider.GetUtcNow();
 
@@ -130,15 +140,17 @@ public class AuthController(
         }
 
         var user = await GetCurrentUserAsync();
-        if (user == null)
+        if (user == null || !UserSessionClaims.Matches(User, user))
         {
             return Unauthorized("User session cannot be renewed.");
         }
 
-        return Ok(await CreateUserTokenResponseAsync(user, authenticationTime.Value));
+        return Ok(await CreateUserTokenResponseAsync(
+            user, authenticationTime.Value, User.FindFirstValue(ExternalProviderClaim), HasMfaProof()));
     }
 
     [HttpGet("profile")]
+    [EnableRateLimiting(SecurityPolicies.ApiRateLimit)]
     [Authorize(Policy = SecurityPolicies.ApiUser)]
     public async Task<IActionResult> GetProfile()
     {
@@ -165,13 +177,26 @@ public class AuthController(
 
         user.FirstName = NormalizeOptional(req.FirstName);
         user.LastName = NormalizeOptional(req.LastName);
+        if (!string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase))
+        {
+            user.EmailConfirmed = false;
+        }
+
         user.Email = email;
         user.UserName = string.IsNullOrWhiteSpace(req.UserName)
             ? email
             : req.UserName.Trim();
         user.PhoneNumber = NormalizeOptional(req.Phone);
 
-        var result = await userManager.UpdateAsync(user);
+        IdentityResult result;
+        try
+        {
+            result = await userManager.UpdateAsync(user);
+        }
+        catch (DbUpdateException exception) when (ExternalAccountRegistration.IsUniqueConflict(exception))
+        {
+            return Problem(statusCode: 409, title: "An account already uses that email or username.");
+        }
         if (!result.Succeeded)
         {
             return ValidationProblem(CreateModelState(result));
@@ -235,10 +260,13 @@ public class AuthController(
 
     private async Task<AuthResponse> CreateUserTokenResponseAsync(
         ApplicationUser user,
-        DateTimeOffset authenticationTime)
+        DateTimeOffset authenticationTime,
+        string? externalProvider = null,
+        bool mfaVerified = false,
+        UserManager<ApplicationUser>? sessionUsers = null)
     {
         var displayName = CreateDisplayName(user)
-            ?? user.UserName
+            ?? (user.UserName != user.Id ? user.UserName : null)
             ?? user.Email
             ?? user.Id;
 
@@ -252,11 +280,18 @@ public class AuthController(
                 ClaimValueTypes.Integer64),
             new(ClaimTypes.NameIdentifier, user.Id),
             new(ClaimTypes.Name, displayName),
-            new("scope", SecurityPolicies.UserScope)
+            new("scope", SecurityPolicies.UserScope),
+            new(UserSessionClaims.Stamp, UserSessionClaims.StampDigest(user.SecurityStamp!))
         };
+
+        if (mfaVerified)
+            claims.Add(new Claim(UserSessionClaims.Mfa, "true"));
 
         if (!string.IsNullOrWhiteSpace(user.Email))
             claims.Add(new Claim(ClaimTypes.Email, user.Email));
+
+        if (externalProvider != null)
+            claims.Add(new Claim(ExternalProviderClaim, externalProvider));
 
         if (!string.IsNullOrWhiteSpace(user.UserName))
             claims.Add(new Claim("preferred_username", user.UserName));
@@ -270,7 +305,7 @@ public class AuthController(
         if (!string.IsNullOrWhiteSpace(user.PhoneNumber))
             claims.Add(new Claim("phone_number", user.PhoneNumber));
 
-        var roles = await EnsureUserRolesAsync(user);
+        var roles = await EnsureUserRolesAsync(user, sessionUsers ?? userManager);
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         return CreateTokenResponse(
@@ -278,29 +313,32 @@ public class AuthController(
             authenticationTime.Add(MaximumUserSessionDuration));
     }
 
-    private async Task<IReadOnlyCollection<string>> EnsureUserRolesAsync(ApplicationUser user)
+    private async Task<IReadOnlyCollection<string>> EnsureUserRolesAsync(
+        ApplicationUser user, UserManager<ApplicationUser> sessionUsers)
     {
         var roles = new HashSet<string>(
-            await userManager.GetRolesAsync(user),
+            await sessionUsers.GetRolesAsync(user),
             StringComparer.OrdinalIgnoreCase);
 
         if (roles.Add(SecurityPolicies.UserRole))
         {
-            await AddRoleOrThrowAsync(user, SecurityPolicies.UserRole);
+            await AddRoleOrThrowAsync(user, SecurityPolicies.UserRole, sessionUsers);
         }
 
-        if (IsConfiguredAdminEmail(user) &&
+        if (configuration.GetSection("Authentication:AdminUserIds").Get<string[]>() is { } adminIds &&
+            adminIds.Any(id => string.Equals(id.Trim(), user.Id, StringComparison.Ordinal)) &&
             roles.Add(SecurityPolicies.AdminRole))
         {
-            await AddRoleOrThrowAsync(user, SecurityPolicies.AdminRole);
+            await AddRoleOrThrowAsync(user, SecurityPolicies.AdminRole, sessionUsers);
         }
 
         return OrderKnownRoles(roles);
     }
 
-    private async Task AddRoleOrThrowAsync(ApplicationUser user, string role)
+    private static async Task AddRoleOrThrowAsync(
+        ApplicationUser user, string role, UserManager<ApplicationUser> sessionUsers)
     {
-        var result = await userManager.AddToRoleAsync(user, role);
+        var result = await sessionUsers.AddToRoleAsync(user, role);
         if (result.Succeeded)
         {
             return;
@@ -309,24 +347,6 @@ public class AuthController(
         var errors = string.Join("; ", result.Errors.Select(x => x.Description));
         throw new InvalidOperationException(
             $"Unable to assign role '{role}' to user '{user.Id}': {errors}");
-    }
-
-    private bool IsConfiguredAdminEmail(ApplicationUser user)
-    {
-        if (string.IsNullOrWhiteSpace(user.Email))
-        {
-            return false;
-        }
-
-        var emails = configuration
-            .GetSection("Authentication:AdminEmails")
-            .Get<string[]>() ?? [];
-
-        return emails.Any(email =>
-            string.Equals(
-                email.Trim(),
-                user.Email,
-                StringComparison.OrdinalIgnoreCase));
     }
 
     private static string[] OrderKnownRoles(IEnumerable<string> roles)
@@ -443,7 +463,7 @@ public class AuthController(
             Email = user.Email,
             Phone = user.PhoneNumber,
             DisplayName = CreateDisplayName(user)
-                ?? user.UserName
+                ?? (user.UserName != user.Id ? user.UserName : null)
                 ?? user.Email
                 ?? user.Id
         };

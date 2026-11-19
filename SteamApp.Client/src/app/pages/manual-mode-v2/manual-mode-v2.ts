@@ -10,8 +10,11 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import {
   BehaviorSubject,
+  concatMap,
   finalize,
+  map,
   Observable,
+  of,
   startWith,
   Subject,
   switchMap,
@@ -286,6 +289,13 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     return groupByItemGroup(this.gameUrlsFiltered$.value);
   }
 
+  get historicalGameOption(): ManualCheckRunDetail | null {
+    const run = this.automatedRun;
+    return run && this.gameIdControl.value === run.gameId && !this.games.some((game) => game.id === run.gameId)
+      ? run
+      : null;
+  }
+
   ngOnInit(): void {
     this.automationService.refreshUsage();
     this.loadGames();
@@ -535,7 +545,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       { data: {}, width: 'min(76rem, 96vw)', maxWidth: '96vw' },
     ).afterClosed().pipe(takeUntil(this.destroy$)).subscribe((runId) => {
       if (runId !== undefined) {
-        this.pollAutomatedRun(runId);
+        this.pollAutomatedRun(runId, true);
       }
     });
   }
@@ -1263,7 +1273,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
           .filter((url) => url.isActive)
           .filter((url) => url.scrapingModeId !== ScrapingModeEnum.PublicApi);
 
-        this.applySourceFilters(this.gameIdControl.value, this.scrapingModeIdControl.value);
+        this.updateSourceOptions(this.gameIdControl.value, this.scrapingModeIdControl.value);
       });
   }
 
@@ -1273,7 +1283,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((tags) => {
         this.gameTagsAll = tags.filter((tag) => tag.isActive);
-        this.applySourceFilters(this.gameIdControl.value, this.scrapingModeIdControl.value);
+        this.updateSourceOptions(this.gameIdControl.value, this.scrapingModeIdControl.value);
       });
   }
 
@@ -1281,36 +1291,33 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     this.tagsFilter = [];
     this.tagSelectControl.setValue(null, { emitEvent: false });
 
-    if (gameId === null) {
-      this.gameUrlsFiltered$.next([]);
-      this.gameTagsFilter = [];
-      this.tagSelectControl.disable({ emitEvent: false });
+    this.gameUrlIdControl.setValue(null);
+    this.updateSourceOptions(gameId, scrapingModeId);
 
-      this.gameUrlIdControl.setValue(null);
-      this.selectedGameUrl = null;
+    this.products = [];
+    this.productsFiltered = [];
+    this.resetProductRelationState();
+    this.clearProductSelection();
+    this.resetAutomatedCheck();
 
-      this.products = [];
-      this.productsFiltered = [];
-      this.resetProductRelationState();
-      this.clearProductSelection();
-      this.resetAutomatedCheck();
+    this.cdr.markForCheck();
+  }
 
-      this.cdr.markForCheck();
-      return;
-    }
-
+  private updateSourceOptions(gameId: number | null, scrapingModeId: number | null): void {
+    const selectedGameUrlId = this.gameUrlIdControl.value;
     const urls = this.gameUrlsAll.filter((url) => {
       if (url.gameId !== gameId) {
         return false;
       }
 
-      if (scrapingModeId !== null && url.scrapingModeId !== scrapingModeId) {
+      if (url.id !== selectedGameUrlId && scrapingModeId !== null && url.scrapingModeId !== scrapingModeId) {
         return false;
       }
 
       return true;
     });
     this.gameUrlsFiltered$.next(urls);
+    this.selectedGameUrl = urls.find((url) => url.id === selectedGameUrlId) ?? null;
 
     this.gameTagsFilter = this.gameTagsAll.filter((tag) => tag.gameId === gameId);
 
@@ -1319,15 +1326,6 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     } else {
       this.tagSelectControl.disable({ emitEvent: false });
     }
-
-    this.gameUrlIdControl.setValue(null);
-    this.selectedGameUrl = null;
-
-    this.products = [];
-    this.productsFiltered = [];
-    this.resetProductRelationState();
-    this.clearProductSelection();
-    this.resetAutomatedCheck();
 
     this.cdr.markForCheck();
   }
@@ -1497,7 +1495,7 @@ export class ManualModeV2 implements OnInit, OnDestroy {
       });
   }
 
-  private pollAutomatedRun(runId: number): void {
+  private pollAutomatedRun(runId: number, refreshCurrentStock = false): void {
     this.resetAutomatedCheck();
     this.automatedRunId = runId;
     this.automatedRunActive = true;
@@ -1505,14 +1503,35 @@ export class ManualModeV2 implements OnInit, OnDestroy {
 
     timer(0, 2000).pipe(
       switchMap(() => this.manualCheckService.getRun(runId)),
+      concatMap((run, index) => refreshCurrentStock && index === 0
+        ? this.gameUrlProductService.existsByGameUrl(run.gameUrlId).pipe(
+          map((currentProducts) => ({ run, currentProducts })),
+        )
+        : of({ run, currentProducts: null })),
       takeUntil(this.automatedRunStop$),
       takeUntil(this.destroy$),
-      takeWhile((run) => !this.isTerminalStatus(run), true),
+      takeWhile(({ run }) => !this.isTerminalStatus(run), true),
       finalize(() => this.cdr.markForCheck()),
     ).subscribe({
-      next: (run) => {
+      next: ({ run, currentProducts }) => {
+        if (currentProducts !== null) {
+          const previousGameUrlId = this.gameUrlIdControl.value;
+          if (previousGameUrlId !== run.gameUrlId) {
+            if (previousGameUrlId !== null) {
+              this.products = [];
+            }
+            this.tagsFilter = [];
+            this.tagSelectControl.setValue(null, { emitEvent: false });
+            this.clearBatchButtonClicked();
+            this.resetProductRelationState();
+            this.clearProductSelection();
+          }
+          this.gameIdControl.setValue(run.gameId, { emitEvent: false });
+          this.gameUrlIdControl.setValue(run.gameUrlId, { emitEvent: false });
+          this.updateSourceOptions(run.gameId, this.scrapingModeIdControl.value);
+        }
         this.automatedRun = run;
-        this.applyAutomatedRun(run);
+        this.applyAutomatedRun(run, currentProducts);
         this.cdr.markForCheck();
       },
       error: (error) => {
@@ -1523,7 +1542,10 @@ export class ManualModeV2 implements OnInit, OnDestroy {
     });
   }
 
-  private applyAutomatedRun(run: ManualCheckRunDetail): void {
+  private applyAutomatedRun(
+    run: ManualCheckRunDetail,
+    currentProducts: GameUrlProduct[] | null = null,
+  ): void {
     this.automationService.refreshUsage();
     const isTerminal = this.isTerminalStatus(run);
     this.automatedRunActive = !isTerminal;
@@ -1543,6 +1565,16 @@ export class ManualModeV2 implements OnInit, OnDestroy {
         currentStock: 0,
       }));
       this.clearProductSelection();
+    }
+
+    if (currentProducts !== null) {
+      const currentStockByProductId = new Map(
+        currentProducts.map((product) => [product.productId, product.currentStock]),
+      );
+      this.products = this.products.map((product) => ({
+        ...product,
+        currentStock: currentStockByProductId.get(product.productId) ?? 0,
+      }));
     }
 
     this.automatedMatches.clear();

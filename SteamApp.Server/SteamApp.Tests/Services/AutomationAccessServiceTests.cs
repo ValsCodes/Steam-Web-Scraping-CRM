@@ -181,23 +181,41 @@ public sealed class AutomationAccessServiceTests
     }
 
     [Test]
-    public async Task AdministratorsAreUnlimitedAndDoNotRequirePresence()
+    public async Task GetUsageAsync_AdminHasMeasuredUsageAndUnlimitedAllowance()
     {
         using var database = TestDb.CreateDatabase();
+        var now = new DateTimeOffset(2026, 10, 7, 8, 0, 0, TimeSpan.Zero);
         database.Context.Users.Add(new ApplicationUser { Id = "admin-1", UserName = "admin@example.test" });
         database.Context.Roles.Add(new IdentityRole { Id = "role-admin", Name = SecurityPolicies.AdminRole, NormalizedName = "ADMIN" });
         database.Context.UserRoles.Add(new IdentityUserRole<string> { UserId = "admin-1", RoleId = "role-admin" });
+        var run = AddRun(database, "admin-1");
+        var policy = database.Context.AutomationPolicies.Single();
+        policy.NonAdminLimitSeconds = 0;
+        policy.UsageResetAtUtc = now.UtcDateTime.AddSeconds(-30);
+        database.Context.AutomationUsageIntervals.Add(new AutomationUsageInterval
+        {
+            UserId = "admin-1",
+            ManualCheckRunId = run.Id,
+            StartedAtUtc = now.UtcDateTime.AddSeconds(-60),
+            EndedAtUtc = now.UtcDateTime.AddSeconds(-10)
+        });
         database.Context.SaveChanges();
-        var service = CreateService(database, new DateTimeOffset(2026, 10, 7, 8, 0, 0, TimeSpan.Zero));
+        var service = CreateService(database, now);
 
         var usage = await service.GetUsageAsync("admin-1", CancellationToken.None);
+        var adminRow = (await service.GetAllUsageAsync(CancellationToken.None)).Single(x => x.UserId == "admin-1");
         Assert.DoesNotThrowAsync(() => service.EnsureCanExecuteAsync("admin-1", CancellationToken.None));
 
         Assert.Multiple(() =>
         {
             Assert.That(usage.Unlimited, Is.True);
             Assert.That(usage.PresenceRequired, Is.False);
+            Assert.That(usage.LimitSeconds, Is.Null);
             Assert.That(usage.RemainingSeconds, Is.Null);
+            Assert.That(usage.NextAllowanceAtUtc, Is.Null);
+            Assert.That(usage.UsedSeconds, Is.EqualTo(20));
+            Assert.That(adminRow.IsAdmin, Is.True);
+            Assert.That(adminRow.Usage.UsedSeconds, Is.EqualTo(20));
         });
     }
 

@@ -2090,7 +2090,7 @@ public sealed class ManualCheckDataService(
         return timeProvider.GetUtcNow().UtcDateTime;
     }
 
-    private static async Task CloseUsageIntervalAsync(
+    internal static async Task CloseUsageIntervalAsync(
         ApplicationDbContext db,
         long runId,
         DateTime endedAtUtc,

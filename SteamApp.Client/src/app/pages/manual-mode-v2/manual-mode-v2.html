@@ -30,6 +30,9 @@
                             <select id="manual-mode-game-id" name="manualModeGameId"
                                 class="w-full rounded border border-slate-300 px-3 py-2" [formControl]="gameIdControl">
                                 <option [ngValue]="null">Select Game</option>
+                                @if (historicalGameOption; as run) {
+                                <option [ngValue]="run.gameId">{{ run.gameName }}</option>
+                                }
                                 @for (game of games$ | async; track game.id) {
                                 <option [ngValue]="game.id">{{ game.name }}</option>
                                 }
@@ -43,6 +46,9 @@
                                 class="w-full rounded border border-slate-300 px-3 py-2"
                                 [formControl]="gameUrlIdControl">
                                 <option [ngValue]="null">Select Game URL</option>
+                                @if (automatedRun && gameUrlIdControl.value === automatedRun.gameUrlId && !selectedGameUrl) {
+                                <option [ngValue]="automatedRun.gameUrlId">{{ automatedRun.gameUrlName }}</option>
+                                }
                                 @for (group of gameUrlGroups; track group.itemGroupId) {
                                 <optgroup [label]="group.name">
                                     @for (url of group.items; track url.id) {
@@ -55,7 +61,7 @@
 
                         <button class="button button-small-primary w-full" (click)="showAllButtonClicked()"
                             [hidden]="isBatchMode(this.selectedGameUrl)"
-                            [disabled]="gameUrlIdControl.value === null">
+                            [disabled]="selectedGameUrl === null">
                             Load Products
                         </button>
 

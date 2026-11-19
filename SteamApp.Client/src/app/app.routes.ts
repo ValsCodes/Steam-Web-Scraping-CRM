@@ -196,6 +196,12 @@ export const routes: Routes = [
     },
   },
   {
+    path: 'login/external',
+    loadComponent: () => import('./pages/login/external-sign-in.component').then(m => m.ExternalSignInComponent),
+    title: 'Complete sign-in',
+    data: { seo: { robots: LOGIN_ROBOTS } },
+  },
+  {
     path: 'login',
     loadComponent: () => import('./pages/login/login.component').then((m) => m.LoginComponent),
     title: 'Login',

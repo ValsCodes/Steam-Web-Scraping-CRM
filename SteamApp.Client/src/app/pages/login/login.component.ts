@@ -1,10 +1,12 @@
 import { CommonModule } from "@angular/common";
 import { HttpErrorResponse } from "@angular/common/http";
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component } from "@angular/core";
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, DestroyRef, OnInit, inject, signal } from "@angular/core";
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from "@angular/forms";
-import { AuthService } from "../../services";
-import { Router } from "@angular/router";
+import { AuthService, ExternalProvider, MfaChallenge, TokenResponse } from "../../services";
+import { ActivatedRoute, Router } from "@angular/router";
 import { finalize, Observable } from "rxjs";
+import { MfaChallengeComponent } from './mfa-challenge.component';
 
 type AuthMode = 'login' | 'register';
 
@@ -17,11 +19,17 @@ interface PasswordRequirement {
   selector: 'steam-login',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, MfaChallengeComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly route = inject(ActivatedRoute);
+  readonly mfaChallenge = signal<MfaChallenge | null>(null);
+  readonly externalProviders = signal<ExternalProvider[]>([]);
+  readonly externalPending = signal(false);
+  readonly externalError = signal<string | null>(null);
   loginForm = new FormGroup({
     firstName: new FormControl('', { nonNullable: true }),
     lastName: new FormControl('', { nonNullable: true }),
@@ -42,6 +50,26 @@ export class LoginComponent {
     private readonly router: Router,
     private readonly cdr: ChangeDetectorRef
   ) {}
+
+  ngOnInit(): void {
+    if (window.location.protocol === 'https:') {
+      this.auth.getExternalProviders().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: providers => this.externalProviders.set(providers),
+        error: () => this.externalProviders.set([]),
+      });
+    }
+  }
+
+  continueWith(provider: ExternalProvider): void {
+    this.externalPending.set(true);
+    this.externalError.set(null);
+    this.auth.beginExternalSignIn(provider, false, this.returnToProfile()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      error: () => {
+        this.externalPending.set(false);
+        this.externalError.set(`Could not connect to ${provider}. Try again.`);
+      },
+    });
+  }
 
   get isRegisterMode(): boolean {
     return this.mode === 'register';
@@ -98,14 +126,20 @@ export class LoginComponent {
 
     request
       .pipe(
+        takeUntilDestroyed(this.destroyRef),
         finalize(() => {
           this.isSubmitting = false;
           this.cdr.markForCheck();
         })
       )
       .subscribe({
-        next: () => {
-          this.router.navigateByUrl('/games', { replaceUrl: true });
+        next: response => {
+          if (response && 'requiresMfa' in response) {
+            this.loginForm.reset();
+            this.mfaChallenge.set(response);
+            return;
+          }
+          this.finishSignIn();
         },
         error: error => {
           this.error = this.getErrorMessage(error);
@@ -114,7 +148,16 @@ export class LoginComponent {
       });
   }
 
-  private createSubmitRequest(): Observable<unknown> | null {
+  finishSignIn(): void {
+    this.mfaChallenge.set(null);
+    void this.router.navigateByUrl(this.returnToProfile() ? '/profile' : '/games', { replaceUrl: true });
+  }
+
+  returnToProfile(): boolean {
+    return this.route.snapshot.queryParamMap.get('returnTo') === 'profile';
+  }
+
+  private createSubmitRequest(): Observable<TokenResponse | MfaChallenge> | null {
     if (this.isRegisterMode) {
       return this.createRegisterRequest();
     }

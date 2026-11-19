@@ -1,7 +1,13 @@
+@if (mfaChallenge(); as challenge) {
+  <steam-mfa-challenge [challenge]="challenge" (verified)="finishSignIn()" (restart)="mfaChallenge.set(null)" />
+} @else {
 <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="general-form login-form">
   <div class="login-form__header">
     <div>
       <h2>{{ pageTitle }}</h2>
+      @if (returnToProfile() && !isRegisterMode) {
+        <p>Sign in again to return to your profile.</p>
+      }
       <p>
         {{ isRegisterMode
           ? 'Create a workspace account for catalog, scraping, and monitoring access.'
@@ -113,11 +119,21 @@
     </div>
   }
 
-  <button class="login-form__submit" type="submit" [disabled]="isSubmitting">
+  <button class="login-form__submit" type="submit" [disabled]="isSubmitting || externalPending()">
     {{ submitLabel }}
   </button>
 
   @if (error) {
     <p class="error login-form__error">{{ error }}</p>
   }
+  @for (provider of externalProviders(); track provider) {
+    <button class="login-form__submit" type="button" [disabled]="isSubmitting || externalPending()"
+      (click)="continueWith(provider)">
+      Continue with {{ provider }}
+    </button>
+  }
+  @if (externalError()) {
+    <p class="error login-form__error" role="alert">{{ externalError() }}</p>
+  }
 </form>
+}

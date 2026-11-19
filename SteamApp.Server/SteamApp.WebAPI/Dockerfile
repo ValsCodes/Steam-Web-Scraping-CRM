@@ -11,6 +11,7 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
+COPY ["Directory.Packages.props", "./"]
 COPY ["SteamApp.WebAPI/SteamApp.WebAPI.csproj", "SteamApp.WebAPI/"]
 COPY ["SteamApp.Infrastructure/SteamApp.Infrastructure.csproj", "SteamApp.Infrastructure/"]
 COPY ["SteamApp.Interfaces/SteamApp.Interfaces.csproj", "SteamApp.Interfaces/"]
@@ -29,5 +30,6 @@ RUN dotnet publish "SteamApp.WebAPI.csproj" -c $BUILD_CONFIGURATION -o /app/publ
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+RUN mkdir -p /home/app/.aspnet/DataProtection-Keys && chown "$APP_UID" /home/app/.aspnet/DataProtection-Keys && chmod 700 /home/app/.aspnet/DataProtection-Keys
 USER $APP_UID
 ENTRYPOINT ["dotnet", "SteamApp.WebAPI.dll"]

@@ -62,6 +62,31 @@
       }
     </form>
 
+    <div class="profile-page__security">
+    <section class="profile-panel">
+      <h3>Sign-in methods</h3>
+      @if (signInMethods(); as methods) {
+        @for (provider of methods.providers; track provider) {
+          <p>{{ provider }} is connected.</p>
+        }
+        <div class="profile-actions">
+          @for (provider of externalProviders(); track provider) {
+            @if (!methods.providers.includes(provider)) {
+              <button type="button" [disabled]="linkingProvider() !== null" (click)="connectProvider(provider)">
+                Connect {{ provider }}
+              </button>
+            }
+          }
+        </div>
+      }
+      @if (externalError()) {
+        <p class="profile-status profile-status--error" role="alert">{{ externalError() }}</p>
+      }
+    </section>
+
+    <steam-profile-mfa />
+
+    @if (signInMethods()?.hasPassword) {
     <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="profile-panel">
       <h3>Password</h3>
 
@@ -104,18 +129,19 @@
         </button>
       </div>
 
-      @if (passwordMessage) {
-        <p class="profile-status profile-status--success">{{ passwordMessage }}</p>
-      }
 
       @if (passwordError) {
         <p class="profile-status profile-status--error">{{ passwordError }}</p>
       }
     </form>
 
+    }
+
+    @if (signInMethods(); as methods) {
     <form [formGroup]="deleteForm" (ngSubmit)="deleteAccount()" class="profile-panel profile-panel--danger">
       <h3>Account</h3>
 
+      @if (methods.hasPassword) {
       <div class="form-group">
         <label for="profile-delete-password">Password</label>
         <input
@@ -124,6 +150,9 @@
           autocomplete="current-password"
           formControlName="password" />
       </div>
+      } @else {
+        <p>Sign in with a connected provider within five minutes of deleting your account.</p>
+      }
 
       <div class="profile-actions">
         <button type="submit" class="profile-actions__danger" [disabled]="isDeleting" [class.busy-cursor]="isDeleting">
@@ -135,5 +164,7 @@
         <p class="profile-status profile-status--error">{{ deleteError }}</p>
       }
     </form>
+    }
+    </div>
   </div>
 </div>

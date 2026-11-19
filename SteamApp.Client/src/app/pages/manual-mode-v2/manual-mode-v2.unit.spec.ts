@@ -1,6 +1,6 @@
 import { ChangeDetectorRef } from '@angular/core';
 import { fakeAsync, tick } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import * as XLSX from 'xlsx';
 
 import {
@@ -20,6 +20,7 @@ describe('ManualModeV2 external link disclosure', () => {
   let component: ManualModeV2;
   let disclosure: jasmine.SpyObj<ExternalLinkDisclosureService>;
   let gameUrlProductService: jasmine.SpyObj<GameUrlProductService>;
+  let gameUrls: Subject<GameUrl[]>;
   let manualCheckService: jasmine.SpyObj<ManualCheckService>;
   let dialog: { open: jasmine.Spy };
   let cdr: jasmine.SpyObj<ChangeDetectorRef>;
@@ -44,6 +45,7 @@ describe('ManualModeV2 external link disclosure', () => {
     );
     gameUrlProductService.existsByGameUrl.and.returnValue(of([]));
     gameUrlProductService.bulkUpdate.and.returnValue(of(void 0));
+    gameUrls = new Subject<GameUrl[]>();
     manualCheckService = jasmine.createSpyObj<ManualCheckService>('ManualCheckService', [
       'createRun',
       'getRun',
@@ -56,7 +58,7 @@ describe('ManualModeV2 external link disclosure', () => {
 
     component = new ManualModeV2(
       emptyService as never,
-      emptyService as never,
+      { getAll: () => gameUrls } as never,
       gameUrlProductService,
       emptyService as never,
       emptyService as never,
@@ -325,6 +327,141 @@ describe('ManualModeV2 external link disclosure', () => {
       }),
     );
   });
+
+  it('loads current stock for history products and refreshes it when reopened', fakeAsync(() => {
+    const completed = runDetail('Succeeded', 1, 0);
+    completed.setup.products = [{
+      productId: 5, productName: 'Historical name', gameUrlId: 2, gameUrlName: 'Market',
+      fullUrl: '', tags: ['primary'], rating: 7,
+    }];
+    dialog.open.and.returnValue({ afterClosed: () => of(77) });
+    manualCheckService.getRun.and.returnValue(of(completed));
+    gameUrlProductService.existsByGameUrl.and.returnValue(of([
+      { productId: 5, currentStock: 12 },
+      { productId: 99, currentStock: 3 },
+    ] as GameUrlProduct[]));
+
+    component.automatedCheckHistoryButtonClicked();
+    tick(0);
+
+    expect(gameUrlProductService.existsByGameUrl).toHaveBeenCalledOnceWith(2);
+    expect(component.products.map(product => [product.productId, product.currentStock]))
+      .toEqual([[5, 12]]);
+    expect(component.products[0].productName).toBe('Historical name');
+    expect(component.getAutomatedMatch(5)?.matchedAssets.length).toBe(1);
+
+    gameUrlProductService.existsByGameUrl.and.returnValue(of([
+      { productId: 5, currentStock: -2 },
+    ] as GameUrlProduct[]));
+    component.automatedCheckHistoryButtonClicked();
+    tick(0);
+
+    expect(component.products[0].currentStock).toBe(-2);
+    component.ngOnDestroy();
+  }));
+
+  it('selects the game and source from history and keeps the run when source options arrive', fakeAsync(() => {
+    component.ngOnInit();
+    const completed = runDetail('Succeeded', 1, 0);
+    const source = {
+      id: completed.gameUrlId,
+      gameId: completed.gameId,
+      name: 'Market',
+      isActive: true,
+      scrapingModeId: ScrapingModeEnum.Batch,
+      itemGroupId: null,
+    } as GameUrl;
+    component.gameIdControl.setValue(10);
+    component.gameUrlIdControl.setValue(20);
+    component.products = [{ productId: 99, gameUrlId: 20 }] as GameUrlProduct[];
+    dialog.open.and.returnValue({ afterClosed: () => of(completed.id) });
+    manualCheckService.getRun.and.returnValue(of(completed));
+
+    component.automatedCheckHistoryButtonClicked();
+    tick(0);
+
+    expect(component.gameIdControl.value).toBe(completed.gameId);
+    expect(component.gameUrlIdControl.value).toBe(completed.gameUrlId);
+    expect(component.historicalGameOption?.gameName).toBe(completed.gameName);
+    expect(component.selectedGameUrl).toBeNull();
+    expect(component.productsFiltered).toEqual([]);
+
+    gameUrls.next([source]);
+    expect(component.selectedGameUrl).toBe(source);
+    expect(component.gameUrlGroups[0].items).toEqual([source]);
+    expect(component.automatedRun).toBe(completed);
+    expect(component.getAutomatedMatch(5)).toBeDefined();
+    component.ngOnDestroy();
+  }));
+
+  it('uses refreshed stock for filters on an already loaded history grid', fakeAsync(() => {
+    component.ngOnInit();
+    component.products = [
+      { productId: 5, gameUrlId: 2, productName: 'Existing', currentStock: 0 },
+      { productId: 6, gameUrlId: 2, productName: 'Other', currentStock: 4 },
+    ] as GameUrlProduct[];
+    component.stockStateFilterControl.setValue('positive');
+    dialog.open.and.returnValue({ afterClosed: () => of(77) });
+    manualCheckService.getRun.and.returnValue(of(runDetail('Succeeded', 1, 0)));
+    gameUrlProductService.existsByGameUrl.and.returnValue(of([
+      { productId: 5, currentStock: 8 },
+      { productId: 6, currentStock: 0 },
+    ] as GameUrlProduct[]));
+
+    component.automatedCheckHistoryButtonClicked();
+    tick(0);
+
+    expect(component.productsFiltered.map(product => product.productId)).toEqual([5]);
+    expect(component.productsFiltered[0].currentStock).toBe(8);
+    component.ngOnDestroy();
+  }));
+
+  it('waits for current stock without canceling a slow history stock request', fakeAsync(() => {
+    const currentProducts = new Subject<GameUrlProduct[]>();
+    const running = runDetail('Running', 1, 0);
+    running.setup.products = [{
+      productId: 5, productName: 'Historical', gameUrlId: 2, gameUrlName: 'Market',
+      fullUrl: '', tags: [], rating: null,
+    }];
+    dialog.open.and.returnValue({ afterClosed: () => of(77) });
+    manualCheckService.getRun.and.returnValue(of(running));
+    gameUrlProductService.existsByGameUrl.and.returnValue(currentProducts);
+
+    component.automatedCheckHistoryButtonClicked();
+    tick(2000);
+    expect(component.products).toEqual([]);
+    currentProducts.next([{ productId: 5, currentStock: 9 }] as GameUrlProduct[]);
+    currentProducts.complete();
+    tick(2000);
+
+    expect(component.products[0].currentStock).toBe(9);
+    expect(gameUrlProductService.existsByGameUrl).toHaveBeenCalledOnceWith(2);
+    component.ngOnDestroy();
+  }));
+
+  it('cancels a pending stock lookup when another history entry is opened', fakeAsync(() => {
+    const oldProducts = new Subject<GameUrlProduct[]>();
+    const completed = runDetail('Succeeded', 1, 0);
+    completed.setup.products = [{
+      productId: 5, productName: 'Historical', gameUrlId: 2, gameUrlName: 'Market',
+      fullUrl: '', tags: [], rating: null,
+    }];
+    dialog.open.and.returnValue({ afterClosed: () => of(77) });
+    manualCheckService.getRun.and.returnValue(of(completed));
+    gameUrlProductService.existsByGameUrl.and.returnValues(
+      oldProducts,
+      of([{ productId: 5, currentStock: 7 }] as GameUrlProduct[]),
+    );
+
+    component.automatedCheckHistoryButtonClicked();
+    tick(0);
+    component.automatedCheckHistoryButtonClicked();
+    tick(0);
+    oldProducts.next([{ productId: 5, currentStock: 1 }] as GameUrlProduct[]);
+
+    expect(component.products[0].currentStock).toBe(7);
+    component.ngOnDestroy();
+  }));
 
   it('does not open the result dialog while the run is still active', () => {
     component.automatedRun = runDetail('Running', 0, 0);

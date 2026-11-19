@@ -46,7 +46,7 @@ export class AuthInterceptor implements HttpInterceptor {
 
     return next.handle(authReq).pipe(
       catchError((error: unknown) => {
-        if (error instanceof HttpErrorResponse && error.status === 401 && token) {
+        if (error instanceof HttpErrorResponse && error.status === 401 && token && this.auth.getToken() === token) {
           this.handleExpiredSession();
         }
 
@@ -61,6 +61,7 @@ export class AuthInterceptor implements HttpInterceptor {
 
     return path === '/api/auth/login' ||
       path === '/api/auth/register' ||
+      path === '/api/auth/mfa/verify' ||
       path === '/api/auth/token';
   }
 

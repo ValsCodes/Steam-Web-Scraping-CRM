@@ -73,6 +73,44 @@ public sealed class SecurityPipelineIntegrationTests
     }
 
     [Test]
+    public async Task ExternalSignIn_OnlyConfiguredHttpsOriginCanPrepareCredentialedFlow()
+    {
+        const string origin = "https://localhost:4300";
+        const string prepare = "/api/auth/external/Steam/prepare";
+        using var factory = new SteamAppFactory(overrides: new Dictionary<string, string?>
+        {
+            ["Authentication__External__FrontendOrigin"] = origin,
+            ["Authentication__External__SteamEnabled"] = "true"
+        });
+        using var client = factory.CreateAnonymousClient();
+        using var preflight = new HttpRequestMessage(HttpMethod.Options, prepare);
+        preflight.Headers.Add("Origin", origin);
+        preflight.Headers.Add("Access-Control-Request-Method", "POST");
+        preflight.Headers.Add("Access-Control-Request-Headers", "content-type, authorization");
+        using var preflightResponse = await client.SendAsync(preflight);
+
+        using var wrongOrigin = new HttpRequestMessage(HttpMethod.Post, prepare) { Content = JsonContent.Create(new { }) };
+        wrongOrigin.Headers.Add("Origin", "https://example.com");
+        using var denied = await client.SendAsync(wrongOrigin);
+
+        using var allowedOrigin = new HttpRequestMessage(HttpMethod.Post, prepare) { Content = JsonContent.Create(new { }) };
+        allowedOrigin.Headers.Add("Origin", origin);
+        using var allowed = await client.SendAsync(allowedOrigin);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(preflightResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(preflightResponse.Headers.GetValues("Access-Control-Allow-Origin").Single(), Is.EqualTo(origin));
+            Assert.That(preflightResponse.Headers.GetValues("Access-Control-Allow-Credentials").Single(), Is.EqualTo("true"));
+            Assert.That(denied.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(denied.Headers.Contains("Set-Cookie"), Is.False);
+            Assert.That(allowed.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(allowed.Headers.GetValues("Set-Cookie").Single(),
+                Does.StartWith("__Host-SteamAppExternal=").And.Contain("httponly").IgnoreCase.And.Contain("secure").IgnoreCase);
+        });
+    }
+
+    [Test]
     public async Task TrustedProxyForwardedHttpsRequestDoesNotRedirect()
     {
         var configuration = new Dictionary<string, string?>
@@ -198,6 +236,7 @@ public sealed class SecurityPipelineIntegrationTests
         using var prodFactory = new SteamAppFactory(environmentName: "Production");
         using var devClient = devFactory.CreateAnonymousClient();
         using var prodClient = prodFactory.CreateAuthenticatedClient();
+        await prodFactory.ResetDatabaseAsync();
 
         var dev = await devClient.GetAsync("/swagger/v1/swagger.json");
         var prod = await prodClient.GetAsync("/swagger/v1/swagger.json");
@@ -317,7 +356,7 @@ public sealed class SecurityPipelineIntegrationTests
         using var anonymous = factory.CreateAnonymousClient();
         using var internalClient = factory.CreateAuthenticatedClient(SecurityPolicies.InternalScope);
         using var validUser = factory.CreateAuthenticatedClient();
-        using var legacyUser = factory.CreateAuthenticatedClient(includeAuthenticationTime: false);
+        using var legacyUser = factory.CreateAuthenticatedClient(includeSessionStamp: false);
         using var expiredSession = factory.CreateAuthenticatedClient(
             authenticationTimeUtc: DateTime.UtcNow.AddHours(-4).AddMinutes(-1));
         await factory.ResetDatabaseAsync();
@@ -469,6 +508,9 @@ public sealed class SecurityPipelineIntegrationTests
             emailOrUserName = "updated-user",
             password = "Password2"
         });
+        var staleSession = await authenticated.GetAsync("/api/auth/profile");
+        authenticated.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer", (await newPasswordLogin.ReadJsonElementAsync()).GetProperty("token").GetString());
 
         using var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, "/api/auth/profile")
         {
@@ -491,6 +533,7 @@ public sealed class SecurityPipelineIntegrationTests
             Assert.That(password.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
             Assert.That(oldPasswordLogin.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
             Assert.That(newPasswordLogin.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(staleSession.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
             Assert.That(delete.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
             Assert.That(deletedLogin.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
         });

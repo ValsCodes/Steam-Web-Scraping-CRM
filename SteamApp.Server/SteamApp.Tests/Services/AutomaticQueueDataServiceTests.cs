@@ -340,9 +340,13 @@ public sealed class AutomaticQueueDataServiceTests
     {
         using var database = TestDb.CreateSeededDatabase();
         PrepareManualSource(database);
-        var manualChecks = new ManualCheckDataService(database.Factory);
-        var preset = await manualChecks.CreatePresetAsync(Preset("Sequence"), CancellationToken.None);
         var time = new MutableTimeProvider(new DateTimeOffset(2026, 9, 27, 8, 0, 0, TimeSpan.Zero));
+        var manualChecks = new ManualCheckDataService(database.Factory, time);
+        var preset = await manualChecks.CreatePresetAsync(Preset("Sequence"), CancellationToken.None);
+        var manualRun = await manualChecks.CreateRunAsync(TestDb.TestUserId, 1, preset.Id, null, false, [1], CancellationToken.None);
+        await manualChecks.MarkRunningAndGetRunAsync(manualRun.Id, CancellationToken.None);
+        time.Advance(TimeSpan.FromSeconds(15));
+        await manualChecks.CompleteAsync(manualRun.Id, ManualCheckRunStatusEnum.Succeeded, new(), CancellationToken.None);
         var service = CreateService(database, manualChecks, time);
         var definition = await service.CreateDefinitionAsync(
             TestDb.TestUserId,
@@ -364,6 +368,7 @@ public sealed class AutomaticQueueDataServiceTests
         var firstChildRunId = first!.Blocks[0].ManualCheckRunId
             ?? throw new AssertionException("The first manual block did not create a child run.");
         await manualChecks.MarkRunningAndGetRunAsync(firstChildRunId, CancellationToken.None);
+        time.Advance(TimeSpan.FromSeconds(25));
         await manualChecks.CompleteAsync(
             firstChildRunId,
             ManualCheckRunStatusEnum.CompletedWithErrors,
@@ -385,6 +390,8 @@ public sealed class AutomaticQueueDataServiceTests
             CancellationToken.None);
         await service.ProcessActiveRunsAsync(CancellationToken.None);
         var completed = await service.GetRunAsync(run.Id, TestDb.TestUserId, CancellationToken.None);
+        var access = new AutomationAccessService(database.Factory, time, NullLogger<AutomationAccessService>.Instance);
+        var usage = await access.GetUsageAsync(TestDb.TestUserId, CancellationToken.None);
 
         Assert.Multiple(() =>
         {
@@ -397,6 +404,8 @@ public sealed class AutomaticQueueDataServiceTests
             }));
             Assert.That(completed.Blocks[0].WarningCount, Is.EqualTo(1));
             Assert.That(completed.CompletedBlocks, Is.EqualTo(3));
+            Assert.That(usage.UsedSeconds, Is.EqualTo(40));
+            Assert.That(usage.RemainingSeconds, Is.EqualTo(usage.LimitSeconds - 40));
         });
     }
 
@@ -445,25 +454,34 @@ public sealed class AutomaticQueueDataServiceTests
     {
         using var database = TestDb.CreateSeededDatabase();
         PrepareManualSource(database);
-        var manualChecks = new ManualCheckDataService(database.Factory);
+        var time = new MutableTimeProvider(new DateTimeOffset(2026, 9, 27, 8, 0, 0, TimeSpan.Zero));
+        var manualChecks = new ManualCheckDataService(database.Factory, time);
         var preset = await manualChecks.CreatePresetAsync(Preset("Recovery"), CancellationToken.None);
-        var service = CreateService(database, manualChecks);
+        var service = CreateService(database, manualChecks, time);
         var definition = await service.CreateDefinitionAsync(
             TestDb.TestUserId,
             Definition("Recovery", ManualBlock(preset.Id, [1])),
             CancellationToken.None);
         var run = await service.StartRunAsync(definition.Id, TestDb.TestUserId, CancellationToken.None);
         await service.ProcessActiveRunsAsync(CancellationToken.None);
+        var running = await service.GetRunAsync(run.Id, TestDb.TestUserId, CancellationToken.None);
+        var childId = running!.Blocks[0].ManualCheckRunId!.Value;
+        await manualChecks.MarkRunningAndGetRunAsync(childId, CancellationToken.None);
+        time.Advance(TimeSpan.FromSeconds(12));
 
         await service.RecoverInterruptedRunsAsync(CancellationToken.None);
         var recovered = await service.GetRunAsync(run.Id, TestDb.TestUserId, CancellationToken.None);
-        var child = await manualChecks.GetRunAsync(recovered!.Blocks[0].ManualCheckRunId!.Value, CancellationToken.None);
+        var child = await manualChecks.GetRunAsync(childId, CancellationToken.None);
+        time.Advance(TimeSpan.FromMinutes(5));
+        var access = new AutomationAccessService(database.Factory, time, NullLogger<AutomationAccessService>.Instance);
+        var usage = await access.GetUsageAsync(TestDb.TestUserId, CancellationToken.None);
 
         Assert.Multiple(() =>
         {
-            Assert.That(recovered.Status, Is.EqualTo(AutomaticQueueRunStatusEnum.Paused));
+            Assert.That(recovered!.Status, Is.EqualTo(AutomaticQueueRunStatusEnum.Paused));
             Assert.That(recovered.Blocks[0].Status, Is.EqualTo(AutomaticQueueBlockRunStatusEnum.Paused));
             Assert.That(child!.Status, Is.EqualTo(ManualCheckRunStatusEnum.Paused));
+            Assert.That(usage.UsedSeconds, Is.EqualTo(12));
         });
     }
 

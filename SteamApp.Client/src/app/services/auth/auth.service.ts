@@ -1,7 +1,7 @@
 // auth.service.ts
 import { Injectable, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, EMPTY, Subscription } from 'rxjs';
+import { BehaviorSubject, defer, EMPTY, Observable, Subscription } from 'rxjs';
 import { catchError, finalize, tap } from 'rxjs/operators';
 import * as g from '../general-data';
 
@@ -9,6 +9,42 @@ export interface TokenResponse {
   token: string;
   tokenType?: string;
   expiresAtUtc?: string;
+}
+
+export type ExternalProvider = 'Google' | 'Steam';
+
+export interface ExternalEmailChallenge {
+  requiresEmail: true;
+  codeSent: boolean;
+}
+
+export interface MfaChallenge {
+  requiresMfa: true;
+  challengeId: string;
+  expiresAtUtc: string;
+}
+
+export type MfaMethod = 'authenticator' | 'recovery';
+
+export interface MfaStatus {
+  enabled: boolean;
+  recoveryCodesRemaining: number;
+}
+
+export interface MfaSetup {
+  setupId: string;
+  expiresAtUtc: string;
+  manualKey: string;
+  otpAuthUri: string;
+}
+
+interface MfaRecoveryCodes {
+  recoveryCodes: string[];
+}
+
+export interface SignInMethods {
+  hasPassword: boolean;
+  providers: ExternalProvider[];
 }
 
 export interface CurrentUser {
@@ -63,10 +99,12 @@ export class AuthService implements OnDestroy {
   ];
 
   private readonly tokenKey = 'access_token';
+  private readonly externalProfileReturnKey = 'steamapp_external_return_to_profile';
   private accessToken: string | null = this.readPersistedToken();
   private readonly endpoint = `${g.localHost.replace(/\/$/, '')}/api/Auth/`;
   private renewalTimer: number | null = null;
   private renewalSubscription: Subscription | null = null;
+  private sessionRotationPending = false;
   private renewalWindowStartedAt = 0;
   private renewalDueAt = 0;
   private lastActivityAt = 0;
@@ -102,8 +140,12 @@ export class AuthService implements OnDestroy {
 
   login(emailOrUserName: string, password: string) {
     const url = `${this.endpoint}login`;
-    return this.http.post<TokenResponse>(url, { emailOrUserName, password }).pipe(
-      tap(res => this.storeSession(res.token, true))
+    return this.http.post<TokenResponse | MfaChallenge>(url, { emailOrUserName, password }).pipe(
+      tap(response => {
+        if ('token' in response) {
+          this.storeSession(response.token, true);
+        }
+      }),
     );
   }
 
@@ -134,6 +176,82 @@ export class AuthService implements OnDestroy {
     );
   }
 
+  getExternalProviders() {
+    return this.http.get<ExternalProvider[]>(`${this.endpoint}external/providers`);
+  }
+
+  beginExternalSignIn(provider: ExternalProvider, link = false, returnToProfile = false) {
+    return this.http.post<void>(`${this.endpoint}external/${provider}/prepare`, {}, {
+      params: { link },
+      withCredentials: true,
+    }).pipe(tap(() => {
+      try {
+        if (returnToProfile && !link) {
+          sessionStorage.setItem(this.externalProfileReturnKey, String(Date.now()));
+        } else {
+          sessionStorage.removeItem(this.externalProfileReturnKey);
+        }
+      } catch {
+        // Sign-in can still finish when browser storage is unavailable.
+      }
+      window.location.assign(`${this.endpoint}external/start`);
+    }));
+  }
+
+  takeExternalProfileReturn(): boolean {
+    try {
+      const startedAt = Number(sessionStorage.getItem(this.externalProfileReturnKey));
+      sessionStorage.removeItem(this.externalProfileReturnKey);
+      return startedAt > Date.now() - 10 * 60 * 1000;
+    } catch {
+      return false;
+    }
+  }
+
+  completeExternalSignIn(email?: string, code?: string) {
+    return this.http.post<TokenResponse | ExternalEmailChallenge | MfaChallenge | null>(
+      `${this.endpoint}external/complete`, { email, code }, { withCredentials: true },
+    ).pipe(tap(response => {
+      if (response && 'token' in response) {
+        this.storeSession(response.token, true);
+      }
+    }));
+  }
+
+  verifyMfa(challengeId: string, method: MfaMethod, code: string) {
+    return this.http.post<TokenResponse>(`${this.endpoint}mfa/verify`, { challengeId, method, code }).pipe(
+      tap(response => this.storeSession(response.token, true)),
+    );
+  }
+
+  getMfaStatus() {
+    return this.http.get<MfaStatus>(`${this.endpoint}profile/mfa`);
+  }
+
+  setupMfa() {
+    return this.http.post<MfaSetup>(`${this.endpoint}profile/mfa/setup`, {});
+  }
+
+  enableMfa(setupId: string, code: string) {
+    const request = this.http.post<MfaRecoveryCodes & { session: TokenResponse }>(
+      `${this.endpoint}profile/mfa/enable`, { setupId, code },
+    );
+    return this.rotateSession(request, response => response.session.token);
+  }
+
+  replaceMfaRecoveryCodes() {
+    return this.http.post<MfaRecoveryCodes>(`${this.endpoint}profile/mfa/recovery-codes`, {});
+  }
+
+  disableMfa() {
+    return this.rotateSession(
+      this.http.delete<TokenResponse>(`${this.endpoint}profile/mfa`), response => response.token);
+  }
+
+  getSignInMethods() {
+    return this.http.get<SignInMethods>(`${this.endpoint}profile/sign-in-methods`);
+  }
+
   recordActivity(): void {
     if (document.visibilityState !== 'visible' || !this.hasRenewableSession()) {
       return;
@@ -153,13 +271,17 @@ export class AuthService implements OnDestroy {
   }
 
   changePassword(request: ChangePasswordRequest) {
-    return this.http.put<void>(`${this.endpoint}profile/password`, request);
+    return this.http.put<void>(`${this.endpoint}profile/password`, request).pipe(tap(() => this.logout()));
   }
 
   deleteProfile(request: DeleteUserRequest) {
     return this.http.request<void>('DELETE', `${this.endpoint}profile`, { body: request }).pipe(
       tap(() => this.logout()),
     );
+  }
+
+  deleteExternalProfile() {
+    return this.http.delete<void>(`${this.endpoint}profile/external`).pipe(tap(() => this.logout()));
   }
 
   logout(): void {
@@ -220,6 +342,25 @@ export class AuthService implements OnDestroy {
     this.scheduleSessionRenewal();
   }
 
+  private rotateSession<T>(request: Observable<T>, tokenFrom: (response: T) => string): Observable<T> {
+    return defer(() => {
+      const original = this.accessToken;
+      this.stopSessionRenewal();
+      this.sessionRotationPending = true;
+      return request.pipe(
+        tap(response => {
+          if (this.accessToken === original) {
+            this.storeSession(tokenFrom(response), true);
+          }
+        }),
+        finalize(() => {
+          this.sessionRotationPending = false;
+          this.scheduleSessionRenewal();
+        }),
+      );
+    });
+  }
+
   private readonly handleUserActivity = (): void => {
     this.recordActivity();
   };
@@ -272,17 +413,22 @@ export class AuthService implements OnDestroy {
   private tryRenewSession(): void {
     this.clearRenewalTimer();
 
-    if (this.renewalSubscription ||
+    if (this.sessionRotationPending || this.renewalSubscription ||
         !this.hasRenewableSession() ||
         document.visibilityState !== 'visible' ||
         this.lastActivityAt < this.renewalWindowStartedAt) {
       return;
     }
 
+    const token = this.accessToken;
     this.renewalSubscription = this.http
       .post<TokenResponse>(`${this.endpoint}renew`, {})
       .pipe(
-        tap(response => this.storeSession(response.token)),
+        tap(response => {
+          if (this.accessToken === token) {
+            this.storeSession(response.token);
+          }
+        }),
         catchError(() => {
           if (this.hasRenewableSession()) {
             this.scheduleRenewalRetry();

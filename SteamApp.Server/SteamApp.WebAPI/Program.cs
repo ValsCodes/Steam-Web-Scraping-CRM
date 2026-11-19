@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -98,7 +99,7 @@ public class Program
 
         builder.Services.AddSingleton<IReadOnlyList<ClientDefinition>>(clients);
 
-        builder.Services
+        var authentication = builder.Services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(opts =>
             {
@@ -118,7 +119,17 @@ public class Program
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.Zero
                 };
+                opts.Events = new JwtBearerEvents { OnTokenValidated = UserSessionClaims.ValidateAsync };
             });
+
+        ExternalAuthentication.Configure(authentication, builder.Configuration);
+
+        if (builder.Configuration["Authentication:DataProtectionKeyPath"] is { Length: > 0 } keyPath)
+        {
+            builder.Services.AddDataProtection()
+                .SetApplicationName("SteamApp")
+                .PersistKeysToFileSystem(new DirectoryInfo(keyPath));
+        }
 
         builder.Services
             .AddIdentityCore<ApplicationUser>(opts =>
@@ -355,6 +366,9 @@ public class Program
         builder.Services.AddSingleton<IEncryptionHashingService, EncryptionHashingService>();
         builder.Services.AddScoped<IEmailService, EmailService>();
         builder.Services.AddScoped<IdentitySchemaInitializer>();
+        builder.Services.AddScoped<ExternalAccountRegistration>();
+        builder.Services.AddScoped<AuthenticatorMfa>();
+        builder.Services.AddSingleton<MfaFlows>();
         builder.Services.AddScoped<IdentityRoleInitializer>();
         builder.Services.AddScoped<IScrapeHistoryDataService, ScrapeHistoryDataService>();
         builder.Services.AddScoped<IScrapeExecutionService, ScrapeExecutionService>();
@@ -493,6 +507,7 @@ public class Program
         return new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
             .RequireAuthenticatedUser()
             .RequireClaim("scope", SecurityPolicies.UserScope)
+            .RequireClaim(UserSessionClaims.Stamp)
             .Build();
     }
 

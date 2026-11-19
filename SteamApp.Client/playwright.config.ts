@@ -12,7 +12,7 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'npm run ng -- serve --configuration development --host 127.0.0.1 --port 4300',
+    command: 'npm run ng -- serve --configuration development --host 127.0.0.1 --port 4300 --ssl=false',
     url: 'http://127.0.0.1:4300',
     reuseExistingServer: !process.env['CI'],
     timeout: 120_000,

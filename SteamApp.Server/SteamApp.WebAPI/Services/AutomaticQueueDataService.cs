@@ -558,10 +558,12 @@ public sealed class AutomaticQueueDataService(
                     block.WaitUntilUtc = null;
                 }
                 block.Status = AutomaticQueueBlockRunStatusEnum.Paused;
-                if (block.ManualCheckRun is not null &&
-                    block.ManualCheckRun.Status is ManualCheckRunStatusEnum.Queued or ManualCheckRunStatusEnum.Running or ManualCheckRunStatusEnum.PauseRequested)
+                if (block.ManualCheckRun is { } child &&
+                    child.Status is ManualCheckRunStatusEnum.Queued or ManualCheckRunStatusEnum.Running or ManualCheckRunStatusEnum.PauseRequested)
                 {
-                    block.ManualCheckRun.Status = ManualCheckRunStatusEnum.Paused;
+                    child.Status = ManualCheckRunStatusEnum.Paused;
+                    child.PausedAtUtc = now;
+                    await ManualCheckDataService.CloseUsageIntervalAsync(db, child.Id, now, cancellationToken);
                 }
             }
             run.Status = AutomaticQueueRunStatusEnum.Paused;

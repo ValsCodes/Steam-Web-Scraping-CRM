@@ -36,12 +36,14 @@ public sealed class IdentityRoleInitializerTests
     public async Task EnsureRolesAsync_AssignsUserAndConfiguredAdminRoles()
     {
         await using var provider = CreateProvider(Config(
-            ("Authentication:AdminEmails:0", "owner@example.com")));
+            ("Authentication:AdminUserIds:0", "owner-id"),
+            ("Authentication:AdminEmails:0", "member@example.com")));
         await using var scope = provider.CreateAsyncScope();
 
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var owner = new ApplicationUser
         {
+            Id = "owner-id",
             UserName = "owner",
             Email = "OWNER@example.com"
         };

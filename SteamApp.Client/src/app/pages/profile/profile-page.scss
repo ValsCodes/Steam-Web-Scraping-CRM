@@ -1,4 +1,4 @@
-:host {
+:host(.profile-page-shell) {
   display: block;
   min-height: calc(100vh - 8rem);
   background: #f4f7fb;
@@ -57,8 +57,17 @@
   align-items: start;
 }
 
+.profile-page__security {
+  display: grid;
+  min-width: 0;
+  gap: 1rem;
+  align-content: start;
+}
+
 .profile-panel {
   display: grid;
+  min-width: 0;
+  align-content: start;
   gap: 1rem;
   padding: 1.25rem;
   border: 1px solid #d7e1ee;
@@ -74,6 +83,21 @@
     font-size: 1.15rem;
     line-height: 1.2;
     letter-spacing: 0;
+  }
+
+  p:not(.profile-status) {
+    margin: 0;
+    color: #475569;
+    line-height: 1.5;
+  }
+
+  code {
+    overflow-wrap: anywhere;
+  }
+
+  canvas {
+    max-width: 100%;
+    height: auto;
   }
 
   input {
@@ -226,7 +250,7 @@
 
 @media (max-width: 900px) {
   .profile-page__layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

@@ -14,6 +14,7 @@ public static class IntegrationSeed
     public const string UserEmail = "user@example.com";
     public const string UserName = "integration-user";
     public const string UserPassword = "Password1";
+    public const string UserSecurityStamp = "integration-user-stamp";
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -60,6 +61,8 @@ public static class IntegrationSeed
 
         await userManager.AddToRoleAsync(user, SecurityPolicies.UserRole);
         await userManager.AddToRoleAsync(user, SecurityPolicies.AdminRole);
+        user.SecurityStamp = UserSecurityStamp;
+        await userManager.UpdateAsync(user);
     }
 
     private static void SeedDomain(ApplicationDbContext db)

@@ -27,14 +27,15 @@ public sealed class IdentityRoleInitializer(
                 await EnsureRoleExistsAsync(role);
             }
 
-            var adminEmails = GetConfiguredAdminEmails();
+            var adminIds = configuration.GetSection("Authentication:AdminUserIds")
+                .Get<string[]>() ?? [];
             var users = await userManager.Users.ToListAsync(cancellationToken);
 
             foreach (var user in users)
             {
                 await EnsureUserRoleAsync(user, SecurityPolicies.UserRole);
 
-                if (IsConfiguredAdmin(user, adminEmails))
+                if (adminIds.Any(id => string.Equals(id.Trim(), user.Id, StringComparison.Ordinal)))
                 {
                     await EnsureUserRoleAsync(user, SecurityPolicies.AdminRole);
                 }
@@ -68,26 +69,6 @@ public sealed class IdentityRoleInitializer(
 
         var result = await userManager.AddToRoleAsync(user, roleName);
         ThrowIfFailed(result, $"assign role '{roleName}' to user '{user.Id}'");
-    }
-
-    private HashSet<string> GetConfiguredAdminEmails()
-    {
-        var emails = configuration
-            .GetSection("Authentication:AdminEmails")
-            .Get<string[]>() ?? [];
-
-        return emails
-            .Select(x => x.Trim())
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-    }
-
-    private static bool IsConfiguredAdmin(
-        ApplicationUser user,
-        HashSet<string> adminEmails)
-    {
-        return !string.IsNullOrWhiteSpace(user.Email) &&
-               adminEmails.Contains(user.Email);
     }
 
     private static void ThrowIfFailed(IdentityResult result, string action)

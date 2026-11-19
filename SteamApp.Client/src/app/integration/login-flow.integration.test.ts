@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
 import { LoginComponent } from '../pages/login/login.component';
@@ -31,6 +31,7 @@ describe('Login flow integration tests', () => {
       providers: [
         { provide: AuthService, useValue: authService },
         { provide: Router, useValue: router },
+        { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap({}) } } },
       ],
     }).compileComponents();
 
@@ -63,6 +64,22 @@ describe('Login flow integration tests', () => {
 
     expect(authService.login).not.toHaveBeenCalled();
     expect(component.error).toBe('Enter your username and password');
+  });
+
+  it('shows the MFA challenge without navigating or retaining the password', () => {
+    authService.login.mockReturnValue(of({
+      requiresMfa: true,
+      challengeId: 'pending',
+      expiresAtUtc: new Date(Date.now() + 300_000).toISOString(),
+    }));
+    component.loginForm.patchValue({ emailOrUserName: 'tester', password: 'Password1' });
+
+    component.onSubmit();
+    fixture.detectChanges();
+
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(component.loginForm.controls.password.value).toBe('');
+    expect(fixture.nativeElement.textContent).toContain('Verify your sign-in');
   });
 
   it('submits registration data only when password rules are satisfied', () => {

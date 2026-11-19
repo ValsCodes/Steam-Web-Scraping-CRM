@@ -60,7 +60,14 @@ public class EmailService : IEmailService
 
     public async Task SendAsync(
         EmailMessage message,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        await TrySendAsync(message, cancellationToken, isVerification: false);
+
+    public Task<bool> TrySendVerificationAsync(EmailMessage message, CancellationToken cancellationToken) =>
+        TrySendAsync(message, cancellationToken, isVerification: true);
+
+    private async Task<bool> TrySendAsync(
+        EmailMessage message, CancellationToken cancellationToken, bool isVerification)
     {
         try
         {
@@ -92,6 +99,7 @@ public class EmailService : IEmailService
                     await smtpClient.DisconnectAsync(true, ct);
                 },
                 cancellationToken);
+            return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -99,7 +107,15 @@ public class EmailService : IEmailService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An error occurred while sending email.");
+            if (isVerification)
+            {
+                logger.LogWarning("Verification email delivery failed.");
+            }
+            else
+            {
+                logger.LogError(ex, "An error occurred while sending email.");
+            }
+            return false;
         }
     }
 

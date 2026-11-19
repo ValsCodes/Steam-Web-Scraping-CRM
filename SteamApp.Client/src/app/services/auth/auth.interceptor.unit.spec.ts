@@ -133,6 +133,22 @@ describe('AuthInterceptor unit tests', () => {
     expect(auth.expireSession).toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/session-expired'], { replaceUrl: true });
   });
+
+  it('keeps a newer session when a request sent with the old token returns 401', async () => {
+    auth.getToken.and.returnValue('old-token');
+    auth.isLoggedIn.and.returnValue(true);
+    const response = firstValueFrom(interceptor.intercept(
+      new HttpRequest('GET', 'https://localhost:7443/api/games'),
+      handleWith(() => {
+        auth.getToken.and.returnValue('replacement-token');
+        return throwError(() => new HttpErrorResponse({ status: 401 }));
+      }),
+    ));
+
+    await expectAsync(response).toBeRejectedWith(jasmine.any(HttpErrorResponse));
+    expect(auth.expireSession).not.toHaveBeenCalled();
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
 });
 
 function handleWith(

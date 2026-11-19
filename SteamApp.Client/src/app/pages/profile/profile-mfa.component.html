@@ -1,0 +1,65 @@
+<section class="profile-panel">
+<h3>Two-factor authentication</h3>
+
+@if (recoveryCodes(); as codes) {
+  <p>Save these backup codes in a safe place. Each works once and is shown only here.</p>
+  <ul aria-label="Backup codes">
+    @for (code of codes; track code) {
+      <li><code>{{ code }}</code></li>
+    }
+  </ul>
+  <div class="profile-actions">
+    <button type="button" (click)="recoveryCodes.set(null)">Done</button>
+  </div>
+} @else if (setup(); as enrollment) {
+  <p>Scan the QR code in your authenticator app, or enter the setup key manually.</p>
+  <canvas #qrCanvas aria-label="Authenticator setup QR code" [hidden]="qrError()"></canvas>
+  <p>Setup key <code>{{ enrollment.manualKey }}</code></p>
+  <form (submit)="$event.preventDefault(); enable(code.value)">
+    <div class="form-group">
+      <label for="mfa-setup-code">Authenticator code</label>
+      <input id="mfa-setup-code" #code inputmode="numeric" autocomplete="one-time-code"
+        required pattern="[0-9]{6}" maxlength="6" [disabled]="pending()" />
+    </div>
+    <div class="profile-actions">
+      <button type="submit" [disabled]="pending()">Enable</button>
+      <button type="button" class="profile-actions__secondary" [disabled]="pending()" (click)="setup.set(null)">
+        Cancel
+      </button>
+    </div>
+  </form>
+} @else if (status(); as current) {
+  @if (current.enabled) {
+    <p>Authenticator enabled. Backup codes remaining: {{ current.recoveryCodesRemaining }}.</p>
+    <div class="profile-actions">
+      <button type="button" [disabled]="pending() || requiresSignIn()" (click)="replaceCodes()">
+        Replace all backup codes
+      </button>
+      <button type="button" class="profile-actions__secondary" [disabled]="pending() || requiresSignIn()" (click)="disable()">
+        Disable two-factor authentication
+      </button>
+    </div>
+  } @else {
+    <p>Use an authenticator app to verify your sign-in.</p>
+    <div class="profile-actions">
+      <button type="button" [disabled]="pending() || requiresSignIn()" (click)="beginSetup()">Set up authenticator</button>
+    </div>
+  }
+} @else if (!pending()) {
+  <div class="profile-actions">
+    <button type="button" (click)="load()">Retry</button>
+  </div>
+}
+
+@if (pending()) {
+  <p role="status">Working…</p>
+}
+@if (error()) {
+  <p class="profile-status profile-status--error" role="alert">{{ error() }}</p>
+}
+@if (requiresSignIn()) {
+  <div class="profile-actions">
+    <button type="button" (click)="signInAgain()">Sign in again</button>
+  </div>
+}
+</section>

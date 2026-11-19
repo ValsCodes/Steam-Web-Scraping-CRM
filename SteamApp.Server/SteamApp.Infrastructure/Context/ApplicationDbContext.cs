@@ -46,6 +46,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<ApplicationUser>()
+            .HasIndex(user => user.NormalizedEmail)
+            .IsUnique()
+            .HasFilter("[NormalizedEmail] IS NOT NULL");
+
         modelBuilder.Entity<Game>(ConfigureUserOwnedEntity);
         modelBuilder.Entity<GameUrl>(entity =>
         {

@@ -26,18 +26,23 @@ public sealed class SteamAppFactory : WebApplicationFactory<Program>
     private readonly Dictionary<string, string?> originalEnvironment = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string?> environmentValues;
     private readonly SqliteConnection connection;
+    private readonly string? sharedDatabase;
 
     public SteamAppFactory(
         string environmentName = "IntegrationTesting",
         IReadOnlyDictionary<string, string?>? overrides = null,
-        bool applyDefaultConfiguration = true)
+        bool applyDefaultConfiguration = true,
+        string? sharedDatabase = null)
     {
         EnvironmentName = environmentName;
         SteamService = new FakeSteamService();
         WishlistService = new FakeWishlistService();
         EmailService = new CapturingEmailService();
         MessagePublisher = new CapturingMessagePublisher();
-        connection = new SqliteConnection("Data Source=:memory:");
+        this.sharedDatabase = sharedDatabase;
+        connection = new SqliteConnection(sharedDatabase == null
+            ? "Data Source=:memory:"
+            : new SqliteConnectionStringBuilder { DataSource = sharedDatabase, Mode = SqliteOpenMode.Memory, Cache = SqliteCacheMode.Shared }.ToString());
         connection.Open();
 
         environmentValues = applyDefaultConfiguration
@@ -74,7 +79,8 @@ public sealed class SteamAppFactory : WebApplicationFactory<Program>
         string scope = SecurityPolicies.UserScope,
         DateTime? expiresUtc = null,
         DateTime? authenticationTimeUtc = null,
-        bool includeAuthenticationTime = true)
+        bool includeAuthenticationTime = true,
+        bool includeSessionStamp = true)
     {
         var client = CreateAnonymousClient();
         client.DefaultRequestHeaders.Authorization =
@@ -84,7 +90,8 @@ public sealed class SteamAppFactory : WebApplicationFactory<Program>
                     scope,
                     expiresUtc,
                     authenticationTimeUtc,
-                    includeAuthenticationTime));
+                    includeAuthenticationTime,
+                    includeSessionStamp));
 
         return client;
     }
@@ -119,7 +126,12 @@ public sealed class SteamAppFactory : WebApplicationFactory<Program>
             services.RemoveAll<IDbContextFactory<ApplicationDbContext>>();
             services.RemoveAll<ApplicationDbContext>();
             services.AddDbContextFactory<ApplicationDbContext>(opts =>
-                opts.UseSqlite(connection));
+            {
+                if (sharedDatabase == null)
+                    opts.UseSqlite(connection);
+                else
+                    opts.UseSqlite(connection.ConnectionString);
+            });
             services.Configure<HttpsRedirectionOptions>(opts =>
                 opts.HttpsPort = 443);
 

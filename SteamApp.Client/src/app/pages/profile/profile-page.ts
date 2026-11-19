@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
@@ -8,8 +8,11 @@ import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 
 import { ConfirmDialogComponent } from '../../components/confirm-dialog.component';
+import { ProfileMfaComponent } from './profile-mfa.component';
 import {
   AuthService,
+  ExternalProvider,
+  SignInMethods,
   UpdateUserProfileRequest,
   UserProfile,
 } from '../../services';
@@ -22,7 +25,8 @@ interface PasswordRequirement {
 @Component({
   selector: 'steam-profile-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ProfileMfaComponent],
+  host: { class: 'profile-page-shell' },
   templateUrl: './profile-page.html',
   styleUrl: './profile-page.scss',
 })
@@ -37,8 +41,11 @@ export class ProfilePage implements OnInit {
   profileError: string | null = null;
   profileMessage: string | null = null;
   passwordError: string | null = null;
-  passwordMessage: string | null = null;
   deleteError: string | null = null;
+  readonly signInMethods = signal<SignInMethods | null>(null);
+  readonly externalProviders = signal<ExternalProvider[]>([]);
+  readonly externalError = signal<string | null>(null);
+  readonly linkingProvider = signal<ExternalProvider | null>(null);
 
   private profile: UserProfile | null = null;
 
@@ -69,6 +76,27 @@ export class ProfilePage implements OnInit {
 
   ngOnInit(): void {
     this.loadProfile();
+    this.auth.getSignInMethods().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: methods => this.signInMethods.set(methods),
+      error: () => this.externalError.set('Could not load sign-in methods.'),
+    });
+    if (window.location.protocol === 'https:') {
+      this.auth.getExternalProviders().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: providers => this.externalProviders.set(providers),
+        error: () => this.externalError.set('Could not load available sign-in providers.'),
+      });
+    }
+  }
+
+  connectProvider(provider: ExternalProvider): void {
+    this.externalError.set(null);
+    this.linkingProvider.set(provider);
+    this.auth.beginExternalSignIn(provider, true).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      error: error => {
+        this.linkingProvider.set(null);
+        this.externalError.set(this.getErrorMessage(error, 'Could not connect the provider.'));
+      },
+    });
   }
 
   get passwordRequirements(): PasswordRequirement[] {
@@ -118,7 +146,6 @@ export class ProfilePage implements OnInit {
     }
 
     this.passwordError = null;
-    this.passwordMessage = null;
 
     const currentPassword = this.passwordForm.controls.currentPassword.value;
     const newPassword = this.passwordForm.controls.newPassword.value;
@@ -156,7 +183,7 @@ export class ProfilePage implements OnInit {
       .subscribe({
         next: () => {
           this.passwordForm.reset();
-          this.passwordMessage = 'Password changed';
+          void this.router.navigate(['/login'], { replaceUrl: true, queryParams: { returnTo: 'profile' } });
         },
         error: error => {
           this.passwordError = this.getErrorMessage(error, 'Password change failed');
@@ -165,14 +192,15 @@ export class ProfilePage implements OnInit {
   }
 
   deleteAccount(): void {
-    if (this.isDeleting) {
+    const methods = this.signInMethods();
+    if (this.isDeleting || !methods) {
       return;
     }
 
     this.deleteError = null;
 
     const password = this.deleteForm.controls.password.value;
-    if (!password) {
+    if (methods.hasPassword && !password) {
       this.deleteError = 'Enter your password';
       return;
     }
@@ -197,8 +225,10 @@ export class ProfilePage implements OnInit {
 
         this.isDeleting = true;
 
-        this.auth
-          .deleteProfile({ password })
+        const request = methods.hasPassword
+          ? this.auth.deleteProfile({ password })
+          : this.auth.deleteExternalProfile();
+        request
           .pipe(
             takeUntilDestroyed(this.destroyRef),
             finalize(() => {
